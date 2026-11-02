@@ -19,6 +19,16 @@ No API keys are needed. Needs Docker Desktop and Ollama running.
 
 **Don't train at the same time as ContextLensV2.** They share one 8 GB GPU. If there isn't enough free GPU memory for a task, the run stops immediately and tells you how much it needs.
 
+## Set up the environment
+
+```
+py -3.12 -m venv .venv
+.venv/Scripts/python -m pip install torch --index-url https://download.pytorch.org/whl/cu128
+.venv/Scripts/python -m pip install -e ".[dev]"
+```
+
+The default Windows torch wheel is CPU-only, so install the CUDA build first. `cu128` matches this driver (CUDA 13.1 reported by `nvidia-smi`). CI uses the CPU wheel.
+
 ## How a task gets finished
 
 ```

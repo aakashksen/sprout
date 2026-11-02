@@ -2,7 +2,7 @@
 name = "sprout"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = ["pypdf"]
 
 [project.optional-dependencies]
 dev = ["pytest", "ruff"]

@@ -237,9 +237,9 @@
       "status": "done",
       "started_at": "2026-11-02T23:22:46+00:00",
       "verified": {
-        "commit": "d1ab6d3cabfa1f8fba43069f5307c3db163d23bf",
+        "commit": "33a838751c88ea37ded70e290348e36b4fb48a5f",
         "passed": true,
-        "at": "2026-11-02T23:25:33+00:00"
+        "at": "2026-11-02T23:49:16+00:00"
       },
       "done_at": "2026-11-02T23:27:42+00:00"
     },
@@ -277,9 +277,9 @@
       "status": "done",
       "started_at": "2026-11-02T23:35:10+00:00",
       "verified": {
-        "commit": "fe4771c8001eacf3b76a8cb1dd39395fc6ac4e4d",
+        "commit": "33a838751c88ea37ded70e290348e36b4fb48a5f",
         "passed": true,
-        "at": "2026-11-02T23:45:06+00:00"
+        "at": "2026-11-02T23:49:18+00:00"
       },
       "attempts": 1,
       "reason": "wrong_crop-008 and wrong_crop-027 gold labels wrong: the disease IS covered for the stated crop (strawberry2.pdf p4; tomatodoc2.md Anthracnose); test does not check trap disease absent from stated crop's chunks",

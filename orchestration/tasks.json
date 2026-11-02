@@ -85,7 +85,8 @@
       "title": "Metrics and statistics",
       "owner": "agent",
       "deps": [
-        "T0.1"
+        "T1.1",
+        "T2.1"
       ],
       "acceptance": [
         "{py} -m pytest tests/test_metrics.py -q"
@@ -98,6 +99,7 @@
       "title": "Run records and claims",
       "owner": "agent",
       "deps": [
+        "T1.1",
         "T2.2"
       ],
       "acceptance": [
@@ -146,6 +148,7 @@
       ],
       "acceptance": [
         "{py} -m pytest tests/test_e3.py -q",
+        "{py} -m sprout.eval.check_run E3 --min-n 1000 --split lab_dev",
         "{py} -m sprout.eval.check_run E3 --min-n 200 --split field_dev"
       ],
       "status": "pending"
@@ -264,7 +267,8 @@
       "deps": [
         "T6.2",
         "T6.3",
-        "T2.3"
+        "T2.3",
+        "T5.2"
       ],
       "acceptance": [
         "{py} -m pytest tests/test_answer.py -q",
@@ -350,7 +354,9 @@
       ],
       "acceptance": [
         "{py} -m pytest tests/test_e9.py -q",
-        "{py} -m sprout.eval.check_run E9 --min-n 200 --split field_test"
+        "{py} -m sprout.eval.check_run E9 --min-n 200 --split field_test",
+        "{py} -m sprout.eval.check_run E9 --min-n 1000 --split lab_test",
+        "{py} -m sprout.eval.check_run E9 --min-n 50 --split rag_test"
       ],
       "status": "pending"
     },

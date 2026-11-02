@@ -13,6 +13,8 @@ claude --model opus --remote-control
 Say yes when Claude Code asks whether to trust the folder, or its permissions won't load. Then type `/run-plan 40`. It keeps going until it
 finishes or needs you. `/plan-status` shows where things stand.
 
+Don't use `tools/run_loop.py` for this project: each of its sessions exits when its turn ends, which would kill a training run in the background.
+
 No API keys are needed. Needs Docker Desktop and Ollama running.
 
 **Don't train at the same time as ContextLensV2.** They share one 8 GB GPU. If the other project is training, this one finishes its non-GPU tasks and then stops and tells you.

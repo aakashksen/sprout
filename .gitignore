@@ -5,7 +5,10 @@ __pycache__/
 .env.*
 !.env.example
 node_modules/
-datasets/raw/
+datasets/raw/*
+!datasets/raw/*.dvc
+*.egg-info/
+.dvc/tmp/
 knowledge/raw/
 models/
 mlruns/

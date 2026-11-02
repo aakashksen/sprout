@@ -34,15 +34,15 @@ ContextLens covers agents, LLM fine-tuning, and C++. SPROUT covers **training ri
 | Area | Decision | Reason |
 |---|---|---|
 | Data | PlantVillage, as already on this machine, for training; PlantDoc and similar for real-world testing, licenses permitting | Measures the real gap |
-| Splits | Group near-duplicates with perceptual hashing, then split by group; permanent manifests | Files were renamed `image (N).JPG`, so source leaf IDs aren't available |
+| Splits | Group near-duplicates with perceptual hashing, including flips and rotations, then split by group; permanent manifests | Files were renamed `image (N).JPG`, so source leaf IDs aren't available. Same-leaf photos that look different can still slip through, so reports say "near-duplicate-grouped" |
 | Primary model | ConvNeXt-Tiny fine-tuned from ImageNet weights | The original architecture, retrained cleanly |
 | Comparisons | HOG and color histograms + XGBoost; frozen ConvNeXt head; DINOv2 | Classic ML and a newer model |
-| Fixes for real photos | Background randomization, stronger augmentation, then targeted fine-tuning on a real-photo training split | Tests the likely cause of the fall |
+| Fixes for real photos | Background randomization using masks made from `lab_train` images, stronger augmentation, then targeted fine-tuning on a real-photo training split | Tests the likely cause of the fall |
 | Understanding | Grad-CAM | Shows what the model looks at |
 | Statistics | Bootstrap confidence intervals, McNemar's test, ECE calibration | Uses the stats major |
 | Tracking | MLflow for runs, DVC for data, run records for claims | Reproducibility |
 | Serving | ONNX with dynamic or static quantization, CPU | Cheap hosting and a real optimization result |
-| RAG | ChromaDB + BM25, cross-encoder rerank, metadata filters | The original claimed hybrid and rerank without having them; now it's built, and claimed only if measured to help |
+| RAG | ChromaDB + BM25, fastembed (ONNX) embeddings and cross-encoder rerank, metadata filters | The original claimed hybrid and rerank without having them; now it's built, and claimed only if measured to help |
 | LLM | DeepSeek removed from the build. Ollama locally, and Claude through the `claude -p` CLI as a comparison, with no API key | Available now |
 | App | Keep Flask and the existing templates, split into modules | Enough for the product; rewriting adds no value |
 | Hosting | Google Cloud Run, only when the person does it | They hold the account |

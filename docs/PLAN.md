@@ -45,7 +45,7 @@ Item numbers like (#3) refer to `docs/backlog.md`.
 
 ### T0.1: Project setup
 **Files:** `pyproject.toml`, `src/sprout/__init__.py`, `.env.example`, `.github/workflows/ci.yml`, `tests/test_smoke.py`, `docs/backlog.md` already exists.
-**Do:** Create `.venv` with `py -3.12 -m venv .venv`, and install with `.venv/Scripts/python -m pip install -e ".[dev]"` (pytest, ruff). Set `pythonpath = ["src"]` for pytest, exclude `legacy` from ruff, and register the `real` marker, excluded by default (`addopts = "-m 'not real'"`). Install CUDA PyTorch from `https://download.pytorch.org/whl/` with the index matching this driver, since the default Windows wheel is CPU-only. Put the command in the README. CI runs ruff and pytest, with CPU torch.
+**Do:** Create `.venv` with `py -3.12 -m venv .venv`, and install with `.venv/Scripts/python -m pip install -e ".[dev]"` (pytest, ruff; add other packages to the extras as tasks need them). Set `pythonpath = ["src"]` for pytest, exclude `legacy` from ruff, and register the `real` marker, excluded by default (`addopts = "-m 'not real'"`). Install CUDA PyTorch from `https://download.pytorch.org/whl/` with the index matching this driver, since the default Windows wheel is CPU-only. Put the command in the README. CI runs ruff and pytest, with CPU torch.
 **Tests:** `test_package_imports`; `test_real_marker_excluded_by_default`.
 **Accept:** `{py} -m pytest tests/test_smoke.py tests/test_orchestration.py -q`; `{py} -m ruff check .`; `{py} -c "import torch; assert torch.cuda.is_available()"`.
 
@@ -63,15 +63,15 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 
 ### T1.1: Lab data, grouping, and manifests
 **Files:** `src/sprout/data/inventory.py`, `src/sprout/data/grouping.py`, `src/sprout/data/splits.py`, `src/sprout/data/check_splits.py`, `datasets/manifests/lab.csv`, `.dvc` setup, `tests/test_lab_data.py`.
-**Produces:** `inventory(root) -> DataFrame`; `group_near_duplicates(paths, max_distance=4) -> dict[path, group_id]` with perceptual hashes (imagehash); `make_splits(df, seed=13, ratios=(.7,.15,.15)) -> DataFrame` stratified by class and split by group; `load_manifest(name) -> DataFrame` with `path, label, group, split, sha1`; `dataset_hash(manifest) -> str`.
-**Do:** Copy data into `datasets/raw/lab/` and track it with DVC (local). Resolves #2, #3, #4, #14. Write counts by class and split to `docs/data-counts.md`, noting that the 39 classes include healthy classes and a background class, so they aren't "38 diseases".
-**Tests:** `test_duplicate_images_share_a_group` (an image and a resized copy); `test_no_group_in_two_splits`; `test_split_is_deterministic`; `test_every_class_in_every_split`; `test_hash_changes_when_a_label_changes`.
+**Produces:** `inventory(root) -> DataFrame`; `group_near_duplicates(paths, max_distance=4) -> dict[path, group_id]` with perceptual hashes (imagehash) compared across flips and 90° rotations; `make_splits(df, seed=13, ratios=(.7,.15,.15)) -> DataFrame` stratified by class and split by group; `load_manifest(name) -> DataFrame` with `path, label, group, split, sha1`; `dataset_hash(manifest) -> str`.
+**Do:** Copy data into `datasets/raw/lab/` with `run_in_background` or a long timeout, and track it with `.venv/Scripts/python -m dvc` (local remote). The `.dvc` pointer file is committed. Resolves #2, #3, #4, #14. Write counts by class and split to `docs/data-counts.md`, noting that the 39 classes include healthy classes and a background class, so they aren't "38 diseases".
+**Tests:** `test_duplicate_images_share_a_group` (an image with a resized, a flipped, and a rotated copy); `test_no_group_in_two_splits`; `test_split_is_deterministic`; `test_every_class_in_every_split`; `test_hash_changes_when_a_label_changes`.
 **Accept:** `{py} -m pytest tests/test_lab_data.py -q`; `{py} -m sprout.data.check_splits lab`.
 
 ### T1.2: Real-photo and not-plant sets
 **Files:** `src/sprout/data/field.py`, `datasets/manifests/field.csv`, `datasets/manifests/not_plant.csv`, `datasets/class_map.csv`, `datasets/review/field-sample.md`, `tests/test_field_data.py`.
-**Do:** Download approved sets. Write `class_map.csv`, mapping real-photo classes to lab classes, and marking unmappable ones excluded with a reason. Deduplicate against each other and against lab. Split by group into `field_train`, `field_dev`, `field_test` (.5,.25,.25), which must not be re-split later. Write a random sample of 50 with labels and thumbnails to the review file.
-**Tests:** `test_unmapped_classes_excluded`; `test_no_field_image_duplicates_a_lab_image`; `test_no_group_in_two_field_splits`; `test_field_test_has_at_least_200_images`; `test_shared_class_list_is_recorded`.
+**Do:** Download only sets marked `Approved: yes`. If PlantDoc isn't approved, block this task with the reason. Write `class_map.csv`, mapping real-photo classes to lab classes, and marking unmappable ones excluded with a reason. Deduplicate against each other and against lab. Split by group, stratified by class, into `field_train`, `field_dev`, `field_test` (.5,.25,.25), which must not be re-split later. Every shared class must appear in `field_test`, and those that can't are dropped from the shared list with a recorded reason. Write a random sample of 50 with labels and thumbnails to the review file.
+**Tests:** `test_unmapped_classes_excluded`; `test_no_field_image_duplicates_a_lab_image`; `test_no_group_in_two_field_splits`; `test_field_test_has_at_least_200_images`; `test_every_shared_class_is_in_field_test`; `test_shared_class_list_is_recorded`.
 **Accept:** `{py} -m pytest tests/test_field_data.py -q`; `{py} -m sprout.data.check_splits field`.
 
 ### H2: Review labels
@@ -103,7 +103,7 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 
 ### T2.3: Run records and claims
 **Files:** `src/sprout/eval/records.py`, `src/sprout/eval/check_run.py`, `src/sprout/eval/claims.py`, `results/claims.json`, `tests/test_records.py`.
-**Produces:** `write_run(experiment, split, config, models, metrics, intervals, attempts, predictions, dataset_hash, *, root=ROOT, allow_dirty=False, notes="") -> Path`, with the fields in `docs/TESTING.md`; `allow_dirty` exists for tests only. `python -m sprout.eval.check_run <E#> [--min-n N] [--split S]`, enforcing all rules in `docs/TESTING.md`. Image splits read their manifests; `rag_dev` and `rag_test` read `datasets/rag/questions.jsonl`; `perf` hashes its fixed image list and uses that list's size. `python -m sprout.eval.claims check`.
+**Produces:** `write_run(experiment, split, config, models, metrics, intervals, attempts, predictions, dataset_hash, *, root=ROOT, allow_dirty=False, notes="") -> Path`, with the fields in `docs/TESTING.md`; `allow_dirty` exists for tests only. `python -m sprout.eval.check_run <E#> [--min-n N] [--split S]`, enforcing all rules in `docs/TESTING.md`. The dirty check ignores `orchestration/`, as `taskctl` does. Image splits read their manifests; `rag_dev` and `rag_test` read `datasets/rag/questions.jsonl`; `perf` hashes its fixed image list and uses that list's size. `python -m sprout.eval.claims check`.
 **Tests:** one failing case for each `check_run` rule, plus `test_write_run_refuses_dirty_tree`; `test_claim_without_matching_run_fails`; `test_claim_value_must_equal_metric_in_run`.
 **Accept:** `{py} -m pytest tests/test_records.py -q`; `{py} -m sprout.eval.claims check`.
 
@@ -113,19 +113,19 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 
 ### T3.1: Experiment E1, clean lab baseline
 **Files:** `src/sprout/experiments/e1_lab.py`, `configs/e1.json`, `tests/test_e1.py`.
-**Do:** Train ConvNeXt-Tiny from ImageNet weights with the fixed pipeline, logging to MLflow. Evaluate on `lab_dev`. Also evaluate the old checkpoint on `lab_dev`, labeled `legacy, may have seen these images`, because its split history is unknown (#5). Save a per-class report and confusion matrix. Reconcile the old 99.97%, 98.5%, and 97.5% figures in `docs/data-counts.md` (#15).
+**Do:** Train ConvNeXt-Tiny from ImageNet weights with the fixed pipeline, logging to MLflow. Evaluate on `lab_dev`. Also evaluate the old checkpoint on `lab_dev`, labeled `legacy, may have seen these images`, because its split history is unknown (#5). Its class order comes from the hardcoded list in `legacy/PlantProject/application.py`; confirm the order gives a sensible score, or record that it couldn't be established. Save a per-class report and confusion matrix. Reconcile the old 99.97%, 98.5%, and 97.5% figures in `docs/data-counts.md` (#15).
 **Tests:** runner on a tiny fixture and tiny model writes a valid record; `test_legacy_result_is_labeled`.
 **Accept:** `{py} -m pytest tests/test_e1.py -q`; `{py} -m sprout.eval.check_run E1 --min-n 1000 --split lab_dev`.
 
 ### T3.2: Experiment E2, domain shift
-**Files:** `src/sprout/explain/gradcam.py`, `src/sprout/experiments/e2_field.py`, `results/e2-gradcam/`, `results/error-analysis-e2.md`, `tests/test_e2.py`.
-**Do:** Run the E1 model on `field_dev`, over shared classes. Save Grad-CAM images for correct and wrong predictions on lab and real photos, and measure what share of Grad-CAM energy falls outside the leaf, using segmented images where available. Hand-categorize 50 mistakes: blur, background, similar symptoms, wrong label, unsupported condition (#20, #21).
+**Files:** `src/sprout/data/masks.py`, `src/sprout/explain/gradcam.py`, `src/sprout/experiments/e2_field.py`, `results/e2-gradcam/`, `results/error-analysis-e2.md`, `tests/test_e2.py`.
+**Do:** Run the E1 model on `field_dev`, over shared classes. Save Grad-CAM images for correct and wrong predictions on lab and real photos, and measure what share of Grad-CAM energy falls outside the leaf, using masks from `sprout.data.masks`. Check mask quality on a sample, and if masks are unreliable for real photos, report the metric only for lab images and record why. Hand-categorize 50 mistakes: blur, background, similar symptoms, wrong label, unsupported condition (#20, #21).
 **Tests:** `test_gradcam_output_matches_image_size`; `test_gradcam_highlights_the_only_signal` (a tiny model on a synthetic image); `test_only_shared_classes_are_scored`.
 **Accept:** `{py} -m pytest tests/test_e2.py -q`; `{py} -m sprout.eval.check_run E2 --min-n 200 --split field_dev`.
 
 ### T3.3: Experiment E3, baselines
 **Files:** `src/sprout/baselines/classic.py`, `src/sprout/baselines/frozen.py`, `src/sprout/baselines/dino.py`, `src/sprout/experiments/e3_baselines.py`, `tests/test_e3.py`.
-**Do:** On `lab_dev` and `field_dev`, compare: HOG and color histograms with XGBoost; frozen ConvNeXt with a trained head; DINOv2 (small) with a trained head; and the E1 fine-tuned model. Use paired statistics. Record training time and model size (#18).
+**Do:** Write one record per split. On `lab_dev` and `field_dev`, compare: HOG and color histograms with XGBoost; frozen ConvNeXt with a trained head; DINOv2 (small) with a trained head; and the E1 fine-tuned model. Use paired statistics. Record training time and model size (#18).
 **Tests:** `test_features_are_stable`; `test_xgboost_learns_a_separable_fixture`; `test_frozen_backbone_has_no_grad`; `test_record_includes_all_four_systems`.
 **Accept:** `{py} -m pytest tests/test_e3.py -q`; `{py} -m sprout.eval.check_run E3 --min-n 200 --split field_dev`.
 
@@ -135,7 +135,7 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 
 ### T4.1: Experiment E4, improvements
 **Files:** `src/sprout/train/augment.py`, `src/sprout/experiments/e4_improve.py`, `tests/test_e4.py`.
-**Do:** One change at a time, selected on `field_dev`: stronger color and blur augmentation; background randomization with segmented leaves pasted on varied backgrounds; both; then targeted fine-tuning with `field_train` on the best one. Include at most 6 training runs, all in `attempts`. Report before and after with paired statistics, plus Grad-CAM energy outside the leaf. If nothing beats the baseline, record that, and keep the baseline (#19).
+**Do:** One change at a time, selected on `field_dev`: stronger color and blur augmentation; background randomization, with leaves cut out by masks from `sprout.data.masks` (HSV and GrabCut on `lab_train` images only, so nothing leaks) and pasted on varied backgrounds; official segmented images are used only if they can be hash-matched to `lab_train`; if good masks can't be made, record this arm as not run, drop it from the bullet, and continue; both; then targeted fine-tuning with `field_train` on the best one. Include at most 6 training runs, all in `attempts`. Report before and after with paired statistics, plus Grad-CAM energy outside the leaf. If nothing beats the baseline, record that, and keep the baseline (#19).
 **Tests:** `test_background_paste_keeps_leaf_pixels_and_changes_background`; `test_field_test_is_never_read` (the loader raises if asked); `test_field_train_only_in_fine_tuning_stage`; `test_attempts_lists_each_run`.
 **Accept:** `{py} -m pytest tests/test_e4.py -q`; `{py} -m sprout.eval.check_run E4 --min-n 200 --split field_dev`.
 
@@ -152,7 +152,7 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 
 ### T5.1: Experiment E6, ONNX and quantization
 **Files:** `src/sprout/serve/export.py`, `src/sprout/experiments/e6_onnx.py`, `tests/test_e6.py`.
-**Produces:** `export_onnx(checkpoint, path)`; `quantize(path, mode) -> Path`; `OnnxModel(path).predict(image) -> probs`.
+**Produces:** `export_onnx(checkpoint, path)`; `quantize(path, mode, calibration_images=None) -> Path`, with calibration images from `lab_dev` for static mode; `OnnxModel(path).predict(image) -> probs`.
 **Do:** Compare PyTorch CPU, ONNX, and quantized ONNX: size, p50 and p95 latency on CPU, macro-F1 on `field_dev`, and share of predictions that changed. State the CPU in the record. If quantization costs a measurable loss, report it, and choose by the numbers.
 **Tests:** `test_onnx_matches_torch_within_tolerance` (tiny model); `test_quantized_runs_and_is_smaller`; `test_class_map_travels_with_the_model`.
 **Accept:** `{py} -m pytest tests/test_e6.py -q`; `{py} -m sprout.eval.check_run E6 --min-n 200 --split field_dev`.
@@ -175,6 +175,7 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 
 ### T6.2: Retrieval
 **Files:** `src/sprout/rag/retrieve.py`, `tests/test_retrieve.py`.
+**Do:** Use `fastembed` (ONNX) for embeddings and reranking, so serving needs no PyTorch. Choose models it supports, and record them.
 **Produces:** `Retriever.search(query, *, crop=None, disease=None, k=8, mode="hybrid", rerank=True) -> list[Passage]` with `Passage: text, source, page, crop, score`; modes `dense`, `bm25`, `hybrid`. Filters each passage by score, with general guidance as a controlled fallback. The search query is separate from the conversation instructions. Embedding model and distance metric are stated in config (#37–#43).
 **Tests:** `test_crop_filter_excludes_other_crops`; `test_general_docs_only_as_fallback`; `test_low_score_passages_are_dropped_individually`; `test_bm25_finds_exact_disease_name`; `test_passage_carries_source_and_page`; `test_empty_result_is_empty_not_error`.
 **Accept:** `{py} -m pytest tests/test_retrieve.py -q`.
@@ -188,7 +189,7 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 ### T6.4: Experiment E7, answers
 **Files:** `src/sprout/llm/client.py`, `src/sprout/rag/answer.py`, `src/sprout/rag/prompts/`, `src/sprout/experiments/e7_rag.py`, `tests/test_answer.py`.
 **Produces:** `LLMClient.complete(messages, *, max_tokens, timeout_s) -> LLMResult`; `FakeLLM`, `OllamaClient`, `ClaudeCodeClient(model="haiku")`; `class LLMError`; `answer(question, *, identification, history, retriever, llm) -> Answer` with `text, citations, grounded: bool, asks_for: list[str]`.
-**Do:** `ClaudeCodeClient` runs `claude -p` through `shutil.which`, sends the prompt on stdin, and uses `--output-format json --tools "" --setting-sources "" --strict-mcp-config --disable-slash-commands --no-session-persistence --max-turns 1`, from a temp folder. It treats usage limits or a nonzero exit as `LLMError`, and refuses past the cap. Answers separate instructions, evidence, and user text, carry the diagnosis's uncertainty, use bounded history, and ask for missing details that matter. On dev: compare dense, hybrid, and hybrid + rerank for retrieval, then prompt versions for faithfulness and abstention, one change at a time, on one local model. Run the best on `ClaudeCodeClient` over at most 100 questions as a comparison. The judge must differ from the writer. Resolves #37, #46–#51, #54, #55, #57.
+**Do:** `ClaudeCodeClient` runs `claude -p` through `shutil.which`, sends the prompt on stdin, and uses `--output-format json --tools "" --setting-sources "" --strict-mcp-config --disable-slash-commands --no-session-persistence --max-turns 1`, from a temp folder. It treats usage limits or a nonzero exit as `LLMError`, and refuses past the cap. Answers separate instructions, evidence, and user text, carry the diagnosis's uncertainty, use bounded history, and ask for missing details that matter. On dev: compare dense, hybrid, and hybrid + rerank for retrieval, then prompt versions for faithfulness and abstention, one change at a time, on one local model. Run the best on `ClaudeCodeClient` over at most 100 questions as a comparison. The local judge must differ from the writer, and Claude is never the judge. Writes per-claim judgments to a file. `gemma4` as installed is the local model; don't pull others. Resolves #37, #46–#51, #54, #55, #57.
 **Tests:** `test_answer_cites_real_passages_only`; `test_no_passages_says_no_supporting_document`; `test_retrieval_failure_is_visible`; `test_llm_outage_returns_unavailable_not_invented_text`; `test_tomato_question_cannot_cite_apple`; `test_followup_gets_bounded_history`; `test_uncertain_diagnosis_is_not_stated_as_fact`; `test_chemical_advice_says_check_the_label`; `test_call_cap_refuses_and_makes_no_call`; `test_claude_command_has_no_tools` (stubbed process).
 **Accept:** `{py} -m pytest tests/test_answer.py -q`; `{py} -m sprout.eval.check_run E7 --min-n 50 --split rag_dev`.
 
@@ -198,7 +199,7 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 
 ### T7.1: Backend rebuild
 **Files:** `src/sprout/web/` (split from `legacy/PlantProject/application.py`), `tests/test_web.py`.
-**Do:** Move to an app factory with routes in modules, and one explicit database setup. Replace process-local state with database records scoped to the user and analysis. Config comes from the environment, with no default secret in production mode. Add CSRF, secure cookies when on HTTPS, safe redirects, upload checks, private uploads per user, payload validation, rate limits, API timeouts, and separate liveness and readiness. Store the model prediction and the user's selection separately. Resolves #27–#29, #58, #61, #63–#71, #76–#79.
+**Do:** Move to an app factory with routes in modules, and one explicit database setup. Review the hardcoded care recommendations against sources, keeping those with sources and labeling or removing the rest (#52). Replace process-local state with database records scoped to the user and analysis. Config comes from the environment, with no default secret in production mode. Add CSRF, secure cookies when on HTTPS, safe redirects, upload checks, private uploads per user, payload validation, rate limits, API timeouts, and separate liveness and readiness. Store the model prediction and the user's selection separately. Resolves #27–#29, #52, #58, #61, #63–#71, #76–#79.
 **Tests:** `test_prediction_and_user_selection_are_stored_separately`; `test_refresh_does_not_overwrite_selection`; `test_user_cannot_see_another_users_upload_or_history`; `test_open_redirect_is_refused`; `test_csrf_required_on_post`; `test_non_image_upload_rejected`; `test_rate_limit_applies`; `test_ready_false_when_model_missing`; `test_two_app_instances_share_state`; `test_delete_removes_row_and_file`.
 **Accept:** `{py} -m pytest tests/test_web.py -q`.
 
@@ -229,13 +230,13 @@ Optional for the build. See `docs/HUMAN-GATES.md`.
 
 ### T8.1: Experiment E9, final test
 **Files:** `src/sprout/experiments/e9_final.py`, `tests/test_e9.py`.
-**Do:** Freeze configurations chosen on dev, and commit them before touching test. Run once on `lab_test`, `field_test`, and RAG test: clean baseline, improved model, XGBoost, DINOv2, with and without abstention, and the quantized final model. Report lab and real-photo results separately.
+**Do:** Freeze configurations chosen on dev, and commit them before touching test. Run once on `lab_test`, `field_test`, and `rag_test`, one record each: clean baseline, improved model, XGBoost, DINOv2, with and without abstention, and the quantized final model. Report lab and real-photo results separately, with `lab_test` also scored on shared classes. RAG uses the local model; any Claude comparison stays within the call cap.
 **Tests:** `test_refuses_when_config_not_committed`; `test_refuses_second_test_run_without_override_note`.
 **Accept:** `{py} -m pytest tests/test_e9.py -q`; `{py} -m sprout.eval.check_run E9 --min-n 200 --split field_test`.
 
 ### T8.2: Report, README, and bullets
 **Files:** `docs/REPORT.md`, `README.md`, `results/claims.json`, `docs/RESUME-TARGETS.md`, `docs/interview-notes.md`, `tools/check_report_numbers.py`.
-**Do:** Write a model and evaluation report: data, splits, baselines, every experiment including failures, limits, and failure examples. Review hardcoded care recommendations against sources (#52). Fill `results/claims.json` from run records, then fill the bullets, rewording any that results don't support. Correct the README's claims (#90–#93). `docs/interview-notes.md` explains each decision, tradeoff, and failure, so the person can defend them.
+**Do:** Write a model and evaluation report: data, splits, baselines, every experiment including failures, limits, and failure examples. Fill `results/claims.json` from run records, then fill the bullets, rewording any that results don't support. Correct the README's claims (#90–#93). `docs/interview-notes.md` explains each decision, tradeoff, and failure, so the person can defend them.
 **Tests:** `tools/check_report_numbers.py` fails if a number in `docs/REPORT.md` or the bullets isn't in a run record, if any `[placeholder]` remains, or if `results/claims.json` is empty.
 **Accept:** `{py} -m sprout.eval.claims check`; `{py} tools/check_report_numbers.py`; `{py} -m pytest -q`.
 

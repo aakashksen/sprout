@@ -21,7 +21,7 @@
 | `field_test` | Real photos | Final real-world score, once |
 | `not_plant` | Public non-plant images | Rejection rate |
 
-Real-photo results are only reported over classes both datasets share. Report those classes explicitly.
+Real-photo results are only scored on classes both datasets share, and the list is reported. The model keeps all its outputs, as it would in real use, so choosing a class outside the list counts as wrong. Masking those outputs is a secondary number, labeled as such. Whenever lab and real-photo numbers are compared, the lab number is also scored on shared classes. Classes with under 10 test images are shown but not called out individually.
 
 Choose settings on dev. Use test once, on the chosen configuration. If test results influence a decision, record that and draw a new split. `lab` and `field` numbers never get merged or blurred together.
 
@@ -45,10 +45,10 @@ Run every system on the same images with the same seed. Report a 95% bootstrap c
 
 ## Run records
 Every experiment writes `results/runs/<experiment>-<timestamp>.json`:
-`run_id, experiment, git_commit, dirty, dataset_hash, split, config, models, n, metrics, intervals, attempts, claude_calls, labels_reviewed, predictions_path, started_at, finished_at, notes`.
-Predictions are saved, so metrics can be recomputed. `attempts` lists every setting tried, including the failures.
+`run_id, experiment, git_commit, dirty, dataset_hash, split, subset, config, models, n, metrics, measurements, judged, intervals, attempts, claude_calls, labels_reviewed, predictions_path, started_at, finished_at, notes`.
+One record per split. `metrics` must recompute from saved predictions. `measurements` (latency, memory, size, training time) keep their raw samples in a saved file. `judged` values (faithfulness) keep every per-claim judgment in a saved file. `subset` names a declared part of a split, such as `shared_classes` or `first_100`, and how to rebuild its IDs. `attempts` lists every setting tried, including failures; a single run lists itself.
 
-`check_run` fails when: a model name matches fake or stub; `dirty` is true; `dataset_hash` doesn't match the manifest; `git_commit` isn't an ancestor of HEAD; `n` differs from the split's size or is below `--min-n`; `attempts` is empty; a saved metric doesn't recompute from predictions; or, for a test split, a second record exists without an override note.
+`check_run` fails when: a model name matches fake or stub; `dirty` is true; `dataset_hash` doesn't match the manifest; `git_commit` isn't an ancestor of HEAD; `n` differs from the size of the split or declared subset, or is below `--min-n`; `attempts` is empty; a saved metric doesn't recompute from predictions, or a measurement or judged value doesn't match its saved file; or, for a test split, a second record exists without an override note.
 
 ## Provisional results
 Dev experiments may run before the person reviews labels (H2), with `labels_reviewed: false`. They guide choices but aren't claims. The final run (E9) needs H1 and H2. If H2 finds wrong labels, fix them and rerun what they affect.

@@ -31,7 +31,14 @@
       "acceptance": [
         "{py} tools/check_datasets_doc.py"
       ],
-      "status": "pending"
+      "status": "done",
+      "started_at": "2026-11-02T23:16:28+00:00",
+      "verified": {
+        "commit": "dfe8a52260af2f0823bb414a64f926c8546a7356",
+        "passed": true,
+        "at": "2026-11-02T23:21:40+00:00"
+      },
+      "done_at": "2026-11-02T23:22:28+00:00"
     },
     {
       "id": "H1",

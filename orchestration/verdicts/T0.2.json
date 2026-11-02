@@ -1,0 +1,21 @@
+{
+  "task": "T0.2",
+  "commit": "dfe8a52260af2f0823bb414a64f926c8546a7356",
+  "verdict": "PASS",
+  "checks": [
+    {"item": "HEAD equals commit; only orchestration/ dirty", "result": "pass", "evidence": "git rev-parse HEAD matches; git status shows only M orchestration/tasks.json"},
+    {"item": "Evidence log and acceptance command rerun", "result": "pass", "evidence": "log shows exit 0 RESULT PASS at this commit; py -3.12 tools/check_datasets_doc.py rerun gives rc=0; pytest tests/test_check_datasets_doc.py 5 passed"},
+    {"item": "Each required dataset recorded with URL/License/Size/Classes/Access/Approved", "result": "pass", "evidence": "docs/datasets.md has PlantVillage (local 39-class identified as re-release vs official 38-class), PlantDoc, PlantSeg, Open Images not_plant, segmented PlantVillage; each has all 4 checked lines"},
+    {"item": "Standing rule applied", "result": "pass", "evidence": "Approved yes only for PlantDoc and PlantSeg (CC BY 4.0 from authors' sources); PlantVillage, Open Images and segmented PV marked 'no, needs the person' with reasons; nothing downloaded"},
+    {"item": "Local facts verified", "result": "pass", "evidence": "noaug dir has 39 folders, 55,448 files, Apple___Apple_scab 630 files, matching doc; Downloads/PlantVillage-Dataset-master is empty (0 entries)"},
+    {"item": "Segmented PlantVillage finding", "result": "pass", "evidence": "doc states none local, official raw/segmented exists, not downloaded"},
+    {"item": "Diff hygiene", "result": "pass", "evidence": "commit touches only docs/datasets.md, tools/check_datasets_doc.py, tests/test_check_datasets_doc.py; no legacy/secrets"}
+  ],
+  "own_tests": [
+    {"input": "check('') and doc with no sections", "result": "reports errors (non-empty)"},
+    {"input": "Approved: maybe / empty Approved / missing Classes", "result": "each flagged as error"},
+    {"input": "complete valid section", "result": "no errors"}
+  ],
+  "failures": [],
+  "notes": "Online license claims (PlantDoc, PlantSeg, PV TOS) were not re-fetched by me; doc itself flags they came via a summarizing fetch tool and should be checked at H1. PlantSeg Classes and image count are unconfirmed (doc says so honestly) and its newest Zenodo version license unchecked, yet Approved: yes; the person should review at H1."
+}

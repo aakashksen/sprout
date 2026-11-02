@@ -136,3 +136,32 @@ def test_shipped_manifest_is_complete():
     files = [e.file for e in entries]
     assert len(files) == len(set(files)) == 28
     assert all(e.crop and e.title for e in entries)
+
+
+ROOT = Path(__file__).parents[1]
+CHUNKS = ROOT / "knowledge" / "index" / "chunks.jsonl"
+needs_index = pytest.mark.skipif(not CHUNKS.exists(), reason="knowledge/index is git-ignored and absent here")
+
+# Diseases the document discusses only under another name, found by reading its text.
+DISEASE_ALIASES = {
+    ("Corn1.pdf", "northern corn leaf blight"): "northern leaf blight",
+    ("grapediseaseidguide.pdf", "esca"): "black measles",
+}
+
+
+@needs_index
+def test_manifest_diseases_appear_in_their_document():
+    entries = load_manifest(ROOT / "knowledge" / "manifest.csv")
+    text: dict[str, str] = {}
+    for line in CHUNKS.read_text(encoding="utf-8").splitlines():
+        c = json.loads(line)
+        text.setdefault(c["source"], "")
+        text[c["source"]] += " " + c["text"].lower()
+    absent = []
+    for e in entries:
+        body = " ".join(text.get(e.file, "").split())
+        for d in e.diseases:
+            term = DISEASE_ALIASES.get((e.file, d), d)
+            if term not in body:
+                absent.append((e.file, d))
+    assert absent == []

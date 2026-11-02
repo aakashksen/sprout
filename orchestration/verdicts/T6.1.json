@@ -1,0 +1,23 @@
+{
+  "task": "T6.1",
+  "commit": "d1ab6d3cabfa1f8fba43069f5307c3db163d23bf",
+  "verdict": "PASS",
+  "checks": [
+    {"item": "HEAD equals commit; only orchestration/ dirty", "result": "pass", "evidence": "git rev-parse HEAD matches; git status shows only tasks.json and verdicts/phase-0.md"},
+    {"item": "Evidence log shows acceptance ran at this commit and passed", "result": "pass", "evidence": "log: commit d1ab6d3, 7 passed, RESULT PASS; I reran pytest tests/test_ingest.py -q: 7 passed"},
+    {"item": "All six named tests exist and assert real behavior", "result": "pass", "evidence": "Read tests/test_ingest.py: crop from manifest for 'grapediseaseidguide.pdf', md ingested, scan/broken pdf yield no chunks and appear in failures, source/page/title/diseases preserved, old index byte-identical after failed build with no .new left, manifest vs raw dir diff. Tests use generated real PDFs, not mocks."},
+    {"item": "Real manifest covers real raw files", "result": "pass", "evidence": "28 rows, missing_from_manifest on knowledge/raw returned ([], []); real build to a tmp dir gave 2258 chunks, 0 failures"},
+    {"item": "Build-beside-then-switch with validation", "result": "pass", "evidence": "ingest.py build_index writes index.new, validates, renames old->.old, new->index; errors keep old index"},
+    {"item": "No legacy changes, secrets, weakened tests", "result": "pass", "evidence": "commit touches only .gitignore, pyproject (pypdf dep), manifest, rag/, tests"},
+    {"item": "OCR where necessary", "result": "pass", "evidence": "Not implemented; unextractable PDFs are excluded and listed in failures (reported as OCR not available). Acceptable since real corpus has 0 failures."}
+  ],
+  "own_tests": [
+    {"input": "PDF with pages [text, blank, text], crop 'Corn'", "result": "pages {1,3} kept with original numbering; crop lowercased"},
+    {"input": "Manifest row pointing to nonexistent file", "result": "recorded in failures, no crash"},
+    {"input": "_split on 5000 words and 5000 chars with no spaces", "result": "terminates, chunks <=1000 chars"},
+    {"input": "All documents fail with no prior index", "result": "RuntimeError raised, no index dir created"},
+    {"input": "Real knowledge/raw + manifest built into evidence tmp dir", "result": "2258 chunks, no failures"}
+  ],
+  "failures": [],
+  "notes": "OCR is not implemented (failures are excluded and listed instead). The issue numbers #32-#36, #44, #45 could not be matched to a source in the repo, so only the task text was checked. pypdf logs noisy fontTools warnings on real PDFs."
+}

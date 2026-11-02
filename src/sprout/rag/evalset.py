@@ -23,6 +23,7 @@ class Question:
     answer_terms: list[str] = field(default_factory=list)
     distractor_source: str | None = None
     absent_terms: list[str] = field(default_factory=list)
+    trap_terms: list[str] = field(default_factory=list)
     missing: list[str] = field(default_factory=list)
 
 
@@ -41,6 +42,10 @@ def _rows(chunks_path: Path):
     with open(chunks_path, encoding="utf8") as f:
         for line in f:
             yield json.loads(line)
+
+
+def index_rows(chunks_path: Path) -> list[dict]:
+    return list(_rows(chunks_path))
 
 
 def index_pages(chunks_path: Path) -> dict[tuple[str, int], str]:

@@ -12,6 +12,9 @@ from sprout.rag.evalset import (
     normalize,
     write_review_sample,
 )
+from sprout.rag.evalset import (
+    index_rows as _index_rows,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 QUESTIONS = ROOT / "datasets" / "rag" / "questions.jsonl"
@@ -67,6 +70,21 @@ def test_not_in_documents_terms_are_absent_and_wrong_crop_traps_are_wrong():
                 assert not re.search(rf"\b{re.escape(normalize(t))}", corpus), f"{q.id}: {t!r} is in the corpus"
         if q.category == "wrong_crop":
             assert crops[q.distractor_source] != q.crop, q.id
+
+
+@needs_index
+def test_wrong_crop_trap_terms_absent_for_stated_crop_and_present_in_distractor():
+    rows = list(_index_rows(CHUNKS))
+    for q in load_questions(QUESTIONS):
+        if q.category != "wrong_crop":
+            continue
+        assert q.trap_terms, f"{q.id}: no trap_terms"
+        own = " ".join(normalize(r["text"]) for r in rows if r["crop"] == q.crop)
+        theirs = " ".join(normalize(r["text"]) for r in rows if r["source"] == q.distractor_source)
+        for t in q.trap_terms:
+            pat = rf"\b{re.escape(normalize(t))}"
+            assert not re.search(pat, own), f"{q.id}: {t!r} is documented for {q.crop}"
+            assert re.search(pat, theirs), f"{q.id}: {t!r} not in {q.distractor_source}"
 
 
 def test_review_sample_has_thirty_entries(tmp_path):

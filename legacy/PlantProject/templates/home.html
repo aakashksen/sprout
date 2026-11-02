@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SPROUT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;300&family=Poppins:wght@400;500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"/>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f8f8f2;
+    }
+
+    .hero-section {
+      background-color: #e8f5e9;
+      padding: 4rem 0;
+      margin-bottom: 3rem;
+      border-radius: 15px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .hero-title {
+      color: #212529;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 800;
+      font-size: 7rem;
+      letter-spacing: 0.1rem;
+      line-height: 1.1;
+    }
+
+    .hero-subtitle {
+      font-family: 'Lora', serif;
+      font-style: italic;
+      color: #6c757d;
+      font-weight: 400;
+    }
+
+    .card {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      margin-bottom: 1.5rem;
+      border-radius: 10px;
+    }
+
+    .card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+    }
+
+    .card-img-top {
+      height: 180px;
+      object-fit: cover;
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+    }
+
+    .how-it-works-icon {
+      font-size: 2.8rem;
+      color: #376333;
+    }
+
+    .how-it-works-step {
+      padding: 1.5rem;
+    }
+
+    .how-it-works-section {
+      background-color: #e8f5e9;
+      border-radius: 15px;
+      padding: 3rem;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+      margin-top: 3rem;
+    }
+
+    .btn-brown {
+      background-color: #b8916a;
+      border-color: #b8916a;
+      color: white;
+      font-weight: 600;
+    }
+
+    .btn-brown:hover {
+      background-color: #9e7a55;
+      border-color: #9e7a55;
+      color: white;
+    }
+
+    .text-muted {
+      color: #6c757d;
+    }
+
+    a {
+      color: #007bff;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    a:hover {
+      color: #0056b3;
+      text-decoration: underline;
+    }
+
+    .how-it-works-section h3 {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 300;
+    }
+
+    .how-it-works-step h5 {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 500;
+    }
+
+    footer {
+      background-color: #f1f1f1;
+      padding: 1rem 0;
+    }
+
+    footer .text-center {
+      color: #6c757d;
+    }
+
+    p, .card-title, .card-text, .how-it-works-step h5 {
+      font-family: 'Poppins', sans-serif;
+      color: #212529;
+    }
+
+    .btn, a {
+      font-family: 'Montserrat', sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <!-- Simple navbar that ONLY shows when user is authenticated -->
+  {% if current_user.is_authenticated %}
+  <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+    <div class="container d-flex justify-content-between">
+      <a class="navbar-brand" href="{{ url_for('home') }}" style="font-family: 'Montserrat', sans-serif; font-weight: 600;">SPROUT</a>
+      
+      <div>
+        <span style="margin-right: 10px;">{{ current_user.username }}</span>
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('logout') }}" onclick="return confirmLogout();">Logout</a>
+      </div>
+    </div>
+  </nav>
+  {% endif %}
+  
+  <script>
+  function confirmLogout() {
+    // Force a proper logout that clears session
+    window.location.href = "{{ url_for('logout') }}";
+    return false; // Prevent default link action
+  }
+  
+  // Initialize Bootstrap components when the page loads
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize alert dismissal buttons
+    var alertList = document.querySelectorAll('.alert-dismissible')
+    alertList.forEach(function(alert) {
+      var closeButton = alert.querySelector('.btn-close');
+      if (closeButton) {
+        closeButton.addEventListener('click', function() {
+          alert.remove(); // Remove alert when close button is clicked
+        });
+      }
+    });
+  });
+  </script>
+  
+  <!-- Bootstrap Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+  
+  <!-- Flash messages section - will show login/signup success messages -->  
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="container">
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert" style="border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  
+  {% if request.args.get('report_submitted') == '1' %}
+  <div class="alert alert-success alert-dismissible fade show mt-4" role="alert" style="border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+    <strong>Thank you!</strong> Your error report was received. Please continue using Sprout.
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+  {% endif %}
+  <div class="container">
+    <div class="hero-section mt-4 text-center">
+      <h1 class="display-4 hero-title">SPROUT</h1>
+      <p class="hero-subtitle">Smart Plant Recovery and Optimization Utility Tool</p>
+    </div>
+
+    <div class="row mt-4">
+      <div class="col-md-4">
+        <div class="card h-100">
+          <img src="{{ url_for('static', filename='uploads/upload.jpeg') }}" class="card-img-top" alt="Upload Image">
+          <div class="card-body">
+            <h5 class="card-title" style="color: #212529;">Upload Photo</h5>
+            <p class="card-text" style="color: #6c757d;">Upload an existing photo from your device.</p>
+            <a href="{{ url_for('upload_file') }}" class="btn btn-brown">Upload Photo</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card h-100">
+          <img src="{{ url_for('static', filename='uploads/camera.jpg') }}" class="card-img-top" alt="Take Photo">
+          <div class="card-body">
+            <h5 class="card-title" style="color: #212529;">Take Photo</h5>
+            <p class="card-text" style="color: #6c757d;">Use your camera to take a photo right now.</p>
+            <a href="{{ url_for('camera') }}" class="btn btn-brown">Take Photo</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card h-100">
+          <img src="{{ url_for('static', filename='uploads/account.png') }}" class="card-img-top" alt="User Account">
+          <div class="card-body">
+            <h5 class="card-title" style="color: #212529;">User Account</h5>
+            <p class="card-text" style="color: #6c757d;">Login or sign up to save your history.</p>
+            {% if current_user.is_authenticated %}
+              <a href="{{ url_for('dashboard') }}" class="btn btn-brown">Dashboard</a>
+            {% else %}
+              <a href="{{ url_for('login') }}" class="btn btn-brown">Login</a>
+              <a href="{{ url_for('signup') }}" class="btn btn-brown">Sign Up</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-12">
+        <div class="how-it-works-section text-center">
+          <h3 class="mb-4">How It Works</h3>
+          <div class="row">
+            <div class="col-md-3 how-it-works-step">
+              <div class="how-it-works-icon mb-2"><i class="bi bi-cloud-upload"></i></div>
+              <h5>1. Upload</h5>
+              <p class="small">Snap or upload a photo of your plant.</p>
+            </div>
+            <div class="col-md-3 how-it-works-step">
+              <div class="how-it-works-icon mb-2"><i class="bi bi-search"></i></div>
+              <h5>2. Analyze</h5>
+              <p class="small">Our AI scans for disease signs instantly.</p>
+            </div>
+            <div class="col-md-3 how-it-works-step">
+              <div class="how-it-works-icon mb-2"><i class="bi bi-bar-chart"></i></div>
+              <h5>3. Get Results</h5>
+              <p class="small">See diagnosis and get care advice.</p>
+            </div>
+            <div class="col-md-3 how-it-works-step">
+              <div class="how-it-works-icon mb-2"><i class="bi bi-clock-history"></i></div>
+              <h5>4. Track</h5>
+              <p class="small">Log in to save and track your diagnoses.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supported Plants Section -->
+  <div class="container mt-5 mb-5">
+    <div class="row">
+      <div class="col-12">
+        <div class="card p-4" style="background-color: #e8f5e9; border-radius: 15px; box-shadow: 0 6px 18px rgba(0,0,0,0.1);">
+          <div class="alert alert-info mb-0">
+            <h4 class="alert-heading text-center mb-3">Currently Supported Plants</h4>
+            <p class="text-center">We currently support disease detection for the following plants:</p>
+            <div class="row text-center">
+              <div class="col-md-3 mb-2"><strong>🍎 Apple</strong></div>
+
+
+              <div class="col-md-3 mb-2"><strong>🌽 Corn</strong></div>
+              <div class="col-md-3 mb-2"><strong>🍇 Grape</strong></div>
+              <div class="col-md-3 mb-2"><strong>🍋 Citrus</strong></div>
+
+              <div class="col-md-3 mb-2"><strong>🍑 Peach</strong></div>
+              <div class="col-md-3 mb-2"><strong>🥔 Potato</strong></div>
+              <div class="col-md-3 mb-2"><strong>🫑 Pepper</strong></div>
+              <div class="col-md-3 mb-2"><strong>🍓 Strawberry</strong></div>
+              <div class="col-md-3 mb-2"><strong>🍅 Tomato</strong></div>
+            </div>
+            <hr>
+            <p class="mb-0 text-center font-italic">🌱 <em>We're constantly working to expand our database with more plant species. Stay tuned for updates!</em></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="bg-light text-center text-lg-start mt-5">
+    <div class="text-center p-3" style="color: #6c757d;">
+      © 2025 Sprout Team
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,385 @@
+{
+  "tasks": [
+    {
+      "id": "T0.1",
+      "phase": 0,
+      "title": "Project setup",
+      "owner": "agent",
+      "deps": [],
+      "acceptance": [
+        "{py} -m pytest tests/test_smoke.py tests/test_orchestration.py -q",
+        "{py} -m ruff check .",
+        "{py} -c \"import torch; assert torch.cuda.is_available()\""
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T0.2",
+      "phase": 0,
+      "title": "Check the datasets",
+      "owner": "agent",
+      "deps": [
+        "T0.1"
+      ],
+      "acceptance": [
+        "{py} tools/check_datasets_doc.py"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "H1",
+      "phase": 0,
+      "title": "Check the dataset choices",
+      "owner": "human",
+      "deps": [
+        "T0.2"
+      ],
+      "acceptance": [],
+      "status": "pending"
+    },
+    {
+      "id": "T1.1",
+      "phase": 1,
+      "title": "Lab data, grouping, and manifests",
+      "owner": "agent",
+      "deps": [
+        "T0.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_lab_data.py -q",
+        "{py} -m sprout.data.check_splits lab"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T1.2",
+      "phase": 1,
+      "title": "Real-photo and not-plant sets",
+      "owner": "agent",
+      "deps": [
+        "T0.2",
+        "T1.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_field_data.py -q",
+        "{py} -m sprout.data.check_splits field"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T2.1",
+      "phase": 2,
+      "title": "Training pipeline",
+      "owner": "agent",
+      "deps": [
+        "T1.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_train.py -q"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T2.2",
+      "phase": 2,
+      "title": "Metrics and statistics",
+      "owner": "agent",
+      "deps": [
+        "T0.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_metrics.py -q"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T2.3",
+      "phase": 2,
+      "title": "Run records and claims",
+      "owner": "agent",
+      "deps": [
+        "T2.2"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_records.py -q",
+        "{py} -m sprout.eval.claims check"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T3.1",
+      "phase": 3,
+      "title": "Experiment E1, clean lab baseline",
+      "owner": "agent",
+      "deps": [
+        "T2.1",
+        "T2.3"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e1.py -q",
+        "{py} -m sprout.eval.check_run E1 --min-n 1000 --split lab_dev"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T3.2",
+      "phase": 3,
+      "title": "Experiment E2, domain shift",
+      "owner": "agent",
+      "deps": [
+        "T3.1",
+        "T1.2"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e2.py -q",
+        "{py} -m sprout.eval.check_run E2 --min-n 200 --split field_dev"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T3.3",
+      "phase": 3,
+      "title": "Experiment E3, baselines",
+      "owner": "agent",
+      "deps": [
+        "T3.2"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e3.py -q",
+        "{py} -m sprout.eval.check_run E3 --min-n 200 --split field_dev"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T4.1",
+      "phase": 4,
+      "title": "Experiment E4, improvements",
+      "owner": "agent",
+      "deps": [
+        "T3.3"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e4.py -q",
+        "{py} -m sprout.eval.check_run E4 --min-n 200 --split field_dev"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T4.2",
+      "phase": 4,
+      "title": "Experiment E5, calibration, abstention, and input checks",
+      "owner": "agent",
+      "deps": [
+        "T4.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e5.py -q",
+        "{py} -m sprout.eval.check_run E5 --min-n 200 --split field_dev"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T5.1",
+      "phase": 5,
+      "title": "Experiment E6, ONNX and quantization",
+      "owner": "agent",
+      "deps": [
+        "T4.2"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e6.py -q",
+        "{py} -m sprout.eval.check_run E6 --min-n 200 --split field_dev"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T5.2",
+      "phase": 5,
+      "title": "Inference service",
+      "owner": "agent",
+      "deps": [
+        "T5.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_identify.py -q"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T6.1",
+      "phase": 6,
+      "title": "Document ingestion",
+      "owner": "agent",
+      "deps": [
+        "T0.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_ingest.py -q"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T6.2",
+      "phase": 6,
+      "title": "Retrieval",
+      "owner": "agent",
+      "deps": [
+        "T6.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_retrieve.py -q"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T6.3",
+      "phase": 6,
+      "title": "RAG evaluation set",
+      "owner": "agent",
+      "deps": [
+        "T6.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_evalset.py -q"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "H2",
+      "phase": 6,
+      "title": "Review labels",
+      "owner": "human",
+      "deps": [
+        "T1.2",
+        "T6.3"
+      ],
+      "acceptance": [],
+      "status": "pending"
+    },
+    {
+      "id": "T6.4",
+      "phase": 6,
+      "title": "Experiment E7, answers",
+      "owner": "agent",
+      "deps": [
+        "T6.2",
+        "T6.3",
+        "T2.3"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_answer.py -q",
+        "{py} -m sprout.eval.check_run E7 --min-n 50 --split rag_dev"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T7.1",
+      "phase": 7,
+      "title": "Backend rebuild",
+      "owner": "agent",
+      "deps": [
+        "T5.2",
+        "T6.4"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_web.py -q"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T7.2",
+      "phase": 7,
+      "title": "Frontend",
+      "owner": "agent",
+      "deps": [
+        "T7.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_frontend.py -q"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T7.3",
+      "phase": 7,
+      "title": "Container and CI",
+      "owner": "agent",
+      "deps": [
+        "T7.2"
+      ],
+      "acceptance": [
+        "docker compose build app",
+        "{py} -m pytest tests/test_container.py -q -m \"real or not real\""
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T7.4",
+      "phase": 7,
+      "title": "Experiment E8, end-to-end performance",
+      "owner": "agent",
+      "deps": [
+        "T7.3"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e8.py -q",
+        "{py} -m sprout.eval.check_run E8 --min-n 100 --split perf"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "H3",
+      "phase": 7,
+      "title": "Deploy",
+      "owner": "human",
+      "deps": [
+        "T7.4"
+      ],
+      "acceptance": [],
+      "status": "pending"
+    },
+    {
+      "id": "T8.1",
+      "phase": 8,
+      "title": "Experiment E9, final test",
+      "owner": "agent",
+      "deps": [
+        "T7.4",
+        "H1",
+        "H2"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e9.py -q",
+        "{py} -m sprout.eval.check_run E9 --min-n 200 --split field_test"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T8.2",
+      "phase": 8,
+      "title": "Report, README, and bullets",
+      "owner": "agent",
+      "deps": [
+        "T8.1",
+        "H3"
+      ],
+      "acceptance": [
+        "{py} -m sprout.eval.claims check",
+        "{py} tools/check_report_numbers.py",
+        "{py} -m pytest -q"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "H4",
+      "phase": 8,
+      "title": "Final sign-off",
+      "owner": "human",
+      "deps": [
+        "T8.2"
+      ],
+      "acceptance": [],
+      "status": "pending"
+    }
+  ]
+}

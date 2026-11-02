@@ -1,0 +1,68 @@
+# Testing and evaluation
+
+## Layers
+
+| Layer | Runs | Needs | Who |
+|---|---|---|---|
+| **Unit and integration** | Every commit, `.venv/Scripts/python -m pytest -q` | Nothing: no GPU, network, or spending. Uses fakes and tiny fixtures | Implementer |
+| **Acceptance** | `taskctl verify <id>` | Whatever the task lists | The gate |
+| **Independent verification** | After each task | The task text and code, no build notes | `verifier` |
+| **Phase review** | End of each phase | The whole phase together | `reviewer` |
+| **Real runs** | `pytest -m real`, and experiments | GPU, Ollama, or Docker | Named tasks only |
+| **CI** | Push, once the person publishes | The first layer | GitHub Actions |
+
+## Data sets, and what each is for
+
+| Name | Source | Use |
+|---|---|---|
+| `lab_train`, `lab_dev`, `lab_test` | PlantVillage, grouped by near-duplicate | Training, choosing, final lab score |
+| `field_train` | Real photos | Only for targeted fine-tuning |
+| `field_dev` | Real photos | Choosing, including abstention thresholds |
+| `field_test` | Real photos | Final real-world score, once |
+| `not_plant` | Public non-plant images | Rejection rate |
+
+Real-photo results are only reported over classes both datasets share. Report those classes explicitly.
+
+Choose settings on dev. Use test once, on the chosen configuration. If test results influence a decision, record that and draw a new split. `lab` and `field` numbers never get merged or blurred together.
+
+## Metrics, each defined once in `sprout/eval/metrics.py`
+
+| Metric | Definition |
+|---|---|
+| **Accuracy, macro-F1** | Macro-F1 is the unweighted mean over classes present in the evaluation set |
+| **Per-class precision, recall, F1** | Saved for every evaluation, with a confusion matrix |
+| **ECE** | Expected calibration error, 15 equal-width bins |
+| **Confident error rate** | Share of answered predictions that are wrong; report it with coverage (share not abstained) |
+| **Selective accuracy** | Accuracy on answered predictions, at the chosen threshold |
+| **Rejection rates** | Valid plant photos wrongly rejected, and non-plant images wrongly accepted. Rejected photos stay in end-to-end results. |
+| **Latency** | p50 and p95 ms per image, on CPU, stating the machine |
+| **Recall@k, MRR** | RAG: gold document or page within the top k |
+| **Answer faithfulness** | Share of answer claims supported by the cited passage, judged by a rubric prompt on a different model from the writer, with a random sample reviewed by the person |
+| **Abstention accuracy** | RAG: declines when the docs can't answer, answers when they can. Report both sides |
+
+## Comparing systems
+Run every system on the same images with the same seed. Report a 95% bootstrap confidence interval (10,000 resamples, by near-duplicate group where groups exist) and an exact McNemar test for paired correct/incorrect outcomes. Don't call anything an improvement if the interval for the difference includes zero. Say "no measurable difference".
+
+## Run records
+Every experiment writes `results/runs/<experiment>-<timestamp>.json`:
+`run_id, experiment, git_commit, dirty, dataset_hash, split, config, models, n, metrics, intervals, attempts, claude_calls, labels_reviewed, predictions_path, started_at, finished_at, notes`.
+Predictions are saved, so metrics can be recomputed. `attempts` lists every setting tried, including the failures.
+
+`check_run` fails when: a model name matches fake or stub; `dirty` is true; `dataset_hash` doesn't match the manifest; `git_commit` isn't an ancestor of HEAD; `n` differs from the split's size or is below `--min-n`; `attempts` is empty; a saved metric doesn't recompute from predictions; or, for a test split, a second record exists without an override note.
+
+## Provisional results
+Dev experiments may run before the person reviews labels (H2), with `labels_reviewed: false`. They guide choices but aren't claims. The final run (E9) needs H1 and H2. If H2 finds wrong labels, fix them and rerun what they affect.
+
+## Experiments
+
+| ID | Question | Task |
+|---|---|---|
+| E1 | With leakage fixed and augmentation actually on, what's the honest lab score? How does the old checkpoint do? | T3.1 |
+| E2 | How far does it fall on real photos, and what is Grad-CAM showing? | T3.2 |
+| E3 | How do XGBoost, a frozen head, and DINOv2 compare? | T3.3 |
+| E4 | What actually raises real-photo performance? | T4.1 |
+| E5 | Does calibration plus abstention cut confident errors, and at what coverage? Which input gate works best? | T4.2 |
+| E6 | Does ONNX quantization keep accuracy while speeding up CPU? | T5.1 |
+| E7 | Which retrieval setup and prompts give faithful, cited answers? | T6.4 |
+| E8 | What's the end-to-end latency in the container under load? | T7.4 |
+| E9 | Final scores on untouched test sets | T8.1 |

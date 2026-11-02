@@ -34,9 +34,9 @@
       "status": "done",
       "started_at": "2026-11-02T23:16:28+00:00",
       "verified": {
-        "commit": "dfe8a52260af2f0823bb414a64f926c8546a7356",
+        "commit": "f3c81ab7a599dcb844daae04f29c0ba39a912486",
         "passed": true,
-        "at": "2026-11-02T23:21:40+00:00"
+        "at": "2026-11-02T23:28:28+00:00"
       },
       "done_at": "2026-11-02T23:22:28+00:00"
     },
@@ -254,7 +254,14 @@
       "acceptance": [
         "{py} -m pytest tests/test_retrieve.py -q"
       ],
-      "status": "pending"
+      "status": "done",
+      "started_at": "2026-11-02T23:28:29+00:00",
+      "verified": {
+        "commit": "075e22c043aaa2788910f1c18fd3f695c45ceced",
+        "passed": true,
+        "at": "2026-11-02T23:31:05+00:00"
+      },
+      "done_at": "2026-11-02T23:35:10+00:00"
     },
     {
       "id": "T6.3",

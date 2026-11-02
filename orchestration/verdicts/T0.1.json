@@ -1,0 +1,26 @@
+{
+  "task": "T0.1",
+  "commit": "ab8222ce38f7b342af68d40871de05a8c8424505",
+  "verdict": "PASS",
+  "checks": [
+    {"item": "HEAD equals the commit; only orchestration/ is dirty", "result": "pass", "evidence": "git rev-parse HEAD = ab8222ce38f7b342af68d40871de05a8c8424505 (rechecked after the coordinator message); git status --short shows only ' M orchestration/tasks.json'"},
+    {"item": "Evidence log ran at this commit and passed", "result": "pass", "evidence": "orchestration/evidence/T0.1.log names the commit: 23 passed, ruff clean, torch cuda check exit 0, RESULT PASS"},
+    {"item": "Acceptance commands rerun by me", "result": "pass", "evidence": "pytest smoke+orchestration: 23 passed, 1 deselected; ruff check .: All checks passed; torch 2.11.0+cu128 cuda_available True and the assert passed"},
+    {"item": "pyproject: pythonpath=[src], real marker registered and excluded via addopts, ruff excludes legacy, dev extras pytest and ruff", "result": "pass", "evidence": "pyproject.toml read; ruff --show-settings lists extend_exclude=[legacy]; ruff on legacy directly reports 29 findings, so the exclusion is what keeps the plain run clean"},
+    {"item": "Required tests test_package_imports and test_real_marker_excluded_by_default exist and can fail", "result": "pass", "evidence": "Mutation run and completed: deleted the addopts line from pyproject.toml, smoke tests gave 2 failed, 1 passed (both marker tests failed). Restored with git checkout -- pyproject.toml; git status afterwards shows only tasks.json. The test_package_imports test was not mutated."},
+    {"item": "Editable install and CUDA torch instructions in README", "result": "pass", "evidence": "README lines 24-30 give the cu128 index command and say the default wheel is CPU-only; pip list shows sprout editable from the repo; import sprout from /tmp resolves to the repo src"},
+    {"item": "CI runs ruff and pytest with CPU torch; .env.example; .env git-ignored", "result": "pass", "evidence": "ci.yml installs torch from whl/cpu then runs ruff check . and pytest -q; .env.example has empty ANTHROPIC_API_KEY; git check-ignore .env matches; .env not tracked"},
+    {"item": "Diff scan for secrets, legacy/ changes, weakened tests", "result": "pass", "evidence": "Task commits touch only .env.example, ci.yml, README.md, pyproject.toml, src/sprout/__init__.py, tests/test_smoke.py; no secrets, no legacy/ changes"},
+    {"item": "CI workflow actually executes on GitHub", "result": "not checked", "evidence": "Cannot run GitHub Actions locally; only the file contents were inspected. Not required by the acceptance commands."}
+  ],
+  "own_tests": [
+    {"input": "orchestration/evidence/tmp-T0.1/test_own.py::test_pyproject_config (parses pyproject.toml: pythonpath, addopts, real marker, ruff legacy exclusion, dev extras)", "result": "passed"},
+    {"input": "orchestration/evidence/tmp-T0.1/test_own.py::test_cuda_torch (torch.cuda.is_available() and a +cu build)", "result": "passed"},
+    {"input": "orchestration/evidence/tmp-T0.1/test_own.py::test_env_not_tracked_and_ci (git ls-files excludes .env, includes .env.example; ci.yml has whl/cpu, ruff check, pytest)", "result": "passed; run with: .venv/Scripts/python -m pytest orchestration/evidence/tmp-T0.1/test_own.py -c /dev/null -> 3 passed"},
+    {"input": "Mutation: remove addopts from pyproject.toml, run smoke tests", "result": "2 marker tests failed as expected; file restored"},
+    {"input": "ruff check legacy directly versus ruff check .", "result": "29 findings when targeted directly; clean in the plain run, confirming the exclusion works"},
+    {"input": "pytest -m real tests/test_smoke.py", "result": "the real-marked sentinel test runs and fails as designed, so the marker is selectable on request"}
+  ],
+  "failures": [],
+  "notes": "Correction to my earlier message: the command that was denied by the permission system was a compound command that included a planned legacy/ ruff probe (writing a temporary bad file under legacy/). None of it ran. The addopts mutation check was a separate command and did run and complete. I skipped the legacy-bad-file probe because it would touch legacy/; the ruff exclusion was verified through --show-settings and the direct ruff run instead. torch import warns that numpy is missing; harmless here but later tasks needing numpy must add it. test_package_imports was not mutation-checked, but it is a trivial import assertion. The own tests are in the git-ignored orchestration/evidence/tmp-T0.1/ directory."
+}

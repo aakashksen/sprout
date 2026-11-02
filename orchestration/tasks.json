@@ -11,7 +11,14 @@
         "{py} -m ruff check .",
         "{py} -c \"import torch; assert torch.cuda.is_available()\""
       ],
-      "status": "pending"
+      "status": "done",
+      "started_at": "2026-11-02T23:08:41+00:00",
+      "verified": {
+        "commit": "ab8222ce38f7b342af68d40871de05a8c8424505",
+        "passed": true,
+        "at": "2026-11-02T23:14:12+00:00"
+      },
+      "done_at": "2026-11-02T23:16:28+00:00"
     },
     {
       "id": "T0.2",

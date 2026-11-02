@@ -17,7 +17,7 @@ Don't use `tools/run_loop.py` for this project: each of its sessions exits when 
 
 No API keys are needed. Needs Docker Desktop and Ollama running.
 
-**Don't train at the same time as ContextLensV2.** They share one 8 GB GPU. If the other project is training, this one finishes its non-GPU tasks and then stops and tells you.
+**Don't train at the same time as ContextLensV2.** They share one 8 GB GPU. If there isn't enough free GPU memory for a task, the run stops immediately and tells you how much it needs.
 
 ## How a task gets finished
 

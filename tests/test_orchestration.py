@@ -151,6 +151,43 @@ class Loop(Sandbox):
         self.assertEqual(self.loop("print('no')").returncode, 0)
 
 
+class GpuGuard(Sandbox):
+    def setUp(self):
+        super().setUp()
+        (self.root / "orchestration" / "gpu_needs.json").write_text(json.dumps({"T1": 5000}))
+
+    def smi(self, reply):
+        stub = self.root / "smi.py"
+        stub.write_text(reply)
+        return f'"{sys.executable}" "{stub}"'
+
+    def run_ctl(self, smi, *args):
+        env = {**os.environ, "CL_ROOT": str(self.root), "CL_NVIDIA_SMI": smi}
+        return subprocess.run([sys.executable, str(CTL), *args], capture_output=True, text=True, env=env)
+
+    def test_busy_gpu_refuses_to_start_and_says_how_much(self):
+        out = self.run_ctl(self.smi("print('1200, 6988, 8188')"), "start", "T1")
+        self.assertEqual(out.returncode, 3)
+        self.assertIn("5000 MB", out.stdout)
+        self.assertIn("1200 MB", out.stdout)
+        self.assertEqual(self.state("T1")["status"], "pending")
+
+    def test_free_gpu_starts(self):
+        self.assertEqual(self.run_ctl(self.smi("print('7000, 1188, 8188')"), "start", "T1").returncode, 0)
+        self.assertEqual(self.state("T1")["status"], "in_progress")
+
+    def test_unreadable_gpu_refuses(self):
+        out = self.run_ctl(self.smi("raise SystemExit(1)"), "start", "T1")
+        self.assertEqual(out.returncode, 3)
+        self.assertIn("GPU CHECK FAILED", out.stdout)
+        out = self.run_ctl("no-such-nvidia-smi-tool", "gpu", "T1")
+        self.assertEqual(out.returncode, 3)
+
+    def test_task_without_a_gpu_need_is_not_checked(self):
+        self.write([task("T1"), task("T9")])
+        self.assertEqual(self.run_ctl("no-such-nvidia-smi-tool", "start", "T9").returncode, 0)
+
+
 class PlanMatchesState(unittest.TestCase):
     """tasks.json drives the loop and PLAN.md explains it, so they must not drift apart."""
 
@@ -173,6 +210,12 @@ class PlanMatchesState(unittest.TestCase):
             if item["owner"] == "agent":
                 self.assertTrue(item["acceptance"], item["id"])
             self.assertIn(item["owner"], ("agent", "human"))
+
+    def test_gpu_needs_name_real_agent_tasks(self):
+        needs = json.loads((REPO / "orchestration" / "gpu_needs.json").read_text(encoding="utf-8"))
+        agent_tasks = {t["id"] for t in self.tasks if t["owner"] == "agent"}
+        self.assertTrue(needs)
+        self.assertTrue(set(needs) <= agent_tasks, set(needs) - agent_tasks)
 
     def test_every_agent_declares_a_model(self):
         for path in (REPO / ".claude" / "agents").glob("*.md"):

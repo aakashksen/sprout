@@ -16,6 +16,7 @@ ROOT = Path(os.environ.get("CL_ROOT", Path(__file__).resolve().parent.parent))
 TASKS = ROOT / "orchestration" / "tasks.json"
 EVIDENCE = ROOT / "orchestration" / "evidence"
 VERDICTS = ROOT / "orchestration" / "verdicts"
+GPU_NEEDS = ROOT / "orchestration" / "gpu_needs.json"
 MAX_ATTEMPTS = 3
 TIMEOUT_S = int(os.environ.get("CL_VERIFY_TIMEOUT_S", "1800"))
 
@@ -65,6 +66,33 @@ def ready(plan, owner="agent"):
     ]
 
 
+def gpu_problem(task_id):
+    """Why this task's GPU job must not start, or None. Fails closed if the GPU can't be read."""
+    need = json.loads(GPU_NEEDS.read_text(encoding="utf-8")).get(task_id) if GPU_NEEDS.exists() else None
+    if need is None:
+        return None
+    argv = shlex.split(os.environ.get("CL_NVIDIA_SMI", "nvidia-smi"))
+    argv[0] = shutil.which(argv[0]) or argv[0]
+    query = ["--query-gpu=memory.free,memory.used,memory.total", "--format=csv,noheader,nounits"]
+    try:
+        out = subprocess.run([*argv, *query], capture_output=True, text=True, timeout=30, check=True).stdout
+        free, used, total = (int(part) for part in out.splitlines()[0].split(","))
+    except (OSError, ValueError, IndexError, subprocess.SubprocessError) as err:
+        return f"GPU CHECK FAILED: {task_id} needs about {need} MB of GPU memory, but the GPU couldn't be read: {err}"
+    if free >= need:
+        return None
+    return (f"GPU BUSY: {task_id} needs about {need} MB of free GPU memory, and only {free} MB is free "
+            f"({used} of {total} MB in use). Not started. Free up {need - free} MB or more, then run /run-plan again.")
+
+
+def cmd_gpu(args):
+    problem = gpu_problem(args.id)
+    if problem:
+        print(problem)
+        sys.exit(3)
+    print(f"{args.id}: GPU ok")
+
+
 def cmd_next(args):
     plan = load()
     active = [t for t in plan["tasks"] if t["status"] == "in_progress"]
@@ -91,6 +119,10 @@ def cmd_start(args):
     task = find(plan, args.id)
     if task["owner"] != "agent":
         sys.exit(f"{args.id} belongs to the person; use human-done after they finish")
+    problem = gpu_problem(args.id)
+    if problem:
+        print(problem)
+        sys.exit(3)
     done = {t["id"] for t in plan["tasks"] if t["status"] == "done"}
     missing = set(task["deps"]) - done
     if missing:
@@ -240,7 +272,7 @@ def main():
     status = sub.add_parser("status")
     status.add_argument("--all", action="store_true")
     status.set_defaults(run=cmd_status)
-    for name, run in (("start", cmd_start), ("verify", cmd_verify), ("done", cmd_done)):
+    for name, run in (("start", cmd_start), ("verify", cmd_verify), ("done", cmd_done), ("gpu", cmd_gpu)):
         item = sub.add_parser(name)
         item.add_argument("id")
         item.set_defaults(run=run)

@@ -274,7 +274,16 @@
       "acceptance": [
         "{py} -m pytest tests/test_evalset.py -q"
       ],
-      "status": "pending"
+      "status": "done",
+      "started_at": "2026-11-02T23:35:10+00:00",
+      "verified": {
+        "commit": "fe4771c8001eacf3b76a8cb1dd39395fc6ac4e4d",
+        "passed": true,
+        "at": "2026-11-02T23:45:06+00:00"
+      },
+      "attempts": 1,
+      "reason": "wrong_crop-008 and wrong_crop-027 gold labels wrong: the disease IS covered for the stated crop (strawberry2.pdf p4; tomatodoc2.md Anthracnose); test does not check trap disease absent from stated crop's chunks",
+      "done_at": "2026-11-02T23:47:08+00:00"
     },
     {
       "id": "H2",

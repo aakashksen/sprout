@@ -1,0 +1,54 @@
+# Datasets
+
+Checked 2026-11-02 by researcher lookups for T0.2. Standing rule (from `CLAUDE.md`): use a dataset only if a primary source records a license allowing non-commercial research use, with no signed agreement. Otherwise `Approved: no, needs the person`, and do not download. Nothing was downloaded or installed.
+
+Note: the fetch tool summarizes pages, so quoted wording below is as returned by the fetch and should be checked against the source page before H1.
+
+## PlantVillage (local 39-class copy)
+
+URL: https://github.com/spMohanty/PlantVillage-Dataset (official repo, `raw/color`, `raw/grayscale`, `raw/segmented`). Local copy: `<local path> Project\pytorchConvNextMulticlassClassification\9layerplantdatacnn\data\noaug\noaug data` (origin not recorded). Re-host with matching counts (secondary, not a license source): https://huggingface.co/datasets/Project-AgML/plant_village_classification
+License: Official repo: no LICENSE file in the repo root listing (https://api.github.com/repos/spMohanty/PlantVillage-Dataset/contents/) and no license section in its README (https://github.com/spMohanty/PlantVillage-Dataset). The repo's own `README_HF.md` YAML states `license: cc-by-sa-3.0` (https://raw.githubusercontent.com/spMohanty/PlantVillage-Dataset/master/README_HF.md). PlantVillage's terms (https://plantvillage.psu.edu/tos, Section 8) say content made available by PlantVillage on its websites, apps or services is "licensed under the Creative Commons Attribution-ShareAlike 3.0 License, unless marked otherwise." CC BY-SA 3.0 permits non-commercial use. For the local 39-class copy, a license is couldn't confirm: the Project-AgML card has no license field, and the 39th class (`Background_without_leaves`) is not in the official repo, so its origin is untraced. A search snippet claimed CC0 on a third-party page; I did not open that page and did not use it.
+Size: Local `noaug`: 39 folders, 55,448 image files (52,803 `.JPG`, 2,643 `.jpg`, 1 `.jpeg`, 1 `.png`). Official README: 54,306 images (https://github.com/spMohanty/PlantVillage-Dataset). Local `aug` sibling (not used for training): 39 folders, 61,486 files, same folder names; its license and origin were not checked.
+Classes: 39 folders, same names as the local copy: Apple___Apple_scab (630), Apple___Black_rot (621), Apple___Cedar_apple_rust (275), Apple___healthy (1645), Background_without_leaves (1143), Blueberry___healthy (1502), Cherry___Powdery_mildew (1052), Cherry___healthy (854), Corn___Cercospora_leaf_spot Gray_leaf_spot (513), Corn___Common_rust (1192), Corn___Northern_Leaf_Blight (985), Corn___healthy (1162), Grape___Black_rot (1180), Grape___Esca_(Black_Measles) (1383), Grape___Leaf_blight_(Isariopsis_Leaf_Spot) (1076), Grape___healthy (423), Orange___Haunglongbing_(Citrus_greening) (5507), Peach___Bacterial_spot (2297), Peach___healthy (360), Pepper,_bell___Bacterial_spot (997), Pepper,_bell___healthy (1478), Potato___Early_blight (1000), Potato___Late_blight (1000), Potato___healthy (152), Raspberry___healthy (371), Soybean___healthy (5090), Squash___Powdery_mildew (1835), Strawberry___Leaf_scorch (1109), Strawberry___healthy (456), Tomato___Bacterial_spot (2127), Tomato___Early_blight (1000), Tomato___Late_blight (1909), Tomato___Leaf_Mold (952), Tomato___Septoria_leaf_spot (1771), Tomato___Spider_mites Two-spotted_spider_mite (1676), Tomato___Target_Spot (1404), Tomato___Tomato_Yellow_Leaf_Curl_Virus (5357), Tomato___Tomato_mosaic_virus (373), Tomato___healthy (1591). Per-folder counts match the Project-AgML card exactly for all 39 classes (https://huggingface.co/datasets/Project-AgML/plant_village_classification). The official `raw/color` has 38 folders with different names (for example `Cherry_(including_sour)___Powdery_mildew`, `Corn_(maize)___...`) and no `Background_without_leaves` (https://api.github.com/repos/spMohanty/PlantVillage-Dataset/contents/raw/color). So the local copy is a 39-class re-release, not the official 38-class release.
+Access: Local copy is already on disk, read-only. Official: `git clone https://github.com/spMohanty/PlantVillage-Dataset` (not run). The 39th class's origin still needs tracing before approval.
+Approved: no, needs the person
+
+## PlantDoc
+
+URL: https://github.com/pratikkayal/PlantDoc-Dataset
+License: "Creative Commons Attribution 4.0 International" per the repo README, and LICENSE.txt in the repo begins "Attribution 4.0 International" (https://raw.githubusercontent.com/pratikkayal/PlantDoc-Dataset/master/LICENSE.txt, read via https://github.com/pratikkayal/PlantDoc-Dataset). This is the authors' repo (owner `pratikkayal`; I did not check the paper's author list). The repo hosts Cropped-PlantDoc only; the object-detection version is linked separately, and its license was not checked. The images were scraped from the internet, so per-image rights were not checked; this records the license the dataset publishes.
+Size: 2,598 data points in total (README: "Our dataset contains 2,598 data points in total across 13 plant species and up to 17 classes of diseases"). A Roboflow mirror lists 2,569 images and 30 classes (https://universe.roboflow.com/sherif/plantdoc-cbl3c-wvbns); that is secondary and conflicts, so it was not used.
+Classes: "up to 17 classes of diseases across 13 plant species" (repo README). Per-class counts not given on the page read.
+Access: Browse or clone https://github.com/pratikkayal/PlantDoc-Dataset (not run). Top-level folders: `train/` and `test/`.
+Approved: yes
+
+## PlantSeg (second real-photo source, in-the-wild)
+
+URL: https://github.com/tqwei05/PlantSeg ; Zenodo record https://zenodo.org/records/16665770 ; DOI https://doi.org/10.5281/zenodo.17719108 ; paper https://arxiv.org/abs/2409.04038
+License: Zenodo record license field: "Creative Commons Attribution 4.0 International" (https://zenodo.org/records/16665770). The record's creators are the paper authors (Tianqi Wei et al.), so this is the authors' own publication. The GitHub repo has no License section or LICENSE file (https://github.com/tqwei05/PlantSeg). The record read is v6 (July 31, 2025), and the page says a newer version exists; the license of the newest version was not checked.
+Size: One file, `Plantseg.zip`, 1.7 GB (Zenodo record above). Image count conflicts: GitHub README says "more than 7,774 images" (https://github.com/tqwei05/PlantSeg); the arXiv abstract says "11,400 images with disease segmentation masks and an additional 8,000 healthy plant images" (https://arxiv.org/abs/2409.04038). Not reconciled.
+Classes: couldn't confirm. A search snippet cited "115 different plant diseases"; the README page read did not list a class count, and the arXiv abstract gives no class count.
+Access: Download `Plantseg.zip` from the Zenodo record above, then place it under the `data` folder as the repo README says (not done). Each image has a segmentation mask of the diseased part.
+Approved: yes
+
+## not_plant public image set (candidate: Open Images)
+
+URL: https://storage.googleapis.com/openimages/web/factsfigures_v7.html (Google's Open Images page; the CVDF repo at https://github.com/cvdfoundation/open-images-dataset was also read, but has no license text)
+License: "The annotations are licensed by Google LLC under CC BY 4.0 license." "The images are listed as having a CC BY 2.0 license." Google adds: "we make no representations or warranties regarding the license status of each image" and "you should verify the license for each image yourself" (https://storage.googleapis.com/openimages/web/factsfigures_v7.html). Image rights are per image, so no single dataset license permits non-commercial research use for the images. Not approved.
+Size: train 9,011,219 images; validation 41,620; test 125,436 (same page).
+Classes: not checked. A usable `not_plant` subset would need label filtering that has not been designed.
+Access: Not checked; not downloaded.
+Approved: no, needs the person
+
+Also checked, license couldn't confirm: COCO. https://cocodataset.org/termsofuse returned HTTP 404, and the cocodataset.org homepage has no license text. Not a candidate until a license page is read.
+
+## Segmented PlantVillage images
+
+URL: https://github.com/spMohanty/PlantVillage-Dataset (folder `raw/segmented`; listing https://api.github.com/repos/spMohanty/PlantVillage-Dataset/contents/raw/segmented)
+License: Same as the official PlantVillage repo above: no LICENSE file; the repo's `README_HF.md` states `license: cc-by-sa-3.0`; PlantVillage's terms state CC BY-SA 3.0 for its own content (https://plantvillage.psu.edu/tos). Not confirmed for this specific segmented copy.
+Size: Not downloaded.
+Classes: The official `raw/segmented` has 38 class folders (the same 38 names as `raw/color`, with no `Background_without_leaves`).
+Access: Browse or clone the official repo (not run).
+Approved: no, needs the person (not downloaded)
+
+Finding: No segmented PlantVillage images are on this machine. `<local path>` is an empty directory (zero entries). The local `noaug` and `aug` folders hold color photos: one sample, `Apple___Apple_scab\image (1).JPG`, shows a leaf on a plain gray background, not a black-background segmented image. That was a single-image check, not a full survey. The official repo does have a `raw/segmented` folder with 38 class folders, but it was not downloaded.

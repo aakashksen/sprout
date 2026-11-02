@@ -16,6 +16,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+testpaths = ["tests"]
 addopts = "-m 'not real'"
 markers = ["real: needs a GPU, Ollama, or a network; skipped unless asked for"]
 

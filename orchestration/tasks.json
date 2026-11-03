@@ -225,14 +225,14 @@
         "{py} -m sprout.eval.check_run E3 --min-n 1000 --split lab_dev",
         "{py} -m sprout.eval.check_run E3 --min-n 200 --split field_dev"
       ],
-      "status": "in_progress",
-      "worktree": "<local path>",
+      "status": "done",
       "started_at": "2026-11-03T09:40:00+00:00",
       "verified": {
         "commit": "423678f4ff6642589a09a86d6352a0cfca39d14e",
         "passed": true,
-        "at": "2026-11-03T12:09:09+00:00"
-      }
+        "at": "2026-11-03T12:56:28+00:00"
+      },
+      "done_at": "2026-11-03T13:03:30+00:00"
     },
     {
       "id": "T3.4",

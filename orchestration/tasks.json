@@ -577,12 +577,12 @@
       "worktree": "<local path>",
       "started_at": "2026-11-03T16:45:52+00:00",
       "verified": {
-        "commit": "4d41888eb99388422d6256f43c5dd38dd078f7ee",
+        "commit": "7cbc328f469e5c6b9f59e745e7a208e21c266fb8",
         "passed": true,
-        "at": "2026-11-03T18:34:23+00:00"
+        "at": "2026-11-03T19:02:20+00:00"
       },
-      "attempts": 1,
-      "reason": "a rag_test abstain question is now answered by new documents; 18 of the 28 original manifest rows have no source URL and 2 no publisher, though the coverage report relies on tomatodoc2.md"
+      "attempts": 2,
+      "reason": "not_in_documents-012, watermelon fusarium wilt, is answered by a general cucurbit page; the abstain check needs family terms"
     },
     {
       "id": "T6.4",

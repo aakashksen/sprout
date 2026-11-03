@@ -51,7 +51,7 @@ ContextLens covers agents, LLM fine-tuning, and C++. SPROUT covers **training ri
 
 ## Limits
 - **Hardware:** RTX 4070 laptop GPU with 8 GB VRAM, shared with other projects. One GPU job at a time. Mixed precision is on. If something can't fit, block the task.
-- **Claude usage:** 1,000 product calls across the project, on Haiku, counted in `results/claude_calls.json`. `ClaudeCodeClient` refuses past the cap. Only the person can raise it.
+- **Claude usage:** comparisons use Sonnet, with a 5,000-call cap as a runaway guard, counted in `results/claude_calls.json`. `ClaudeCodeClient` refuses past the cap. Only the person can raise it.
 - **Experiments:** a limited search. Every setting tried goes in the run record.
 - **Data leaving the machine:** only benchmark questions and public document text go to a cloud model. Never user photos or history.
 

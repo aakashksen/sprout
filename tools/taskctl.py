@@ -8,6 +8,7 @@ import contextlib
 import datetime as dt
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -31,6 +32,7 @@ SHARED_FILES = (".env",)
 SHARED_OUTPUTS = ("models", "mlruns")
 # Ignored files that are safe to lose when a worktree goes away.
 DISPOSABLE = ("__pycache__", ".pytest_cache", ".ruff_cache", ".venv", "node_modules", ".egg-info", ".pyc", "dist", "build")
+GPU_BUDGET_MB = int(os.environ.get("CL_GPU_BUDGET_MB", "6400"))  # 8 GB less what the desktop keeps
 MAX_ATTEMPTS = 3
 TIMEOUT_S = int(os.environ.get("CL_VERIFY_TIMEOUT_S", "1800"))
 
@@ -111,8 +113,24 @@ def python():
     return str(venv) if venv.exists() else sys.executable
 
 
+def gpu_table():
+    return json.loads(GPU_NEEDS.read_text(encoding="utf-8")) if GPU_NEEDS.exists() else {}
+
+
 def gpu_need(task_id):
-    return json.loads(GPU_NEEDS.read_text(encoding="utf-8")).get(task_id) if GPU_NEEDS.exists() else None
+    return gpu_table().get(task_id)
+
+
+def gpu_holders():
+    """Who holds GPU memory now: (label, reserved MB, exclusive)."""
+    if not GPU_LOCK.exists():
+        return []
+    rows = []
+    for line in GPU_LOCK.read_text(encoding="utf-8").splitlines():
+        parts = line.split()
+        if parts:
+            rows.append((parts[0], int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else GPU_BUDGET_MB, len(parts) > 2 and parts[2] == "exclusive"))
+    return rows
 
 
 def ready(plan, owner="agent"):
@@ -121,8 +139,6 @@ def ready(plan, owner="agent"):
         t for t in plan["tasks"]
         if t["status"] == "pending" and t["owner"] == owner and set(t["deps"]) <= done
     ]
-    if owner == "agent" and any(t["status"] == "in_progress" and gpu_need(t["id"]) for t in plan["tasks"]):
-        tasks = [t for t in tasks if not gpu_need(t["id"])]  # one GPU task per project at a time
     return tasks
 
 
@@ -244,8 +260,6 @@ def cmd_start(args):
             sys.exit(f"{args.id} is waiting on: {sorted(missing)}")
         if task["status"] not in ("pending", "in_progress"):
             sys.exit(f"{args.id} is {task['status']}")
-        if gpu_need(args.id) and any(t["status"] == "in_progress" and t["id"] != args.id and gpu_need(t["id"]) for t in plan["tasks"]):
-            sys.exit(f"{args.id} is a GPU task, and another GPU task in this project is in progress")
         if args.worktree and not task.get("worktree"):
             path = WT_ROOT / args.id
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -311,6 +325,16 @@ def verdict_commit(task_id):
     return verdict.get("commit")
 
 
+def require_decision_entry(task_id, base):
+    """A task is not finished until docs/DECISIONS.md names it, in an entry or as `<id>: no new decisions`.
+    The id must stand alone, so T4.1 is not found inside T4.10 or T4.1.5."""
+    path = Path(base) / "docs" / "DECISIONS.md"
+    text = path.read_text(encoding="utf-8") if path.exists() else ""
+    if not re.search(r"(?<!\w)" + re.escape(task_id) + r"(?!\w|\.\d)", text):
+        sys.exit(f"refused: docs/DECISIONS.md does not mention {task_id}; add an entry for what it decided, "
+                 f"or a line `{task_id}: no new decisions`")
+
+
 def cmd_done(args):
     plan = load()
     task = find(plan, args.id)
@@ -326,6 +350,7 @@ def cmd_done(args):
         sys.exit("refused: acceptance commands have not passed at this commit; run verify")
     if verdict_commit(args.id) != commit:
         sys.exit("refused: the verifier has not passed this exact commit")
+    require_decision_entry(args.id, ROOT)
     with editing() as plan:
         task = find(plan, args.id)
         task["status"] = "done"
@@ -347,6 +372,7 @@ def cmd_land(args):
         sys.exit("refused: acceptance commands have not passed at this commit; run verify")
     if verdict_commit(args.id) != verified["commit"]:
         sys.exit("refused: the verifier has not passed this exact commit")
+    require_decision_entry(args.id, worktree)
     with file_lock(LAND_LOCK, wait_s=3600, stale_s=7200):
         if dirty():
             sys.exit("refused: the build branch has uncommitted changes")
@@ -447,37 +473,47 @@ def cmd_gpu(args):
 
 
 def cmd_gpu_acquire(args):
-    """Takes the one GPU turn shared by every project on this machine, just before a GPU job starts."""
+    """Takes a share of the GPU just before a job starts. Jobs run together while their reserved memory fits."""
     label = f"{ROOT.name}/{args.id}"
-    try:
-        handle = os.open(GPU_LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-    except FileExistsError:
-        holder = GPU_LOCK.read_text(encoding="utf-8") if GPU_LOCK.exists() else "unknown"
-        if holder.split("\n")[0] == label:
-            print(f"{args.id}: already holds the GPU turn")
+    need = gpu_need(args.id) or 0
+    exclusive = args.id in gpu_table().get("_exclusive", [])
+    with file_lock(GPU_LOCK.with_suffix(".guard"), wait_s=60, stale_s=120):
+        holders = gpu_holders()
+        if any(h[0] == label for h in holders):
+            print(f"{args.id}: already holds a GPU share")
             return
-        print(f"GPU BUSY: {args.id} is waiting for its GPU turn, held by {holder.strip()}. Not started.")
-        sys.exit(3)
-    os.write(handle, f"{label}\n{now()}\n".encode())
-    os.close(handle)
-    problem = gpu_problem(args.id)
-    if problem:
-        GPU_LOCK.unlink()
-        print(problem)
-        sys.exit(3)
-    print(f"{args.id}: has the GPU turn")
+        reserved = sum(h[1] for h in holders)
+        if holders and (exclusive or any(h[2] for h in holders)):
+            who = ", ".join(h[0] for h in holders)
+            print(f"GPU BUSY: {args.id} can't share the GPU with {who} because one of them needs it alone. Not started.")
+            sys.exit(3)
+        if reserved + need > GPU_BUDGET_MB:
+            print(f"GPU BUSY: {args.id} needs about {need} MB, and {reserved} of {GPU_BUDGET_MB} MB is reserved by {', '.join(h[0] for h in holders)}. Not started.")
+            sys.exit(3)
+        problem = None if holders else gpu_problem(args.id)
+        if problem:
+            print(problem)
+            sys.exit(3)
+        with GPU_LOCK.open("a", encoding="utf-8") as f:
+            f.write(f"{label} {need}{' exclusive' if exclusive else ''} {now()}\n")
+    print(f"{args.id}: has a GPU share ({need} MB reserved)")
 
 
 def cmd_gpu_release(args):
     label = f"{ROOT.name}/{args.id}"
-    holder = GPU_LOCK.read_text(encoding="utf-8").split("\n")[0] if GPU_LOCK.exists() else None
-    if holder is None:
-        print("no GPU turn is held")
-    elif holder != label and not args.force:
-        sys.exit(f"refused: the GPU turn is held by {holder}")
-    else:
-        GPU_LOCK.unlink()
-        print(f"released the GPU turn held by {holder}")
+    with file_lock(GPU_LOCK.with_suffix(".guard"), wait_s=60, stale_s=120):
+        lines = GPU_LOCK.read_text(encoding="utf-8").splitlines() if GPU_LOCK.exists() else []
+        keep = [] if args.force else [row for row in lines if row.split()[:1] != [label]]
+        if not lines:
+            print("no GPU share is held")
+        elif len(keep) == len(lines):
+            sys.exit(f"refused: {label} holds no share; held by {', '.join(row.split()[0] for row in lines)}")
+        elif keep:
+            GPU_LOCK.write_text("\n".join(keep) + "\n", encoding="utf-8")
+            print(f"released {label}")
+        else:
+            GPU_LOCK.unlink()
+            print(f"released {label}; the GPU is clear")
 
 
 def cmd_human_done(args):

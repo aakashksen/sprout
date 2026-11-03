@@ -64,6 +64,8 @@ Dev experiments may run before the person reviews labels (H2), with `labels_revi
 | E3 | How do XGBoost, a frozen head, and DINOv2 compare? | T3.3 |
 | E10 | How well does a segmentation model trained on PlantSeg's masks find the disease area? | T4.0 |
 | E4 | What actually raises real-photo performance: joint training, augmentation, background, or a disease crop? | T4.1 |
+| E11 | Do follow-up questions on top-3, answered from the photo by someone blind to its class, improve the answer? | T4.3 |
+| E12 | Does adding more real-photo sources to training help, on seen and held-out sources? | T4.6 |
 | E5 | Does calibration plus abstention cut confident errors, and at what coverage? Which input gate works best? | T4.2 |
 | E6 | Does ONNX quantization keep accuracy while speeding up CPU? | T5.1 |
 | E7 | Which retrieval setup and prompts give faithful, cited answers? | T6.4 |

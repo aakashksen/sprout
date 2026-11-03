@@ -49,7 +49,9 @@
         "T0.2"
       ],
       "acceptance": [],
-      "status": "pending"
+      "status": "done",
+      "note": "ok: the person read the dataset choices and approved them, 2026-11-03",
+      "done_at": "2026-11-03T17:10:10+00:00"
     },
     {
       "id": "T1.1",
@@ -336,6 +338,78 @@
         "{py} -m pytest tests/test_e5.py -q",
         "{py} -m sprout.eval.check_run E5 --min-n 200 --split field_dev"
       ],
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-03T15:59:32+00:00",
+      "verified": {
+        "commit": "810645e30bead7b520f1adf18d50f58a64056621",
+        "passed": false,
+        "at": "2026-11-03T17:12:20+00:00"
+      },
+      "attempts": 1,
+      "reason": "tests/test_e5.py::test_probs_stage_scores_not_plant_photos_from_a_checkpoint fails when a GPU is visible: np.allclose on probabilities, because the stage scores on cuda while the test compares with CPU"
+    },
+    {
+      "id": "T4.3",
+      "phase": 4,
+      "title": "Experiment E11, follow-up questions on top-3",
+      "owner": "agent",
+      "deps": [
+        "T4.2"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e11.py -q",
+        "{py} -m sprout.eval.check_run E11 --min-n 50 --split field_dev"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T4.4",
+      "phase": 4,
+      "title": "Candidate documents for uncovered classes",
+      "owner": "agent",
+      "deps": [
+        "T3.4"
+      ],
+      "acceptance": [
+        "{py} tools/check_candidates_doc.py"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T16:01:15+00:00",
+      "verified": {
+        "commit": "d9eebb89257b320d3c8c92d7852c3a9b2087c26e",
+        "passed": true,
+        "at": "2026-11-03T16:06:52+00:00"
+      },
+      "done_at": "2026-11-03T16:09:31+00:00"
+    },
+    {
+      "id": "T4.5",
+      "phase": 4,
+      "title": "More real-photo sources for training",
+      "owner": "agent",
+      "deps": [
+        "T4.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_extra_sources.py -q"
+      ],
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-03T16:45:43+00:00"
+    },
+    {
+      "id": "T4.6",
+      "phase": 4,
+      "title": "Experiment E12, best configuration with more sources",
+      "owner": "agent",
+      "deps": [
+        "T4.5"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e12.py -q",
+        "{py} -m sprout.eval.check_run E12 --min-n 200 --split field_dev"
+      ],
       "status": "pending"
     },
     {
@@ -364,7 +438,8 @@
       "title": "Experiment E6, ONNX and quantization",
       "owner": "agent",
       "deps": [
-        "T4.2"
+        "T4.2",
+        "T4.6"
       ],
       "acceptance": [
         "{py} -m pytest tests/test_e6.py -q",
@@ -458,7 +533,24 @@
         "T6.3"
       ],
       "acceptance": [],
-      "status": "pending"
+      "status": "done",
+      "note": "the person went through the sample by hand on 2026-11-03: mostly fine, no item-by-item count kept. Independent agent review also run, counts in orchestration/evidence/H2-agent-review*.md",
+      "done_at": "2026-11-03T17:12:23+00:00"
+    },
+    {
+      "id": "T6.5",
+      "phase": 6,
+      "title": "More care documents, with coverage",
+      "owner": "agent",
+      "deps": [
+        "T6.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_more_documents.py -q"
+      ],
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-03T16:45:52+00:00"
     },
     {
       "id": "T6.4",
@@ -466,10 +558,11 @@
       "title": "Experiment E7, answers",
       "owner": "agent",
       "deps": [
+        "T2.3",
+        "T5.0",
         "T6.2",
         "T6.3",
-        "T2.3",
-        "T5.0"
+        "T6.5"
       ],
       "acceptance": [
         "{py} -m pytest tests/test_answer.py -q",

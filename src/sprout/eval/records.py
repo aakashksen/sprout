@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 
 from sprout.atomic import atomic_write_text
+from sprout.data.label_review import exclusion_paths, read_log
 from sprout.data.splits import COLUMNS, dataset_hash
 from sprout.eval import metrics as M
 from sprout.eval.predict import Predictions
@@ -87,7 +88,23 @@ def split_info(split: str, root: Path = ROOT) -> SplitInfo:
 
 def subset_positions(name: str, split: str, info: SplitInfo, root: Path = ROOT) -> list[int]:
     """Positions within the split of a declared subset: `first_<N>` rows, `source:<name>` (field rows whose
-    `source` column in field.csv is <name>), or `shared_classes` (labels present in both lab.csv and field.csv)."""
+    `source` column in field.csv is <name>), `shared_classes` (labels present in both lab.csv and field.csv),
+    or `clean:<N>` (field rows not in datasets/label_exclusions.csv up to version N). Parts joined with `+`
+    must all hold."""
+    if "+" in name:
+        keep = None
+        for part in name.split("+"):
+            found = set(subset_positions(part, split, info, root))
+            keep = found if keep is None else keep & found
+        return sorted(keep)
+    clean = re.fullmatch(r"clean:(\d+)", name)
+    if clean and split.startswith("field_"):
+        version = int(clean.group(1))
+        log = read_log(root / "datasets" / "label_exclusions.csv")
+        if version > (int(log["version"].max()) if len(log) else 0):
+            raise ValueError(f"exclusion version {version} is not in label_exclusions.csv")
+        gone = exclusion_paths(log, version)
+        return [i for i, path in enumerate(info.ids) if path not in gone]
     first = re.fullmatch(r"first_(\d+)", name)
     if first:
         return list(range(min(int(first.group(1)), len(info.ids))))

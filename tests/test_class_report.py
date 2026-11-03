@@ -83,7 +83,7 @@ def test_every_kept_class_has_a_coverage_row():
     for doc in "; ".join(rows["document"]).split("; "):
         assert doc == "" or doc in known
     for label in ("Squash___Powdery_mildew", "Raspberry___healthy", "Soybean___healthy"):
-        assert rows.set_index("label").loc[label, "crop"] == "none"
+        assert rows.set_index("label").loc[label, "crop"] == label.split("___")[0].lower()
     for _, r in rows.iterrows():
         assert r["crop"] == (cr.class_crop(r["label"]) or "none")
 

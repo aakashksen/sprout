@@ -21,7 +21,7 @@ Training dependencies live in `requirements/train.txt` and are never installed i
 
 | Variable | Meaning |
 | --- | --- |
-| `SPROUT_SECRET_KEY` | Required. The app refuses to start without it. |
+| `SPROUT_SECRET_KEY` | Required, at least 16 characters. The app refuses to start without it. |
 | `SPROUT_ENV` | `production` (default), `development`, or `testing`. |
 | `SPROUT_DATA_DIR` | Database and private uploads. `/data` in the image. |
 | `SPROUT_MANIFEST` | Source titles and links for chat. Defaults to the copied manifest. |

@@ -179,9 +179,16 @@
         "{py} -m pytest tests/test_e1.py -q",
         "{py} -m sprout.eval.check_run E1 --min-n 1000 --split lab_dev"
       ],
-      "status": "in_progress",
-      "worktree": "<local path>",
-      "started_at": "2026-11-03T06:52:46+00:00"
+      "status": "done",
+      "started_at": "2026-11-03T06:52:46+00:00",
+      "verified": {
+        "commit": "77af330b314f765d80f0edfafe468db4254380d1",
+        "passed": true,
+        "at": "2026-11-03T07:56:42+00:00"
+      },
+      "attempts": 1,
+      "reason": "docs/data-counts.md has two false source claims: ConcatDataset in the legacy notebook does not exist, and 99.97 does not appear in a notebook printed log",
+      "done_at": "2026-11-03T07:58:59+00:00"
     },
     {
       "id": "T3.2",

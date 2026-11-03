@@ -71,6 +71,12 @@ class FastReranker:
         return [1 / (1 + math.exp(-s)) for s in self._model.rerank(query, texts)]
 
 
+def vectors_cache_path(index_dir: Path, model: str, texts: list[str]) -> Path:
+    """Where the embedded chunks of an index are saved, keyed by model and chunk text."""
+    key = hashlib.sha1(chr(0).join([model, *texts]).encode()).hexdigest()[:16]
+    return Path(index_dir) / f"vectors-{key}.npy"
+
+
 def _tokens(text: str) -> list[str]:
     return _TOKEN.findall(text.lower())
 
@@ -123,8 +129,7 @@ class Retriever:
         texts = [c["text"] for c in self._chunks]
         cache = None
         if self._embedder is None:
-            key = hashlib.sha1(chr(0).join([self.config.embedding_model, *texts]).encode()).hexdigest()[:16]
-            cache = self._index_dir / f"vectors-{key}.npy"
+            cache = vectors_cache_path(self._index_dir, self.config.embedding_model, texts)
             try:
                 saved = np.load(cache)
                 if saved.ndim == 2 and saved.shape[0] == len(texts):

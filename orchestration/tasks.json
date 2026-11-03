@@ -338,8 +338,7 @@
         "{py} -m pytest tests/test_e5.py -q",
         "{py} -m sprout.eval.check_run E5 --min-n 200 --split field_dev"
       ],
-      "status": "in_progress",
-      "worktree": "<local path>",
+      "status": "done",
       "started_at": "2026-11-03T15:59:32+00:00",
       "verified": {
         "commit": "c0b1ae1bee164b65b8710e5b19e15d1631fdb241",
@@ -347,7 +346,8 @@
         "at": "2026-11-03T17:16:58+00:00"
       },
       "attempts": 1,
-      "reason": "tests/test_e5.py::test_probs_stage_scores_not_plant_photos_from_a_checkpoint fails when a GPU is visible: np.allclose on probabilities, because the stage scores on cuda while the test compares with CPU"
+      "reason": "tests/test_e5.py::test_probs_stage_scores_not_plant_photos_from_a_checkpoint fails when a GPU is visible: np.allclose on probabilities, because the stage scores on cuda while the test compares with CPU",
+      "done_at": "2026-11-03T17:27:17+00:00"
     },
     {
       "id": "T4.7",

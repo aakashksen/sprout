@@ -49,7 +49,9 @@
         "T0.2"
       ],
       "acceptance": [],
-      "status": "pending"
+      "status": "done",
+      "note": "ok: the person read the dataset choices and approved them, 2026-11-03",
+      "done_at": "2026-11-03T17:10:10+00:00"
     },
     {
       "id": "T1.1",
@@ -338,7 +340,14 @@
       ],
       "status": "in_progress",
       "worktree": "<local path>",
-      "started_at": "2026-11-03T15:59:32+00:00"
+      "started_at": "2026-11-03T15:59:32+00:00",
+      "verified": {
+        "commit": "810645e30bead7b520f1adf18d50f58a64056621",
+        "passed": false,
+        "at": "2026-11-03T17:12:20+00:00"
+      },
+      "attempts": 1,
+      "reason": "tests/test_e5.py::test_probs_stage_scores_not_plant_photos_from_a_checkpoint fails when a GPU is visible: np.allclose on probabilities, because the stage scores on cuda while the test compares with CPU"
     },
     {
       "id": "T4.3",
@@ -385,7 +394,9 @@
       "acceptance": [
         "{py} -m pytest tests/test_extra_sources.py -q"
       ],
-      "status": "pending"
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-03T16:45:43+00:00"
     },
     {
       "id": "T4.6",
@@ -522,7 +533,9 @@
         "T6.3"
       ],
       "acceptance": [],
-      "status": "pending"
+      "status": "done",
+      "note": "the person went through the sample by hand on 2026-11-03: mostly fine, no item-by-item count kept. Independent agent review also run, counts in orchestration/evidence/H2-agent-review*.md",
+      "done_at": "2026-11-03T17:12:23+00:00"
     },
     {
       "id": "T6.5",
@@ -535,7 +548,9 @@
       "acceptance": [
         "{py} -m pytest tests/test_more_documents.py -q"
       ],
-      "status": "pending"
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-03T16:45:52+00:00"
     },
     {
       "id": "T6.4",

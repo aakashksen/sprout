@@ -297,7 +297,8 @@ Optional for the build. See `docs/HUMAN-GATES.md`.
 ### T8.1: Experiment E9, final test
 **Files:** `src/sprout/experiments/e9_final.py`, `tests/test_e9.py`.
 **Do:** Freeze configurations chosen on dev, and commit them before touching test. Run once on `lab_test`, `field_test`, and `rag_test`, one record each: clean baseline, improved model, XGBoost, DINOv2, with and without abstention, and the quantized final model. Report lab and real-photo results separately, with `lab_test` also scored on shared classes, with top-1, top-3, top-5, macro-F1, calibration, and plant-given top-1 and top-3, stating the options per plant. RAG uses the local model; any Claude comparison stays within the call cap.
-**Tests:** `test_refuses_when_config_not_committed`; `test_refuses_second_test_run_without_override_note`.
+The record's `labels_reviewed` comes from H2's signed state in `orchestration/tasks.json`, never a hardcoded value, because `claims check` refuses a claim on a record without it.
+**Tests:** `test_refuses_when_config_not_committed`; `test_refuses_second_test_run_without_override_note`; `test_labels_reviewed_is_false_before_h2_and_true_after`.
 **Accept:** `{py} -m pytest tests/test_e9.py -q`; `{py} -m sprout.eval.check_run E9 --min-n 200 --split field_test`.
 
 ### T8.2: Report, README, and bullets

@@ -6,7 +6,13 @@ import urllib.request
 
 import pytest
 
-from sprout.llm.client import ClaudeCodeClient, FakeLLM, LLMError, LLMResult, OllamaClient
+from sprout.llm.client import (
+    ClaudeCodeClient,
+    FakeLLM,
+    LLMError,
+    LLMResult,
+    OllamaClient,
+)
 
 MSGS = [{"role": "system", "content": "be brief"}, {"role": "user", "content": "hi"}]
 

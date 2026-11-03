@@ -1,7 +1,6 @@
 """E7 stages with fakes: checkpoints, gold matching, floors, judging files, and records that check_run recomputes."""
 import json
 import subprocess
-from pathlib import Path
 
 import pytest
 
@@ -9,7 +8,6 @@ from sprout.eval.check_run import check_file
 from sprout.experiments import e7_rag as e7
 from sprout.llm.client import FakeLLM
 from sprout.rag.answer import AnswerConfig
-from sprout.rag.evalset import Question
 from sprout.rag.judge import blind_view, judge_answer, split_claims
 from sprout.rag.retrieve import Passage, RetrievalConfig, Retriever
 

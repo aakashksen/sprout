@@ -17,9 +17,20 @@ from typing import Any
 import numpy as np
 
 from sprout.atomic import atomic_write_text
-from sprout.eval.check_run import Scored, recompute_comparison, recompute_interval, recompute_metric
+from sprout.eval.check_run import (
+    Scored,
+    recompute_comparison,
+    recompute_interval,
+    recompute_metric,
+)
 from sprout.eval.records import RAG_REL, ROOT, split_info, subset_positions, write_run
-from sprout.rag.answer import GENERAL_CROP, Answer, AnswerConfig, answer, bounded_history
+from sprout.rag.answer import (
+    GENERAL_CROP,
+    Answer,
+    AnswerConfig,
+    answer,
+    bounded_history,
+)
 from sprout.rag.evalset import Question, index_rows, load_questions, normalize
 from sprout.rag.judge import blind_view, judge_answer
 from sprout.rag.query import build_query, crop_of_label, disease_of_label
@@ -446,4 +457,5 @@ class Chosen:
         return cls(**json.loads(path.read_text(encoding="utf-8"))) if path.is_file() else cls()
 
     def save(self, path: Path) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
         atomic_write_text(path, json.dumps(asdict(self), indent=1) + "\n")

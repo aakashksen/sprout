@@ -305,3 +305,53 @@ def test_stale_temp_checkpoint_does_not_break_train_or_resume(manifest, tmp_path
         train(cfg)  # leftover temp files do not count as checkpoints
     undo()
     assert train(cfg, resume=out / "latest.pt").epochs_done == 2
+
+
+class _PidProbe(torch.utils.data.Dataset):
+    def __len__(self):
+        return 4
+
+    def __getitem__(self, i):
+        import os
+
+        return os.getpid()
+
+
+def test_real_workers_are_separate_processes():
+    import os
+
+    pids = {int(p) for batch in torch.utils.data.DataLoader(_PidProbe(), batch_size=1, num_workers=2) for p in batch}
+    assert pids and os.getpid() not in pids
+
+
+def test_real_workers_reseed_from_the_loader_generator(manifest, tmp_path):
+    cm = make_class_map(manifest)
+
+    def first(seed):
+        tr, _ = build_loaders(manifest, _config(tmp_path, num_workers=2, seed=seed), cm)
+        it = iter(tr)
+        batch = next(it)[0]
+        it._shutdown_workers()  # leave no worker holding handles when the next loader starts
+        return batch
+
+    assert torch.equal(first(1), first(1))  # random augmentation repeats because workers are seeded from gen
+    assert not torch.equal(first(1), first(2))
+
+
+def test_real_workers_give_the_zero_worker_first_batch_without_augmentation(manifest, tmp_path):
+    cm = make_class_map(manifest)
+    batches = []
+    for workers in (0, 2):
+        tr, _ = build_loaders(manifest, _config(tmp_path, num_workers=workers, transforms=()), cm)
+        batches.append(next(iter(tr)))
+    assert torch.equal(batches[0][0], batches[1][0]) and torch.equal(batches[0][1], batches[1][1])
+
+
+def test_a_resumed_run_iterates_with_real_workers(manifest, tmp_path, monkeypatch):
+    cfg = _config(tmp_path, epochs=2)
+    undo = _interrupt_after(monkeypatch, 1)
+    with pytest.raises(KeyboardInterrupt):
+        train(cfg)
+    undo()
+    out = train(dataclasses.replace(cfg, num_workers=2), resume=tmp_path / "run" / "latest.pt")
+    assert out.epochs_done == 2

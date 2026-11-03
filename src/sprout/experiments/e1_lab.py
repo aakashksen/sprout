@@ -7,7 +7,6 @@ from __future__ import annotations
 import argparse
 import ast
 import json
-import os
 import re
 import sys
 from datetime import datetime, timezone
@@ -74,20 +73,6 @@ def legacy_to_shared(
     top_unmapped = float(np.mean([legacy[i] not in mapping for i in preds.probs.argmax(axis=1)]))
     kept = preds.probs[:, cols]
     return Predictions(preds.path, preds.label, kept / kept.sum(axis=1, keepdims=True)), top_unmapped
-
-
-def _log_mlflow(root: Path, cfg: dict, train_cfg: TrainConfig, history: list[dict], final: dict[str, float]) -> None:
-    os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")  # mlflow-skinny has no database backend
-    import mlflow
-
-    mlflow.set_tracking_uri((root / "mlruns").as_uri())
-    mlflow.set_experiment(cfg["experiment"])
-    with mlflow.start_run():
-        mlflow.log_params({k: str(v) for k, v in train_cfg.to_dict().items()})
-        for row in history:
-            for k in ("train_loss", "val_loss", "val_acc"):
-                mlflow.log_metric(k, row[k], step=row["epoch"])
-        mlflow.log_metrics(final)
 
 
 def run(cfg: dict[str, Any], root: Path = ROOT, resume: Path | None = None, note: str = "") -> Path:
@@ -174,7 +159,6 @@ def run(cfg: dict[str, Any], root: Path = ROOT, resume: Path | None = None, note
         root=root,
         notes=notes,
     )
-    _log_mlflow(root, cfg, train_cfg, out.history, {f"{split}_{m}": v for m, v in metrics["e1"].items()})
     return path
 
 

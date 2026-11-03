@@ -116,6 +116,18 @@ A task with no entry gets a line `<id>: no new decisions` at the end of this fil
 - **Evidence:** `tests/test_atomic_writes.py`.
 - **Would change if:** records move to a database.
 
+### Cleanup - check_run skips records that already fully passed (2026-11-03)
+- **Chose:** `check_run` stores a key for each record that fully passed and skips it next time (`src/sprout/eval/check_cache.py`). The key covers the record, the prediction and sample files it names, `--min-n`, every sprout module `check_run` imports (found by walking the imports), the versions of the third-party libraries those modules import, and all manifests plus the RAG and perf lists. Any change to the checker or those data files rechecks everything. Failures are never stored. Ancestry of `git_commit` and the test-once rule are still computed on every run because they depend on HEAD and on other records. The file sits in git's common directory (untracked, shared by worktrees, written atomically). `--all` ignores it, and `claims` call `check_file`, which never uses it. T8.1 and T8.2 must run the full check.
+- **Considered:** a timestamp or mtime key (files change time without changing content, and a checker edit would not show); a cache in `results/` (a new git-ignored path, and each worktree starts empty so a land would save nothing); hashing only `check_run.py` (misses `records.py`, `metrics.py` and `stats.py`, so a metric fix would leave stale passes).
+- **Evidence:** the six tests in `tests/test_check_cache.py`. On the 7 experiment/split `check_run` acceptance commands that have records today, full checks took 603 s (`--all`); the same commands with a warm cache took 44 s, of which E10 (26 s) was uncached because its first cached run crashed with exit code 3221226505 and was not stored. Timings are from one busy machine, not a run record.
+- **Would change if:** a check starts to depend on something not in the key (a new data file, an environment variable); then add it to the key, or drop the cache.
+
+### Cleanup - every run record is logged to MLflow by write_run (2026-11-03)
+- **Chose:** `write_run` copies each saved record into `mlruns/` (`src/sprout/eval/mlflow_log.py`): tag `run_id`, finite metrics per system, scalar config as parameters, the device when the record has one, per-epoch history when an attempt saved one. A logging failure warns and the record is untouched. E1's own logging is removed so nothing logs twice (its record is unchanged). `tools/backfill_mlflow.py` logs older records and skips ones already tagged. `is_dirty` ignores `mlruns/`.
+- **Considered:** each experiment calling MLflow itself (only E1 did, about 3 runs; every new experiment would need its own code); a database store (not available in mlflow-skinny); letting a logging error stop the run (the record, not MLflow, is the source of truth).
+- **Evidence:** `tests/test_mlflow_log.py`. The backfill on the main folder's store logged 16 records (E1 2, E10 1, E2 2, E3 2, E4 7, E5 2) and a second run logged none. The store held one older untagged E1 run from E1's own logging; it was left alone, so E1 shows 3 runs for 2 records.
+- **Would change if:** MLflow is dropped from the resume bullets, or a tracking server replaces the local file store.
+
 ---
 
 ## Experiments

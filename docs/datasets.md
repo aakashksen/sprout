@@ -79,3 +79,11 @@ Access: Browse or clone the official repo (not run).
 Approved: yes, by the person on 2026-11-02, as part of the official release. Used for T4.1
 
 Finding: No segmented PlantVillage images are on this machine. `<local path>` is an empty directory (zero entries). The local `noaug` and `aug` folders hold color photos: one sample, `Apple___Apple_scab\image (1).JPG`, shows a leaf on a plain gray background, not a black-background segmented image. That was a single-image check, not a full survey. The official repo does have a `raw/segmented` folder with 38 class folders, and on the one class checked, `Apple___Apple_scab`, its 630 files match `raw/color` by name with a `_final_masked.jpg` suffix.
+
+## Local serving and fine-tuning model: Qwen3.5-4B
+
+URL: https://huggingface.co/Qwen/Qwen3.5-4B
+License: Apache-2.0 (Hugging Face API: `apache-2.0`, not gated).
+Classes: none; it's a language and vision model.
+Use: the local model through Ollama, as `qwen3.5:4b-q4_K_M`. See `docs/model-choice.md`.
+Approved: yes. Reason: Apache-2.0, ungated, no signed agreement.

@@ -43,7 +43,7 @@ ContextLens covers agents, LLM fine-tuning, and C++. SPROUT covers **training ri
 | Tracking | MLflow for runs, DVC for data, run records for claims | Reproducibility |
 | Serving | ONNX with dynamic or static quantization, CPU | Cheap hosting and a real optimization result |
 | RAG | ChromaDB + BM25, fastembed (ONNX) embeddings and cross-encoder rerank, metadata filters | The original claimed hybrid and rerank without having them; now it's built, and claimed only if measured to help |
-| LLM | DeepSeek removed from the build. Ollama locally, and Claude through the `claude -p` CLI as a comparison, with no API key | Available now |
+| LLM | DeepSeek removed from the build. Ollama locally with `qwen3.5:4b-q4_K_M` (tested on this GPU, see `docs/model-choice.md`), and Claude through the `claude -p` CLI as a comparison, with no API key | Available now |
 | App | Keep Flask and the existing templates, split into modules | Enough for the product; rewriting adds no value |
 | Hosting | Google Cloud Run, only when the person does it | They hold the account |
 
@@ -51,7 +51,7 @@ ContextLens covers agents, LLM fine-tuning, and C++. SPROUT covers **training ri
 
 ## Limits
 - **Hardware:** RTX 4070 laptop GPU with 8 GB VRAM, shared with other projects. One GPU job at a time. Mixed precision is on. If something can't fit, block the task.
-- **Claude usage:** 300 product calls across the project, on Haiku, counted in `results/claude_calls.json`. `ClaudeCodeClient` refuses past the cap. Only the person can raise it.
+- **Claude usage:** 1,000 product calls across the project, on Haiku, counted in `results/claude_calls.json`. `ClaudeCodeClient` refuses past the cap. Only the person can raise it.
 - **Experiments:** a limited search. Every setting tried goes in the run record.
 - **Data leaving the machine:** only benchmark questions and public document text go to a cloud model. Never user photos or history.
 

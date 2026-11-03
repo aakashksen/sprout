@@ -413,7 +413,14 @@
       ],
       "status": "in_progress",
       "worktree": "<local path>",
-      "started_at": "2026-11-03T16:45:43+00:00"
+      "started_at": "2026-11-03T16:45:43+00:00",
+      "verified": {
+        "commit": "a4502a46a5d7ce7dd5a4ec398d11f232caf583b9",
+        "passed": true,
+        "at": "2026-11-03T18:14:31+00:00"
+      },
+      "attempts": 1,
+      "reason": "leakage: at least 6 extra_train rows are watermark or crop copies of field_dev or field_test photos, missed by the 0.88 rule and the 0.75 guard; real-manifest tests compare only exact sha1"
     },
     {
       "id": "T4.6",

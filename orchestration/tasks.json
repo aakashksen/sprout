@@ -130,7 +130,14 @@
       "acceptance": [
         "{py} -m pytest tests/test_metrics.py -q"
       ],
-      "status": "pending"
+      "status": "done",
+      "started_at": "2026-11-03T05:06:17+00:00",
+      "verified": {
+        "commit": "0eb2258b96efeaeb08ff9711b4269137e81bbef8",
+        "passed": true,
+        "at": "2026-11-03T05:10:31+00:00"
+      },
+      "done_at": "2026-11-03T05:12:00+00:00"
     },
     {
       "id": "T2.3",
@@ -371,7 +378,9 @@
       "acceptance": [
         "{py} -m pytest tests/test_web.py -q"
       ],
-      "status": "pending"
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-03T05:06:17+00:00"
     },
     {
       "id": "T7.2",

@@ -375,6 +375,33 @@
       "done_at": "2026-11-03T16:09:31+00:00"
     },
     {
+      "id": "T4.5",
+      "phase": 4,
+      "title": "More real-photo sources for training",
+      "owner": "agent",
+      "deps": [
+        "T4.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_extra_sources.py -q"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T4.6",
+      "phase": 4,
+      "title": "Experiment E12, best configuration with more sources",
+      "owner": "agent",
+      "deps": [
+        "T4.5"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e12.py -q",
+        "{py} -m sprout.eval.check_run E12 --min-n 200 --split field_dev"
+      ],
+      "status": "pending"
+    },
+    {
       "id": "T5.0",
       "phase": 5,
       "title": "Identification contract and fake identifier",
@@ -400,7 +427,8 @@
       "title": "Experiment E6, ONNX and quantization",
       "owner": "agent",
       "deps": [
-        "T4.2"
+        "T4.2",
+        "T4.6"
       ],
       "acceptance": [
         "{py} -m pytest tests/test_e6.py -q",
@@ -497,15 +525,29 @@
       "status": "pending"
     },
     {
+      "id": "T6.5",
+      "phase": 6,
+      "title": "More care documents, with coverage",
+      "owner": "agent",
+      "deps": [
+        "T6.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_more_documents.py -q"
+      ],
+      "status": "pending"
+    },
+    {
       "id": "T6.4",
       "phase": 6,
       "title": "Experiment E7, answers",
       "owner": "agent",
       "deps": [
+        "T2.3",
+        "T5.0",
         "T6.2",
         "T6.3",
-        "T2.3",
-        "T5.0"
+        "T6.5"
       ],
       "acceptance": [
         "{py} -m pytest tests/test_answer.py -q",

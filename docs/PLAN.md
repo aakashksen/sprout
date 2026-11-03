@@ -183,6 +183,18 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 **Do:** For each of the 13 classes `docs/document-coverage.md` marks as uncovered, list candidate documents from primary publishers, such as university extension services and government agencies: URL, publisher, title, date, what the page says about symptoms, and its license or terms as stated by the publisher. Say "couldn't confirm" where that's so. Download nothing. Nothing is added to `knowledge/`: the person approves licenses first.
 **Accept:** `{py} tools/check_candidates_doc.py` (fails unless each of the 13 classes has a section, and each candidate has URL, Publisher, License, and Approved lines, with Approved saying `no, needs the person`).
 
+### T4.5: More real-photo sources for training
+**Agent:** use the `researcher` for lookups. **Files:** `docs/datasets.md`, `src/sprout/data/extra_sources.py`, `datasets/manifests/extra_train.csv`, `datasets/class_map_extra.csv`, `docs/extra-sources.md`, `tests/test_extra_sources.py`.
+**Do:** Gather more real photos, starting with PlantWild, plus Plant Pathology 2021 if it's publicly downloadable without login. Use only data publicly accessible without login, paywall, or getting around a block. Record each source in `docs/datasets.md`. Raw content stays in the git-ignored `datasets/raw/`, and is never committed or published. Stop and tell the coordinator before any download over 40 GB, or under 40 GB free. Map classes to lab classes, with unmappable ones excluded and a reason recorded. Deduplicate against each other, against `lab`, and against every `field.csv` split with the rule in `docs/field-dedup.md`, so no `field_dev` or `field_test` photo or copy reaches training. Cap per class. All of it goes into training only: `field_dev` and `field_test` are frozen and don't change. Report what each source added per class, and which thin classes it helped.
+**Tests:** `test_no_extra_image_duplicates_a_field_dev_or_field_test_photo`; `test_extra_sources_only_add_training_rows`; `test_field_manifest_is_unchanged`; `test_cap_limits_every_class`; `test_unmapped_classes_excluded`.
+**Accept:** `{py} -m pytest tests/test_extra_sources.py -q`.
+
+### T4.6: Experiment E12, best configuration with more sources
+**Files:** `src/sprout/experiments/e12_more_sources.py`, `configs/e12.json`, `tests/test_e12.py`.
+**Do:** Rerun E4's best configuration, `convnext_joint`, with the T4.5 photos added to training, one run, with settings otherwise unchanged and fixed in `configs/e12.json` before running. Score on `field_dev`, including held-out-source runs in the same way as E4, side by side with E4's seen-source and held-out numbers, with paired statistics. Selection stays on `field_dev` and these are development numbers. If it clearly helps, it becomes the chosen model, and E5's calibration and thresholds are refit on it; if not, record that and keep E4's model.
+**Tests:** `test_field_test_is_never_read`; `test_settings_match_e4_best_apart_from_the_extra_rows`; `test_held_out_source_is_absent_from_training_and_selection`.
+**Accept:** `{py} -m pytest tests/test_e12.py -q`; `{py} -m sprout.eval.check_run E12 --min-n 200 --split field_dev`.
+
 ---
 
 ## Phase 5: Efficient serving
@@ -230,11 +242,17 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 **Tests:** `test_gold_pages_exist_and_contain_the_answer_terms`; `test_category_counts`; `test_no_document_in_both_splits_for_supported_questions`.
 **Accept:** `{py} -m pytest tests/test_evalset.py -q`.
 
+### T6.5: More care documents, with coverage
+**Agent:** use the `researcher` for lookups. **Files:** `knowledge/manifest.csv`, `docs/document-coverage.csv`, `docs/document-coverage.md`, `docs/document-sources.md`, `tests/test_more_documents.py`.
+**Do:** Gather 200 to 400 public plant-care documents covering every class, starting with the uncovered ones in `docs/document-coverage.md`. Use only documents publicly accessible without login, paywall, or getting around a block, such as university extension services and government agencies. Keep each document's URL, publisher, title, and date in the manifest. Raw content stays in the git-ignored `knowledge/raw/`, and is never committed or published. Stop and tell the coordinator before any download over 40 GB, or under 40 GB free. Rebuild the index through `build_index`, listing failures. Regenerate the per-disease coverage report, reading passages as T3.4 did, and report any class still uncovered. `datasets/rag/questions.jsonl` and its gold labels must keep passing: new documents can't change a question's gold page, and `rag_test`'s documents stay out of dev choices.
+**Tests:** `test_every_new_document_has_source_url_and_publisher`; `test_every_file_is_in_the_manifest`; `test_no_raw_document_is_tracked_by_git`; `test_gold_labels_still_hold`; `test_every_class_has_a_coverage_row`.
+**Accept:** `{py} -m pytest tests/test_more_documents.py -q`.
+
 ### T6.4: Experiment E7, answers
 Uses `Identification` from T5.0 and a fake identifier, so it doesn't wait for training. Confirm against the real `Identifier` in T7.4.
 **Files:** `src/sprout/llm/client.py`, `src/sprout/rag/answer.py`, `src/sprout/rag/prompts/`, `src/sprout/experiments/e7_rag.py`, `tests/test_answer.py`.
-**Produces:** `LLMClient.complete(messages, *, max_tokens, timeout_s) -> LLMResult`; `FakeLLM`, `OllamaClient`, `ClaudeCodeClient(model="haiku")`; `class LLMError`; `answer(question, *, identification, history, retriever, llm) -> Answer` with `text, citations, grounded: bool, asks_for: list[str]`.
-**Do:** `OllamaClient` uses `http://127.0.0.1:11434`, never `localhost`, which adds about 2 seconds to every call on this machine. `ClaudeCodeClient` runs `claude -p` through `shutil.which`, sends the prompt on stdin, and uses `--output-format json --tools "" --setting-sources "" --strict-mcp-config --disable-slash-commands --no-session-persistence --max-turns 1`, from a temp folder. It treats usage limits or a nonzero exit as `LLMError`, and refuses past the cap. Answers separate instructions, evidence, and user text, carry the diagnosis's uncertainty, use bounded history, and ask for missing details that matter. On dev: compare dense, hybrid, and hybrid + rerank for retrieval, then prompt versions for faithfulness and abstention, one change at a time, on one local model. Run the best on `ClaudeCodeClient` over at most 100 questions as a comparison. Writer: `qwen3.5:4b-q4_K_M`. Judge: `gemma4:e4b-it-qat`. Claude is never the judge. Writes per-claim judgments to a file. Both are installed; don't pull others. Resolves #37, #46–#51, #54, #55, #57.
+**Produces:** `LLMClient.complete(messages, *, max_tokens, timeout_s) -> LLMResult`; `FakeLLM`, `OllamaClient`, `ClaudeCodeClient(model="sonnet")`; `class LLMError`; `answer(question, *, identification, history, retriever, llm) -> Answer` with `text, citations, grounded: bool, asks_for: list[str]`.
+**Do:** `OllamaClient` uses `http://127.0.0.1:11434`, never `localhost`, which adds about 2 seconds to every call on this machine. `ClaudeCodeClient` runs `claude -p` through `shutil.which`, sends the prompt on stdin, and uses `--output-format json --tools "" --setting-sources "" --strict-mcp-config --disable-slash-commands --no-session-persistence --max-turns 1`, from a temp folder. It treats usage limits or a nonzero exit as `LLMError`, and refuses past the cap. Answers separate instructions, evidence, and user text, carry the diagnosis's uncertainty, use bounded history, and ask for missing details that matter. On dev: compare dense, hybrid, and hybrid + rerank for retrieval, then these upgrades, each measured one at a time, keeping only what helps: structure-aware chunking with whole tables and OCR; a context header on each chunk; and search queries built from the top-3 diseases and the conversation. No graph RAG. Then prompt versions for faithfulness and abstention, one change at a time, on one local model. Run the best on `ClaudeCodeClient` over at most 100 questions as a comparison. Writer: `qwen3.5:4b-q4_K_M`. Judge: `gemma4:e4b-it-qat`. Claude is never the judge. Writes per-claim judgments to a file. Both are installed; don't pull others. Resolves #37, #46–#51, #54, #55, #57.
 **Tests:** `test_answer_cites_real_passages_only`; `test_no_passages_says_no_supporting_document`; `test_retrieval_failure_is_visible`; `test_llm_outage_returns_unavailable_not_invented_text`; `test_tomato_question_cannot_cite_apple`; `test_followup_gets_bounded_history`; `test_uncertain_diagnosis_is_not_stated_as_fact`; `test_chemical_advice_says_check_the_label`; `test_call_cap_refuses_and_makes_no_call`; `test_claude_command_has_no_tools` (stubbed process); `test_ollama_client_uses_loopback_ip_not_localhost`.
 **Accept:** `{py} -m pytest tests/test_answer.py -q`; `{py} -m sprout.eval.check_run E7 --min-n 50 --split rag_dev`.
 
@@ -295,6 +313,5 @@ See `docs/HUMAN-GATES.md`.
 
 ## Later stages, not started
 
-Set by the person on 2026-11-03. Don't start these without the person's word, and download nothing new for them.
-- **Stage 2:** T4.3 and T4.4 are in the plan. Adding approved documents waits for the person's license decisions.
-- **Stage 3:** only if stage 1 clearly beats the baseline: more photo sources for thin classes, with licenses checked by the person first.
+Set by the person on 2026-11-03. 
+- **Stage 2 and 3:** T4.3, T4.4, T4.5, T4.6, and T6.5 are in the plan. By the person's later rule, public data needs no one-by-one approval if it requires no login, paywall, or getting around a block.

@@ -69,13 +69,13 @@ def create_app(config: Config | None = None, *, identifier: IdentifierProtocol |
         resp.headers.setdefault("Referrer-Policy", "same-origin")
         resp.headers.setdefault(
             "Content-Security-Policy",
-            "default-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+            "default-src 'self'; img-src 'self' data: blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
         )
         return resp
 
     @app.errorhandler(HTTPException)
     def http_error(e: HTTPException):
-        wants_json = request.is_json or request.path.startswith(("/healthz", "/readyz"))
+        wants_json = request.is_json or request.accept_mimetypes.best == "application/json" or request.path.startswith(("/healthz", "/readyz"))
         if wants_json:
             return jsonify(error=e.description), e.code
         return render_template("error.html", code=e.code, message=e.description), e.code

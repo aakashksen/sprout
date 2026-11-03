@@ -62,11 +62,16 @@ def _make_app(tmp_path, identifier=None, retriever=None, wait=True, **cfg):
 
 
 @pytest.fixture(scope="module")
-def browser():
+def playwright_():
     with sync_playwright() as p:
-        b = p.chromium.launch()
-        yield b
-        b.close()
+        yield p
+
+
+@pytest.fixture(scope="module")
+def browser(playwright_):
+    b = playwright_.chromium.launch()
+    yield b
+    b.close()
 
 
 @pytest.fixture
@@ -93,13 +98,17 @@ def open_result(browser, url, tmp_path):
     page.fill("#username", "alice")
     page.fill("#password", "password123")
     page.click("text=Create account")
+    page.goto(url + "/upload")
     page.set_input_files("#file", str(photo))
-    page.click("text=Analyse")
+    page.click("#uploadBtn")
     page.wait_for_selector("#prediction")
     return page
 
 
 def ask(page, text):
+    if not page.locator("#chat-form").is_visible():
+        page.click("#open-chat")
+        page.wait_for_selector("#chat-form", state="visible")
     page.fill("#chat-message", text)
     page.click("#chat-send")
 
@@ -204,6 +213,7 @@ def test_report_is_stored(browser, serve, tmp_path):
     app, url = serve()
     page = open_result(browser, url, tmp_path)
     page.click("#report-open")
+    page.wait_for_selector("#report-note", state="visible")
     page.fill("#report-note", "It is a late blight leaf")
     page.click("#report-send")
     expect(page.locator("#report-status")).to_contain_text("Report stored")
@@ -217,6 +227,8 @@ def test_double_click_sends_once(browser, serve, tmp_path):
     retriever = FakeRetriever(delay=0.4)
     app, url = serve(retriever=retriever)
     page = open_result(browser, url, tmp_path)
+    page.click("#open-chat")
+    page.wait_for_selector("#chat-form", state="visible")
     page.fill("#chat-message", "treatment?")
     page.dblclick("#chat-send")
     page.wait_for_selector("#chat-log .reply .note")
@@ -261,3 +273,119 @@ def test_general_fallback_for_known_crop_says_so(tmp_path):
     c, h = _signed_in_client(app)
     body = c.post("/analyses/1/chat", json={"message": "hi"}, headers=h).get_json()
     assert "only general guidance" in body["note"] and "product label" in body["note"]
+
+
+def watch(page):
+    """Collect console errors, failed requests, and every host the page asks for."""
+    seen = {"errors": [], "failed": [], "hosts": set()}
+    page.on("console", lambda m: m.type == "error" and seen["errors"].append(m.text))
+    page.on("pageerror", lambda e: seen["errors"].append(str(e)))
+    page.on("requestfailed", lambda r: seen["failed"].append(r.url))
+    page.on("request", lambda r: seen["hosts"].add(r.url.split("/")[2] if "://" in r.url else r.url[:5]))
+    return seen
+
+
+def test_pages_render_under_csp_with_no_errors_and_no_network(browser, serve, tmp_path):
+    app, url = serve(retriever=FakeRetriever())
+    page = browser.new_page()
+    seen = watch(page)
+    host = url.split("//")[1]
+    visited = []
+    for path in ("/", "/login", "/signup"):
+        page.goto(url + path)
+        visited.append(path)
+    page.fill("#username", "alice")
+    page.fill("#password", "password123")
+    page.click("text=Create account")
+    photo = tmp_path / "leaf.png"
+    photo.write_bytes(_png())
+    page.goto(url + "/upload")
+    page.set_input_files("#file", str(photo))
+    page.click("#uploadBtn")
+    page.wait_for_selector("#prediction")
+    for path in ("/", "/upload", "/dashboard", "/history"):
+        page.goto(url + path)
+    page.goto(url + "/analyses/1")
+    page.click("#open-chat")
+    page.wait_for_selector("#chat-form", state="visible")
+    assert seen["errors"] == [], seen["errors"]
+    assert seen["failed"] == [], seen["failed"]
+    assert seen["hosts"] <= {host, "data:", "blob:"}, seen["hosts"]
+    missing = browser.new_page()
+    seen404 = watch(missing)
+    assert missing.goto(url + "/nope").status == 404
+    assert "Something went wrong" in missing.inner_text("h1")
+    assert seen404["errors"] == ["Failed to load resource: the server responded with a status of 404 (NOT FOUND)"]
+    assert seen404["failed"] == [] and seen404["hosts"] <= {host}
+    # every style, font and script the pages need was served from this app
+    assert page.evaluate("document.fonts.check('16px Poppins')") is True
+    assert page.locator("i.bi").first.evaluate("e => getComputedStyle(e, '::before').fontFamily").strip('"') == "bootstrap-icons"
+
+
+def test_dashboard_and_history_show_database_values(browser, serve, tmp_path):
+    _, url = serve()
+    page = open_result(browser, url, tmp_path)
+    page.goto(url + "/dashboard")
+    assert "Welcome, alice!" in page.inner_text("h1")
+    assert "1 saved analysis" in page.inner_text(".page-header")
+    page.goto(url + "/history")
+    assert "model said tomato early blight" in page.inner_text(".card-title")
+    assert page.locator("img.history-image").count() == 1
+
+
+def test_camera_page_takes_a_photo_and_analyses_it(playwright_, serve):
+    _, url = serve()
+    b = playwright_.chromium.launch(args=["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"])
+    try:
+        page = b.new_context(permissions=["camera"]).new_page()
+        seen = watch(page)
+        page.goto(url + "/signup")
+        page.fill("#username", "alice")
+        page.fill("#password", "password123")
+        page.click("text=Create account")
+        page.goto(url + "/camera")
+        expect(page.locator("#captureBtn")).to_be_enabled()
+        for _ in range(100):  # wait_for_function evals a string, which the CSP forbids
+            if page.evaluate("document.getElementById('video').videoWidth") > 0:
+                break
+            time.sleep(0.1)
+        page.click("#captureBtn")
+        page.click("#analyzeBtn")
+        page.wait_for_selector("#prediction")
+        assert page.url.endswith("/analyses/1")
+        assert "90% confidence" in page.inner_text("#prediction")
+        assert seen["errors"] == [], seen["errors"]
+    finally:
+        b.close()
+
+
+def test_camera_page_without_a_camera_says_so(browser, serve, tmp_path):
+    _, url = serve()
+    ctx = browser.new_context()
+    page = ctx.new_page()
+    page.goto(url + "/signup")
+    page.fill("#username", "alice")
+    page.fill("#password", "password123")
+    page.click("text=Create account")
+    page.goto(url + "/camera")
+    expect(page.locator("#camera-message")).to_contain_text("Upload a photo instead")
+
+
+def test_upload_page_needs_login(browser, serve):
+    _, url = serve()
+    page = browser.new_page()
+    page.goto(url + "/upload")
+    assert "/login" in page.url
+
+
+def test_default_manifest_is_used_when_the_variable_is_unset(tmp_path):
+    from sprout.web.config import DEFAULT_MANIFEST
+
+    assert DEFAULT_MANIFEST.exists()
+    assert Config().MANIFEST == str(DEFAULT_MANIFEST)
+    cfg = Config.from_env({"SPROUT_ENV": "testing", "SPROUT_SECRET_KEY": "x"})
+    assert cfg.MANIFEST == str(DEFAULT_MANIFEST)
+    assert Config.from_env({"SPROUT_ENV": "testing", "SPROUT_SECRET_KEY": "x", "SPROUT_MANIFEST": "other.csv"}).MANIFEST == "other.csv"
+    app = create_app(Config(ENV="testing", SECRET_KEY="s", DATA_DIR=str(tmp_path)), identifier=None)
+    sources = app.extensions["sprout_sources"]
+    assert sources and all(url == "" or url.startswith("http") for _, url in sources.values())

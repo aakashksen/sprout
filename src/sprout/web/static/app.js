@@ -4,7 +4,11 @@
   async function post(url, body) {
     let r;
     try {
-      r = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf}, body: JSON.stringify(body)});
+      r = await fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-Token': csrf},
+        body: JSON.stringify(body),
+      });
     } catch (e) {
       return {ok: false, error: 'Could not reach the server. Check your connection.'};
     }
@@ -25,6 +29,116 @@
   document.querySelectorAll('form[data-confirm]').forEach(f =>
     f.addEventListener('submit', ev => { if (!confirm(f.dataset.confirm)) ev.preventDefault(); }));
 
+  // upload page: click or drop to choose a file, preview it, send once
+  const dropArea = document.getElementById('dropArea');
+  if (dropArea) {
+    const fileInput = document.getElementById('file');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const previewBox = document.getElementById('previewContainer');
+    dropArea.addEventListener('click', () => fileInput.click());
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(name =>
+      dropArea.addEventListener(name, ev => { ev.preventDefault(); ev.stopPropagation(); }));
+    ['dragenter', 'dragover'].forEach(name => dropArea.addEventListener(name, () => dropArea.classList.add('drag')));
+    ['dragleave', 'drop'].forEach(name => dropArea.addEventListener(name, () => dropArea.classList.remove('drag')));
+    dropArea.addEventListener('drop', ev => { fileInput.files = ev.dataTransfer.files; showPreview(); });
+    fileInput.addEventListener('change', showPreview);
+    function showPreview() {
+      const file = fileInput.files[0];
+      if (!file) return;
+      const img = el('img', undefined, 'preview mx-auto d-block');
+      img.alt = 'Preview of the chosen photo';
+      img.src = URL.createObjectURL(file);
+      previewBox.replaceChildren(img);
+      uploadBtn.disabled = false;
+    }
+    document.getElementById('uploadForm').addEventListener('submit', ev => {
+      if (uploadBtn.disabled) { ev.preventDefault(); return; }
+      uploadBtn.disabled = true;  // a second click cannot send the photo twice
+      uploadBtn.textContent = 'Analysing...';
+    });
+  }
+
+  // camera page: capture a frame and send it through the normal upload route
+  const cam = document.getElementById('camera-root');
+  if (cam) {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const photo = document.getElementById('photo');
+    const message = document.getElementById('camera-message');
+    const capture = document.getElementById('captureBtn');
+    const retake = document.getElementById('retakeBtn');
+    const analyze = document.getElementById('analyzeBtn');
+    const flip = document.getElementById('switchCamera');
+    let stream = null;
+    let facing = 'environment';
+
+    function say(text) { message.textContent = text; message.hidden = !text; }
+    function showLive(live) {
+      video.hidden = !live;
+      photo.hidden = live;
+      capture.hidden = !live;
+      retake.hidden = live;
+      analyze.hidden = live;
+    }
+
+    async function start() {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        say('This browser or connection cannot use a camera. Upload a photo instead.');
+        capture.disabled = flip.disabled = true;
+        return;
+      }
+      say('Loading camera...');
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: facing}, audio: false});
+      } catch (e) {
+        say('Camera access was denied or no camera is available. Upload a photo instead.');
+        capture.disabled = true;
+        return;
+      }
+      video.srcObject = stream;
+      say('');
+      capture.disabled = false;
+      showLive(true);
+    }
+
+    flip.addEventListener('click', () => { facing = facing === 'user' ? 'environment' : 'user'; start(); });
+    capture.addEventListener('click', () => {
+      if (!video.videoWidth) { say('The camera is not ready yet.'); return; }
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+      photo.src = canvas.toDataURL('image/jpeg', 0.9);
+      showLive(false);
+    });
+    retake.addEventListener('click', () => showLive(true));
+
+    analyze.addEventListener('click', () => {
+      if (analyze.disabled) return;
+      analyze.disabled = true;
+      say('Analysing...');
+      canvas.toBlob(async blob => {
+        const form = new FormData();
+        form.append('file', blob, 'camera-capture.jpg');
+        let r;
+        try {
+          r = await fetch(cam.dataset.upload, {method: 'POST', headers: {'Accept': 'application/json', 'X-CSRF-Token': csrf}, body: form});
+        } catch (e) {
+          say('Could not reach the server. Try again.');
+          analyze.disabled = false;
+          return;
+        }
+        if (r.redirected) { window.location.href = r.url; return; }
+        let data = {};
+        try { data = await r.json(); } catch (e) { /* not JSON */ }
+        say(data.error || 'The photo could not be analysed. Try again.');
+        analyze.disabled = false;
+      }, 'image/jpeg', 0.9);
+    });
+    start();
+  }
+
+  // result page
   const root = document.getElementById('analysis');
   if (!root) return;
   const base = root.dataset.base;
@@ -71,7 +185,7 @@
       busy = false;
       send.disabled = false;
       if (!r.ok) {
-        const retry = el('button', 'Try again');
+        const retry = el('button', 'Try again', 'btn btn-sm btn-outline-secondary');
         retry.type = 'button';
         retry.addEventListener('click', () => ask(message, reply));
         reply.replaceChildren(el('p', 'Could not get an answer: ' + r.error, 'error'), retry);
@@ -97,7 +211,8 @@
 
   const reportForm = document.getElementById('report-form');
   const reportStatus = document.getElementById('report-status');
-  document.getElementById('report-open').addEventListener('click', () => { reportForm.hidden = false; });
+  const reportModal = document.getElementById('report-modal');
+  reportModal.addEventListener('show.bs.modal', () => { reportForm.hidden = false; reportStatus.textContent = ''; });
   reportForm.addEventListener('submit', async ev => {
     ev.preventDefault();
     const button = document.getElementById('report-send');
@@ -109,6 +224,7 @@
     if (r.ok) {
       reportStatus.textContent = 'Report stored. Thank you.';
       reportForm.hidden = true;
+      reportForm.reset();
     } else {
       reportStatus.textContent = 'Could not store the report: ' + r.error;
     }

@@ -80,6 +80,42 @@ A task with no entry gets a line `<id>: no new decisions` at the end of this fil
 - **Evidence:** `docs/PLAN.md` ("Later stages"), commits `b95985f`, `f150227`, `3493a8c`. Why PlantWild was picked over other sources is reason not recorded. No results exist yet.
 - **Would change if:** E12 does not clearly help; the plan keeps E4's model then.
 
+### T4.5 - Cap of 200 images per lab class, fixed before any E12 result (2026-11-03)
+- **Chose:** at most 200 extra photos per lab class, kept by sha1 order, so selection is deterministic and unrelated to image content.
+- **Considered:** no cap, which lets one source's healthy-leaf classes outweigh the real-photo sets; a cap near the median `field_train` class (about 60), which wastes the thin classes' only extra photos; sampling by file name, which can follow the source's own ordering.
+- **Evidence:** `docs/extra-sources.md`. `field_train` classes hold at most 136 photos (median about 60), so 200 lets every thin class keep everything. 463 images were cut; 7 classes ended at exactly 200, all healthy-leaf classes.
+- **Would change if:** E12 shows the capped healthy classes push the model toward "healthy" on white-background leaves; a lower cap for those classes would then be tried in a new run.
+
+### T4.5 - Close-match guard of 0.75 on top of the field-dedup rule (2026-11-03)
+- **Chose:** besides the rule in `docs/field-dedup.md`, drop any extra photo with a hash-close pair (within 8 bits) to a field photo that scores at least 0.75 on `same_scene_score` (`GUARD_SCORE`). It removed 11 more images (6 matched `field_test`, 1 `field_dev`, 4 `field_train`).
+- **Considered:** the rule alone, which kept 4,727 images and was missing same-photo pairs; viewing and listing every hash-close pair by hand, as T1.2 did for field, which was not worth it for training-only extras; a higher threshold (0.80), which would keep the 0.785 pair that was the same photo.
+- **Evidence:** the 60 hash-close pairs between kept extras and `field_dev` or `field_test` were scored; the top 3 were viewed: two were the same photo at another size (0.83 and 0.785), one a different corn leaf. The threshold comes from those 3 pairs only. Pairs below 0.75 were not viewed one by one, so a few copies could remain.
+- **Would change if:** a later check finds copies of `field_dev` or `field_test` photos below 0.75, or finds the guard dropped many non-copies; the threshold or a reviewed-pairs list would then replace it.
+
+### T4.5 - One image kept per duplicate group among the extras (2026-11-03)
+- **Chose:** within the extras, a group of exact, near or same-scene copies keeps one image (first by source and path). A group with conflicting lab labels is removed whole. 724 images were dropped as duplicates and 351 as conflicts.
+- **Considered:** keeping every member of a group, as `field.csv` does so a split stays whole; that matters for splits and not for training-only rows, and crops of one photo would count several times in training. Picking a label by majority, which T1.2 also avoided.
+- **Evidence:** `docs/extra-sources.md` removal table. Same-scene merging has a known false-merge rate of about 3% (`docs/field-dedup.md`), so a few distinct photos may be lost.
+- **Would change if:** E12 shows classes starved by the removals.
+
+### T4.5 - `bell pepper leaf spot` mapped to Bacterial_spot; grape leaf spot and grapevine leafroll excluded (2026-11-03)
+- **Chose:** PlantWild `bell pepper leaf spot` goes to `Pepper,_bell___Bacterial_spot`, the way PlantDoc's `Bell_pepper leaf spot` already does. `grape leaf spot` and `grapevine leafroll disease` are excluded with the reason "no lab class for this plant or disease". 150 of 204 source classes are excluded in all.
+- **Considered:** excluding `bell pepper leaf spot`, which drops the class's photos although PlantDoc's matching class is already mapped; mapping `grape leaf spot` to `Grape___Leaf_blight_(Isariopsis_Leaf_Spot)`, which is a specific disease and the match is not certain.
+- **Evidence:** `datasets/class_map_extra.csv`, `PLANTWILD_MAP` in `src/sprout/data/extra_sources.py`. Class names were not checked against the photos themselves.
+- **Would change if:** a look at the photos shows the pepper leaf spot class is not bacterial spot; then it moves to excluded.
+
+### T4.5 - Plant Pathology 2021 not used (2026-11-03)
+- **Chose:** not used. The Kaggle competition needs login, and the only public copy is a third-party Hugging Face mirror (`timm/plant-pathology-2021`, 16 GB, apple only, license stated by the uploader).
+- **Considered:** the mirror, which covers three usable apple classes (healthy, rust, scab) that PlantWild already feeds, at 16 GB and with a license that is not the authors'.
+- **Evidence:** `docs/extra-sources-lookup.md` and `docs/datasets.md`.
+- **Would change if:** the coordinator overrules it, or the person decides a third-party mirror's license is enough.
+
+### T4.5 - Build ran on CPU, not the GPU (2026-11-03)
+- **Chose:** run `sprout.data.extra_sources` on CPU and hold no GPU share. The slow step is hashing images with PIL and imagehash (pHash over flips and rotations for about 70,000 lab, field and extra images); the scene check is correlations on 64x64 arrays for a few thousand pairs.
+- **Considered:** moving the scene correlation to the GPU. It would be the only step that could move, and it is small, so the gain is tiny. Moving it risks small float differences that could flip a pair at the 0.88 / 0.80 / 0.75 thresholds, and the person's instruction was to keep the field-dedup rule unchanged and move a step only if results stay identical. A GPU gain for the hashing would need a different hash implementation, which would change the rule.
+- **Evidence:** the build took about 25 minutes on CPU with one process, inside the memory limits. `docs/extra-sources.md` records the device.
+- **Would change if:** a rebuild is needed often or the extra set grows by an order of magnitude; the correlation could then move, checked to give identical kept sets.
+
 ---
 
 ## Evaluation and records

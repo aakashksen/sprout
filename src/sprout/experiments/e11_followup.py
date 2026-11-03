@@ -76,7 +76,8 @@ def build_plan(
 
     `rows` maps a model to its (path, probabilities) pairs; nothing else about a photo is used. `needed` holds
     every question the flow could ask about the photo's top 3 under any model that finds it unsure. `decoys`
-    are other questions, drawn with the seed from classes in none of those top 3s, so that every photo has
+    are other questions, drawn with the seed from classes in none of those top 3s, preferring the same crops
+    (the crop is plain to see, so decoys from another crop would give themselves away), so that every photo has
     exactly `questions_per_photo` questions and the list does not show which classes were in its top 3."""
     needed: dict[str, set[str]] = {}
     classes: dict[str, set[str]] = {}
@@ -95,10 +96,16 @@ def build_plan(
         ids = sorted(needed[path])
         if len(ids) > k:
             raise ValueError(f"{path} needs {len(ids)} questions, more than questions_per_photo ({k})")
-        pool = sorted(q.id for q in bank if q.id not in needed[path] and not set(q.classes) & classes[path])
-        if len(pool) < k - len(ids):
+        outside = [q for q in bank if q.id not in needed[path] and not set(q.classes) & classes[path]]
+        crops = {c.partition("___")[0] for c in classes[path]}
+        same = sorted(q.id for q in outside if any(c.partition("___")[0] in crops for c in q.classes))
+        other = sorted(q.id for q in outside if q.id not in same)
+        want = k - len(ids)
+        if len(same) + len(other) < want:
             raise ValueError(f"not enough decoy questions for {path}")
-        decoys = sorted(random.Random(f"{sheets['seed']}:{path}:decoys").sample(pool, k - len(ids)))
+        rng = random.Random(f"{sheets['seed']}:{path}:decoys")
+        decoys = rng.sample(same, min(want, len(same)))
+        decoys = sorted(decoys + rng.sample(other, want - len(decoys)))
         plan.append({"path": path, "needed": ids, "decoys": decoys})
     return plan
 

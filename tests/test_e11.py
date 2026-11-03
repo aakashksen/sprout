@@ -83,6 +83,14 @@ def test_question_text_does_not_name_a_candidate_class():
         assert "blight" not in text and "rot " not in text and "scab" not in text, item.id
 
 
+def test_every_cited_document_has_a_known_source():
+    manifest = {r["file"]: r for r in csv.DictReader((ROOT / "knowledge" / "manifest.csv").read_text("utf-8").splitlines())}
+    for item in BANK:
+        row = manifest[item.document]
+        assert row["source_url"] and not row["source_url"].lower().startswith("unknown"), item.id
+        assert row["publisher"] and not row["publisher"].lower().startswith("unknown"), item.id
+
+
 def test_questions_are_yes_no_questions():
     assert all(item.text.endswith("?") for item in BANK)
 
@@ -221,6 +229,14 @@ def test_plan_gives_every_photo_the_same_number_of_questions_and_hides_the_top3(
         assert not set(r["needed"]) & set(r["decoys"])
         assert set(r["needed"]) == {"tl-1", "tl-2", "te-1", "te-2", "pl-1", "pl-2"}
     assert E.build_plan(_rows(world), NAMES, FAKE_BANK, UNSURE, SHEET_CFG) == plan  # deterministic
+
+
+def test_decoys_prefer_questions_from_the_crops_in_the_top3(world):
+    plan = E.build_plan(_rows(world), NAMES, FAKE_BANK, UNSURE, SHEET_CFG)
+    # the top 3 is two tomato classes and a potato class; the only other potato class supplies the decoys
+    assert all(r["decoys"] == ["pe-1", "pe-2"] for r in plan)
+    plan = E.build_plan(_rows(world), NAMES, FAKE_BANK, UNSURE, {**SHEET_CFG, "questions_per_photo": 10})
+    assert all({"pe-1", "pe-2"} <= set(r["decoys"]) and len(r["decoys"]) == 4 for r in plan)
 
 
 def test_a_photo_with_no_askable_question_is_left_out(world):

@@ -36,7 +36,7 @@
     "columns": 3,
     "cell_px": 500,
     "questions_per_photo": 10,
-    "decoys": "Each photo gets every question the flow could ask about its top 3 (for each model that finds it unsure), plus decoy questions about other classes, drawn with the seed, so every photo has exactly questions_per_photo questions and the list does not show which classes are in its top 3. Decoy answers are collected and never used in the flow."
+    "decoys": "Each photo gets every question the flow could ask about its top 3 (for each model that finds it unsure), plus decoy questions about classes outside those top 3s, drawn with the seed and preferring the same crops (the crop is plain to see, so decoys from another crop would give themselves away), so every photo has exactly questions_per_photo questions and the list does not show which classes are in its top 3. Decoy answers are collected and never used in the flow."
   },
   "answerer": {
     "kind": "a vision agent reading the photo, not a grower, and not someone who knows the plant",

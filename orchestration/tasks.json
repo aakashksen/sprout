@@ -605,7 +605,9 @@
         "{py} -m pytest tests/test_answer.py -q",
         "{py} -m sprout.eval.check_run E7 --min-n 50 --split rag_dev"
       ],
-      "status": "pending"
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-03T20:06:43+00:00"
     },
     {
       "id": "T7.1",

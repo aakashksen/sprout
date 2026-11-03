@@ -361,14 +361,14 @@
         "{py} -m pytest tests/test_label_review.py tests/test_e13.py -q",
         "{py} -m sprout.eval.check_run E13 --min-n 200 --split field_dev"
       ],
-      "status": "in_progress",
-      "worktree": "<local path>",
+      "status": "done",
       "started_at": "2026-11-03T17:22:31+00:00",
       "verified": {
         "commit": "c4eb707c46f0d4b8db487f1dc15c2f741962b9af",
         "passed": true,
         "at": "2026-11-03T20:49:32+00:00"
-      }
+      },
+      "done_at": "2026-11-03T20:59:08+00:00"
     },
     {
       "id": "T4.3",
@@ -428,13 +428,27 @@
       "reason": "at least 7 kept extras are cropped or zoomed copies of field_dev or field_test photos; the full-frame check cannot see crops"
     },
     {
+      "id": "T4.8",
+      "phase": 4,
+      "title": "Plant Pathology 2021 as a further training source",
+      "owner": "agent",
+      "deps": [
+        "T4.5"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_extra_sources.py -q"
+      ],
+      "status": "pending"
+    },
+    {
       "id": "T4.6",
       "phase": 4,
       "title": "Experiment E12, best configuration with more sources",
       "owner": "agent",
       "deps": [
         "T4.5",
-        "T4.7"
+        "T4.7",
+        "T4.8"
       ],
       "acceptance": [
         "{py} -m pytest tests/test_e12.py -q",

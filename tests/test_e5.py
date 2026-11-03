@@ -292,3 +292,30 @@ def test_probs_stage_scores_not_plant_photos_from_a_checkpoint(world, tmp_path):
         expected = torch.softmax(model.eval()(preprocess(img)[None]), dim=1)[0].detach().numpy()
     assert np.allclose(rows[0]["probs"], expected, atol=1e-5)
     assert "probs-not-plant: done" in (tmp_path / "out" / "stages.log").read_text()
+
+
+def test_datasets_used_with_workers_can_be_pickled(world):
+    import pickle
+
+    root, cfg, _ = world
+    photos = e5.Photos(["datasets/raw/n/0.png"], root)  # worker processes on Windows receive it pickled
+    assert pickle.loads(pickle.dumps(photos))[0].shape == (3, 224, 224)
+    assert len(pickle.loads(pickle.dumps(photos))) == 1
+
+
+def test_stage_log_does_not_dirty_the_tree(world):
+    root, cfg, _ = world
+    ignore = (Path(__file__).resolve().parents[1] / ".gitignore").read_text().splitlines()
+    assert f"{cfg['out_dir']}/stages.log" in ignore
+
+
+def test_score_images_runs_with_worker_processes(world):
+    import torch
+
+    from sprout.train.loop import build_model
+
+    root, cfg, _ = world
+    model = build_model("tiny_cnn", 3)
+    paths = [f"datasets/raw/n/{i}.png" for i in range(6)]
+    with_workers = e5.score_images(model, paths, root, 2, 2, torch.device("cpu"))
+    assert np.allclose(with_workers, e5.score_images(model, paths, root, 2, 0, torch.device("cpu")), atol=1e-6)

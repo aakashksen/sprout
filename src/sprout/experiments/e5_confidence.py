@@ -156,25 +156,31 @@ def calibrate(raw: np.ndarray, temperature: float) -> np.ndarray:
 
 # ---- stage: probs-not-plant (GPU) ----
 
+class Photos:
+    """Photos by path, preprocessed. Module level, so DataLoader workers (spawned on Windows) can unpickle it."""
+
+    def __init__(self, paths: list[str], root: Path):
+        self.paths, self.root = paths, root
+
+    def __len__(self) -> int:
+        return len(self.paths)
+
+    def __getitem__(self, i: int):
+        from sprout.preprocess import preprocess
+
+        with Image.open(self.root / self.paths[i]) as img:
+            return preprocess(img)
+
+
 def score_images(model, paths: list[str], root: Path, batch_size: int, num_workers: int, device) -> np.ndarray:
     """Softmax outputs of the model for each photo, through sprout.preprocess."""
     import torch
-    from torch.utils.data import DataLoader, Dataset
-
-    from sprout.preprocess import preprocess
-
-    class Photos(Dataset):
-        def __len__(self) -> int:
-            return len(paths)
-
-        def __getitem__(self, i: int):
-            with Image.open(root / paths[i]) as img:
-                return preprocess(img)
+    from torch.utils.data import DataLoader
 
     model.to(device).eval()
     out = []
     with torch.no_grad():
-        for x in DataLoader(Photos(), batch_size=batch_size, num_workers=num_workers):
+        for x in DataLoader(Photos(paths, root), batch_size=batch_size, num_workers=num_workers):
             out.append(torch.softmax(model(x.to(device)).float(), dim=1).cpu().numpy())
     return np.concatenate(out).astype(np.float64)
 

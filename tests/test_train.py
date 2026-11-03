@@ -146,3 +146,25 @@ def test_same_seed_same_split_and_first_batch(manifest, tmp_path):
     assert a_tr.dataset.paths == b_tr.dataset.paths
     assert a_val.dataset.paths == b_val.dataset.paths
     assert torch.equal(xa, xb) and torch.equal(ya, yb)
+
+
+def test_convnext_tiny_head_is_resized_and_trains_on_cpu():
+    model = build_model("convnext_tiny", 7, pretrained=False)
+    assert model.classifier[2].out_features == 7
+    out = model(torch.zeros(2, 3, 64, 64))
+    assert out.shape == (2, 7)
+    out.sum().backward()
+    assert model.classifier[2].weight.grad is not None
+
+
+@pytest.mark.real
+def test_convnext_tiny_default_weights_download():
+    model = build_model("convnext_tiny", 38, pretrained=True)
+    assert model.classifier[2].out_features == 38
+    assert model(torch.zeros(1, 3, 224, 224)).shape == (1, 38)
+
+
+def test_class_map_comes_from_manifest(manifest, tmp_path):
+    assert make_class_map(manifest) == {"blue": 0, "red": 1}
+    out = train(_config(tmp_path, epochs=1))
+    assert load_checkpoint(out.latest_path)["class_map"] == {"blue": 0, "red": 1}

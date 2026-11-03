@@ -23,7 +23,7 @@ No API keys are needed. Needs Docker Desktop and Ollama running.
 
 ```
 py -3.12 -m venv .venv
-.venv/Scripts/python -m pip install torch --index-url https://download.pytorch.org/whl/cu128
+.venv/Scripts/python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
 .venv/Scripts/python -m pip install -e ".[dev]"
 ```
 

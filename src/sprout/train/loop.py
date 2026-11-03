@@ -20,7 +20,7 @@ class RunOutput:
     history: list[dict]
 
 
-def build_model(name: str, num_classes: int) -> nn.Module:
+def build_model(name: str, num_classes: int, pretrained: bool = True) -> nn.Module:
     if name == "tiny_cnn":
         return nn.Sequential(
             nn.Conv2d(3, 8, 7, stride=8),
@@ -32,7 +32,7 @@ def build_model(name: str, num_classes: int) -> nn.Module:
     if name == "convnext_tiny":
         from torchvision.models import convnext_tiny
 
-        model = convnext_tiny(weights="DEFAULT")
+        model = convnext_tiny(weights="DEFAULT" if pretrained else None)
         model.classifier[2] = nn.Linear(model.classifier[2].in_features, num_classes)
         return model
     raise ValueError(f"unknown model: {name}")

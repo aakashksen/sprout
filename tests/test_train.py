@@ -132,7 +132,7 @@ def test_resume_restores_optimizer_and_scheduler(manifest, tmp_path, monkeypatch
     assert b["scheduler"] == a["scheduler"]
     assert b["optimizer"]["param_groups"] == a["optimizer"]["param_groups"]
     assert b["optimizer"]["state"][0]["step"] == a["optimizer"]["state"][0]["step"]
-    for x, y in zip(a["model"].values(), b["model"].values()):
+    for x, y in zip(a["model"].values(), b["model"].values(), strict=False):
         assert torch.allclose(x, y, atol=1e-5)
 
 
@@ -164,7 +164,7 @@ def test_checkpoint_round_trip_includes_class_map_and_optimizer(tmp_path):
     assert "scheduler" in ck and "scaler" in ck
     m2 = build_model("tiny_cnn", 2)
     m2.load_state_dict(ck["model"])
-    for a, b in zip(model.parameters(), m2.parameters()):
+    for a, b in zip(model.parameters(), m2.parameters(), strict=False):
         assert torch.equal(a, b)
 
 

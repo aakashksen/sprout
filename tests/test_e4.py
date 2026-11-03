@@ -248,7 +248,7 @@ def repo(world, monkeypatch):
     for system in BASELINES:
         p = runs / f"{BASELINE_ID}.{system}.predictions.jsonl"
         rows = []
-        for path, label in zip(dev["path"], dev["label"]):
+        for path, label in zip(dev["path"], dev["label"], strict=False):
             probs = rng.dirichlet(np.ones(2))
             rows.append({"path": path, "label": CLASSES.index(label), "probs": list(map(float, probs))})
         p.write_text("".join(json.dumps(r) + "\n" for r in rows))

@@ -44,7 +44,7 @@ def test_no_field_dev_or_field_test_photo_in_seg_manifest():
     seg = pd.read_csv(MANIFEST_DIR / "seg.csv")
     field = pd.read_csv(MANIFEST_DIR / "field.csv")
     held = field[field["split"].isin(["field_dev", "field_test"])]
-    held_names = {Path(p).name for p, s in zip(held["path"], held["source"]) if s == "plantseg"}
+    held_names = {Path(p).name for p, s in zip(held["path"], held["source"], strict=False) if s == "plantseg"}
     assert not held_names & {Path(p).name for p in seg["path"]}
     assert not set(held["sha1"]) & set(seg["sha1"])
     assert set(seg["split"]) == {"seg_train", "seg_dev"}

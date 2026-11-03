@@ -297,9 +297,9 @@ def test_reviewed_links_file_and_residual_judgments_are_consistent():
     links = pd.read_csv(MANIFEST_DIR / "field_reviewed_links.csv")
     assert len(links) > 0 and (links["reason"].str.len() > 0).all()
     real = load_manifest("field")
-    split = dict(zip(real["path"], real["split"]))
-    group = dict(zip(real["path"], real["group"]))
-    for a, b in zip(links["path_a"], links["path_b"]):
+    split = dict(zip(real["path"], real["split"], strict=False))
+    group = dict(zip(real["path"], real["group"], strict=False))
+    for a, b in zip(links["path_a"], links["path_b"], strict=False):
         if a in group and b in group:
             assert group[a] == group[b] and split[a] == split[b]
     listed = pd.read_csv(MANIFEST_DIR / "field_residual_pairs.csv")
@@ -384,7 +384,7 @@ def test_no_unlisted_cross_split_near_duplicate_in_real_manifest(pytestconfig):
     real = load_manifest("field")
     if not Path(real["path"].iloc[0]).exists():
         pytest.skip("raw images are not on this machine")
-    split = dict(zip(real["path"], real["split"]))
+    split = dict(zip(real["path"], real["split"], strict=False))
     cache = getattr(pytestconfig, "cache", None)
     store = Path(cache.mkdir("sprout")) / "field-hash-variants.npz" if cache else None
     paths = list(real["path"])
@@ -411,10 +411,10 @@ def test_residual_pairs_with_nothing_close_is_an_empty_table(tmp_path):
 
 def test_residual_pairs_are_recorded_with_scores():
     real = load_manifest("field")
-    split = dict(zip(real["path"], real["split"]))
+    split = dict(zip(real["path"], real["split"], strict=False))
     listed = pd.read_csv(MANIFEST_DIR / "field_residual_pairs.csv")
     assert len(listed) > 0 and listed["scene_score"].between(0, 1).all()
-    assert all(split[a] != split[b] for a, b in zip(listed["path_a"], listed["path_b"]))
+    assert all(split[a] != split[b] for a, b in zip(listed["path_a"], listed["path_b"], strict=False))
     assert (listed["scene_score"] < 0.88).all()
 
 

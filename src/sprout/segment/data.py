@@ -144,10 +144,10 @@ def build_seg_manifest(meta: pd.DataFrame, field: pd.DataFrame, root: Path = ROO
     covers PlantSeg images outside field.csv too (unmapped classes, label conflicts, reviewed removals).
     """
     held = field[field["split"].isin(["field_dev", "field_test"])]
-    held_names = {Path(p).name for p, s in zip(held["path"], held["source"]) if s == "plantseg"}
+    held_names = {Path(p).name for p, s in zip(held["path"], held["source"], strict=True) if s == "plantseg"}
     held_sha = set(held["sha1"])
     rows = []
-    for name, disease, label_file, split in zip(meta["Name"], meta["Disease"], meta["Label file"], meta["Split"]):
+    for name, disease, label_file, split in zip(meta["Name"], meta["Disease"], meta["Label file"], meta["Split"], strict=True):
         path = image_rel / SPLIT_DIR[split] / name
         sha1 = hashlib.sha1((root / path).read_bytes()).hexdigest()
         if name in held_names or sha1 in held_sha:

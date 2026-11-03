@@ -71,28 +71,40 @@ def _num(x: float) -> float | None:
     return None if x != x else float(x)
 
 
+def _classification_series(name: str, s: Scored) -> np.ndarray | None:
+    correct = (s.probs.argmax(axis=1) == s.labels).astype(float)
+    if name == "accuracy":
+        return correct
+    if name == "end_to_end_accuracy" and s.accepted is not None:
+        return (correct.astype(bool) & s.accepted).astype(float)
+    m = re.fullmatch(r"coverage@([\d.]+)", name)
+    if m:
+        return (s.probs.max(axis=1) >= float(m.group(1))).astype(float)
+    return None
+
+
+def _retrieval_series(name: str, ranks: list[int | None]) -> np.ndarray | None:
+    m = re.fullmatch(r"recall@(\d+)", name)
+    if m:
+        return np.array([r is not None and r <= int(m.group(1)) for r in ranks], dtype=float)
+    if name == "mrr":
+        return np.array([0.0 if r is None else 1.0 / r for r in ranks])
+    return None
+
+
 def item_series(name: str, s: Scored) -> np.ndarray | None:
     """Per-item values whose mean is the metric, for metrics that have an interval or comparison."""
     if s.probs is not None and s.labels is not None:
-        correct = (s.probs.argmax(axis=1) == s.labels).astype(float)
-        if name == "accuracy":
-            return correct
-        m = re.fullmatch(r"coverage@([\d.]+)", name)
-        if m:
-            return (s.probs.max(axis=1) >= float(m.group(1))).astype(float)
-    if name == "end_to_end_accuracy" and s.probs is not None and s.labels is not None and s.accepted is not None:
-        return ((s.probs.argmax(axis=1) == s.labels) & s.accepted).astype(float)
+        found = _classification_series(name, s)
+        if found is not None:
+            return found
     if s.iou is not None:
         if name == "mean_iou":
             return s.iou
         if name == "iou_ge_0.5":
             return (s.iou >= 0.5).astype(float)
     if s.ranks is not None:
-        m = re.fullmatch(r"recall@(\d+)", name)
-        if m:
-            return np.array([r is not None and r <= int(m.group(1)) for r in s.ranks], dtype=float)
-        if name == "mrr":
-            return np.array([0.0 if r is None else 1.0 / r for r in s.ranks])
+        return _retrieval_series(name, s.ranks)
     return None
 
 
@@ -100,9 +112,11 @@ def _rate(flags: np.ndarray, among: np.ndarray) -> float | None:
     return float(flags[among].mean()) if among.any() else None
 
 
-def recompute_metric(name: str, s: Scored, others: dict[str, Scored] | None = None) -> float | None:
-    """The metric from saved rows, using sprout.eval.metrics. None when it is undefined for these rows
-    (nothing to divide by, or the rows lack the needed fields). Raises KeyError for an unknown metric."""
+_OTHER = object()
+
+
+def _gate_or_rag_metric(name: str, s: Scored) -> object:
+    """Gate, RAG and segmentation rates; _OTHER when the name is not one of them."""
     if name == "plant_rejection_rate" and s.accepted is not None and s.is_plant is not None:
         return _rate(~s.accepted, s.is_plant)
     if name == "not_plant_acceptance_rate" and s.accepted is not None and s.is_plant is not None:
@@ -114,6 +128,35 @@ def recompute_metric(name: str, s: Scored, others: dict[str, Scored] | None = No
         return _rate(~s.answered, gold == "abstain")
     if name == "median_iou" and s.iou is not None:
         return float(np.median(s.iou))
+    return _OTHER
+
+
+def _probability_metric(name: str, s: Scored) -> object:
+    """Metrics that need probabilities and labels; _OTHER when the name is not one of them."""
+    if name == "macro_f1":
+        return M.macro_f1(s.labels, s.probs.argmax(axis=1))
+    if name == "ece":
+        return M.ece(s.probs, s.labels)
+    m = re.fullmatch(r"top_(\d+)_accuracy", name)
+    if m and int(m.group(1)) >= 1:
+        return M.top_k_accuracy(s.probs, s.labels, int(m.group(1)))
+    m = re.fullmatch(r"plant_given_top_(\d+)", name)
+    if m and int(m.group(1)) >= 1:
+        if s.class_names is None:
+            return None
+        return _num(M.plant_given_top_k(s.probs, s.labels, s.class_names, int(m.group(1))))
+    m = re.fullmatch(r"(selective_accuracy|confident_error_rate)@([\d.]+)", name)
+    if m:
+        return _num(M.selective_metrics(s.probs, s.labels, float(m.group(2)))[m.group(1)])
+    return _OTHER
+
+
+def recompute_metric(name: str, s: Scored, others: dict[str, Scored] | None = None) -> float | None:
+    """The metric from saved rows, using sprout.eval.metrics. None when it is undefined for these rows
+    (nothing to divide by, or the rows lack the needed fields). Raises KeyError for an unknown metric."""
+    found = _gate_or_rag_metric(name, s)
+    if found is not _OTHER:
+        return found
     changed = re.fullmatch(r"changed_vs@([A-Za-z0-9_-]+)", name)
     if changed:
         other = (others or {}).get(changed.group(1))
@@ -126,21 +169,9 @@ def recompute_metric(name: str, s: Scored, others: dict[str, Scored] | None = No
     if series is not None:
         return float(series.mean())
     if s.probs is not None and s.labels is not None:
-        if name == "macro_f1":
-            return M.macro_f1(s.labels, s.probs.argmax(axis=1))
-        if name == "ece":
-            return M.ece(s.probs, s.labels)
-        m = re.fullmatch(r"top_(\d+)_accuracy", name)
-        if m and int(m.group(1)) >= 1:
-            return M.top_k_accuracy(s.probs, s.labels, int(m.group(1)))
-        m = re.fullmatch(r"plant_given_top_(\d+)", name)
-        if m and int(m.group(1)) >= 1:
-            if s.class_names is None:
-                return None
-            return _num(M.plant_given_top_k(s.probs, s.labels, s.class_names, int(m.group(1))))
-        m = re.fullmatch(r"(selective_accuracy|confident_error_rate)@([\d.]+)", name)
-        if m:
-            return _num(M.selective_metrics(s.probs, s.labels, float(m.group(2)))[m.group(1)])
+        found = _probability_metric(name, s)
+        if found is not _OTHER:
+            return found
     raise KeyError(name)
 
 
@@ -184,7 +215,7 @@ def _same(fresh: float | None, saved: object) -> bool:
 
 
 def _same_pair(fresh, saved: object) -> bool:
-    return isinstance(saved, (list, tuple)) and len(saved) == 2 and all(_same(f, v) for f, v in zip(fresh, saved))
+    return isinstance(saved, (list, tuple)) and len(saved) == 2 and all(_same(f, v) for f, v in zip(fresh, saved, strict=True))
 
 
 def _strings(x: Any) -> list[str]:
@@ -213,6 +244,56 @@ def _read_rows(path: Path) -> list[dict[str, Any]]:
     return [json.loads(x) for x in path.read_text(encoding="utf-8").splitlines() if x.strip()]
 
 
+def _score_gate(ordered, info, positions, scored, tag, out) -> bool:
+    flags = [r.get("accepted") for r in ordered]
+    if not all(isinstance(f, bool) for f in flags):
+        out.append(tag + "accepted must be true or false in every row")
+        return False
+    scored.accepted = np.array(flags)
+    if info.labels is not None:
+        scored.is_plant = np.array([info.labels[i] != NOT_PLANT for i in positions])
+    return True
+
+
+def _score_rag(ordered, info, positions, scored, tag, out) -> bool:
+    flags = [r.get("answered") for r in ordered]
+    if not all(isinstance(f, bool) for f in flags) or info.expected is None:
+        out.append(tag + "answered must be true or false in every row of a RAG split")
+        return False
+    scored.answered = np.array(flags)
+    scored.expected = [info.expected[i] for i in positions]
+    return True
+
+
+def _score_probs(ordered, info, positions, rec, scored, tag, out) -> bool:
+    names = rec["config"].get("class_names") if isinstance(rec["config"], dict) else None
+    probs = np.array([r["probs"] for r in ordered], dtype=float)
+    labels = np.array([r["label"] for r in ordered], dtype=int)
+    if not isinstance(names, list) or probs.ndim != 2 or probs.shape[1] != len(names):
+        out.append(tag + "config.class_names must list the classes, one per probability column")
+        return False
+    if info.labels is not None and [names[x] for x in labels] != [info.labels[i] for i in positions]:
+        out.append(tag + "saved labels do not match the manifest's labels")
+        return False
+    scored.probs, scored.labels, scored.class_names = probs, labels, names
+    return True
+
+
+def _score_iou(ordered, scored, tag, out) -> bool:
+    from sprout.segment.data import rle_iou
+
+    try:
+        fresh = np.array([rle_iou(r["pred"], r["gt"]) for r in ordered])
+    except (KeyError, ValueError, TypeError) as exc:
+        out.append(tag + f"masks cannot be decoded to recompute IoU: {exc}")
+        return False
+    saved = [r["iou"] for r in ordered]
+    if not all(isinstance(v, (int, float)) and abs(v - f) <= TOLERANCE for v, f in zip(saved, fresh, strict=True)):
+        out.append(tag + "a row's iou does not recompute from its saved masks")
+    scored.iou = fresh
+    return True
+
+
 def _score(
     rows: list[dict[str, Any]], info: SplitInfo, positions: list[int], rec: dict[str, Any], tag: str, out: list[str]
 ) -> Scored | None:
@@ -226,47 +307,18 @@ def _score(
     if len(set(ids)) != len(ids) or set(ids) != set(wanted):
         out.append(tag + "prediction ids do not match the split's ids exactly once each")
         return None
-    by_id = dict(zip(ids, rows))
+    by_id = dict(zip(ids, rows, strict=True))
     ordered = [by_id[i] for i in wanted]
     scored = Scored(groups=[info.groups[i] for i in positions])
-    if "accepted" in rows[0]:
-        flags = [r.get("accepted") for r in ordered]
-        if not all(isinstance(f, bool) for f in flags):
-            out.append(tag + "accepted must be true or false in every row")
+    steps = (
+        ("accepted", lambda: _score_gate(ordered, info, positions, scored, tag, out)),
+        ("answered", lambda: _score_rag(ordered, info, positions, scored, tag, out)),
+        ("probs", lambda: _score_probs(ordered, info, positions, rec, scored, tag, out)),
+        ("iou", lambda: _score_iou(ordered, scored, tag, out)),
+    )
+    for field, step in steps:
+        if field in rows[0] and not step():
             return None
-        scored.accepted = np.array(flags)
-        if info.labels is not None:
-            scored.is_plant = np.array([info.labels[i] != NOT_PLANT for i in positions])
-    if "answered" in rows[0]:
-        flags = [r.get("answered") for r in ordered]
-        if not all(isinstance(f, bool) for f in flags) or info.expected is None:
-            out.append(tag + "answered must be true or false in every row of a RAG split")
-            return None
-        scored.answered = np.array(flags)
-        scored.expected = [info.expected[i] for i in positions]
-    if "probs" in rows[0]:
-        names = rec["config"].get("class_names") if isinstance(rec["config"], dict) else None
-        probs = np.array([r["probs"] for r in ordered], dtype=float)
-        labels = np.array([r["label"] for r in ordered], dtype=int)
-        if not isinstance(names, list) or probs.ndim != 2 or probs.shape[1] != len(names):
-            out.append(tag + "config.class_names must list the classes, one per probability column")
-            return None
-        if info.labels is not None and [names[x] for x in labels] != [info.labels[i] for i in positions]:
-            out.append(tag + "saved labels do not match the manifest's labels")
-            return None
-        scored.probs, scored.labels, scored.class_names = probs, labels, names
-    if "iou" in rows[0]:
-        from sprout.segment.data import rle_iou
-
-        try:
-            fresh = np.array([rle_iou(r["pred"], r["gt"]) for r in ordered])
-        except (KeyError, ValueError, TypeError) as exc:
-            out.append(tag + f"masks cannot be decoded to recompute IoU: {exc}")
-            return None
-        saved = [r["iou"] for r in ordered]
-        if not all(isinstance(v, (int, float)) and abs(v - f) <= TOLERANCE for v, f in zip(saved, fresh)):
-            out.append(tag + "a row's iou does not recompute from its saved masks")
-        scored.iou = fresh
     if "rank" in rows[0]:
         scored.ranks = [r["rank"] for r in ordered]
     return scored
@@ -360,10 +412,8 @@ def _stamp_problems(rec: dict[str, Any]) -> list[str]:
     return [] if ok else ["finished_at disagrees with the timestamp in run_id"]
 
 
-def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
-    problems = [f"missing field {k}" for k in REQUIRED if k not in rec]
-    if problems:
-        return problems
+def _header_problems(rec: dict[str, Any], root: Path, min_n: int) -> list[str]:
+    problems = []
     if rec["dirty"]:
         problems.append("record was made on a dirty tree")
     problems += _stamp_problems(rec)
@@ -376,11 +426,16 @@ def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
         problems.append("git_commit is not an ancestor of HEAD")
     if min_n and rec["n"] < min_n:
         problems.append(f"n={rec['n']} is below --min-n {min_n}")
+    return problems
 
+
+def _scope(rec: dict[str, Any], root: Path, problems: list[str]) -> tuple[SplitInfo, list[int]] | None:
+    """The split and the positions scored; None (with the reason added) when they can't be read."""
     try:
         info = split_info(rec["split"], root)
     except (ValueError, OSError) as exc:
-        return problems + [f"cannot read split {rec['split']}: {exc}"]
+        problems.append(f"cannot read split {rec['split']}: {exc}")
+        return None
     if rec["dataset_hash"] != info.hash:
         problems.append("dataset_hash does not match the manifest")
     positions = list(range(len(info.ids)))
@@ -388,29 +443,20 @@ def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
         try:
             positions = subset_positions(rec["subset"], rec["split"], info, root)
         except ValueError as exc:
-            return problems + [str(exc)]
+            problems.append(str(exc))
+            return None
     if not positions or rec["n"] == 0:
         problems.append("no scored rows: the split or subset is empty")
     what = f"subset {rec['subset']}" if rec["subset"] else "split"
     if rec["n"] != len(positions):
         problems.append(f"n={rec['n']} differs from the {what}'s {len(positions)} items")
+    return info, positions
 
-    paths, metrics, intervals = rec["predictions"], rec["metrics"], rec["intervals"]
-    if not isinstance(paths, dict) or not paths:
-        return problems + ["predictions must map each system to its predictions file"]
-    if not isinstance(metrics, dict) or set(metrics) != set(paths):
-        return problems + ["metrics must hold one entry per system, matching predictions"]
-    if not set(intervals) <= set(paths):
-        problems.append(f"intervals name systems not in predictions: {sorted(set(intervals) - set(paths))}")
-        intervals = {}
 
-    boot = rec["bootstrap"]
-    if not (isinstance(boot, dict) and isinstance(boot.get("n"), int) and isinstance(boot.get("seed"), int)):
-        return problems + ["bootstrap must record n and seed"]
-    if boot["n"] != BOOTSTRAP_N:
-        problems.append(f"bootstrap n={boot['n']}, but intervals need {BOOTSTRAP_N:,} resamples")
-    n_boot, seed = boot["n"], boot["seed"]
-
+def _score_systems(
+    rec: dict[str, Any], root: Path, info: SplitInfo, positions: list[int], problems: list[str]
+) -> dict[str, Scored]:
+    paths, metrics = rec["predictions"], rec["metrics"]
     usable: dict[str, Scored] = {}
     for name, rel in paths.items():
         tag = f"system {name}: "
@@ -426,14 +472,17 @@ def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
             problems.append(tag + "no scored rows: the predictions file is empty")
             continue
         scored = _score(rows, info, positions, rec, tag, problems)
-        if scored is None:
-            continue
-        usable[name] = scored
+        if scored is not None:
+            usable[name] = scored
 
     for name in set(paths) - set(usable):
         if f"system {name}: " not in " ".join(problems):
             problems.append(f"system {name}: was not scored")
+    return usable
 
+
+def _metric_set_problems(rec: dict[str, Any], usable: dict[str, Scored]) -> list[str]:
+    metrics, problems = rec["metrics"], []
     # Exempt by reason: not_plant splits have no class labels, and systems without probabilities (a gate's
     # accept/reject rows) are not classifiers. seg_dev, RAG and perf splits are not image classification.
     if rec["experiment"] not in EXEMPT_EXPERIMENTS and not rec["split"].startswith(NOT_PLANT):
@@ -448,10 +497,16 @@ def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
         stated = rec["config"].get("options_per_plant")
         if not isinstance(names, list) or stated != M.options_per_plant(names):
             problems.append("a record with plant-given metrics must state config.options_per_plant, matching class_names")
+    return problems
 
+
+def _system_problems(
+    rec: dict[str, Any], usable: dict[str, Scored], intervals: dict[str, Any], n_boot: int, seed: int
+) -> list[str]:
+    problems = []
     for name, scored in usable.items():
         tag = f"system {name}: "
-        for metric, saved in metrics[name].items():
+        for metric, saved in rec["metrics"][name].items():
             try:
                 fresh = recompute_metric(metric, scored, usable)
             except KeyError:
@@ -466,7 +521,11 @@ def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
             elif not _same_pair(got, saved):
                 problems.append(tag + f"interval {metric} does not recompute from predictions")
         problems += _table_problems(rec, name, scored, tag)
+    return problems
 
+
+def _comparison_problems(rec: dict[str, Any], usable: dict[str, Scored], n_boot: int, seed: int) -> list[str]:
+    problems = []
     for i, c in enumerate(rec["comparisons"]):
         tag = f"comparison {i}: "
         if not (isinstance(c, dict) and {"a", "b", "metric", "diff", "ci", "mcnemar_p"} <= set(c)):
@@ -480,7 +539,48 @@ def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
             elif not (_same(fresh["diff"], c["diff"]) and _same_pair(fresh["ci"], c["ci"])
                       and _same(fresh["mcnemar_p"], c["mcnemar_p"])):
                 problems.append(tag + f"{c['metric']} for {c['a']} vs {c['b']} does not recompute from predictions")
+    return problems
 
+
+def _shape_problem(rec: dict[str, Any]) -> str | None:
+    """Why the saved predictions, metrics or bootstrap can't be read system by system, if they can't."""
+    paths, metrics, boot = rec["predictions"], rec["metrics"], rec["bootstrap"]
+    if not isinstance(paths, dict) or not paths:
+        return "predictions must map each system to its predictions file"
+    if not isinstance(metrics, dict) or set(metrics) != set(paths):
+        return "metrics must hold one entry per system, matching predictions"
+    if not (isinstance(boot, dict) and isinstance(boot.get("n"), int) and isinstance(boot.get("seed"), int)):
+        return "bootstrap must record n and seed"
+    return None
+
+
+def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
+    problems = [f"missing field {k}" for k in REQUIRED if k not in rec]
+    if problems:
+        return problems
+    problems = _header_problems(rec, root, min_n)
+    scope = _scope(rec, root, problems)
+    if scope is None:
+        return problems
+    info, positions = scope
+
+    shape = _shape_problem(rec)
+    if shape and not shape.startswith("bootstrap"):
+        return problems + [shape]
+    intervals = rec["intervals"]
+    if not set(intervals) <= set(rec["predictions"]):
+        problems.append(f"intervals name systems not in predictions: {sorted(set(intervals) - set(rec['predictions']))}")
+        intervals = {}
+    if shape:
+        return problems + [shape]
+    boot = rec["bootstrap"]
+    if boot["n"] != BOOTSTRAP_N:
+        problems.append(f"bootstrap n={boot['n']}, but intervals need {BOOTSTRAP_N:,} resamples")
+
+    usable = _score_systems(rec, root, info, positions, problems)
+    problems += _metric_set_problems(rec, usable)
+    problems += _system_problems(rec, usable, intervals, boot["n"], boot["seed"])
+    problems += _comparison_problems(rec, usable, boot["n"], boot["seed"])
     problems += _measurement_problems(rec["measurements"], root, "measurements")
     problems += _measurement_problems(rec["judged"], root, "judged")
     if rec["judged"]:

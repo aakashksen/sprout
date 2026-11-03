@@ -1,6 +1,7 @@
 """Real-photo (field) and not-plant manifests, built from PlantDoc, PlantSeg and COCO."""
 
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -239,6 +240,32 @@ def merge_reviewed_links(groups: dict[str, str], links: pd.DataFrame) -> dict[st
     return out
 
 
+GENERIC_NAMES = {
+    "image",
+    "img",
+    "photo",
+    "picture",
+    "pic",
+    "thumb",
+    "thumbnail",
+    "untitled",
+}
+
+
+def is_generic_name(name: str) -> bool:
+    """A name that says nothing about the picture: only digits and separators, or a fixed word."""
+    stem = name.lower().split(".")[0]
+    return re.fullmatch(r"[\d_\- ]*", stem) is not None or stem in GENERIC_NAMES
+
+
+def unreviewed_same_names(field: pd.DataFrame, reviews: pd.DataFrame) -> list[str]:
+    """Descriptive file names shared by more than one image that have no recorded judgment."""
+    names = pd.Series([p.rsplit("/", 1)[-1].lower() for p in field["path"]])
+    shared = names[names.duplicated(keep=False)].unique()
+    judged = set(reviews["name"])
+    return sorted(n for n in shared if not is_generic_name(n) and n not in judged)
+
+
 def residual_pairs(
     field: pd.DataFrame,
     links: pd.DataFrame | None = None,
@@ -276,6 +303,7 @@ def assemble_field(
     lab: pd.DataFrame,
     seed: int = 13,
     reviewed_links: pd.DataFrame | None = None,
+    reviewed_removals: pd.DataFrame | None = None,
 ):
     """Map, deduplicate, group and split real photos.
 
@@ -315,6 +343,14 @@ def assemble_field(
         df[["path", "label", "group", "sha1", "source"]], seed=seed, ratios=RATIOS
     )
     out["split"] = out["split"].map(split_map)
+    if reviewed_removals is not None:
+        # after assignment, so removing an image never moves another one
+        gone = out["path"].isin(set(reviewed_removals["path"]))
+        removed = out[gone][["path", "label", "source", "group"]].merge(
+            reviewed_removals[["path", "reason"]], on="path"
+        )
+        conflicts = pd.concat([conflicts, removed], ignore_index=True)
+        out = out[~gone]
     complete = out.groupby("label")["split"].nunique().eq(len(FIELD_SPLITS))
     kept = out[out["label"].isin(complete[complete].index)]
     kept = kept.sort_values("path")[FIELD_COLUMNS].reset_index(drop=True)
@@ -442,8 +478,13 @@ def build_field(sources: dict[str, Path], class_map: pd.DataFrame) -> pd.DataFra
         parts.append(inv)
     lab = pd.read_csv(MANIFEST_DIR / "lab.csv")
     links = pd.read_csv(MANIFEST_DIR / "field_reviewed_links.csv")
+    removals = pd.read_csv(MANIFEST_DIR / "field_reviewed_removals.csv")
     field, cmap, conflicts = assemble_field(
-        pd.concat(parts, ignore_index=True), class_map, lab, reviewed_links=links
+        pd.concat(parts, ignore_index=True),
+        class_map,
+        lab,
+        reviewed_links=links,
+        reviewed_removals=removals,
     )
     field.to_csv(MANIFEST_DIR / "field.csv", index=False)
     conflicts.to_csv(MANIFEST_DIR / "field_conflicts.csv", index=False)

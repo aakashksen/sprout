@@ -574,7 +574,6 @@ datasets/raw/plantdoc/Corn Gray leaf spot/1192.jpg,Corn_(maize)___Cercospora_lea
 datasets/raw/plantdoc/Corn Gray leaf spot/1193.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,g051777,field_train,c33088c373db4b0cd90b4a1e14d910d6b63dd100,plantdoc
 datasets/raw/plantdoc/Corn Gray leaf spot/1355.51grayleafspot.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,g051778,field_train,93e070835e98ea961243eed4a37d7e0eab51fe0a,plantdoc
 datasets/raw/plantdoc/Corn Gray leaf spot/18largegls0732_copy-143B1EC97E96BA58322.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,g051779,field_dev,d26bee7f6a19c24989c49042f8de902e291b67fe,plantdoc
-datasets/raw/plantdoc/Corn Gray leaf spot/2013Corn_GrayLeafSpot_0815_0003.JPG.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,g051780,field_dev,7bbe4f93d74d7eff86b9c571845f96a7df359325,plantdoc
 datasets/raw/plantdoc/Corn Gray leaf spot/2013Corn_GrayLeaf_0820_0003.JPG.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,g051781,field_train,2257b3890186e1ac0d5ecad01b7e31fa13c7d50b,plantdoc
 datasets/raw/plantdoc/Corn Gray leaf spot/2015Corn_Hail_Taylor_PH%2B%25282%2529.JPG.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,g051783,field_test,eb68fdb9e6217c509f704e09a149b48c76069b1b,plantdoc
 datasets/raw/plantdoc/Corn Gray leaf spot/22-broders-CR-Gray-leaf-spot-corn.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,g051784,field_test,00609dd37e918ed4ede9c909fc82a8139ed63fe7,plantdoc
@@ -652,7 +651,6 @@ datasets/raw/plantdoc/Corn leaf blight/1200px-Northern_corn_leaf_blight.JPG.jpg,
 datasets/raw/plantdoc/Corn leaf blight/160314_web.jpg,Corn_(maize)___Northern_Leaf_Blight,g051865,field_train,c848860a4c8921bea10ae9de0d4820bf4e9a5a1a,plantdoc
 datasets/raw/plantdoc/Corn leaf blight/186116-325x209-Northern-Corn-Leaf-Blight-Chilvers.jpg,Corn_(maize)___Northern_Leaf_Blight,g051866,field_train,25de8b5db9241b4133bc191bb7b51168d9e89c26,plantdoc
 datasets/raw/plantdoc/Corn leaf blight/2-3%20Gray%20leaf%20spot%20BRUCE.jpg,Corn_(maize)___Northern_Leaf_Blight,g051867,field_dev,09e6739238d8dfe84293bd04569fbe27bb3439d1,plantdoc
-datasets/raw/plantdoc/Corn leaf blight/2013Corn_GrayLeafSpot_0815_0003.JPG.jpg,Corn_(maize)___Northern_Leaf_Blight,g051868,field_train,0e5b57509d7cfe8d1283af5dd7ed38925be72e2f,plantdoc
 datasets/raw/plantdoc/Corn leaf blight/2014-07-23-corngosswilt.jpg,Corn_(maize)___Northern_Leaf_Blight,g051869,field_test,7d31cb32ff21cc1babbf7eb6101ad8ebda9988e5,plantdoc
 datasets/raw/plantdoc/Corn leaf blight/20140826_131630.jpg,Corn_(maize)___Northern_Leaf_Blight,g051870,field_dev,caa2e8ad3ffd7d02dbde0f59a38c33551dd6721f,plantdoc
 datasets/raw/plantdoc/Corn leaf blight/20160812__13ST_xanthomonas~1.jpg,Corn_(maize)___Northern_Leaf_Blight,g051871,field_dev,5e1bd18da498c4c5316a9c76ef60e9299bcae5b9,plantdoc
@@ -1087,7 +1085,6 @@ datasets/raw/plantdoc/Potato leaf early blight/early-blight-alternaria-alternata
 datasets/raw/plantdoc/Potato leaf early blight/early-blight-cmyk-opt.jpeg.jpg,Potato___Early_blight,g052316,field_dev,4e38b4f5e3dd47575c3e4c39d0b486abdd973b36,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/early-blight-courtesy-Melanson-MS-State-U-Ext-Bugwood.jpg,Potato___Early_blight,g052317,field_dev,e54f3862d91b612fcda253c333d6495b4f8caa10,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/early-blight-or-target-spot-alternaria-solani-lesions-on-a-tomato-AXK6AY.jpg,Potato___Early_blight,g052318,field_test,ecd06369eb922a3dae4ea227f46dcea1f6f5109f,plantdoc
-datasets/raw/plantdoc/Potato leaf early blight/early-blight-or-target-spot-alternaria-solani-lesions-on-a-tomato-by9j8r.jpg,Potato___Early_blight,g052319,field_train,ebb742d253e58f17e911e2b66cbec8308ce1fea5,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/early-blight-or-targfet-spot-alternaria-solani-lesions-on-a-tomato-ACG8W6.jpg,Potato___Early_blight,g052320,field_train,5dbc5cad67750cf476c8de155ec72395e88e2404,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/early-blight-septoria-ls-fig-1.jpg,Potato___Early_blight,g052322,field_dev,761ae3e6a65cbba83d3b3417fe4a8f24082ee450,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/earlyblight21.jpg,Potato___Early_blight,g052324,field_train,059b1ef58e7c692cc8fe7386e301664f82ca7b6e,plantdoc
@@ -1673,7 +1670,6 @@ datasets/raw/plantdoc/Tomato Early blight leaf/early-blight-in-high-tunnel-tomat
 datasets/raw/plantdoc/Tomato Early blight leaf/early-blight-in-tomatoes.jpg,Tomato___Early_blight,g052911,field_test,602f93c1f5be1bc1c877bf4dfcc36b9085108a72,plantdoc
 datasets/raw/plantdoc/Tomato Early blight leaf/early-blight-of-tomato-tomato-1.jpg,Tomato___Early_blight,g052912,field_train,39291cf016f34069bf9b157f0fb43c9d1f79f60d,plantdoc
 datasets/raw/plantdoc/Tomato Early blight leaf/early-blight-or-target-spot-alternaria-solani-lesions-on-a-tomato-BH3TH0.jpg,Tomato___Early_blight,g052913,field_train,9ee2c6c3497e4696b09ad4235c2f881cb380940d,plantdoc
-datasets/raw/plantdoc/Tomato Early blight leaf/early-blight-or-target-spot-alternaria-solani-lesions-on-a-tomato-BY9J8R.jpg,Tomato___Early_blight,g052914,field_train,eaec5abdb44007f793ad1b873cf6503afab2080c,plantdoc
 datasets/raw/plantdoc/Tomato Early blight leaf/early-blight-pp-labeled_orig.jpg,Tomato___Early_blight,g052873,field_train,01d030a93cd0e96c041715d820faa34d4e8e785a,plantdoc
 datasets/raw/plantdoc/Tomato Early blight leaf/early-blight1.jpg,Tomato___Early_blight,g052915,field_test,0a5788baee7af54ff7ca738855f52413f9fe69a7,plantdoc
 datasets/raw/plantdoc/Tomato Early blight leaf/early-tomato-blight.jpg,Tomato___Early_blight,g052916,field_test,0410af8bc0c0af23f7eaf8e4f9b438b290b7455f,plantdoc

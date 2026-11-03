@@ -16,6 +16,7 @@ from sprout.data.field import (
     make_class_map,
     merge_reviewed_links,
     not_plant_images,
+    unreviewed_same_names,
 )
 from sprout.data.inventory import file_sha1
 from sprout.data.splits import MANIFEST_DIR, load_manifest
@@ -328,3 +329,48 @@ def test_residual_pairs_are_recorded_with_scores():
     assert len(listed) > 0 and listed["scene_score"].between(0, 1).all()
     assert all(split[a] != split[b] for a, b in zip(listed["path_a"], listed["path_b"]))
     assert (listed["scene_score"] < 0.88).all()
+
+
+def test_descriptive_same_name_photos_need_a_recorded_judgment():
+    field = pd.DataFrame(
+        {
+            "path": [
+                "r/a/photo.jpg", "r/b/photo.jpg",
+                "r/a/0001.jpg", "r/b/0001.jpg",
+                "r/a/Leaf-Blight-3.JPG", "r/b/leaf-blight-3.jpg",
+                "r/a/unique.jpg", "r/b/other.jpg",
+            ],
+            "split": ["field_train", "field_test"] * 4,
+        }
+    )  # fmt: skip
+    assert unreviewed_same_names(field, pd.DataFrame({"name": []})) == [
+        "leaf-blight-3.jpg"
+    ]
+    judged = pd.DataFrame(
+        {"name": ["leaf-blight-3.jpg"], "judgment": ["different photos"]}
+    )
+    assert unreviewed_same_names(field, judged) == []
+
+
+def test_reviewed_removals_leave_every_other_assignment_alone(tmp_path):
+    inv, cmap, lab = _fixture(tmp_path)
+    base, _, _ = assemble_field(inv, cmap, lab)
+    victim = base["path"].iloc[3]
+    removals = pd.DataFrame(
+        {"path": [victim], "reason": ["same photo, conflicting label"]}
+    )
+    field, _, conflicts = assemble_field(inv, cmap, lab, reviewed_removals=removals)
+    assert victim not in set(field["path"]) and victim in set(conflicts["path"])
+    rest = base[base["path"] != victim].reset_index(drop=True)
+    assert field.reset_index(drop=True).equals(rest)
+
+
+def test_same_name_judgments_are_recorded_for_the_real_manifest():
+    real = load_manifest("field")
+    reviews = pd.read_csv(MANIFEST_DIR / "field_same_name_review.csv")
+    assert unreviewed_same_names(real, reviews) == []
+    assert (reviews["judgment"].str.len() > 0).all()
+    removed = pd.read_csv(MANIFEST_DIR / "field_reviewed_removals.csv")
+    assert len(removed) > 0 and set(removed["path"]).isdisjoint(set(real["path"]))
+    conflicts = pd.read_csv(MANIFEST_DIR / "field_conflicts.csv")
+    assert set(removed["path"]) <= set(conflicts["path"])

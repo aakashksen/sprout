@@ -32,6 +32,12 @@ Six pairs that the rule missed were judged by eye to be the same photo (a tomato
 
 `datasets/manifests/field_residual_pairs.csv` lists every pair left in different splits that is within 8 bits by pHash or dHash, with a `reviewed_same_photo` column. All 25 pairs now listed were viewed and are "no" (different images: isolated leaves from one stock series, apples, diagrams, a figure). The first pass found 32 hash-close pairs across splits; 6 were judged "yes" and linked, 1 pair appeared after the splits shifted (viewed, "no"), and 2 more stopped crossing splits.
 
-Final numbers: 4,148 images; field_train 2,072, field_dev 1,041, field_test 1,035 (all 31 shared classes present); 215 images in 96 groups removed as label conflicts. Merging the six links reshuffled the group-to-split assignment: 339 of the 4,148 images changed split (assignment stays deterministic for a given set of groups).
+Final numbers: 4,144 images; field_train 2,069, field_dev 1,040, field_test 1,035 (all 31 shared classes present); 219 images removed (215 in 96 groups as label conflicts by the rule, plus 4 by the same-name review below). Merging the six links reshuffled the group-to-split assignment: 339 of the 4,148 images at that step changed split (assignment stays deterministic for a given set of groups).
 
 `tests/test_field_data.py` checks the real manifest, when raw images are present, for cross-split pairs within 8 bits and asserts all are in the residual list; it also asserts no listed pair is marked "yes" and that every reviewed link shares a group and split.
+
+## Same-name review (last step)
+
+Seven file names appear on more than one image. All seven were viewed (`datasets/manifests/field_same_name_review.csv`). Two pairs are the same photo under conflicting labels (a corn leaf at two crops, and one alamy tomato leaf filed under Potato and Tomato early blight); all four images are removed through `datasets/manifests/field_reviewed_removals.csv` and listed in `field_conflicts.csv`. The other five names (`0.jpg`, `0000.jpg`, `image.jpg`, `gray-leaf-spot.jpg`, `lateblightleaf.jpg`) are different photos and stay. Removal runs after split assignment, so no other image moved: compared with commit 08cb625, `field.csv` lost exactly those four rows and every other row is identical. A test fails if a descriptive (not digits-only, not in a short fixed word list) shared name has no recorded judgment.
+
+The duplicate search on the field set was the last one; a few same-scene images could remain across splits, as a known limit of web-scraped data.

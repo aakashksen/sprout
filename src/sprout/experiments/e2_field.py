@@ -291,7 +291,17 @@ def report(cfg: dict[str, Any], root: Path = ROOT) -> Path:
     )
     header = (
         f"{len(sheet)} wrong predictions on field_dev, seed {cfg['seed']}, selected by "
-        f"`sprout.experiments.e2_review.select_mistakes` from the E2 field_dev record. Mask check: {state}"
+        f"`sprout.experiments.e2_review.select_mistakes` from the E2 field_dev record. Categories were assigned by "
+        "viewing each photo; they describe what was seen in this sample and are not a proven cause of the errors. "
+        "Where a category was a judgment call or the label looks wrong, the note says so; these notes are input for "
+        "the H2 label review.\n\n"
+        "Scope: lab and real-photo scores are each computed on the classes the two datasets share and are not "
+        "merged. field_dev is split from field_train by near-duplicate group, but a few same-scene images could "
+        "remain across the field splits. The Grad-CAM overlays kept for field_dev are a different random sample "
+        "from these mistakes, so no overlay was used for these categories.\n\n"
+        "`blur` here includes very small low-resolution images. `unsupported_condition` here covers fruit photos and a nutrient deficiency, which the "
+        "leaf-trained classes do not cover.\n\n"
+        f"Mask check: {state}"
     )
     out = root / cfg["mistakes_report"]
     out.write_text(review.mistakes_markdown(sheet, header), encoding="utf-8")

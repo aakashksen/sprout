@@ -16,7 +16,7 @@ from sprout.data.masks import hsv_mask
 from sprout.eval.predict import Predictions
 
 CATEGORIES = ("blur", "background", "similar_symptoms", "wrong_label", "unsupported_condition")
-MISTAKE_COLUMNS = ["path", "label", "predicted", "confidence", "category"]
+MISTAKE_COLUMNS = ["path", "label", "predicted", "confidence", "category", "note"]
 MASK_COLUMNS = ["index", "path", "good"]
 VERDICTS = ("yes", "no")
 
@@ -28,7 +28,7 @@ def select_mistakes(preds: Predictions, class_names: list[str], n: int, seed: in
     rng = random.Random(seed)
     chosen = sorted(rng.sample(wrong, min(n, len(wrong))), key=lambda i: preds.path[i])
     rows = [
-        (preds.path[i], class_names[preds.label[i]], class_names[guess[i]], round(float(preds.probs[i].max()), 4), "")
+        (preds.path[i], class_names[preds.label[i]], class_names[guess[i]], round(float(preds.probs[i].max()), 4), "", "")
         for i in chosen
     ]
     return pd.DataFrame(rows, columns=MISTAKE_COLUMNS)
@@ -94,17 +94,17 @@ def mistakes_markdown(sheet: pd.DataFrame, header: str) -> str:
         "",
         header,
         "",
-        "Categories: " + ", ".join(CATEGORIES) + ". Paths and categories only; no images are embedded.",
+        "Categories: " + ", ".join(CATEGORIES) + ". Paths, categories and short notes only; no images are embedded.",
         "",
         "| Category | Mistakes |",
         "|---|---|",
         *[f"| {k} | {v} |" for k, v in counts.items()],
         f"| total | {len(sheet)} |",
         "",
-        "| Path | True class | Predicted | Confidence | Category |",
-        "|---|---|---|---|---|",
+        "| Path | True class | Predicted | Confidence | Category | Note |",
+        "|---|---|---|---|---|---|",
         *[
-            f"| {r.path} | {r.label} | {r.predicted} | {r.confidence} | {r.category or 'not viewed'} |"
+            f"| {r.path} | {r.label} | {r.predicted} | {r.confidence} | {r.category or 'not viewed'} | {r.note} |"
             for r in sheet.itertuples()
         ],
         "",

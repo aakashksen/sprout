@@ -365,9 +365,9 @@
       "worktree": "<local path>",
       "started_at": "2026-11-03T17:22:31+00:00",
       "verified": {
-        "commit": "b470dbe0f4a170816d8d1178d88a090a361a8b09",
+        "commit": "c4eb707c46f0d4b8db487f1dc15c2f741962b9af",
         "passed": true,
-        "at": "2026-11-03T19:29:30+00:00"
+        "at": "2026-11-03T20:49:32+00:00"
       }
     },
     {
@@ -420,12 +420,12 @@
       "worktree": "<local path>",
       "started_at": "2026-11-03T16:45:43+00:00",
       "verified": {
-        "commit": "a4502a46a5d7ce7dd5a4ec398d11f232caf583b9",
+        "commit": "ffca1d892d43edc8ee4210c9dddeb5cb2617268c",
         "passed": true,
-        "at": "2026-11-03T18:14:31+00:00"
+        "at": "2026-11-03T20:23:06+00:00"
       },
-      "attempts": 1,
-      "reason": "leakage: at least 6 extra_train rows are watermark or crop copies of field_dev or field_test photos, missed by the 0.88 rule and the 0.75 guard; real-manifest tests compare only exact sha1"
+      "attempts": 2,
+      "reason": "at least 7 kept extras are cropped or zoomed copies of field_dev or field_test photos; the full-frame check cannot see crops"
     },
     {
       "id": "T4.6",
@@ -610,6 +610,20 @@
       "started_at": "2026-11-03T20:06:43+00:00"
     },
     {
+      "id": "T6.6",
+      "phase": 6,
+      "title": "Experiment E14, is the local judge reliable?",
+      "owner": "agent",
+      "deps": [
+        "T6.4"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e14.py -q",
+        "{py} -m sprout.eval.check_run E14 --min-n 200 --split rag_dev"
+      ],
+      "status": "pending"
+    },
+    {
       "id": "T7.1",
       "phase": 7,
       "title": "Backend rebuild",
@@ -711,13 +725,14 @@
         "H1",
         "H2",
         "T4.7",
+        "T6.6",
         "T7.4"
       ],
       "acceptance": [
         "{py} -m pytest tests/test_e9.py -q",
-        "{py} -m sprout.eval.check_run E9 --min-n 200 --split field_test",
-        "{py} -m sprout.eval.check_run E9 --min-n 1000 --split lab_test",
-        "{py} -m sprout.eval.check_run E9 --min-n 50 --split rag_test"
+        "{py} -m sprout.eval.check_run E9 --min-n 200 --split field_test --all",
+        "{py} -m sprout.eval.check_run E9 --min-n 1000 --split lab_test --all",
+        "{py} -m sprout.eval.check_run E9 --min-n 50 --split rag_test --all"
       ],
       "status": "pending"
     },

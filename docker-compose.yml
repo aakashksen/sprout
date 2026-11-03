@@ -1,5 +1,6 @@
 services:
   app:
+    image: sprout-app
     build:
       context: .
       dockerfile: deploy/Dockerfile

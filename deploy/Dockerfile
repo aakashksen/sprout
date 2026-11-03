@@ -12,6 +12,7 @@ RUN pip install -r requirements/serve.txt
 COPY pyproject.toml ./
 COPY src ./src
 COPY deploy ./deploy
+RUN sed -i 's/\r$//' deploy/entrypoint.sh deploy/wsgi.py && chmod +x deploy/entrypoint.sh
 COPY knowledge/manifest.csv knowledge/manifest.csv
 RUN pip install --no-deps . && rm -rf build
 

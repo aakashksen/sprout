@@ -29,6 +29,9 @@ Training dependencies live in `requirements/train.txt` and are never installed i
 | `SPROUT_HTTPS` | `1` makes cookies secure. Set it behind HTTPS (Cloud Run is). |
 | `SPROUT_WORKERS`, `SPROUT_THREADS`, `SPROUT_TIMEOUT` | gunicorn settings; see Workers. |
 
+A bind-mounted `/data` (anything other than the compose named volume) must be writable by uid 10001, for example
+`chown 10001 <host folder>`; otherwise the app cannot write its database or uploads.
+
 `SPROUT_FAKE_IDENTIFIER=1` loads a test double that answers "tomato early blight" for every image. `deploy/wsgi.py`
 raises at start-up unless `SPROUT_ENV=testing`, so a production or development container cannot run it
 (`test_fake_identifier_refused_outside_testing`, `test_production_container_refuses_fake_and_missing_secret`).
@@ -42,7 +45,7 @@ Neither is baked into the image; both are mounted read-only at `/models`.
   wires the real `Identifier` in. Until then the container reports not ready.
 - Index: build with `sprout.rag.ingest` on the dev machine from `knowledge/raw`, which stays out of the image, then
   copy the index folder to `/models/index`. Retrieval caches passage vectors in that folder, so a read-only mount
-  needs the cache file created before mounting, or each start re-embeds every chunk (minutes on CPU).
+  needs the cache file created before mounting, or each start re-embeds every chunk.
 - fastembed downloads its embedding and reranker models on first use into `FASTEMBED_CACHE_PATH`
   (`/models/fastembed`). A container with no network must have that folder filled beforehand. This has not been
   exercised yet (T7.4).
@@ -86,7 +89,7 @@ Steps for the person to run (not run by the build). Replace `PROJECT`, `REGION`,
 
 1. Create an Artifact Registry repository and push the image:
    `gcloud auth configure-docker REGION-docker.pkg.dev`, then
-   `docker tag sprout-serve-test REGION-docker.pkg.dev/PROJECT/sprout/app:1` and `docker push` it.
+   `docker tag sprout-app REGION-docker.pkg.dev/PROJECT/sprout/app:1` and `docker push` it.
 2. Put the secret in Secret Manager: `gcloud secrets create sprout-secret-key --data-file=-`.
 3. Deploy:
    `gcloud run deploy sprout --image REGION-docker.pkg.dev/PROJECT/sprout/app:1 --region REGION --port 8080

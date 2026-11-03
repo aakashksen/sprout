@@ -214,3 +214,23 @@ def test_production_container_refuses_fake_and_missing_secret(image):
         assert _wait(f"http://127.0.0.1:{port}", "/readyz") == 503  # no model: reported, not faked
     finally:
         _docker("rm", "-f", name, check=False)
+
+
+CONTAINER_FILES = ("deploy/entrypoint.sh", "deploy/wsgi.py", "deploy/Dockerfile", "requirements/serve.txt",
+                   "docker-compose.yml", ".dockerignore")
+
+
+def test_container_files_are_committed_with_lf_endings():
+    """A CRLF entrypoint makes the container fail with 'no such file or directory' on every start."""
+    for path in CONTAINER_FILES:
+        committed = subprocess.run(["git", "show", f":{path}"], cwd=ROOT, capture_output=True, check=True).stdout
+        assert b"\r" not in committed, f"{path} is committed with CR bytes"
+        eol = subprocess.run(["git", "check-attr", "eol", "--", path], cwd=ROOT, capture_output=True, text=True)
+        assert eol.stdout.strip().endswith("eol: lf"), f"{path} is not pinned to LF in .gitattributes"
+
+
+@pytest.mark.real
+def test_built_container_files_have_no_cr(image):
+    out = _docker("run", "--rm", "--entrypoint", "sh", image, "-c",
+                  "grep -lc \"$(printf '\r')\" /app/deploy/entrypoint.sh /app/deploy/wsgi.py || true").stdout
+    assert out.strip() == ""

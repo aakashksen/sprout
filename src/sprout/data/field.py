@@ -1,6 +1,7 @@
 """Real-photo (field) and not-plant manifests, built from PlantDoc, PlantSeg and COCO."""
 
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -229,8 +230,46 @@ def link_same_scene(
     return {p: find(g) for p, g in groups.items()}
 
 
+def merge_reviewed_links(groups: dict[str, str], links: pd.DataFrame) -> dict[str, str]:
+    """Merge the groups of hand-reviewed same-photo pairs. Pairs not in groups are skipped."""
+    out = dict(groups)
+    for a, b in zip(links["path_a"], links["path_b"]):
+        if a in out and b in out and out[a] != out[b]:
+            keep, drop = sorted((out[a], out[b]))
+            out = {p: (keep if g == drop else g) for p, g in out.items()}
+    return out
+
+
+GENERIC_NAMES = {
+    "image",
+    "img",
+    "photo",
+    "picture",
+    "pic",
+    "thumb",
+    "thumbnail",
+    "untitled",
+}
+
+
+def is_generic_name(name: str) -> bool:
+    """A name that says nothing about the picture: only digits and separators, or a fixed word."""
+    stem = name.lower().split(".")[0]
+    return re.fullmatch(r"[\d_\- ]*", stem) is not None or stem in GENERIC_NAMES
+
+
+def unreviewed_same_names(field: pd.DataFrame, reviews: pd.DataFrame) -> list[str]:
+    """Descriptive file names shared by more than one image that have no recorded judgment."""
+    names = pd.Series([p.rsplit("/", 1)[-1].lower() for p in field["path"]])
+    shared = names[names.duplicated(keep=False)].unique()
+    judged = set(reviews["name"])
+    return sorted(n for n in shared if not is_generic_name(n) and n not in judged)
+
+
 def residual_pairs(
-    field: pd.DataFrame, max_distance: int = RESIDUAL_DISTANCE
+    field: pd.DataFrame,
+    links: pd.DataFrame | None = None,
+    max_distance: int = RESIDUAL_DISTANCE,
 ) -> pd.DataFrame:
     """Hash-close image pairs the pipeline left in different splits, with their scene score."""
     split = dict(zip(field["path"], field["split"]))
@@ -244,6 +283,13 @@ def residual_pairs(
     pairs["split_b"] = pairs["path_b"].map(split)
     pairs["label_a"] = pairs["path_a"].map(label)
     pairs["label_b"] = pairs["path_b"].map(label)
+    linked = set()
+    if links is not None:
+        linked = {(a, b) for a, b in zip(links["path_a"], links["path_b"])}
+    pairs["reviewed_same_photo"] = [
+        "yes" if (a, b) in linked or (b, a) in linked else "no"
+        for a, b in zip(pairs["path_a"], pairs["path_b"])
+    ]
     pairs["scene_score"] = [
         round(same_scene_score(_gray64(a), _gray64(b)), 3)
         for a, b in zip(pairs["path_a"], pairs["path_b"])
@@ -252,7 +298,12 @@ def residual_pairs(
 
 
 def assemble_field(
-    inv: pd.DataFrame, class_map: pd.DataFrame, lab: pd.DataFrame, seed: int = 13
+    inv: pd.DataFrame,
+    class_map: pd.DataFrame,
+    lab: pd.DataFrame,
+    seed: int = 13,
+    reviewed_links: pd.DataFrame | None = None,
+    reviewed_removals: pd.DataFrame | None = None,
 ):
     """Map, deduplicate, group and split real photos.
 
@@ -273,9 +324,10 @@ def assemble_field(
     lab_groups = {groups[p] for p in lab["path"]}
     df["group"] = df["path"].map(groups)
     df = df[~df["group"].isin(lab_groups)]
-    df["group"] = df["path"].map(
-        link_same_scene(list(df["path"]), dict(zip(df["path"], df["group"])))
-    )
+    linked = link_same_scene(list(df["path"]), dict(zip(df["path"], df["group"])))
+    if reviewed_links is not None:
+        linked = merge_reviewed_links(linked, reviewed_links)
+    df["group"] = df["path"].map(linked)
 
     labels_per_group = df.groupby("group")["lab_class"].nunique()
     clash = df["group"].map(labels_per_group) > 1
@@ -291,6 +343,14 @@ def assemble_field(
         df[["path", "label", "group", "sha1", "source"]], seed=seed, ratios=RATIOS
     )
     out["split"] = out["split"].map(split_map)
+    if reviewed_removals is not None:
+        # after assignment, so removing an image never moves another one
+        gone = out["path"].isin(set(reviewed_removals["path"]))
+        removed = out[gone][["path", "label", "source", "group"]].merge(
+            reviewed_removals[["path", "reason"]], on="path"
+        )
+        conflicts = pd.concat([conflicts, removed], ignore_index=True)
+        out = out[~gone]
     complete = out.groupby("label")["split"].nunique().eq(len(FIELD_SPLITS))
     kept = out[out["label"].isin(complete[complete].index)]
     kept = kept.sort_values("path")[FIELD_COLUMNS].reset_index(drop=True)
@@ -417,12 +477,20 @@ def build_field(sources: dict[str, Path], class_map: pd.DataFrame) -> pd.DataFra
         inv["source"] = name
         parts.append(inv)
     lab = pd.read_csv(MANIFEST_DIR / "lab.csv")
+    links = pd.read_csv(MANIFEST_DIR / "field_reviewed_links.csv")
+    removals = pd.read_csv(MANIFEST_DIR / "field_reviewed_removals.csv")
     field, cmap, conflicts = assemble_field(
-        pd.concat(parts, ignore_index=True), class_map, lab
+        pd.concat(parts, ignore_index=True),
+        class_map,
+        lab,
+        reviewed_links=links,
+        reviewed_removals=removals,
     )
     field.to_csv(MANIFEST_DIR / "field.csv", index=False)
     conflicts.to_csv(MANIFEST_DIR / "field_conflicts.csv", index=False)
-    residual_pairs(field).to_csv(MANIFEST_DIR / "field_residual_pairs.csv", index=False)
+    residual_pairs(field, links).to_csv(
+        MANIFEST_DIR / "field_residual_pairs.csv", index=False
+    )
     cmap.to_csv(CLASS_MAP_PATH, index=False)
     write_review(field)
     return field

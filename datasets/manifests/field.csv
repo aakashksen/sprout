@@ -185,35 +185,35 @@ datasets/raw/plantdoc/Apple rust leaf/0605_Rust-induced_leafspot.jpg,Apple___Ced
 datasets/raw/plantdoc/Apple rust leaf/1-Severe-cedar-apple-rust-on-Ginger-Gold-1-Jul-09-1n5iktz.jpg,Apple___Cedar_apple_rust,g051392,field_train,b2f8d4a22baad4de449d9ed3e6d57009e64be313,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/185161-004-EAF28842.jpg,Apple___Cedar_apple_rust,g051393,field_test,8fee84185600f26514cfb71005bc357471ee80e9,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/2-Rust-induced-leaf-scorch-1fpa6c3.jpg,Apple___Cedar_apple_rust,g051394,field_train,aa12b92c3e463b493e3a3bebb94264bd8009ed3e,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/2011-011.jpg,Apple___Cedar_apple_rust,g051395,field_train,31dd5e1b58d2b452f2d2488d7b5467a3611b4097,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/2011-011.jpg,Apple___Cedar_apple_rust,g051395,field_test,31dd5e1b58d2b452f2d2488d7b5467a3611b4097,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/20130519cedarapplerust.jpg,Apple___Cedar_apple_rust,g051396,field_dev,fae534d3a452a88ab51568b88535668a8a1de232,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/20130610_110514.jpg,Apple___Cedar_apple_rust,g051397,field_train,89492042bacea496a4d09fc203677a6c6c2fe392,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/20130610_110525.jpg,Apple___Cedar_apple_rust,g051398,field_dev,08ecd22bf8ccfed62ea207fd43408fe4968b1400,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/20130610_110525.jpg,Apple___Cedar_apple_rust,g051398,field_train,08ecd22bf8ccfed62ea207fd43408fe4968b1400,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/20130802_111632.jpg,Apple___Cedar_apple_rust,g051399,field_test,5f1b71207f7c7767a34df703c50f4c06a12e9cc1,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/20130802_111648.jpg,Apple___Cedar_apple_rust,g051400,field_test,5225b6060973936af2dda6c417655b3ded5ff19f,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/20170524_195105-1k1eu8b.jpg,Apple___Cedar_apple_rust,g051401,field_test,ee8abbe7c87967eca1922bd498b4e926c5184747,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/20170524_195105-1k1eu8b.jpg,Apple___Cedar_apple_rust,g051401,field_dev,ee8abbe7c87967eca1922bd498b4e926c5184747,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/28f565abd40f.jpg,Apple___Cedar_apple_rust,g051402,field_train,28f565abd40fa8f8ac2cb6704d19cb325a0a83a6,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/3-Rust-induced-leaf-scorch-1emjjbl.jpg,Apple___Cedar_apple_rust,g051403,field_train,e2532ae486e657fd5e8102c7a211abd3a5cad58d,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/323148e4cb92.jpg,Apple___Cedar_apple_rust,g051404,field_test,323148e4cb92bf44e063dc75bd64c162c63b19ad,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/323148e4cb92.jpg,Apple___Cedar_apple_rust,g051404,field_dev,323148e4cb92bf44e063dc75bd64c162c63b19ad,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/4-apple-rust2_19011_matt-bertone.jpg,Apple___Cedar_apple_rust,g051405,field_train,76498ae9c35b31716bc6266562a93d727a5e5f63,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/59e6c8352c0a.jpg,Apple___Cedar_apple_rust,g051406,field_train,59e6c8352c0af0e100527e80778d5ad221f7ea98,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/601fbee78c62e32a76e768a92ee40193.jpg,Apple___Cedar_apple_rust,g051407,field_test,0543a7495bb1c5f57b685e16b64294f45090c734,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/601fbee78c62e32a76e768a92ee40193.jpg,Apple___Cedar_apple_rust,g051407,field_dev,0543a7495bb1c5f57b685e16b64294f45090c734,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/774bc3595daf.jpg,Apple___Cedar_apple_rust,g051408,field_test,774bc3595daff1f36ae5a56af065bfaee8ea7343,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/7a15fd07a499.jpg,Apple___Cedar_apple_rust,g051408,field_test,7a15fd07a499bebb5c1212447debb7152fd37766,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/9343310-small.jpg,Apple___Cedar_apple_rust,g051409,field_train,4ba67753ba40feecdad2ac80f38a573b7c9c551a,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/9686ff840683.jpg,Apple___Cedar_apple_rust,g051410,field_train,a6f8f122e5d69fc2e412e80f23c77604b3ce854f,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/99e886623c2080c22f6519b0e708c531.jpg,Apple___Cedar_apple_rust,g051411,field_dev,04d2b13c774eaaee361709008565384a3d762511,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/99e886623c2080c22f6519b0e708c531.jpg,Apple___Cedar_apple_rust,g051411,field_train,04d2b13c774eaaee361709008565384a3d762511,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/Apple_RustSpots2.jpg,Apple___Cedar_apple_rust,g051412,field_dev,42c5448011fb90bfe85622dbbbafa3adfc994b3a,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/B2750027-Cedar-apple_rust-SPL.jpg,Apple___Cedar_apple_rust,g051414,field_dev,1e7ced43db30c07101c2aec2262884f3cc9d9f1c,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/C0258424-Cedar_apple_rust_on_a_leaf-SPL.jpg,Apple___Cedar_apple_rust,g051415,field_dev,1f8d77ed11e39d5b78373c02bf07cd4038190411,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/C11.11.jpg,Apple___Cedar_apple_rust,g051416,field_test,ef2c03a989f6624743aaa76a3d8af3ff229b322d,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/CAR%2Bzestar.JPG.jpg,Apple___Cedar_apple_rust,g051417,field_train,e7965461ff2675ef652ac8230dadbf66e851d451,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/C11.11.jpg,Apple___Cedar_apple_rust,g051416,field_dev,ef2c03a989f6624743aaa76a3d8af3ff229b322d,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/CAR%2Bzestar.JPG.jpg,Apple___Cedar_apple_rust,g051417,field_test,e7965461ff2675ef652ac8230dadbf66e851d451,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/CAR4.jpg,Apple___Cedar_apple_rust,g051418,field_train,eeab6fd8be23e0c4c1b75aa9e9fba2f66272ea70,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/Cedar+Apple+rust+on+Crab+apple+leaf.jpg,Apple___Cedar_apple_rust,g051419,field_dev,66b0e88f4bdc31355045d112f946ca4a8fc00de4,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/Cedar+apple+rust.JPG.jpg,Apple___Cedar_apple_rust,g051420,field_test,5b7ee2a971a4eab8866b6bab11b197589aefcaac,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/Cedar+apple+rust.JPG.jpg,Apple___Cedar_apple_rust,g051420,field_dev,5b7ee2a971a4eab8866b6bab11b197589aefcaac,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/Cedar-Apple-Rust-aecia-on-leaf-pic-by-NC-State.jpg,Apple___Cedar_apple_rust,g051421,field_dev,84fd36319d1015d4ea60c4b937bcc36f17bad0de,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/CedarApple_Rust168.jpg,Apple___Cedar_apple_rust,g051422,field_test,3208f35c3b7084ed6354d720c7fae7214fff4bfb,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/Cedar_apple_rust_on_crab_apple_leaf_showing_underside_cup.jpg,Apple___Cedar_apple_rust,g051423,field_test,92cc86fbf803ff2acc905b0fc980d8aaa10ecc28,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/CedarApple_Rust168.jpg,Apple___Cedar_apple_rust,g051422,field_dev,3208f35c3b7084ed6354d720c7fae7214fff4bfb,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/Cedar_apple_rust_on_crab_apple_leaf_showing_underside_cup.jpg,Apple___Cedar_apple_rust,g051423,field_dev,92cc86fbf803ff2acc905b0fc980d8aaa10ecc28,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/Cedar_apple_rust_on_crab_apple_leaf_upper_surface.JPG.jpg,Apple___Cedar_apple_rust,g051424,field_test,4147943c1b60b57a68b62561a047b0eb054b8567,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/DAxpYpoWAAQxi1f.jpg,Apple___Cedar_apple_rust,g051425,field_train,1da49ae709a0f2a7123e3226e740d6d1829a9a98,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/DIsease-Pest-Management.jpg,Apple___Cedar_apple_rust,g051426,field_test,225e72595e6c655c4ed33406b84dd311378d1533,plantdoc
@@ -222,50 +222,50 @@ datasets/raw/plantdoc/Apple rust leaf/Figure-1.-Typical-cedar-apple-rust-lesions
 datasets/raw/plantdoc/Apple rust leaf/LIFH3.jpg,Apple___Cedar_apple_rust,g051429,field_train,853b60027805b9630b891a4ba5be34061e6cdb02,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/P1020430.jpg,Apple___Cedar_apple_rust,g051430,field_train,f7fcb520cbabc848da15ce0ea9f0967d89994d9c,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/P7290482.JPG.jpg,Apple___Cedar_apple_rust,g051431,field_train,cfd059080357b9f70db3a7fc657f94b76bae04c7,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/PLPATH-FRU-02-cedar-apple-rust-figure-1.jpg,Apple___Cedar_apple_rust,g051432,field_dev,ab4a8097d251c3a0502512cbd7bf879a7a852d3b,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/PLPATH-FRU-02-cedar-apple-rust-figure-1.jpg,Apple___Cedar_apple_rust,g051432,field_train,ab4a8097d251c3a0502512cbd7bf879a7a852d3b,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/Rust%20on%20Brandywine_ADJ.jpg,Apple___Cedar_apple_rust,g051433,field_train,c30283e273b421323938019bcd56313e3d54b54b,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/Rust--CA.jpg,Apple___Cedar_apple_rust,g051434,field_test,2729cb66f7198910f453f69c613a13e55a57a56c,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/a82e389f8b5da4758a747c32ef8af6f9--rust-apples.jpg,Apple___Cedar_apple_rust,g051435,field_train,b90190d126ab478f017f3c9be1435be7b036348d,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/aecia-on-apple-e1368285975597.jpeg.jpg,Apple___Cedar_apple_rust,g051436,field_dev,3d64ae7659834cf7a9e7173c0f5477de01fdd800,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/apple+rust+001.jpg,Apple___Cedar_apple_rust,g051437,field_dev,207e823275ff1e77f7d4b0fcf83175c6549b1c04,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/Rust--CA.jpg,Apple___Cedar_apple_rust,g051434,field_train,2729cb66f7198910f453f69c613a13e55a57a56c,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/a82e389f8b5da4758a747c32ef8af6f9--rust-apples.jpg,Apple___Cedar_apple_rust,g051435,field_test,b90190d126ab478f017f3c9be1435be7b036348d,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/aecia-on-apple-e1368285975597.jpeg.jpg,Apple___Cedar_apple_rust,g051436,field_test,3d64ae7659834cf7a9e7173c0f5477de01fdd800,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/apple+rust+001.jpg,Apple___Cedar_apple_rust,g051437,field_train,207e823275ff1e77f7d4b0fcf83175c6549b1c04,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/apple-rust-disease_10_845384767.jpg,Apple___Cedar_apple_rust,g051438,field_dev,c02ab98fe9790a9a39ff83515ffbf3e3914a0bfe,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/apple-rust.jpg,Apple___Cedar_apple_rust,g051439,field_train,1c67c359c3c19afa9548a9b5cad387224f3b582a,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/apple_F14b.jpg,Apple___Cedar_apple_rust,g051440,field_test,e5ebcf6bb3ac1388688205b5574e923039e7b4af,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/apple_leaf.JPG.jpg,Apple___Cedar_apple_rust,g051441,field_test,a90beeaab9dd84e8f5b485e27a342b77b85bed28,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/applerust-500x383.jpg,Apple___Cedar_apple_rust,g051442,field_dev,806bfe64687c767f76dbdec3b810a7380f61c982,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/applerust-500x383.jpg,Apple___Cedar_apple_rust,g051442,field_train,806bfe64687c767f76dbdec3b810a7380f61c982,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/apples_black-rot_01_zoom.jpg,Apple___Cedar_apple_rust,g051443,field_test,81bfb9af90cd4ae31400dbde1f6ff97b453be342,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/apples_rusts+apple-scab.jpg,Apple___Cedar_apple_rust,g051444,field_train,4905223acf54ec4e4595e287d103b3efc7e769ea,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/apples_rusts+apple-scab.jpg,Apple___Cedar_apple_rust,g051444,field_test,4905223acf54ec4e4595e287d103b3efc7e769ea,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/apples_rusts+frogs-eye.jpg,Apple___Cedar_apple_rust,g051445,field_test,73e19af26f03d88c0234a8c6e0b8340b833dcd4d,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/apples_rusts-cedar-apple_01_zoom.jpg,Apple___Cedar_apple_rust,g051446,field_test,75d86d3cf1f67d82489573158790f4cb49f52345,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/apples_rusts-cedar-apple_01_zoom.jpg,Apple___Cedar_apple_rust,g051446,field_dev,75d86d3cf1f67d82489573158790f4cb49f52345,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/buckinghamshire-speen-garden-cedar-apple-rust-on-apple-underside-of-F5D3RD.jpg,Apple___Cedar_apple_rust,g051447,field_test,44f9abd7ea90d716cf23b221a8f71d51a02c140f,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/c259352b8e92.jpg,Apple___Cedar_apple_rust,g051448,field_dev,593c1b9c0fe66e415f82d77c82021c107b3b4dc1,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/c259352b8e92.jpg,Apple___Cedar_apple_rust,g051448,field_train,593c1b9c0fe66e415f82d77c82021c107b3b4dc1,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/car-apple1.jpg,Apple___Cedar_apple_rust,g051449,field_train,1a42cbf5609e4ee50a44ac1e04c647c22aad7e0e,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/car-apple9.jpg,Apple___Cedar_apple_rust,g051450,field_test,a7c06aed45afa28fa6709e9cd44c6f56dbc1810e,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/car.jpg,Apple___Cedar_apple_rust,g051451,field_train,47bc0c9ff1fa7e776ee852b160bbb380a582a078,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/car1.jpg,Apple___Cedar_apple_rust,g051452,field_dev,fc90999cf3bc0e35b0bab620f47b554f8b8632d7,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/car1.jpg,Apple___Cedar_apple_rust,g051452,field_train,fc90999cf3bc0e35b0bab620f47b554f8b8632d7,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/car2.jpg,Apple___Cedar_apple_rust,g051453,field_dev,82a31b07471b5daa2df3d5d686597c95c988d6fd,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/cd6bfd6bfbcac781bd496bf13845fb0f.jpg,Apple___Cedar_apple_rust,g051454,field_test,4b4e788fafdb98e504dc5bd4932281c0cd4480b9,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/cd6bfd6bfbcac781bd496bf13845fb0f.jpg,Apple___Cedar_apple_rust,g051454,field_dev,4b4e788fafdb98e504dc5bd4932281c0cd4480b9,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/cedapp04_lg.jpg,Apple___Cedar_apple_rust,g051455,field_train,6b0ea7e441346061b369a40afeed68e1a1e552bf,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/cedar%20apple%20rust%20lower%20leaf%20haw%20S%202%20ne%20OH%20RA%209-2-16.jpg,Apple___Cedar_apple_rust,g051456,field_train,a3654fbcb94a76c5a3dfb9dc1d85d3b8508a6549,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/cedar%20apple%20rust%20upper%20leaf%20surface%20S%20ne%20OH%20RA%209-2-16.jpg,Apple___Cedar_apple_rust,g051457,field_train,c0e9e09392c280a07ceb2c7b72f2d7dcdcd1ba1e,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/cedar-apple-rest-225x300.jpg,Apple___Cedar_apple_rust,g051458,field_train,30b5935c9284c7fc6b81c4e6b77170a44248c3c5,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/cedar-apple-rest-225x300.jpg,Apple___Cedar_apple_rust,g051458,field_test,30b5935c9284c7fc6b81c4e6b77170a44248c3c5,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/cedar-apple-rust.jpg,Apple___Cedar_apple_rust,g051459,field_train,7087b4e257042970a7bae4913aa8cf9cb063d5d5,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/cedar-apple-rust_fig-1.jpg,Apple___Cedar_apple_rust,g051460,field_test,1a96b8d8e5913a1bb9854824f3c7b65fc0143b37,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/cedar-apple-rust_fig-2.jpg,Apple___Cedar_apple_rust,g051461,field_train,eacf44da97563b69e6bfa99265c2a17301f80c4c,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/cedar-apple-rust_fig-3.jpg,Apple___Cedar_apple_rust,g051462,field_train,6722261f269aa718aa08f7cf9f1e1e1163e10f59,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/cedar_apple_rust_leaf.jpg,Apple___Cedar_apple_rust,g051463,field_train,b040b9875029f2d7ecd1fb4c67b35ea2fe86fa9f,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/cedar-apple-rust_fig-2.jpg,Apple___Cedar_apple_rust,g051461,field_test,eacf44da97563b69e6bfa99265c2a17301f80c4c,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/cedar-apple-rust_fig-3.jpg,Apple___Cedar_apple_rust,g051462,field_dev,6722261f269aa718aa08f7cf9f1e1e1163e10f59,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/cedar_apple_rust_leaf.jpg,Apple___Cedar_apple_rust,g051463,field_test,b040b9875029f2d7ecd1fb4c67b35ea2fe86fa9f,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/cedar_apple_rust_on_jonagold_2.jpg,Apple___Cedar_apple_rust,g051464,field_train,f0c2832e010a32723bbcdb0c3ac21765c8ff60e7,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/cedar_apple_rust_on_jonagold_3.jpg,Apple___Cedar_apple_rust,g051465,field_train,33aa1f16dceb8b43c4ba15c8eadaa2a2228990a4,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/crab-apple-tree-leaves.jpg,Apple___Cedar_apple_rust,g051466,field_train,a385843a2168e62ef0440aa1ee7f1786bc6b806d,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/f605e77a6d9f.jpg,Apple___Cedar_apple_rust,g051467,field_train,f605e77a6d9f52e1243cbbad02028fe13e7f69a6,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/f605e77a6d9f.jpg,Apple___Cedar_apple_rust,g051467,field_dev,f605e77a6d9f52e1243cbbad02028fe13e7f69a6,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/frog-eye-leaf-spot-on-crabapple-grabowski.jpg,Apple___Cedar_apple_rust,g051468,field_train,c24a0d040fb1436af0e84ee17335a11541e97af7,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/image1_14.jpeg.jpg,Apple___Cedar_apple_rust,g051469,field_train,9e940653c3f9f69241586ec4d36b196b18010eb3,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/nPP7P.jpg,Apple___Cedar_apple_rust,g051470,field_dev,8fcacc0505d3837b6b15b4c6f2e8ef1e9eda055f,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/nPP7P.jpg,Apple___Cedar_apple_rust,g051470,field_train,8fcacc0505d3837b6b15b4c6f2e8ef1e9eda055f,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/pix053.jpg,Apple___Cedar_apple_rust,g051471,field_train,7d5ef4bad8e38d16d647006f8fd1748c76d0cefe,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/quince5_600px.jpg,Apple___Cedar_apple_rust,g051472,field_train,fcb629a7a0e7fb9a81d799c2ab9396ad792f5662,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/quince5_600px.jpg,Apple___Cedar_apple_rust,g051472,field_test,fcb629a7a0e7fb9a81d799c2ab9396ad792f5662,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/rust-0450.jpg,Apple___Cedar_apple_rust,g051473,field_train,8b3b357655b504d274f95886b41b181f13a32053,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/thumb-20130802_111648.jpg,Apple___Cedar_apple_rust,g051400,field_test,f09d356a3abc41e4ebf3a9fe47fef1bf7f424213,plantdoc
-datasets/raw/plantdoc/Apple rust leaf/thumb-20130802_112143.jpg,Apple___Cedar_apple_rust,g051474,field_test,61868eb2df13025385de2ef8d8f2d4a18d661d6b,plantdoc
+datasets/raw/plantdoc/Apple rust leaf/thumb-20130802_112143.jpg,Apple___Cedar_apple_rust,g051474,field_dev,61868eb2df13025385de2ef8d8f2d4a18d661d6b,plantdoc
 datasets/raw/plantdoc/Apple rust leaf/tree-problems-cedar-apple-rust-apple-leaf-475x350.jpg,Apple___Cedar_apple_rust,g051475,field_train,7785973d6444b4a158f5a196994ba9d2274d4598,plantdoc
 datasets/raw/plantdoc/Bell_pepper leaf spot/0.jpg,"Pepper,_bell___Bacterial_spot",g051476,field_test,02d233ec03b2e71cd947e008304d1c586bbea89f,plantdoc
 datasets/raw/plantdoc/Bell_pepper leaf spot/00.jpg,"Pepper,_bell___Bacterial_spot",g051477,field_train,461495135cd341669196930812409110278b77e8,plantdoc
@@ -574,7 +574,6 @@ datasets/raw/plantdoc/Corn Gray leaf spot/1192.jpg,Corn_(maize)___Cercospora_lea
 datasets/raw/plantdoc/Corn Gray leaf spot/1193.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,g051777,field_train,c33088c373db4b0cd90b4a1e14d910d6b63dd100,plantdoc
 datasets/raw/plantdoc/Corn Gray leaf spot/1355.51grayleafspot.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,g051778,field_train,93e070835e98ea961243eed4a37d7e0eab51fe0a,plantdoc
 datasets/raw/plantdoc/Corn Gray leaf spot/18largegls0732_copy-143B1EC97E96BA58322.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,g051779,field_dev,d26bee7f6a19c24989c49042f8de902e291b67fe,plantdoc
-datasets/raw/plantdoc/Corn Gray leaf spot/2013Corn_GrayLeafSpot_0815_0003.JPG.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,g051780,field_dev,7bbe4f93d74d7eff86b9c571845f96a7df359325,plantdoc
 datasets/raw/plantdoc/Corn Gray leaf spot/2013Corn_GrayLeaf_0820_0003.JPG.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,g051781,field_train,2257b3890186e1ac0d5ecad01b7e31fa13c7d50b,plantdoc
 datasets/raw/plantdoc/Corn Gray leaf spot/2015Corn_Hail_Taylor_PH%2B%25282%2529.JPG.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,g051783,field_test,eb68fdb9e6217c509f704e09a149b48c76069b1b,plantdoc
 datasets/raw/plantdoc/Corn Gray leaf spot/22-broders-CR-Gray-leaf-spot-corn.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,g051784,field_test,00609dd37e918ed4ede9c909fc82a8139ed63fe7,plantdoc
@@ -652,7 +651,6 @@ datasets/raw/plantdoc/Corn leaf blight/1200px-Northern_corn_leaf_blight.JPG.jpg,
 datasets/raw/plantdoc/Corn leaf blight/160314_web.jpg,Corn_(maize)___Northern_Leaf_Blight,g051865,field_train,c848860a4c8921bea10ae9de0d4820bf4e9a5a1a,plantdoc
 datasets/raw/plantdoc/Corn leaf blight/186116-325x209-Northern-Corn-Leaf-Blight-Chilvers.jpg,Corn_(maize)___Northern_Leaf_Blight,g051866,field_train,25de8b5db9241b4133bc191bb7b51168d9e89c26,plantdoc
 datasets/raw/plantdoc/Corn leaf blight/2-3%20Gray%20leaf%20spot%20BRUCE.jpg,Corn_(maize)___Northern_Leaf_Blight,g051867,field_dev,09e6739238d8dfe84293bd04569fbe27bb3439d1,plantdoc
-datasets/raw/plantdoc/Corn leaf blight/2013Corn_GrayLeafSpot_0815_0003.JPG.jpg,Corn_(maize)___Northern_Leaf_Blight,g051868,field_train,0e5b57509d7cfe8d1283af5dd7ed38925be72e2f,plantdoc
 datasets/raw/plantdoc/Corn leaf blight/2014-07-23-corngosswilt.jpg,Corn_(maize)___Northern_Leaf_Blight,g051869,field_test,7d31cb32ff21cc1babbf7eb6101ad8ebda9988e5,plantdoc
 datasets/raw/plantdoc/Corn leaf blight/20140826_131630.jpg,Corn_(maize)___Northern_Leaf_Blight,g051870,field_dev,caa2e8ad3ffd7d02dbde0f59a38c33551dd6721f,plantdoc
 datasets/raw/plantdoc/Corn leaf blight/20160812__13ST_xanthomonas~1.jpg,Corn_(maize)___Northern_Leaf_Blight,g051871,field_dev,5e1bd18da498c4c5316a9c76ef60e9299bcae5b9,plantdoc
@@ -927,8 +925,8 @@ datasets/raw/plantdoc/Corn rust leaf/sweetcorn_Rust-3_zoom.jpg,Corn_(maize)___Co
 datasets/raw/plantdoc/Corn rust leaf/web1_cusoutherncornrust.jpg,Corn_(maize)___Common_rust_,g052136,field_dev,e6669ee4a6e9208825321a5928748fa709d5d08c,plantdoc
 datasets/raw/plantdoc/Peach leaf/0052.jpg,Peach___healthy,g052137,field_train,37de45809c15c65fb55e888f0b0e05d116755d70,plantdoc
 datasets/raw/plantdoc/Peach leaf/00pe.jpg,Peach___healthy,g052138,field_test,f7fd84c109a99335c18d5bd3292b00be162fa4c1,plantdoc
-datasets/raw/plantdoc/Peach leaf/020.JPG.jpg,Peach___healthy,g052139,field_test,4359232df222fa6e446eef2d176c829d42cc0823,plantdoc
-datasets/raw/plantdoc/Peach leaf/0pe.jpg,Peach___healthy,g052140,field_dev,c3b42d73b30f7bdd4dfcc452bf9d43b83b1c9bd8,plantdoc
+datasets/raw/plantdoc/Peach leaf/020.JPG.jpg,Peach___healthy,g052139,field_train,4359232df222fa6e446eef2d176c829d42cc0823,plantdoc
+datasets/raw/plantdoc/Peach leaf/0pe.jpg,Peach___healthy,g052140,field_test,c3b42d73b30f7bdd4dfcc452bf9d43b83b1c9bd8,plantdoc
 datasets/raw/plantdoc/Peach leaf/0peach.jpg,Peach___healthy,g052141,field_dev,f80f23b766782dfc77ba86adcddbdb6f5350d789,plantdoc
 datasets/raw/plantdoc/Peach leaf/1200px-Illustration_Prunus_persica0.jpg,Peach___healthy,g052142,field_test,e715e9196e7690e3a680e93ec53274bbef590b42,plantdoc
 datasets/raw/plantdoc/Peach leaf/1343.jpg,Peach___healthy,g052143,field_dev,632ef54e7252892e4a16d3dee571c47624f557da,plantdoc
@@ -948,7 +946,7 @@ datasets/raw/plantdoc/Peach leaf/6uo5q.jpg,Peach___healthy,g052156,field_train,d
 datasets/raw/plantdoc/Peach leaf/7190f27ead55c0f6e3ff8b982972810a5446a9713a49d_1260x1260.jpg,Peach___healthy,g052157,field_train,175a1f78412f8d8f48ae6c579845af740e3c8473,plantdoc
 datasets/raw/plantdoc/Peach leaf/72dfc8f920d1.jpg,Peach___healthy,g052158,field_dev,72dfc8f920d18ed11b691f88ab0757692be8a780,plantdoc
 datasets/raw/plantdoc/Peach leaf/78517936.jpg,Peach___healthy,g052159,field_dev,488fbfe15325bcbe6d11a4d5704eb68124f72d8d,plantdoc
-datasets/raw/plantdoc/Peach leaf/79a24e562c768cd993776c518b238eed--storyboard-toe.jpg,Peach___healthy,g052160,field_dev,8f66791dc7ad02098dea1369645bfe709e83fb42,plantdoc
+datasets/raw/plantdoc/Peach leaf/79a24e562c768cd993776c518b238eed--storyboard-toe.jpg,Peach___healthy,g052160,field_test,8f66791dc7ad02098dea1369645bfe709e83fb42,plantdoc
 datasets/raw/plantdoc/Peach leaf/8262fe73c6d3.jpg,Peach___healthy,g052161,field_train,8262fe73c6d32a2239e67b0cc28538dc1a44b4ee,plantdoc
 datasets/raw/plantdoc/Peach leaf/DSC02329.jpg,Peach___healthy,g052162,field_test,c416ffec9e759dcde406b30b442438f234a32a35,plantdoc
 datasets/raw/plantdoc/Peach leaf/DSCN1913.JPG.jpg,Peach___healthy,g052163,field_test,38c05fbe3dde0068d3157cbc225515518bcf745d,plantdoc
@@ -985,7 +983,7 @@ datasets/raw/plantdoc/Peach leaf/peach-leaf-10223898.jpg,Peach___healthy,g052193
 datasets/raw/plantdoc/Peach leaf/peach-leaf-11810082.jpg,Peach___healthy,g052194,field_train,caa9f8077d5ffb5a9142ceb8fffb6ee36a994767,plantdoc
 datasets/raw/plantdoc/Peach leaf/peach-leaf-16690421.jpg,Peach___healthy,g052195,field_train,e0c18e5fdf0eaa6ec16526a34c8f287d2ee2cb74,plantdoc
 datasets/raw/plantdoc/Peach leaf/peach-leaf-1677674.jpg,Peach___healthy,g052196,field_test,86d58ff518b875b6e0b8dd511a94a14f320b0a4b,plantdoc
-datasets/raw/plantdoc/Peach leaf/peach-leaf-isolated-white-background-39426456.jpg,Peach___healthy,g052197,field_train,2d3b1331683f7b822bf5eddc8a49de53ba3f9040,plantdoc
+datasets/raw/plantdoc/Peach leaf/peach-leaf-isolated-white-background-39426456.jpg,Peach___healthy,g052197,field_dev,2d3b1331683f7b822bf5eddc8a49de53ba3f9040,plantdoc
 datasets/raw/plantdoc/Peach leaf/peach-leaf-isolated-white-background-42295151.jpg,Peach___healthy,g052198,field_dev,1c0df67759feb4a11be39c9fa5e92349dd9b5e4f,plantdoc
 datasets/raw/plantdoc/Peach leaf/peach-leaf-isolated-white-background-42295196.jpg,Peach___healthy,g052199,field_test,44567b0fbeaaae3c011072c6572681a40e0501ed,plantdoc
 datasets/raw/plantdoc/Peach leaf/peach-leaf-isolated-white-background-42295220.jpg,Peach___healthy,g052200,field_dev,245914fedabef74fb8e05a4fb3ef0f67e1383fa6,plantdoc
@@ -1009,23 +1007,23 @@ datasets/raw/plantdoc/Peach leaf/peach.jpg,Peach___healthy,g052217,field_train,b
 datasets/raw/plantdoc/Peach leaf/peach_tree_20100523.jpg,Peach___healthy,g052218,field_train,c139a57fc634484d96c396cdca3b8fa720f9978d,plantdoc
 datasets/raw/plantdoc/Peach leaf/peaches-growing-in-tree.jpg,Peach___healthy,g052219,field_train,3416616a81c784448640c99981a382819487ad67,plantdoc
 datasets/raw/plantdoc/Peach leaf/peaches-w-leaves.jpg,Peach___healthy,g052220,field_train,bf1d9770d3d6a3136430a7e5d38ac2950a60a19c,plantdoc
-datasets/raw/plantdoc/Peach leaf/product_Peach-leaf.jpg,Peach___healthy,g052221,field_test,9a9810578ecf31416d5d317b23d87b322a5c9086,plantdoc
-datasets/raw/plantdoc/Peach leaf/ripe-peach-fresh-red-tree-green-leaves-57508021.jpg,Peach___healthy,g052222,field_train,5ffaa219a4dfde5e555192c221598ee8bcd2711e,plantdoc
+datasets/raw/plantdoc/Peach leaf/product_Peach-leaf.jpg,Peach___healthy,g052221,field_train,9a9810578ecf31416d5d317b23d87b322a5c9086,plantdoc
+datasets/raw/plantdoc/Peach leaf/ripe-peach-fresh-red-tree-green-leaves-57508021.jpg,Peach___healthy,g052222,field_dev,5ffaa219a4dfde5e555192c221598ee8bcd2711e,plantdoc
 datasets/raw/plantdoc/Peach leaf/rose_tree_220430.jpg,Peach___healthy,g052223,field_train,4ac8ab11c1a8699362a71d7ba21e0a2c8583ac54,plantdoc
 datasets/raw/plantdoc/Peach leaf/stock-photo-peach-fruit-isolated-on-white-332799767.jpg,Peach___healthy,g052224,field_test,165c42e845ea2c986542386222ebd76d35c32486,plantdoc
 datasets/raw/plantdoc/Peach leaf/stock-photo-peach-fruits-with-leaf-isolated-on-white-background-639972919.jpg,Peach___healthy,g052225,field_train,78ae0dabc7d3b1c4ae1244ba123217c54f056eed,plantdoc
-datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-collection-isolated-on-white-236633248.jpg,Peach___healthy,g052226,field_train,bba4cdd2a8738ab77d1b24bd019a24fad6d418bb,plantdoc
-datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-isolated-363604259.jpg,Peach___healthy,g052227,field_dev,7855b2d46f293318a816918531dd1ed3b1ebbbf3,plantdoc
-datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-isolated-370117730.jpg,Peach___healthy,g052228,field_train,a0c11a5b8b9aa372abf0bd37d988310d9b1e2fdb,plantdoc
-datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-isolated-on-white-background-195325289.jpg,Peach___healthy,g052229,field_dev,2e0d661ae60c9d19ebdc8d3597922baad1418e09,plantdoc
-datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-isolated-on-white-background-198744794.jpg,Peach___healthy,g052230,field_train,0a854af3e45123e6b59c85af884e2b6b4dac87d6,plantdoc
+datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-collection-isolated-on-white-236633248.jpg,Peach___healthy,g052226,field_dev,bba4cdd2a8738ab77d1b24bd019a24fad6d418bb,plantdoc
+datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-isolated-363604259.jpg,Peach___healthy,g052227,field_train,7855b2d46f293318a816918531dd1ed3b1ebbbf3,plantdoc
+datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-isolated-370117730.jpg,Peach___healthy,g052228,field_dev,a0c11a5b8b9aa372abf0bd37d988310d9b1e2fdb,plantdoc
+datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-isolated-on-white-background-195325289.jpg,Peach___healthy,g052229,field_train,2e0d661ae60c9d19ebdc8d3597922baad1418e09,plantdoc
+datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-isolated-on-white-background-198744794.jpg,Peach___healthy,g052230,field_dev,0a854af3e45123e6b59c85af884e2b6b4dac87d6,plantdoc
 datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-isolated-on-white-background-207823156.jpg,Peach___healthy,g052231,field_dev,f430a83697f4fa1f51d0b499e2f3d53fd8292a94,plantdoc
-datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-isolated-on-white-background-254975221.jpg,Peach___healthy,g052232,field_dev,9f5fa495946dca4d381a029c6234e3a25e5809db,plantdoc
+datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-isolated-on-white-background-254975221.jpg,Peach___healthy,g052232,field_train,9f5fa495946dca4d381a029c6234e3a25e5809db,plantdoc
 datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-isolated-on-white-background-281097503.jpg,Peach___healthy,g052233,field_train,6a7c1fdab4808b6ed5dfab1b3a4e2097b456ab82,plantdoc
-datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaves-isolated-203326555.jpg,Peach___healthy,g052234,field_dev,186658dfa8555732c6089ef869a32b02944f09d0,plantdoc
-datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaves-isolated-on-white-background-298277570.jpg,Peach___healthy,g052235,field_dev,5ba8a8a24bfcffcb3b08f3fae471b3d69224dd68,plantdoc
-datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaves-isolated-on-white-background-302224460.jpg,Peach___healthy,g052236,field_train,f38c1f9e37f35bb8cffa7d3ed73fa323e5b5a7eb,plantdoc
-datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaves-isolated-on-white-background-529501441.jpg,Peach___healthy,g052237,field_train,b22d1ab62cd860a6d7132cce01d35f389501843a,plantdoc
+datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaves-isolated-203326555.jpg,Peach___healthy,g052201,field_train,186658dfa8555732c6089ef869a32b02944f09d0,plantdoc
+datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaves-isolated-on-white-background-298277570.jpg,Peach___healthy,g052235,field_train,5ba8a8a24bfcffcb3b08f3fae471b3d69224dd68,plantdoc
+datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaves-isolated-on-white-background-302224460.jpg,Peach___healthy,g052236,field_dev,f38c1f9e37f35bb8cffa7d3ed73fa323e5b5a7eb,plantdoc
+datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaves-isolated-on-white-background-529501441.jpg,Peach___healthy,g052237,field_dev,b22d1ab62cd860a6d7132cce01d35f389501843a,plantdoc
 datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaves-isolated-on-white-background-618456884.jpg,Peach___healthy,g052238,field_train,fc7b34599ab36748f867d8620263b40664608c2f,plantdoc
 datasets/raw/plantdoc/Peach leaf/stock-photo-peach-wet-fruit-with-leaf-isolated-on-white-248733745.jpg,Peach___healthy,g052239,field_train,28f10e1a334746345f13cbf99df4a1c051795e0d,plantdoc
 datasets/raw/plantdoc/Peach leaf/stock-photo-peach-with-leaf-699537772.jpg,Peach___healthy,g052240,field_test,03db074d51ad86e927430e433338b2f0f11b9ca3,plantdoc
@@ -1036,8 +1034,8 @@ datasets/raw/plantdoc/Peach leaf/stock-photo-single-peach-with-leaves-on-a-white
 datasets/raw/plantdoc/Peach leaf/stock-photo-two-peach-leaves-isolated-on-white-311533217.jpg,Peach___healthy,g052245,field_dev,b676a95f02261aec031bb47fcca8e3dbfaba5f97,plantdoc
 datasets/raw/plantdoc/Peach leaf/stock-photo-two-sides-of-peach-leaf-isolate-on-white-17407162.jpg,Peach___healthy,g052246,field_train,3decd2fd7915940376000fc9d3157777d51e5809,plantdoc
 datasets/raw/plantdoc/Peach leaf/two-peach-leaves-isolated-on-white-picture-id519433636.jpg,Peach___healthy,g052245,field_dev,1e78cdc0a37476c7046325ba13f5c968310e939e,plantdoc
-datasets/raw/plantdoc/Potato leaf early blight/0042241.jpg,Potato___Early_blight,g052248,field_dev,9aa309757bdb8b61263c4e0325f23d6b285197aa,plantdoc
-datasets/raw/plantdoc/Potato leaf early blight/0061.jpg,Potato___Early_blight,g052249,field_dev,8e87bedbd5ebb26e86943e5f11d7bdeadd26dfbb,plantdoc
+datasets/raw/plantdoc/Potato leaf early blight/0042241.jpg,Potato___Early_blight,g052248,field_test,9aa309757bdb8b61263c4e0325f23d6b285197aa,plantdoc
+datasets/raw/plantdoc/Potato leaf early blight/0061.jpg,Potato___Early_blight,g052249,field_test,8e87bedbd5ebb26e86943e5f11d7bdeadd26dfbb,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/1024_x_576_-_alternaria_early_infection_symptoms_spreading.jpg,Potato___Early_blight,g052250,field_dev,7dafe51b4e1609d1f0907ef1aa44c6a3cc18a3be,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/1573852-Early-Blight-e1515624612559.jpg,Potato___Early_blight,g052253,field_train,990dbdffb96bcbd71e9ba9fa351cd10ecdb3c9fe,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/15cbb0cd5a3a.jpg,Potato___Early_blight,g052254,field_train,15cbb0cd5a3a69b6cba6b2ecb0debf0ecd5dc4fc,plantdoc
@@ -1047,7 +1045,7 @@ datasets/raw/plantdoc/Potato leaf early blight/26f2ab3ee8d9.jpg,Potato___Early_b
 datasets/raw/plantdoc/Potato leaf early blight/27013702151_95bd415ba9_o.jpg,Potato___Early_blight,g052262,field_train,e593612a1db64799d201baf23b72832f00edc990,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/2D1A9552.jpg,Potato___Early_blight,g052263,field_test,ccc5d9d7da1295385b453f67dea3e549a539d0b5,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/3023.jpg,Potato___Early_blight,g052265,field_train,fa62ca91e2abf3493caa59ca5d35181c4c4095c0,plantdoc
-datasets/raw/plantdoc/Potato leaf early blight/3785483636_d888419c98_o.jpg,Potato___Early_blight,g052267,field_test,20c40d6fbfb95bfbff25567fce679d1db3291323,plantdoc
+datasets/raw/plantdoc/Potato leaf early blight/3785483636_d888419c98_o.jpg,Potato___Early_blight,g052267,field_train,20c40d6fbfb95bfbff25567fce679d1db3291323,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/5dab1aa0c001.jpg,Potato___Early_blight,g052272,field_train,5dab1aa0c001d943624e3feda354d8b8a75143ca,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/80109626.jpg,Potato___Early_blight,g052273,field_test,91bc9453acb7cd2cb1f8e5d0f5e52c70cf234769,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/87A_Pot_Early.jpg,Potato___Early_blight,g052274,field_train,a9d9ff49774c7b9fb4481770bac496dca263556a,plantdoc
@@ -1071,7 +1069,7 @@ datasets/raw/plantdoc/Potato leaf early blight/Potato-blight-on-leaf.jpg,Potato_
 datasets/raw/plantdoc/Potato leaf early blight/Potato-earlyblight2.jpg,Potato___Early_blight,g052297,field_train,c9043943b6e8c0c5257f8dd586eba4b35f6324cf,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/Potato_Blight_Leaf.jpg,Potato___Early_blight,g052298,field_train,7695cf91a34b9881d40cdbee18c9a897c03520d5,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/Potato_Early_Blight_%26_Late_Blight.jpg,Potato___Early_blight,g052299,field_test,97cfc5b11aabff6a8b5c759ccf9e1819a4e5b1ec,plantdoc
-datasets/raw/plantdoc/Potato leaf early blight/a_solani.jpg,Potato___Early_blight,g052300,field_train,c08e815b0ef0b49076903d16447994022e02b499,plantdoc
+datasets/raw/plantdoc/Potato leaf early blight/a_solani.jpg,Potato___Early_blight,g052300,field_dev,c08e815b0ef0b49076903d16447994022e02b499,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/alternaria%20%2824%29.JPG.jpg,Potato___Early_blight,g052301,field_train,9660371ddc1100e75e2348948e49cb0a45655387,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/b711e5e6ec02.jpg,Potato___Early_blight,g052302,field_test,b711e5e6ec029f0b71cb62dcc0c860356b996ed3,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/blight-2x.jpg,Potato___Early_blight,g052305,field_dev,f7e424b4415ac22dbf03c3891bb188e2a264395b,plantdoc
@@ -1087,7 +1085,6 @@ datasets/raw/plantdoc/Potato leaf early blight/early-blight-alternaria-alternata
 datasets/raw/plantdoc/Potato leaf early blight/early-blight-cmyk-opt.jpeg.jpg,Potato___Early_blight,g052316,field_dev,4e38b4f5e3dd47575c3e4c39d0b486abdd973b36,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/early-blight-courtesy-Melanson-MS-State-U-Ext-Bugwood.jpg,Potato___Early_blight,g052317,field_dev,e54f3862d91b612fcda253c333d6495b4f8caa10,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/early-blight-or-target-spot-alternaria-solani-lesions-on-a-tomato-AXK6AY.jpg,Potato___Early_blight,g052318,field_test,ecd06369eb922a3dae4ea227f46dcea1f6f5109f,plantdoc
-datasets/raw/plantdoc/Potato leaf early blight/early-blight-or-target-spot-alternaria-solani-lesions-on-a-tomato-by9j8r.jpg,Potato___Early_blight,g052319,field_train,ebb742d253e58f17e911e2b66cbec8308ce1fea5,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/early-blight-or-targfet-spot-alternaria-solani-lesions-on-a-tomato-ACG8W6.jpg,Potato___Early_blight,g052320,field_train,5dbc5cad67750cf476c8de155ec72395e88e2404,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/early-blight-septoria-ls-fig-1.jpg,Potato___Early_blight,g052322,field_dev,761ae3e6a65cbba83d3b3417fe4a8f24082ee450,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/earlyblight21.jpg,Potato___Early_blight,g052324,field_train,059b1ef58e7c692cc8fe7386e301664f82ca7b6e,plantdoc
@@ -1101,120 +1098,120 @@ datasets/raw/plantdoc/Potato leaf early blight/home-design.jpg,Potato___Early_bl
 datasets/raw/plantdoc/Potato leaf early blight/maxresdefault.jpg,Potato___Early_blight,g052334,field_dev,75a115f74aee4add03da6048ae2ac8db25fb70ba,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/potato-blight-leaf.jpg,Potato___Early_blight,g052336,field_dev,cb620812a84d31874a9b8992181930fc0fe5bf42,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/potato-blight-phytophora-infestans-close-up-of-infected-leaf-showing-a60hxn.jpg,Potato___Early_blight,g052337,field_test,090a32019fa1e5a9d97fc30ef70fe645fe68f44a,plantdoc
-datasets/raw/plantdoc/Potato leaf early blight/potato-blight-phytophthora-infestans-close-up-of-upper-surface-of-BMMRXC.jpg,Potato___Early_blight,g052338,field_train,15e045f76b1e5dcd4cbfcd0d2a0a0879b6aa3b11,plantdoc
+datasets/raw/plantdoc/Potato leaf early blight/potato-blight-phytophthora-infestans-close-up-of-upper-surface-of-BMMRXC.jpg,Potato___Early_blight,g052338,field_dev,15e045f76b1e5dcd4cbfcd0d2a0a0879b6aa3b11,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/potato-blight-phytophthora-infestans-close-up-of-upper-surface-of-bmmrxd.jpg,Potato___Early_blight,g052339,field_dev,15ee6235998de76001ef372d69d4609d5e0ad716,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/potato-blight-showing-on-potato-plant-leaves-KJ70DB.jpg,Potato___Early_blight,g052340,field_train,7d69c2882236826b587ebd900e9b47933138fb0c,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/potato-early-blight-alternaria-alternata-discreet-lesions-on-a-potato-BY651F.jpg,Potato___Early_blight,g052341,field_train,eb131a38637c249d7af49ac6d8b787a285d87d50,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/potato-early-blight-alternaria-alternata-lesion-on-a-potato-leaf-X96EFD.jpg,Potato___Early_blight,g052342,field_train,6e8b5ce4f8c744be94f49647eabf03c25a838814,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/potato-early-blight-alternaria-alternata-lesion-on-a-potato-leaf-a1w1em.jpg,Potato___Early_blight,g052342,field_train,60594ea226aaf80ecdf3d2756b7902da65800b4d,plantdoc
-datasets/raw/plantdoc/Potato leaf early blight/potato-early-blight-alternaria-alternata-lesions-on-a-potato-leaf-by650f.jpg,Potato___Early_blight,g052344,field_dev,6a05bb4ff4fcff46f232ab02723577fa7c3c578f,plantdoc
+datasets/raw/plantdoc/Potato leaf early blight/potato-early-blight-alternaria-alternata-lesions-on-a-potato-leaf-by650f.jpg,Potato___Early_blight,g052344,field_test,6a05bb4ff4fcff46f232ab02723577fa7c3c578f,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/potato-early-blight-alternaria-alternata-lesions-on-potato-leaf-XDF64E.jpg,Potato___Early_blight,g052345,field_dev,18138613644c9e1b1960645bd804af55554efd48,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/potato-early-blight-alternaria-alternata-target-spot-lesions-on-a-by64yw.jpg,Potato___Early_blight,g052346,field_dev,ea5f2e40016c4e3e9fa561673c37734442134d28,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/potato-early-blight-lesion-on-a-potato-leaf-picture-id81781211.jpg,Potato___Early_blight,g052254,field_train,7000507f50c258e77ba7eb7b48bea328e5e0e912,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/potato_alternaria_03_zoom.jpg,Potato___Early_blight,g052348,field_train,7ca988e29fce6d9c954dd1bf9c1e2ba674c1e5f3,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/potato_alternaria_04_zoom.jpg,Potato___Early_blight,g052349,field_train,6c57cfd93e7a9da547ba35495725dd46c9c87520,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/potato_early-blight_01_zoom.jpg,Potato___Early_blight,g052350,field_train,fea4ff5b405fa7139f58dd77408fc24de85909ff,plantdoc
-datasets/raw/plantdoc/Potato leaf early blight/potato_early-blight_02_zoom.jpg,Potato___Early_blight,g052351,field_train,9ca403b207d982c1854e5e983aff0481929a1dd3,plantdoc
-datasets/raw/plantdoc/Potato leaf early blight/potato_early-blight_03_zoom.jpg,Potato___Early_blight,g052352,field_dev,0466c4b9d4c9831d6ab1307a4793d9f403b2845d,plantdoc
+datasets/raw/plantdoc/Potato leaf early blight/potato_early-blight_02_zoom.jpg,Potato___Early_blight,g052351,field_dev,9ca403b207d982c1854e5e983aff0481929a1dd3,plantdoc
+datasets/raw/plantdoc/Potato leaf early blight/potato_early-blight_03_zoom.jpg,Potato___Early_blight,g052352,field_train,0466c4b9d4c9831d6ab1307a4793d9f403b2845d,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/potato_early-blight_05_zoom.jpg,Potato___Early_blight,g052354,field_train,e1f8f0dd59c88fe28ea21c3abf1690d32a7971bc,plantdoc
-datasets/raw/plantdoc/Potato leaf early blight/potato_early-blight_06_zoom.jpg,Potato___Early_blight,g052355,field_train,1b01a96c2e0e112967f0ed1e6fb2ca54712ada47,plantdoc
-datasets/raw/plantdoc/Potato leaf early blight/potatoaltkc.jpg,Potato___Early_blight,g052356,field_dev,3de6aaf68757e875523e3c9185e2b9b2d76d0c49,plantdoc
-datasets/raw/plantdoc/Potato leaf early blight/potatobd001.jpg,Potato___Early_blight,g052357,field_test,ff36c6184ede77be7f2db270aedd7b9ba269ad12,plantdoc
-datasets/raw/plantdoc/Potato leaf early blight/potatoearlyblight.jpg,Potato___Early_blight,g052358,field_train,b535df598bc19d3308414605877da441b21d3bf3,plantdoc
+datasets/raw/plantdoc/Potato leaf early blight/potato_early-blight_06_zoom.jpg,Potato___Early_blight,g052355,field_dev,1b01a96c2e0e112967f0ed1e6fb2ca54712ada47,plantdoc
+datasets/raw/plantdoc/Potato leaf early blight/potatoaltkc.jpg,Potato___Early_blight,g052356,field_test,3de6aaf68757e875523e3c9185e2b9b2d76d0c49,plantdoc
+datasets/raw/plantdoc/Potato leaf early blight/potatobd001.jpg,Potato___Early_blight,g052357,field_train,ff36c6184ede77be7f2db270aedd7b9ba269ad12,plantdoc
+datasets/raw/plantdoc/Potato leaf early blight/potatoearlyblight.jpg,Potato___Early_blight,g052358,field_test,b535df598bc19d3308414605877da441b21d3bf3,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/potatoearlyblightcloseup_pdc.jpg,Potato___Early_blight,g052359,field_test,d93c872a091a60d064aa6fcc83b99ffad9ace259,plantdoc
 datasets/raw/plantdoc/Potato leaf early blight/potatolb_small_leaf_lesionx1200.jpg,Potato___Early_blight,g052361,field_train,24a736feda15e771b9ac23bb4399279c470264a0,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/20090710-lateblight.jpg,Potato___Late_blight,g052362,field_train,1261a9a045e225fec6fbcff6ebf37257af5540a4,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/22-late%20blight-advanced%20symptoms%20potato.jpg,Potato___Late_blight,g052363,field_train,8ed35bf8b9b593ddbba036761cf71671af87dc92,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/24847793510_7859b46a3d.jpg,Potato___Late_blight,g052364,field_train,2886d838310c3abbea19bca5bae107c2a46ba189,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/2540_600.jpg,Potato___Late_blight,g052365,field_dev,ab9b6533a92d69b0584ce8d5af356c86221ad306,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/2619_600.jpg,Potato___Late_blight,g052366,field_dev,e33cea4b2f415b4063f6d96b64f415be401a0228,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/286_1600.jpg,Potato___Late_blight,g052367,field_test,3ad8333573cb63571d470034280cee8172ab738c,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/2976_1600.jpg,Potato___Late_blight,g052368,field_test,b5c8ba398d06403064f71ad06fb4280066f5c33d,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/3720946948_339251cc94_z.jpg,Potato___Late_blight,g052369,field_test,b2c35e0aa7281bff34607ee37e386bf3401b201a,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/3782849713_398f3a1086_b.jpg,Potato___Late_blight,g052370,field_train,e8cd39540581f0f38d903ea886ddb4d088bcdfd4,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/39-late-blight-mold.jpg,Potato___Late_blight,g052371,field_dev,b86bf7ed23d8a8ae317fd735e81550cd4ede345d,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/4-late-blight-cmyk-opt.jpeg.jpg,Potato___Late_blight,g052372,field_train,fabd10ad3e8fa2ed22e7862153c1b9441e770c5a,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/4442_1600.jpg,Potato___Late_blight,g052373,field_dev,c43d3c52041373afbefae91c8abc52743e89f464,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/22-late%20blight-advanced%20symptoms%20potato.jpg,Potato___Late_blight,g052363,field_dev,8ed35bf8b9b593ddbba036761cf71671af87dc92,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/24847793510_7859b46a3d.jpg,Potato___Late_blight,g052364,field_test,2886d838310c3abbea19bca5bae107c2a46ba189,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/2540_600.jpg,Potato___Late_blight,g052365,field_train,ab9b6533a92d69b0584ce8d5af356c86221ad306,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/2619_600.jpg,Potato___Late_blight,g052366,field_train,e33cea4b2f415b4063f6d96b64f415be401a0228,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/286_1600.jpg,Potato___Late_blight,g052367,field_dev,3ad8333573cb63571d470034280cee8172ab738c,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/2976_1600.jpg,Potato___Late_blight,g052368,field_train,b5c8ba398d06403064f71ad06fb4280066f5c33d,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/3720946948_339251cc94_z.jpg,Potato___Late_blight,g052369,field_dev,b2c35e0aa7281bff34607ee37e386bf3401b201a,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/3782849713_398f3a1086_b.jpg,Potato___Late_blight,g052370,field_test,e8cd39540581f0f38d903ea886ddb4d088bcdfd4,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/39-late-blight-mold.jpg,Potato___Late_blight,g052371,field_train,b86bf7ed23d8a8ae317fd735e81550cd4ede345d,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/4-late-blight-cmyk-opt.jpeg.jpg,Potato___Late_blight,g052372,field_test,fabd10ad3e8fa2ed22e7862153c1b9441e770c5a,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/4442_1600.jpg,Potato___Late_blight,g052373,field_test,c43d3c52041373afbefae91c8abc52743e89f464,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/460_1600.jpg,Potato___Late_blight,g052374,field_train,97d7b2bc3f57f5345104e567c35e8edcf95067b1,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/6-13lateblightleavesMARY.jpg,Potato___Late_blight,g052375,field_train,26dc3509b32e1bccd4a643e6a6a18d43e82e4d37,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/6a00d8341c4fe353ef011571354632970c-800wi.jpg,Potato___Late_blight,g052376,field_test,25399846b5446c7459c23ba2982963df21803f9e,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/B2650062-Potato_late_blight-SPL.jpg,Potato___Late_blight,g052378,field_train,00de500e35cf416c511e133089fc4779b48dda9a,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/B2750109-Late_blight_on_a_potato_plant-SPL.jpg,Potato___Late_blight,g052379,field_test,33bfc360e18034bf02870bd2c3dd1cb790e064bd,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/B2750121-Potato_late_blight-SPL.jpg,Potato___Late_blight,g052380,field_train,49c6b6912f08c46557a48f2850720885e70221f4,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/Blog-3.jpg,Potato___Late_blight,g052381,field_train,81060f73a5fa1db1e2998c364b16df04ff5ec09e,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/CzFxqKtWEAA4U3g.jpg,Potato___Late_blight,g052382,field_test,ca6c86fa78aec66d284c274eaf568d2f33850a47,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/6a00d8341c4fe353ef011571354632970c-800wi.jpg,Potato___Late_blight,g052376,field_dev,25399846b5446c7459c23ba2982963df21803f9e,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/B2650062-Potato_late_blight-SPL.jpg,Potato___Late_blight,g052378,field_test,00de500e35cf416c511e133089fc4779b48dda9a,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/B2750109-Late_blight_on_a_potato_plant-SPL.jpg,Potato___Late_blight,g052379,field_train,33bfc360e18034bf02870bd2c3dd1cb790e064bd,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/B2750121-Potato_late_blight-SPL.jpg,Potato___Late_blight,g052380,field_test,49c6b6912f08c46557a48f2850720885e70221f4,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/Blog-3.jpg,Potato___Late_blight,g052381,field_test,81060f73a5fa1db1e2998c364b16df04ff5ec09e,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/CzFxqKtWEAA4U3g.jpg,Potato___Late_blight,g052382,field_dev,ca6c86fa78aec66d284c274eaf568d2f33850a47,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/IMG_5358.jpg,Potato___Late_blight,g052384,field_train,9472780276cfd5c8ff5bc093bd6a9fbba3a81980,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/IMG_5390.jpg,Potato___Late_blight,g052385,field_train,f868b39bc110cfb3adf25adc992b4eb48ba63a4d,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/LB_potato_leaf_topside.jpg,Potato___Late_blight,g052388,field_dev,6f770ad57d4feba81b350660ee5f0c362df4dcdc,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/Late+Blight+of+Potato+and+Tomato.jpg,Potato___Late_blight,g052389,field_train,6b749b8d37d4ef9f4aa027eb22970da8c8134a0f,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/IMG_5390.jpg,Potato___Late_blight,g052385,field_dev,f868b39bc110cfb3adf25adc992b4eb48ba63a4d,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/LB_potato_leaf_topside.jpg,Potato___Late_blight,g052388,field_train,6f770ad57d4feba81b350660ee5f0c362df4dcdc,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/Late+Blight+of+Potato+and+Tomato.jpg,Potato___Late_blight,g052389,field_test,6b749b8d37d4ef9f4aa027eb22970da8c8134a0f,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/Late-Blight-336x437.jpg,Potato___Late_blight,g052390,field_train,bf9e018d5420cfec1738ff447aa6470cd8a23de6,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/Late-Blight-56a34bc55f9b58b7d0d15210.jpg,Potato___Late_blight,g052391,field_train,24fb53dbd08c3e857d8c6ec00962f8c43d70b40d,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/Late-Blight-56a34bc55f9b58b7d0d15210.jpg,Potato___Late_blight,g052391,field_test,24fb53dbd08c3e857d8c6ec00962f8c43d70b40d,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/Late-blight-infected-potato-plants_2.jpg,Potato___Late_blight,g052392,field_train,79d6d7c21f38df6e12d5f647ea0a352e66851e47,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/Late-blight-leaves_261x240.jpg,Potato___Late_blight,g052393,field_test,a4054d8de12e6ecd0e4eae61a2d1cebdcfbd8ec0,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/Late-blight-on-leaf-email.jpg,Potato___Late_blight,g052394,field_train,581c704c13854743aa2ff4730c5f3ef1ad52b2c8,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/Late-blight.jpg,Potato___Late_blight,g052395,field_test,12cafc83cd19064c94e927be620899ab812da399,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/LateBlight02.jpg,Potato___Late_blight,g052396,field_train,32852092eb832ccc7b83ac531926c01e12fb7145,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/LateBlight04.jpg,Potato___Late_blight,g052398,field_dev,604519aad289ec0c8a6ac325dabc7d629c085749,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/LateBlight13.jpg,Potato___Late_blight,g052399,field_train,0980ff6756318d0d59da15c84600ad835fb02a63,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/LateBlightFig3new.jpg,Potato___Late_blight,g052400,field_dev,ae6b84f4bcdaf82ef247af6e5d7fd779858b8110,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/Late_blight_on_potato_leaf.jpg,Potato___Late_blight,g052401,field_dev,09e649141308f9c617b9e21a36ec684a8b1bd3c6,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/Late_blight_on_potato_leaf_3-58bcf5055f9b58af5c27bf74.jpg,Potato___Late_blight,g052402,field_train,93cf3d4ca93e933006eb21b0345dad20e23dde5c,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/Lateblight.jpg,Potato___Late_blight,g052403,field_train,7c23d622960ee11cb4e2ede1e733b4d7855c55b6,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/Potato-Late-Blight-3-06202014.jpeg.jpg,Potato___Late_blight,g052404,field_dev,adf3ef08c73b849f45fd94f904d2114a35aff373,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/Late-blight-on-leaf-email.jpg,Potato___Late_blight,g052394,field_test,581c704c13854743aa2ff4730c5f3ef1ad52b2c8,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/Late-blight.jpg,Potato___Late_blight,g052395,field_dev,12cafc83cd19064c94e927be620899ab812da399,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/LateBlight02.jpg,Potato___Late_blight,g052396,field_dev,32852092eb832ccc7b83ac531926c01e12fb7145,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/LateBlight04.jpg,Potato___Late_blight,g052398,field_test,604519aad289ec0c8a6ac325dabc7d629c085749,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/LateBlight13.jpg,Potato___Late_blight,g052399,field_dev,0980ff6756318d0d59da15c84600ad835fb02a63,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/LateBlightFig3new.jpg,Potato___Late_blight,g052400,field_test,ae6b84f4bcdaf82ef247af6e5d7fd779858b8110,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/Late_blight_on_potato_leaf.jpg,Potato___Late_blight,g052401,field_train,09e649141308f9c617b9e21a36ec684a8b1bd3c6,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/Late_blight_on_potato_leaf_3-58bcf5055f9b58af5c27bf74.jpg,Potato___Late_blight,g052402,field_test,93cf3d4ca93e933006eb21b0345dad20e23dde5c,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/Lateblight.jpg,Potato___Late_blight,g052403,field_dev,7c23d622960ee11cb4e2ede1e733b4d7855c55b6,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/Potato-Late-Blight-3-06202014.jpeg.jpg,Potato___Late_blight,g052404,field_train,adf3ef08c73b849f45fd94f904d2114a35aff373,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/Potato-late-blight-008.jpg,Potato___Late_blight,g052405,field_train,c988fcd7eaa540d432f7ca9d20629a5989000863,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/Potato-late-blight-caused-by-Phytophthora-infestans_Q320.jpg,Potato___Late_blight,g052406,field_train,5e04051459948be2c512c7a06ac66772905b8b17,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/Potato-late-blight-in-field-trial-1.jpg,Potato___Late_blight,g052407,field_train,761c34a38c2eb8d6f8c7694eb7dfbd2ccef69103,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/PotatoLateBlight2.jpg,Potato___Late_blight,g052388,field_dev,ba7e98b0e1f70d930d14a66662cbcc270d5d22a6,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/White-mould-potato-blight.jpg,Potato___Late_blight,g052409,field_test,98939817ec61e5c2507e09ff6d9a331734446b0d,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/PotatoLateBlight2.jpg,Potato___Late_blight,g052388,field_train,ba7e98b0e1f70d930d14a66662cbcc270d5d22a6,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/White-mould-potato-blight.jpg,Potato___Late_blight,g052409,field_train,98939817ec61e5c2507e09ff6d9a331734446b0d,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/b3a52d4eda0deedc34260c4dee847a5b.jpg,Potato___Late_blight,g052410,field_train,4dbb773967045e39353516ade246dfa587d5f436,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/blight-on-potato-leaves.jpg,Potato___Late_blight,g052411,field_train,c66a8f0b483ebe95f58d398ffa25d2455d309ddf,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/cropped-symptom_potato_late_blight.jpg,Potato___Late_blight,g052412,field_test,4d50690e136e25b0eccfb27323ccd2f5090c0a36,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/d4fc0f56-da2e-4d7e-9a22-2430b562eeee.jpeg.jpg,Potato___Late_blight,g052413,field_test,d85e5e9e84046aaf951e8954049841b326f5ae5e,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/dsc_8151s.jpg,Potato___Late_blight,g052414,field_dev,90ebad303d412a5f5a7d99d00da63c9ddae3956d,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/cropped-symptom_potato_late_blight.jpg,Potato___Late_blight,g052412,field_dev,4d50690e136e25b0eccfb27323ccd2f5090c0a36,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/d4fc0f56-da2e-4d7e-9a22-2430b562eeee.jpeg.jpg,Potato___Late_blight,g052413,field_train,d85e5e9e84046aaf951e8954049841b326f5ae5e,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/dsc_8151s.jpg,Potato___Late_blight,g052414,field_train,90ebad303d412a5f5a7d99d00da63c9ddae3956d,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/early_blight.jpg,Potato___Late_blight,g052410,field_train,3bee738f9deba69ca0d89a5deaac3c09ee01aafc,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/fi000293.jpg,Potato___Late_blight,g052415,field_train,cb0a5e19a8f4ac3f2b3e477e075db88b3bfeeeea,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/fig1a_500.jpg,Potato___Late_blight,g052416,field_train,82a50b3b44d466ee6eb22fc05dfbe27cc5316a26,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/figure-7-gudmestad-opt.jpeg.jpg,Potato___Late_blight,g052417,field_dev,28844ed25c87f39f7ceece5ae530916068630c5e,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/foliar_late_blight.jpg,Potato___Late_blight,g052418,field_dev,a8f1880af7b814579a7aafead4f20e17db7b1001,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/gcp_A-2_Late_Blight_of_potatoes_callout1.jpg,Potato___Late_blight,g052419,field_train,26eff70dfa2e1b782a443d2c68dff15c4583866a,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/late-blight-leaf-figure1.jpg,Potato___Late_blight,g052420,field_test,3fe8454c4d2eb156299a8518fae9d67c1d901125,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/fig1a_500.jpg,Potato___Late_blight,g052416,field_test,82a50b3b44d466ee6eb22fc05dfbe27cc5316a26,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/figure-7-gudmestad-opt.jpeg.jpg,Potato___Late_blight,g052417,field_train,28844ed25c87f39f7ceece5ae530916068630c5e,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/foliar_late_blight.jpg,Potato___Late_blight,g052418,field_train,a8f1880af7b814579a7aafead4f20e17db7b1001,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/gcp_A-2_Late_Blight_of_potatoes_callout1.jpg,Potato___Late_blight,g052419,field_dev,26eff70dfa2e1b782a443d2c68dff15c4583866a,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/late-blight-leaf-figure1.jpg,Potato___Late_blight,g052420,field_train,3fe8454c4d2eb156299a8518fae9d67c1d901125,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/late-blight-leaf.jpg,Potato___Late_blight,g052421,field_dev,55dd33738d31ebc0ee987946e8f6d8b242e4d9af,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/late-blight-leaves.jpg,Potato___Late_blight,g052422,field_test,20b73d22bda67c91b68820b7733d4e97d483042e,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/late-blight-lesions-potato-leaf-miller-research-809.jpg,Potato___Late_blight,g052367,field_test,9e732177679aa61a01e3e46aa94f58017bb49749,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/late-blight-midwest_twitter.jpg,Potato___Late_blight,g052424,field_train,f2e76f358d9b5b2871916d15e0d029e6655558fd,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/late-blight-on-potato-leaf-550.jpg,Potato___Late_blight,g052425,field_test,9122827057d85c243047f640542c4c0d00e25f68,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/late-blight-leaves.jpg,Potato___Late_blight,g052422,field_dev,20b73d22bda67c91b68820b7733d4e97d483042e,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/late-blight-lesions-potato-leaf-miller-research-809.jpg,Potato___Late_blight,g052367,field_dev,9e732177679aa61a01e3e46aa94f58017bb49749,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/late-blight-midwest_twitter.jpg,Potato___Late_blight,g052424,field_test,f2e76f358d9b5b2871916d15e0d029e6655558fd,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/late-blight-on-potato-leaf-550.jpg,Potato___Late_blight,g052425,field_train,9122827057d85c243047f640542c4c0d00e25f68,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/late-blight-potato.jpg,Potato___Late_blight,g052426,field_dev,c00a0ff10075252594f9ede15e8a5eef04b37aec,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/late.jpg,Potato___Late_blight,g052427,field_train,e73199257ce45707da38f55ed02fece4d12ac11b,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/late_blight.jpg,Potato___Late_blight,g052428,field_train,c0472f30d6be5632da4334c7a79caf96d920dd6c,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/late_blight_potato_leaf_500.jpg,Potato___Late_blight,g052429,field_train,eb000318f66589edf86cec24eef8fdeaf1d0ac3a,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/lateblight1.JPG.jpg,Potato___Late_blight,g052430,field_train,6892f4deb01d8b0ac5139a69b70208220fa92001,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/lateblight2.JPG.jpg,Potato___Late_blight,g052431,field_test,185dae34737bf7149c5b1107e1283f51a43786bf,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/lateblight8.jpg,Potato___Late_blight,g052432,field_dev,9139dbb49393e177cd51bf1cafd1436c98e7d2de,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/lateblight1.JPG.jpg,Potato___Late_blight,g052430,field_test,6892f4deb01d8b0ac5139a69b70208220fa92001,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/lateblight2.JPG.jpg,Potato___Late_blight,g052431,field_train,185dae34737bf7149c5b1107e1283f51a43786bf,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/lateblight8.jpg,Potato___Late_blight,g052432,field_train,9139dbb49393e177cd51bf1cafd1436c98e7d2de,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/lateblightleaf.jpg,Potato___Late_blight,g052433,field_train,f42bf66daccda31987a6b8b96d48240a70861e79,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/lateblightlesions_1.jpg,Potato___Late_blight,g052434,field_train,e089ed61fee46fcfe0d37e569cbc3e6c0ee65b27,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/lb4_l.jpg,Potato___Late_blight,g052435,field_dev,0e749a893ac3e172d86252b38325b7f608fafced,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/lateblightlesions_1.jpg,Potato___Late_blight,g052434,field_dev,e089ed61fee46fcfe0d37e569cbc3e6c0ee65b27,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/lb4_l.jpg,Potato___Late_blight,g052435,field_train,0e749a893ac3e172d86252b38325b7f608fafced,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/lb7_l.jpg,Potato___Late_blight,g052436,field_train,e20025dd21626d90b61da7cfff4822d210b5ad05,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/phytophthora-infestans-late-blight-or-potato-blight-on-the-haulm-of-E29H6G.jpg,Potato___Late_blight,g052437,field_train,66970e6a128726e5aff4d555f73639de5f04f3b2,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/phytophthora-infestans-late-blight-or-potato-blight-on-the-haulm-of-EHW1RD.jpg,Potato___Late_blight,g052438,field_dev,6886d4154f17c773952a5341a67a93c57f8d0e2d,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/phytophthora-infestans-late-blight-or-potato-blight-on-the-haulm-of-EHW1RD.jpg,Potato___Late_blight,g052438,field_train,6886d4154f17c773952a5341a67a93c57f8d0e2d,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/phytophthora-infestans-potato-blight-first-foliar-symptoms-on-solanum-EJKRCK.jpg,Potato___Late_blight,g052439,field_dev,ca374294e4976dcf0becd8c44d9315f5b295ee06,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/potato-late-blight-phytophthora-infestans-lesions-on-potato-foliage-X4XJF4.jpg,Potato___Late_blight,g052440,field_dev,36754d89d713f27f9a680f0b43d2e007d6ea42f3,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/potato-late-blight-phytophthora-infestans-lesions-on-potato-foliage-a1w19k.jpg,Potato___Late_blight,g052441,field_train,47f117c1730f067260a00ad1a0ca0601622ceb24,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/potato-late-blight-phytophthora-infestans-necrotic-disease-lesions-B7DEW3.jpg,Potato___Late_blight,g052442,field_dev,e0888f1fca44847e90d5dc4ff6a8b402afd01a8e,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/potato-late-blight-phytophthora-infestans-lesions-on-potato-foliage-X4XJF4.jpg,Potato___Late_blight,g052440,field_test,36754d89d713f27f9a680f0b43d2e007d6ea42f3,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/potato-late-blight-phytophthora-infestans-lesions-on-potato-foliage-a1w19k.jpg,Potato___Late_blight,g052440,field_test,47f117c1730f067260a00ad1a0ca0601622ceb24,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/potato-late-blight-phytophthora-infestans-necrotic-disease-lesions-B7DEW3.jpg,Potato___Late_blight,g052442,field_train,e0888f1fca44847e90d5dc4ff6a8b402afd01a8e,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/potato-late-blight-phytophthora-infestans-necrotic-disease-lesions-B7G2EC.jpg,Potato___Late_blight,g052443,field_train,ce8086f918e6cfef6e05fffa4ce723c11f3ad346,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/potato-late-blight-symptom-on-leaves-PGB5H9.jpg,Potato___Late_blight,g052444,field_train,3d615fbd71a402cc84b478db32b321a24dc03e87,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/potato-late-blight-symptom-on-leaves-PGB5H9.jpg,Potato___Late_blight,g052444,field_dev,3d615fbd71a402cc84b478db32b321a24dc03e87,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/potato-late-blight-symptom-on-leaves-PGB5NJ.jpg,Potato___Late_blight,g052445,field_train,d232f2e39383037867822bab30580651fb8faa3f,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/potato-late-blight.jpg,Potato___Late_blight,g052446,field_train,5a7a10cfd777078c73c756a932682493f62261b2,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/potato-solanum-tuberosum-late-blight.jpg,Potato___Late_blight,g052447,field_train,c5e573dd3f6a9fa837d9c78c005d560cb6e6cdeb,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/potato_late-blight_02_zoom.jpg,Potato___Late_blight,g052448,field_dev,e83b72060fe17d0765f2239e2a2e7501177969c5,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/potato-late-blight.jpg,Potato___Late_blight,g052446,field_dev,5a7a10cfd777078c73c756a932682493f62261b2,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/potato-solanum-tuberosum-late-blight.jpg,Potato___Late_blight,g052447,field_dev,c5e573dd3f6a9fa837d9c78c005d560cb6e6cdeb,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/potato_late-blight_02_zoom.jpg,Potato___Late_blight,g052448,field_train,e83b72060fe17d0765f2239e2a2e7501177969c5,plantdoc
 datasets/raw/plantdoc/Potato leaf late blight/potato_late-blight_05_zoom.jpg,Potato___Late_blight,g052449,field_test,f08a9076565082c4e0528483c3da4c73809a281f,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/potato_late-blight_07_zoom.jpg,Potato___Late_blight,g052450,field_test,6a5b7a1f37e8db79b3538080700681d110b49f19,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/potato_late-blight_08_zoom.jpg,Potato___Late_blight,g052451,field_test,9ac95399043bcf108286028d65d8e94205465588,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/potato_ocw_botrytis-lateblight.jpg,Potato___Late_blight,g052452,field_dev,c1475aa4a6d292ed96734c44880f12716206513d,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/potato_ocw_lateblight-earlyblight.jpg,Potato___Late_blight,g052453,field_train,fa4777d473d829403d32bf0862d5509e29e2033c,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/potatolb_branchx500.jpg,Potato___Late_blight,g052454,field_train,f45e459a8a7ba60074b02832dc98d80341c4633b,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/potatolb_symptoms_meg-cornell_300x225.jpg,Potato___Late_blight,g052455,field_dev,e162b4940fd2365fff91ad073cee0be4507e6484,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/potatolb_upper_leafcux1200.jpg,Potato___Late_blight,g052456,field_train,90bfdb655e76bf4ad4ea1c3e6ecec2733280b785,plantdoc
-datasets/raw/plantdoc/Potato leaf late blight/wur-late-blight-in-potato-809.jpg,Potato___Late_blight,g052457,field_train,8f2fccad96a396e368a6d65a1255c8b699eba1de,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/potato_late-blight_07_zoom.jpg,Potato___Late_blight,g052450,field_dev,6a5b7a1f37e8db79b3538080700681d110b49f19,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/potato_late-blight_08_zoom.jpg,Potato___Late_blight,g052451,field_dev,9ac95399043bcf108286028d65d8e94205465588,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/potato_ocw_botrytis-lateblight.jpg,Potato___Late_blight,g052452,field_train,c1475aa4a6d292ed96734c44880f12716206513d,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/potato_ocw_lateblight-earlyblight.jpg,Potato___Late_blight,g052453,field_test,fa4777d473d829403d32bf0862d5509e29e2033c,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/potatolb_branchx500.jpg,Potato___Late_blight,g052454,field_dev,f45e459a8a7ba60074b02832dc98d80341c4633b,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/potatolb_symptoms_meg-cornell_300x225.jpg,Potato___Late_blight,g052455,field_test,e162b4940fd2365fff91ad073cee0be4507e6484,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/potatolb_upper_leafcux1200.jpg,Potato___Late_blight,g052456,field_test,90bfdb655e76bf4ad4ea1c3e6ecec2733280b785,plantdoc
+datasets/raw/plantdoc/Potato leaf late blight/wur-late-blight-in-potato-809.jpg,Potato___Late_blight,g052457,field_test,8f2fccad96a396e368a6d65a1255c8b699eba1de,plantdoc
 datasets/raw/plantdoc/Raspberry leaf/1-flowering-raspberry.jpg,Raspberry___healthy,g052458,field_train,2b72d1ddad3c6c84a0715e7fefaf66da4483020e,plantdoc
 datasets/raw/plantdoc/Raspberry leaf/1029980206_21e73f8c57.jpg,Raspberry___healthy,g052459,field_dev,c1ef38f88a6b931220d6204a0ab905127252292c,plantdoc
 datasets/raw/plantdoc/Raspberry leaf/1200-534476178-bee-pollinate-flower-of-raspberry.jpg,Raspberry___healthy,g052460,field_dev,4a14a787947059a0c92d6cdb6820de803672d658,plantdoc
@@ -1341,12 +1338,12 @@ datasets/raw/plantdoc/Soyabean leaf/487977347.jpg,Soybean___healthy,g052579,fiel
 datasets/raw/plantdoc/Soyabean leaf/527d15ae415c.jpg,Soybean___healthy,g052580,field_train,051544cdb8722ee8092b2a2d4b43eeceb2c0621f,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/5834652565_6b00a70309_z.jpg,Soybean___healthy,g052581,field_test,fccaaee7afc5958e2787d23d23825e3af82d0db8,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/6.15.12+Soybeans+V3.JPG.jpg,Soybean___healthy,g052582,field_train,a80d735e93548ace3baa13a23ebfb50033ee6c5a,plantdoc
-datasets/raw/plantdoc/Soyabean leaf/6.8.12+Soybean+First+Trifoliate+Leaf.JPG.jpg,Soybean___healthy,g052583,field_train,8677811bee7050314e99191ec43afef7216f5484,plantdoc
+datasets/raw/plantdoc/Soyabean leaf/6.8.12+Soybean+First+Trifoliate+Leaf.JPG.jpg,Soybean___healthy,g052583,field_dev,8677811bee7050314e99191ec43afef7216f5484,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/6898762496_5b9b6c22d3_z.jpg,Soybean___healthy,g052584,field_train,d29eaa25f10dc1927b2327d9ef1d619a3e14cb07,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/Brown%20Spot%20-%20dark%20spots.jpg,Soybean___healthy,g052585,field_dev,f09c7d8c2c50ff48ad5d3d8ef8ba23d953f699af,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/DM-on-soy.jpg,Soybean___healthy,g052586,field_dev,1fe26080ebfec22bfb1efdf4dee74517628861e8,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/IMG_1138.jpg,Soybean___healthy,g052587,field_dev,47be5f1018dbf937d4c3aa9532c08d261850f8ca,plantdoc
-datasets/raw/plantdoc/Soyabean leaf/IMG_20150714_122008907.jpg,Soybean___healthy,g052588,field_test,a75f29b8feecb9d10e5b4d23a26ce64bbeab0452,plantdoc
+datasets/raw/plantdoc/Soyabean leaf/IMG_20150714_122008907.jpg,Soybean___healthy,g052588,field_train,a75f29b8feecb9d10e5b4d23a26ce64bbeab0452,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/IMG_4780.jpg,Soybean___healthy,g052589,field_dev,510a574ea033256f0cccc85c5b91a5fee45cc081,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/IMG_4810.jpg,Soybean___healthy,g052590,field_train,8682fec7820e8798bcb0721570a6f78c6ad80293,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/IMG_fig-4.jpg,Soybean___healthy,g052591,field_train,a81d55f90c36c67ef3b0d6537221ad325927b264,plantdoc
@@ -1355,7 +1352,7 @@ datasets/raw/plantdoc/Soyabean leaf/Kdefsoybean.JPG.jpg,Soybean___healthy,g05259
 datasets/raw/plantdoc/Soyabean leaf/Leaves-of-Soybean.jpg,Soybean___healthy,g052594,field_test,1df1ef3308079c02ef7ab3cfbd19f68eb52299f9,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/Soy-leaves-FAZ050-2015US-IL-Wuerffel-USNQ0F002-28DAB-Plot106b.jpg,Soybean___healthy,g052595,field_dev,bc6d4d050903b3c269e6759df42004c5fefb417c,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/Soybean%20edamame%20leaf.JPG.jpg,Soybean___healthy,g052596,field_train,181d6ed18c1ffc0c3a93dbc1775dbbb0ed3cb060,plantdoc
-datasets/raw/plantdoc/Soyabean leaf/Soybean%20edamame%20leaf1.JPG.jpg,Soybean___healthy,g052597,field_dev,77182fdd5689c86122dce7c0833b7289b1f73c3c,plantdoc
+datasets/raw/plantdoc/Soyabean leaf/Soybean%20edamame%20leaf1.JPG.jpg,Soybean___healthy,g052597,field_test,77182fdd5689c86122dce7c0833b7289b1f73c3c,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/Soybean%20oil%20leaf.JPG.jpg,Soybean___healthy,g052598,field_test,573bf4f5f04277903ce5d4ab6bc2a9363e91a642,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/Soybean%20oil%20leaf2.JPG.jpg,Soybean___healthy,g052599,field_train,964e02aa4308fab277a06a6ace4b23782e5de99f,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/Soybean%20tofu%20leaf.JPG.jpg,Soybean___healthy,g052596,field_train,b8ad33fc81f7ae9374a5a3b80bdc3362d8cd753e,plantdoc
@@ -1363,14 +1360,14 @@ datasets/raw/plantdoc/Soyabean leaf/Soybean_leaves.jpg,Soybean___healthy,g052601
 datasets/raw/plantdoc/Soyabean leaf/a-mid-season-soybean-plants-leaves-show-virtually-no-insect-damage-cxy77t.jpg,Soybean___healthy,g052602,field_dev,28ee25c0f638e4172da48fb6581e3e3a0d62ea6b,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/a-mid-season-soybean-plants-leaves-show-virtually-no-insect-damage-cxy78f.jpg,Soybean___healthy,g052603,field_train,61fe2ad3cf211747004ba0462a04e2037b29113b,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/a0aef90e9f43.jpg,Soybean___healthy,g052604,field_test,a0aef90e9f43c03fc3e20be25eace3e02d6262ce,plantdoc
-datasets/raw/plantdoc/Soyabean leaf/agron10.jpg,Soybean___healthy,g052605,field_train,af103354ae7af787da4ef798cf5c6d66da2e8c91,plantdoc
+datasets/raw/plantdoc/Soyabean leaf/agron10.jpg,Soybean___healthy,g052605,field_dev,af103354ae7af787da4ef798cf5c6d66da2e8c91,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/asoybeanleafcloseup.JPG.jpg,Soybean___healthy,g052606,field_test,087526f19ff43275c344ef6253e37e921d1f82fb,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/d9a6cf906761.jpg,Soybean___healthy,g052607,field_train,e6f6cba7af7f4825f8cbe841b307c4a7d349795e,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/depositphotos_15928367-stock-photo-soy-leaf.jpg,Soybean___healthy,g052608,field_test,fea6fd3be8a1406653a4457ac785c846888a1298,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/detailed-view-single-soybean-leaf-very-green-crop-growing-field-43444691.jpg,Soybean___healthy,g052609,field_train,adfc40e843cfa8730bf0b2e8b0405b895699b14f,plantdoc
-datasets/raw/plantdoc/Soyabean leaf/double-crop-soybean-leaves-Aug-19-2013_thumb.jpg,Soybean___healthy,g052610,field_test,06537175de47d3d5bd9241c245206f4c6fdf119d,plantdoc
+datasets/raw/plantdoc/Soyabean leaf/double-crop-soybean-leaves-Aug-19-2013_thumb.jpg,Soybean___healthy,g052610,field_train,06537175de47d3d5bd9241c245206f4c6fdf119d,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/downy-mildew-on-soybeans-2csq9n7.jpg,Soybean___healthy,g052611,field_test,fcc25f90e139088d1a8c5b98240b223eab301161,plantdoc
-datasets/raw/plantdoc/Soyabean leaf/ece458344a4d.jpg,Soybean___healthy,g052612,field_train,4a31cce97c71992424408ed26d3a00c25f4bc6f0,plantdoc
+datasets/raw/plantdoc/Soyabean leaf/ece458344a4d.jpg,Soybean___healthy,g052612,field_dev,4a31cce97c71992424408ed26d3a00c25f4bc6f0,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/fresh-soy-leaves-isolated-on-260nw-667193923.jpg,Soybean___healthy,g052613,field_dev,d9ec540e0c3343069a27bbfbe369974003d01e9a,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/fresh-soy-leaves-white-46020567.jpg,Soybean___healthy,g052614,field_train,bcf9fd09a988b75dac0f12a6e801d22708aa127d,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/glma4_leaf_001.jpg,Soybean___healthy,g052615,field_dev,a548c64e825ce7f13e197dd0ec5b40f87ca1e0e8,plantdoc
@@ -1389,15 +1386,15 @@ datasets/raw/plantdoc/Soyabean leaf/soybean-potassium-deficiency-2.jpg,Soybean__
 datasets/raw/plantdoc/Soyabean leaf/soybean-seedling-at-vc-stage-cotyledons-and-unifoliate-leaves-fully-J5RK4F.jpg,Soybean___healthy,g052628,field_dev,35cce22b19e5a1747cc23f277d61dd60c372741a,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/soybean_leaves_01.jpg,Soybean___healthy,g052629,field_test,24e54cf3d65c8c79f7b27ab1d0855d25bff7cad7,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/soybeans-glycine-max-with-leaves-e1hkcy.jpg,Soybean___healthy,g052630,field_dev,74702b6fbec2db185c382c4c8c97603c558a2c7e,plantdoc
-datasets/raw/plantdoc/Soyabean leaf/soybeans-leaves.jpg,Soybean___healthy,g052631,field_test,0fdf50e5ba4a27b33de3949e04414cf21bf5d727,plantdoc
+datasets/raw/plantdoc/Soyabean leaf/soybeans-leaves.jpg,Soybean___healthy,g052631,field_train,0fdf50e5ba4a27b33de3949e04414cf21bf5d727,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/stock-photo-fresh-soy-leaves-isolated-on-white-224197243.jpg,Soybean___healthy,g052614,field_train,49d8ba68ea5a7faeea0a392ed684faacd36ec2c5,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/stock-photo-fresh-soy-leaves-isolated-on-white-93841699.jpg,Soybean___healthy,g052632,field_test,537f0ea8ee0755dae4f8fe1834b43a610f4d1d2e,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/stock-photo-fresh-soy-leaves-isolated-on-white-94266130.jpg,Soybean___healthy,g052633,field_train,6bad6078eaf7ffd0be990f869e00d3b725610c83,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/stock-photo-fresh-soy-leaves-isolated-on-white-94700095.jpg,Soybean___healthy,g052634,field_train,9ce8a1186d49613fd665ada5f9b037fd4b01b74d,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/stock-photo-fresh-soy-leaves-with-dew-isolated-on-white-416036248.jpg,Soybean___healthy,g052635,field_test,121ecd90f9141431fbf221f87251e437cfa93a19,plantdoc
-datasets/raw/plantdoc/Soyabean leaf/stock-photo-green-soy-leaves-in-the-field-agricultural-background-31501516.jpg,Soybean___healthy,g052636,field_dev,024f5d290045565ba2f87bf64d0aa785e2da2487,plantdoc
-datasets/raw/plantdoc/Soyabean leaf/stock-photo-green-soybeans-leaf-on-white-background-450572512.jpg,Soybean___healthy,g052637,field_dev,2bf48678d8697bfbda9b8c5c1fe1acb66468f4cf,plantdoc
-datasets/raw/plantdoc/Soyabean leaf/stock-photo-soy-leaf-isolated-on-white-background-120961801.jpg,Soybean___healthy,g052638,field_train,05ad5db2c00f02ce0bf01a4f0f8cd19efa1571c7,plantdoc
+datasets/raw/plantdoc/Soyabean leaf/stock-photo-green-soy-leaves-in-the-field-agricultural-background-31501516.jpg,Soybean___healthy,g052636,field_test,024f5d290045565ba2f87bf64d0aa785e2da2487,plantdoc
+datasets/raw/plantdoc/Soyabean leaf/stock-photo-green-soybeans-leaf-on-white-background-450572512.jpg,Soybean___healthy,g052637,field_train,2bf48678d8697bfbda9b8c5c1fe1acb66468f4cf,plantdoc
+datasets/raw/plantdoc/Soyabean leaf/stock-photo-soy-leaf-isolated-on-white-background-120961801.jpg,Soybean___healthy,g052608,field_test,05ad5db2c00f02ce0bf01a4f0f8cd19efa1571c7,plantdoc
 datasets/raw/plantdoc/Soyabean leaf/stock-photo-soy-plant-isolated-on-white-background-122414239.jpg,Soybean___healthy,g052639,field_train,c19f3a643e1c5b138d3432aff560dfd16b2095cf,plantdoc
 datasets/raw/plantdoc/Squash Powdery mildew leaf/100367_max.jpg,Squash___Powdery_mildew,g052640,field_train,a23b1f706fd218d7d874639922e449b69ea00098,plantdoc
 datasets/raw/plantdoc/Squash Powdery mildew leaf/100_08631.jpg,Squash___Powdery_mildew,g052641,field_train,72a29f5402fab99e021b247dc4c5c6d6fa2c6771,plantdoc
@@ -1673,7 +1670,6 @@ datasets/raw/plantdoc/Tomato Early blight leaf/early-blight-in-high-tunnel-tomat
 datasets/raw/plantdoc/Tomato Early blight leaf/early-blight-in-tomatoes.jpg,Tomato___Early_blight,g052911,field_test,602f93c1f5be1bc1c877bf4dfcc36b9085108a72,plantdoc
 datasets/raw/plantdoc/Tomato Early blight leaf/early-blight-of-tomato-tomato-1.jpg,Tomato___Early_blight,g052912,field_train,39291cf016f34069bf9b157f0fb43c9d1f79f60d,plantdoc
 datasets/raw/plantdoc/Tomato Early blight leaf/early-blight-or-target-spot-alternaria-solani-lesions-on-a-tomato-BH3TH0.jpg,Tomato___Early_blight,g052913,field_train,9ee2c6c3497e4696b09ad4235c2f881cb380940d,plantdoc
-datasets/raw/plantdoc/Tomato Early blight leaf/early-blight-or-target-spot-alternaria-solani-lesions-on-a-tomato-BY9J8R.jpg,Tomato___Early_blight,g052914,field_train,eaec5abdb44007f793ad1b873cf6503afab2080c,plantdoc
 datasets/raw/plantdoc/Tomato Early blight leaf/early-blight-pp-labeled_orig.jpg,Tomato___Early_blight,g052873,field_train,01d030a93cd0e96c041715d820faa34d4e8e785a,plantdoc
 datasets/raw/plantdoc/Tomato Early blight leaf/early-blight1.jpg,Tomato___Early_blight,g052915,field_test,0a5788baee7af54ff7ca738855f52413f9fe69a7,plantdoc
 datasets/raw/plantdoc/Tomato Early blight leaf/early-tomato-blight.jpg,Tomato___Early_blight,g052916,field_test,0410af8bc0c0af23f7eaf8e4f9b438b290b7455f,plantdoc
@@ -1942,17 +1938,17 @@ datasets/raw/plantdoc/Tomato leaf bacterial spot/tomato1A.jpg,Tomato___Bacterial
 datasets/raw/plantdoc/Tomato leaf bacterial spot/tomato_bacterial-speck_01_zoom.jpg,Tomato___Bacterial_spot,g053184,field_train,732db7c70155443d2713307b716acf94baccf726,plantdoc
 datasets/raw/plantdoc/Tomato leaf bacterial spot/tomato_bacterial-speck_03_zoom.jpg,Tomato___Bacterial_spot,g053185,field_train,a9db6a8428d5904a7aa400a7cba0c95101a06781,plantdoc
 datasets/raw/plantdoc/Tomato leaf bacterial spot/tomato_xanthomonas_foliage.jpg,Tomato___Bacterial_spot,g053186,field_dev,7aa3d0384854c304d7a2e7eaaa3a778bcd53b37d,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/110822-206-Tomato-blight.jpg,Tomato___Late_blight,g053187,field_train,d13889ecc2026bdd944ed6208fd6c1c22f514c38,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/110822-206-Tomato-blight.jpg,Tomato___Late_blight,g053187,field_test,d13889ecc2026bdd944ed6208fd6c1c22f514c38,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/118A_Tom_Late.jpg,Tomato___Late_blight,g053188,field_train,8119ffbd84e2d386d4fbcf0357bcf5583155ead2,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/18c.jpg,Tomato___Late_blight,g053189,field_train,843ee1bed578a6ebc667403b15c5486c9dd69bf2,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/20150619d.jpg,Tomato___Late_blight,g053190,field_dev,00b0f73a44d27a07d38c3006d8f7310aab95e1ee,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/20150619d.jpg,Tomato___Late_blight,g053190,field_train,00b0f73a44d27a07d38c3006d8f7310aab95e1ee,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/2017-08-27%2B-%2BLate%2BBlight%2Bon%2BGypsy%2B1.jpg,Tomato___Late_blight,g053191,field_train,88ab42c3928b560f8a824dae82ef9955713fe180,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/5816170621_e1cce08736_z.jpg,Tomato___Late_blight,g053192,field_train,0cee7afe1c979e338448732b274227069928b3d1,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/5816170621_e1cce08736_z.jpg,Tomato___Late_blight,g053192,field_test,0cee7afe1c979e338448732b274227069928b3d1,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/600.jpg,Tomato___Late_blight,g053193,field_test,ac400f3bb49cf9e79335331c3f4e9e5851cc27c2,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/636368370164094909-late-blight-15-.jpg,Tomato___Late_blight,g053194,field_test,1dc75e5ae499d4f59f388e580ba7ea4e30ec7251,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/636368370164094909-late-blight-15-.jpg,Tomato___Late_blight,g053194,field_dev,1dc75e5ae499d4f59f388e580ba7ea4e30ec7251,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/68e41fac523a.jpg,Tomato___Late_blight,g053195,field_train,68e41fac523aee62c36a983e85510f652a0faf96,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/68ec950197b0.jpg,Tomato___Late_blight,g053196,field_test,08912d13468062edb8572122fd32e8672f4d132c,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/70.jpg,Tomato___Late_blight,g053197,field_train,3691ee11efb3556b6c55a696a70673aedda373ce,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/70.jpg,Tomato___Late_blight,g053197,field_test,3691ee11efb3556b6c55a696a70673aedda373ce,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/7262-drought.jpg,Tomato___Late_blight,g053198,field_test,9c35e9347b06eaba121dc6539fd06e92a8e501a4,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/75669a720bc3.jpg,Tomato___Late_blight,g053199,field_train,75669a720bc3301bb253af364eb077792059923b,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/924977LateBlightLeaf.jpg,Tomato___Late_blight,g053200,field_train,2cfd14f2c9e5379943470dad369914865371a3cc,plantdoc
@@ -1965,76 +1961,76 @@ datasets/raw/plantdoc/Tomato leaf late blight/Fig.%2014_opta.jpg,Tomato___Late_b
 datasets/raw/plantdoc/Tomato leaf late blight/IMG_1526.jpg,Tomato___Late_blight,g053207,field_test,19ff56ba4be01b866d88a459f15fb6fe3bc2fa09,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/IMG_2254.JPG.jpg,Tomato___Late_blight,g053208,field_test,0587d94b8bf36daaab4f4cb96c39b8845ddd0191,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/IMG_4182.JPG.jpg,Tomato___Late_blight,g053209,field_train,cd3772eb10ed24eea6d574e58d59a48d91321712,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/IMG_5360.jpg,Tomato___Late_blight,g053190,field_dev,273b043ecb7d8a5f208bfce973eb23b9deb4c9e3,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/IMG_5368.jpg,Tomato___Late_blight,g053210,field_train,049fc4787e2358524f8c3168770e42325fb01948,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/IMG_5360.jpg,Tomato___Late_blight,g053190,field_train,273b043ecb7d8a5f208bfce973eb23b9deb4c9e3,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/IMG_5368.jpg,Tomato___Late_blight,g053210,field_test,049fc4787e2358524f8c3168770e42325fb01948,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/IMG_5808.jpg,Tomato___Late_blight,g053211,field_train,9f5050e9f42ba91bb2f15a33ecebb9c0ede58f74,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/LB-2-225x300.jpg,Tomato___Late_blight,g053212,field_test,dad92a1b8d18e3ee483345d9524655e0982786ae,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/Late%20blight%20tomato1.jpg,Tomato___Late_blight,g053213,field_train,7bfa01f2d89924b07f921b1591e1f6b409ad9f76,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/Late%20blight%20tomato1.jpg,Tomato___Late_blight,g053213,field_test,7bfa01f2d89924b07f921b1591e1f6b409ad9f76,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/Late-Blight-A.jpg,Tomato___Late_blight,g053214,field_test,d859f8daa42f2a7ab2ca3b789662fac591aa1e90,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/Late-Blight-on-Tomato-4JDill.jpg,Tomato___Late_blight,g053215,field_test,b7654e5b1c1dddcd0f7bfca83e99dc779f85c2f7,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/Late-blight-foliar-leasion-on-tomato.jpg,Tomato___Late_blight,g053216,field_train,6c5021f6e828484f8310161abbc243b4a2526d2a,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/Late-blight-on-a-tomato-leaf.jpg,Tomato___Late_blight,g053217,field_train,c578923e3066852faac5063d8c007e6b3e1b5bee,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/Late-blight-symptoms-on-tomato-leaves-1r3uhy2.jpg,Tomato___Late_blight,g053218,field_train,d282f4ee5366e5d5ef59ca6ca1bc9cb8b7f1a047,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/Late-blight-tomato-leaf-VikramBisht-MBag.jpg,Tomato___Late_blight,g053219,field_test,3cd6a6d9356750a2ee8f98dc84b6f2ff3d092283,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/Late-blight-tomato-leaf-VikramBisht-MBag.jpg,Tomato___Late_blight,g053219,field_dev,3cd6a6d9356750a2ee8f98dc84b6f2ff3d092283,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/LateBlight-Leaflet-Large-Spot_9005-ROTATED-sbzntn.jpg,Tomato___Late_blight,g053220,field_train,6949b02c8a0dc579d5e77664784e1467d24b3313,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/LateBlight-Tomato-JJ-2009-17nxg4q.jpg,Tomato___Late_blight,g053221,field_dev,28a3bb1f426e71d6dcc12fcd0e50ac339abe7f57,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/LateBlightLeaf.jpg,Tomato___Late_blight,g053200,field_train,3c6b36aedcdd7a67f20728d8428ce4c558b94872,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/LateBlt09_05.jpg,Tomato___Late_blight,g053222,field_dev,397bd7a8981331f12923d4b6f1abd94434c0f433,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/LateBlt09_06.jpg,Tomato___Late_blight,g053223,field_dev,912b5d75c7a6e4facb2a30609711ed0be595e751,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/LateBlt_FromRusinek.jpg,Tomato___Late_blight,g053224,field_test,241c8859b48f84dd6bdf6cecaf510969460bf555,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/LateBlt_FromRusinek.jpg,Tomato___Late_blight,g053224,field_dev,241c8859b48f84dd6bdf6cecaf510969460bf555,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/Late_Blight_2.jpg,Tomato___Late_blight,g053225,field_dev,dd5ba2433830287761c896fda8a9519311f74852,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/Late_blight_on_tomato_leaf_%287871756748%29.jpg,Tomato___Late_blight,g053226,field_train,f03223f9b8b6de55adf0067652302ccf79314266,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/TOMATO%20LATE%20BLIGHT%20ON%20LEAF.jpg,Tomato___Late_blight,g053227,field_test,e1b9a4871c0ccafd7dbd5b70e77f5295aebb5f84,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/TOMATO%20LATE%20BLIGHT%20ON%20LEAF.jpg,Tomato___Late_blight,g053227,field_dev,e1b9a4871c0ccafd7dbd5b70e77f5295aebb5f84,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/ToamtoLateBlight3-Version-3-oohvze.jpg,Tomato___Late_blight,g053228,field_test,2287d27af52a01633c2115a32d3cd5a9a9074f14,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/Tomato%20late%20blight%20lesion%20closeup%2013F.JPG.jpg,Tomato___Late_blight,g053229,field_train,871c85b6531abaa1f06dab1989e7859e9dbee436,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/Tomato-Late-BlightBM.jpg,Tomato___Late_blight,g053230,field_train,a6d00277912abb7845196c7b249fd94ad4385164,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/Tomato-late-blight-leaf-Margaret-McGrath-Cornell-Bugwood.jpg,Tomato___Late_blight,g053220,field_train,6886bba7f8224ae2db3c0e458335f29e880113cd,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/TomatoBlight.JPG.jpg,Tomato___Late_blight,g053232,field_test,4023ac4e01c0a810c440960f02fde8847a39b9f6,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/TomatoLateBlight-3-Underside-2ebj05b-300x225.jpg,Tomato___Late_blight,g053233,field_train,1a6fa4f2e46a8e6f03eac45cf77c7f35eba59a2d,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/TomatoBlight.JPG.jpg,Tomato___Late_blight,g053232,field_dev,4023ac4e01c0a810c440960f02fde8847a39b9f6,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/TomatoLateBlight-3-Underside-2ebj05b-300x225.jpg,Tomato___Late_blight,g053233,field_test,1a6fa4f2e46a8e6f03eac45cf77c7f35eba59a2d,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/Tomato_Blight_Leaves.JPG.jpg,Tomato___Late_blight,g053234,field_train,d5e8cc139e613cdb987dc3208717dbc1b7575b25,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/b4fbdc99481a.jpg,Tomato___Late_blight,g053235,field_train,b4fbdc99481a4a47fd1643a0f08f133526f19851,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/dsc_4621c.jpg,Tomato___Late_blight,g053236,field_dev,3ddedcd5f6f2645f3be2d49f98dd8a8a7452f6e7,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/dsc_4621c.jpg,Tomato___Late_blight,g053236,field_train,3ddedcd5f6f2645f3be2d49f98dd8a8a7452f6e7,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/dsc_4624s.jpg,Tomato___Late_blight,g053237,field_dev,2a94ad31f9061b1ae515b06f021f7f294222de9f,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/dsc_8140cs.jpg,Tomato___Late_blight,g053238,field_test,b1dee10f51b6296235e92526d8f2ebb957f28a71,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/dsc_8148cs.jpg,Tomato___Late_blight,g053239,field_dev,fae171c90b66f4aa2cfa6b0e100c70e73c0b74fb,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/dsc_8148cs.jpg,Tomato___Late_blight,g053239,field_train,fae171c90b66f4aa2cfa6b0e100c70e73c0b74fb,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/gardening-moisture-lateblight-tomato-leaf.jpg,Tomato___Late_blight,g053240,field_train,cb2e24b274122a1f3d59151e6fa494acc9e49754,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/image.jpg,Tomato___Late_blight,g053241,field_dev,5c30735731332f699cea4320508324170b0b35fe,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/late-blight-TomC2-10.jpg,Tomato___Late_blight,g053242,field_train,bc45671c83470f8aebeafd7099c4b83875041093,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/late-blight-fungicides.jpg,Tomato___Late_blight,g053243,field_dev,2f4285a6a6bbef8b6329e35a4d5dccbf0642b613,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/late-blight-fungicides.jpg,Tomato___Late_blight,g053243,field_train,2f4285a6a6bbef8b6329e35a4d5dccbf0642b613,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/late-blight-phytophthora-infestans-damage-to-tomato-leaves-and-fruit-cmnxnf.jpg,Tomato___Late_blight,g053244,field_train,759309b73f7188320ce577562a0a6fe85d6dff79,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/late-blight-tom-leaf.jpg,Tomato___Late_blight,g053245,field_dev,0ae6666c97ae4ee6e0cb9c39a0435b6949be41d2,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/late-blight-tom-leaf.jpg,Tomato___Late_blight,g053245,field_train,0ae6666c97ae4ee6e0cb9c39a0435b6949be41d2,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/late-blight-tomato-leaf.jpg,Tomato___Late_blight,g053246,field_dev,5d3ba280b652fcae7dcf918dc8a823df10abb299,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/late-blight-tomato.jpg,Tomato___Late_blight,g053247,field_train,8333a18e9b21bbe6d841ae250ca685b4692fd363,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/late_blight1.jpg,Tomato___Late_blight,g053189,field_train,5fb978e6190ed1646e29945a6f704ef291fd0429,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/late_blight_2013_longisland1x1200.jpg,Tomato___Late_blight,g053248,field_train,aa2e8411b34ae88cdfa1e7931ed6e7684d6726ab,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/late_blight_2013_longisland2x1200.jpg,Tomato___Late_blight,g053249,field_dev,c3eade06dc87369dc83aa0daae9aabbc4663e706,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/late_blight_2013_longisland2x1200.jpg,Tomato___Late_blight,g053249,field_train,c3eade06dc87369dc83aa0daae9aabbc4663e706,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/late_blight_drought_leaves1x1200.jpg,Tomato___Late_blight,g053250,field_train,c1ef9efa766576a52b05497a5a4d7fabf6806fa2,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/late_blight_drought_leavescuux1200.jpg,Tomato___Late_blight,g053251,field_test,6c3ac902e830566a9b628b1fafeb182b659386b3,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/late_blight_tomato_leaf.jpg,Tomato___Late_blight,g053252,field_train,892e406abf0c81386ad0219aec2584e8fa286f71,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/late_blight_tomato_leaf.jpg,Tomato___Late_blight,g053252,field_test,892e406abf0c81386ad0219aec2584e8fa286f71,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/late_blight_tomato_leaf1x1200.jpg,Tomato___Late_blight,g053253,field_test,f7393acd4d0e73e70dceb4c847b34480f5432c96,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/late_blight_tomato_leaf5x12001-650x305.jpg,Tomato___Late_blight,g053254,field_train,8de9b5e95450f26cfe7d4659e9bf76550b0e7ab9,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/late_blight_tomato_leaf5x12001.jpg,Tomato___Late_blight,g053255,field_test,c79b1039661f4609cc27259d2b784d7763831e4e,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/late_blight_tomato_leaf_.jpg,Tomato___Late_blight,g053256,field_test,dd5838a0c25d28715b6a932195c460523649b141,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/late_blight_tomato_leaf5x12001.jpg,Tomato___Late_blight,g053255,field_dev,c79b1039661f4609cc27259d2b784d7763831e4e,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/late_blight_tomato_leaf_.jpg,Tomato___Late_blight,g053256,field_dev,dd5838a0c25d28715b6a932195c460523649b141,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/late_blight_tomato_leaf_spore1x1200.jpg,Tomato___Late_blight,g053257,field_dev,4617760874f9591c895c66d7ac3cdb9a7553165f,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/late_blight_tomato_leaf_sporex1200.jpg,Tomato___Late_blight,g053258,field_dev,7456ef6d01b11f37c3e7afb18389ca3daf1dfdfc,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/late_blight_tomato_leavesx500.jpg,Tomato___Late_blight,g053259,field_train,fd3247689d490333f0ef06dad778da0044c3cf96,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/late_blight_tomato_transplant2x1200.jpg,Tomato___Late_blight,g053260,field_dev,37e9921f781d2b70171cbbc8fe3706cd7dc5b9a0,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/late_blight_tomato_transplant2x1200.jpg,Tomato___Late_blight,g053260,field_train,37e9921f781d2b70171cbbc8fe3706cd7dc5b9a0,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/late_blight_tomato_unusual-symptomsx1200.jpg,Tomato___Late_blight,g053261,field_dev,5d67efc6f0d224d73858693d289de131932344e6,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/lateblight2.jpg,Tomato___Late_blight,g053262,field_dev,565621196f5aa4d1a1e15d57228c1cf67f21ca28,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/lateblight2.jpg,Tomato___Late_blight,g053262,field_train,565621196f5aa4d1a1e15d57228c1cf67f21ca28,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/lateblightTom_lesion.jpg,Tomato___Late_blight,g053263,field_dev,b56f33bc4e50ca4b5591c0dad93a6bc5866745f2,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/lateblightTom_lesion3.jpg,Tomato___Late_blight,g053264,field_test,809374e07df6e0cafe61cae1b76e986d37bc747a,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/lb2.jpg,Tomato___Late_blight,g053265,field_dev,97bcb51b493a0bbcfdf2ab3a9e6c21b305cc69be,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/lb2.jpg,Tomato___Late_blight,g053265,field_train,97bcb51b493a0bbcfdf2ab3a9e6c21b305cc69be,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/lb_leaf_lesions2x1200.jpg,Tomato___Late_blight,g053266,field_train,95b4f5443e0f98a0f9cf2a51d9ae77714f7f9314,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/lb_leaf_lesions3x1200.jpg,Tomato___Late_blight,g053267,field_test,fed6b2261f17e9a43b0f601b3599f8130f73bb41,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/lb_leaf_lesions4x1200.jpg,Tomato___Late_blight,g053268,field_train,2db67729cfafa72ece7f89800e28f55c72cbc447,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/lb_leaf_lesions3x1200.jpg,Tomato___Late_blight,g053267,field_dev,fed6b2261f17e9a43b0f601b3599f8130f73bb41,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/lb_leaf_lesions4x1200.jpg,Tomato___Late_blight,g053268,field_test,2db67729cfafa72ece7f89800e28f55c72cbc447,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/lbleaf.jpg,Tomato___Late_blight,g053269,field_train,7391dc92040bc08d6331a3e441b6957cc3d7fb5a,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/p1020076cs.jpg,Tomato___Late_blight,g053270,field_train,9498f0c49cdec12f685a6bf178f98e35874c356f,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/p1020076cs.jpg,Tomato___Late_blight,g053270,field_test,9498f0c49cdec12f685a6bf178f98e35874c356f,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/photo-2.jpg,Tomato___Late_blight,g053271,field_train,38f24f8e6d9171d96e37098d195952bcfb1a5193,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/photo-9.jpg,Tomato___Late_blight,g053272,field_train,f781ce01aaa976999b4fb9eb53d8de5f7a98e41e,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/symptoms_of_late_blight.jpg2__0.jpg,Tomato___Late_blight,g053233,field_train,3a6eaa39b6e448a0059063cb99680d093fcef7dd,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/photo-9.jpg,Tomato___Late_blight,g053272,field_test,f781ce01aaa976999b4fb9eb53d8de5f7a98e41e,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/symptoms_of_late_blight.jpg2__0.jpg,Tomato___Late_blight,g053233,field_test,3a6eaa39b6e448a0059063cb99680d093fcef7dd,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/tomato+blight.jpg,Tomato___Late_blight,g053273,field_test,b7419c18fa6e840c0beefa04b7a7cf22fdfdac98,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/tomato-blight-phytophthora-infestans-close-up-of-infected-leaf-b5n95x.jpg,Tomato___Late_blight,g053274,field_test,83fe1facee72e1c7489f5c7b78525f3a38e7e772,plantdoc
-datasets/raw/plantdoc/Tomato leaf late blight/tomato-late-blight-conn-2015-137c.jpg,Tomato___Late_blight,g053275,field_test,c27e762a18707fd91454f52584ca232e4a0bb83b,plantdoc
+datasets/raw/plantdoc/Tomato leaf late blight/tomato-late-blight-conn-2015-137c.jpg,Tomato___Late_blight,g053275,field_dev,c27e762a18707fd91454f52584ca232e4a0bb83b,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/tomato-late-blight-conn-2015-139rcs.jpg,Tomato___Late_blight,g053276,field_dev,5ca4d57bfe630197d0d1d5af40d939fe0f537ea8,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/tomato-late-blight-leaf-61-3x32.jpg,Tomato___Late_blight,g053277,field_dev,7d66715b70a0ea5b17773c96107b2ba59da97b06,plantdoc
 datasets/raw/plantdoc/Tomato leaf late blight/tomato-late-blight-phytophthora-infestans-lesions-on-greenhouse-grown-ATA11J.jpg,Tomato___Late_blight,g053278,field_dev,46d3f7de2b4ddebfcab0b51c1cd81323e3629a82,plantdoc
@@ -2517,98 +2513,98 @@ datasets/raw/plantseg_field/apple black rot/apple_black_rot_google_0174.jpg,Appl
 datasets/raw/plantseg_field/apple black rot/apple_black_rot_google_0190.jpg,Apple___Black_rot,g053761,field_train,4e81e79946d858224c6bec12e944499d5d12340b,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_1.jpg,Apple___Cedar_apple_rust,g053762,field_train,f46afb6560e79b12d677cc1f1dd7aad290ba94be,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_10.jpg,Apple___Cedar_apple_rust,g053763,field_train,bd57ee35327fa1c5afc3d7a52805664e6cef72eb,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_102.jpg,Apple___Cedar_apple_rust,g053764,field_train,d2cbcd43ff0197f94ac87a165fbc40440bd8be5f,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_106.jpg,Apple___Cedar_apple_rust,g053765,field_train,c3c5b6612d8cb4fbd4048b4ca1269d82491c3a64,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_107.jpg,Apple___Cedar_apple_rust,g053766,field_test,ba1e2e75349d41ef39254335d1133306abf7d406,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_114.jpg,Apple___Cedar_apple_rust,g053767,field_test,e2332b1fd559d9ae6a98a885286130fa9d40bd02,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_102.jpg,Apple___Cedar_apple_rust,g053764,field_dev,d2cbcd43ff0197f94ac87a165fbc40440bd8be5f,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_106.jpg,Apple___Cedar_apple_rust,g053765,field_dev,c3c5b6612d8cb4fbd4048b4ca1269d82491c3a64,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_107.jpg,Apple___Cedar_apple_rust,g053766,field_dev,ba1e2e75349d41ef39254335d1133306abf7d406,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_114.jpg,Apple___Cedar_apple_rust,g053767,field_dev,e2332b1fd559d9ae6a98a885286130fa9d40bd02,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_12.jpg,Apple___Cedar_apple_rust,g053768,field_train,65019700072ee301297b09f58096aec1eac0a953,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_124.jpg,Apple___Cedar_apple_rust,g053769,field_dev,21752b6936c1edba9d578f2b846af2e2721074c3,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_13.jpg,Apple___Cedar_apple_rust,g053770,field_train,4ef96f933f2fdaa4579b5af29f794aadc46e9858,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_147.jpg,Apple___Cedar_apple_rust,g053771,field_test,3258fbffd3b95d3d8a640a1fe82716877840b19b,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_150.jpg,Apple___Cedar_apple_rust,g053772,field_train,5060d84beffb5f1cd846875b4097a65f98864faf,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_147.jpg,Apple___Cedar_apple_rust,g053771,field_dev,3258fbffd3b95d3d8a640a1fe82716877840b19b,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_150.jpg,Apple___Cedar_apple_rust,g053772,field_test,5060d84beffb5f1cd846875b4097a65f98864faf,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_151.jpg,Apple___Cedar_apple_rust,g053773,field_dev,5aff657ee9ba2180c5cbc85b85d4dda73eaf6939,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_152.jpg,Apple___Cedar_apple_rust,g053774,field_train,25b05c1d32c76ad32bcf7427f5038594208b7c7f,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_153.jpg,Apple___Cedar_apple_rust,g053775,field_test,4943b6eec7497b3741cdbf7b10d5aced37422beb,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_155.jpg,Apple___Cedar_apple_rust,g053776,field_dev,74b5de9ba81ff199eae139b5b6550e35da1efa56,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_159.jpg,Apple___Cedar_apple_rust,g053777,field_train,c29a4c80ecf23b2ea1b5c22b41a0b802f4077e43,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_173.jpg,Apple___Cedar_apple_rust,g053779,field_dev,9c46d4aaec3124df361a8b720fce555e39c90e93,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_177.jpg,Apple___Cedar_apple_rust,g053780,field_train,3f15988afd2136f53e520a239bf604c9c5d3e512,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_155.jpg,Apple___Cedar_apple_rust,g053776,field_train,74b5de9ba81ff199eae139b5b6550e35da1efa56,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_159.jpg,Apple___Cedar_apple_rust,g053777,field_dev,c29a4c80ecf23b2ea1b5c22b41a0b802f4077e43,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_173.jpg,Apple___Cedar_apple_rust,g053779,field_train,9c46d4aaec3124df361a8b720fce555e39c90e93,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_177.jpg,Apple___Cedar_apple_rust,g053780,field_test,3f15988afd2136f53e520a239bf604c9c5d3e512,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_178.jpg,Apple___Cedar_apple_rust,g053781,field_test,58b50788d2f1ab5d997e6a608eb13e1cc86e52a9,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_181.jpg,Apple___Cedar_apple_rust,g053782,field_dev,7046dc8b29c48711733c96976596a0e2cd5913ea,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_19.jpg,Apple___Cedar_apple_rust,g053783,field_dev,2cfc7e599012952d9c8332613a56bba4bd4e7dfd,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_181.jpg,Apple___Cedar_apple_rust,g053782,field_train,7046dc8b29c48711733c96976596a0e2cd5913ea,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_19.jpg,Apple___Cedar_apple_rust,g053783,field_train,2cfc7e599012952d9c8332613a56bba4bd4e7dfd,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_2.jpg,Apple___Cedar_apple_rust,g053784,field_train,b1248cb31bbe6e774ef8c78ecdc0ed212db3a42c,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_20.jpg,Apple___Cedar_apple_rust,g053785,field_train,7a5bab81a78a62ce3f1563e6cf4142faa0bbffc2,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_21.jpg,Apple___Cedar_apple_rust,g053786,field_dev,4071946106f33da77a7145fae01115147902850b,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_27.jpg,Apple___Cedar_apple_rust,g053787,field_train,9ef0576ce8d30e15629543aeb36a1ffda5115034,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_28.jpg,Apple___Cedar_apple_rust,g053788,field_train,34bf4c77a6c48479562be5551faac5051b9a383f,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_3.jpg,Apple___Cedar_apple_rust,g053789,field_dev,d123bdc0ea4f81382855cf9fe981b319903f70b9,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_3.jpg,Apple___Cedar_apple_rust,g053789,field_train,d123bdc0ea4f81382855cf9fe981b319903f70b9,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_31.jpg,Apple___Cedar_apple_rust,g053791,field_train,ef30a13c177946e4a0e35a8ee52e97943d104dbf,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_33.jpg,Apple___Cedar_apple_rust,g053792,field_dev,cc19919a737665d8fc3716c7c68e37e0f4d3e401,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_35.jpg,Apple___Cedar_apple_rust,g053793,field_dev,946563f9db73aa1001d2592357c02a3cbf58b40f,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_33.jpg,Apple___Cedar_apple_rust,g053792,field_train,cc19919a737665d8fc3716c7c68e37e0f4d3e401,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_35.jpg,Apple___Cedar_apple_rust,g053793,field_train,946563f9db73aa1001d2592357c02a3cbf58b40f,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_36.jpg,Apple___Cedar_apple_rust,g053794,field_train,82e7a4f405dff9426aa0288d59ddcf20f367932d,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_4.jpg,Apple___Cedar_apple_rust,g053795,field_dev,3cd067a1c21d3e1197a7e419ff972cf1f7ad5080,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_40.jpg,Apple___Cedar_apple_rust,g053796,field_train,7a0add5e5f5b3313cf877ec93ee3dfcbd27159c6,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_4.jpg,Apple___Cedar_apple_rust,g053795,field_train,3cd067a1c21d3e1197a7e419ff972cf1f7ad5080,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_40.jpg,Apple___Cedar_apple_rust,g053796,field_test,7a0add5e5f5b3313cf877ec93ee3dfcbd27159c6,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_41.jpg,Apple___Cedar_apple_rust,g053797,field_train,cd13e2cb1e974995711b7ffa10d3e55d0313466a,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_42.jpg,Apple___Cedar_apple_rust,g053798,field_train,04062476a05a368145ebc464f6543c5814e98a0f,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_42.jpg,Apple___Cedar_apple_rust,g053798,field_test,04062476a05a368145ebc464f6543c5814e98a0f,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_44.jpg,Apple___Cedar_apple_rust,g053799,field_dev,83912ea12253c3415ba1b973e61648c3330c2b46,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_47.jpg,Apple___Cedar_apple_rust,g053800,field_dev,1a631d7588c3d47e6513304c0e2fc6fa415448d5,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_47.jpg,Apple___Cedar_apple_rust,g053800,field_train,1a631d7588c3d47e6513304c0e2fc6fa415448d5,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_49.jpg,Apple___Cedar_apple_rust,g053801,field_train,85a20b2fc04b61f1afac3f38fcd669589c81c879,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_50.jpg,Apple___Cedar_apple_rust,g053802,field_train,449f2f8392d2372527a176704e1a5ff70f5512a5,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_52.jpg,Apple___Cedar_apple_rust,g053803,field_test,709d726f4c5e8a1d49c60ea030ad8d9a003b7f29,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_55.jpg,Apple___Cedar_apple_rust,g053804,field_train,78f91fad4760a69b32164c4f31e7da7cd4614a10,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_6.jpg,Apple___Cedar_apple_rust,g053805,field_test,9f4d4265c002f8e0a4304692ad4f03e626f14dd7,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_60.jpg,Apple___Cedar_apple_rust,g053806,field_dev,931084fd9a08490d542abb5d7fec85d90b371c91,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_61.jpg,Apple___Cedar_apple_rust,g053807,field_test,d3feba41e0032718418c36cfdf55e3fb775dc7c5,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_50.jpg,Apple___Cedar_apple_rust,g053802,field_test,449f2f8392d2372527a176704e1a5ff70f5512a5,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_52.jpg,Apple___Cedar_apple_rust,g053803,field_dev,709d726f4c5e8a1d49c60ea030ad8d9a003b7f29,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_55.jpg,Apple___Cedar_apple_rust,g053804,field_test,78f91fad4760a69b32164c4f31e7da7cd4614a10,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_6.jpg,Apple___Cedar_apple_rust,g053805,field_dev,9f4d4265c002f8e0a4304692ad4f03e626f14dd7,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_60.jpg,Apple___Cedar_apple_rust,g053806,field_train,931084fd9a08490d542abb5d7fec85d90b371c91,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_61.jpg,Apple___Cedar_apple_rust,g053807,field_dev,d3feba41e0032718418c36cfdf55e3fb775dc7c5,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_66.jpg,Apple___Cedar_apple_rust,g053808,field_train,123a45063e6347e7555fe83796a900ce151c8f94,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_67.jpg,Apple___Cedar_apple_rust,g053809,field_train,fe0acdf8c94257e3b7a215deb6ed254e1755821f,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_67.jpg,Apple___Cedar_apple_rust,g053809,field_test,fe0acdf8c94257e3b7a215deb6ed254e1755821f,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_68.jpg,Apple___Cedar_apple_rust,g053810,field_train,fe6747b63b836093fb0c6714fbed8463980f3c27,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_69.jpg,Apple___Cedar_apple_rust,g053811,field_test,02398c157df7a85602ddef83e98e54f3254fd400,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_7.jpg,Apple___Cedar_apple_rust,g053812,field_dev,d9a1fb9ec02c6cb55c9802c54efd4cce91c62b6f,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_71.jpg,Apple___Cedar_apple_rust,g053813,field_test,a6a158a592479cd6198714742398bd402410336d,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_73.jpg,Apple___Cedar_apple_rust,g053814,field_train,4642a2055406a6f680d94a5ea4a13629c5daa9bd,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_74.jpg,Apple___Cedar_apple_rust,g053815,field_test,df4caa1f8d2a0947801fb2df4b70c995d94881a6,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_76.jpg,Apple___Cedar_apple_rust,g053816,field_train,7f95b639957b8f141b8b1f007b639b0dd8c7b48c,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_8.jpg,Apple___Cedar_apple_rust,g053818,field_dev,0da08232a40008db9d997d14811b77f9642d29e7,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_69.jpg,Apple___Cedar_apple_rust,g053811,field_dev,02398c157df7a85602ddef83e98e54f3254fd400,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_7.jpg,Apple___Cedar_apple_rust,g053812,field_test,d9a1fb9ec02c6cb55c9802c54efd4cce91c62b6f,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_71.jpg,Apple___Cedar_apple_rust,g053813,field_dev,a6a158a592479cd6198714742398bd402410336d,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_73.jpg,Apple___Cedar_apple_rust,g053814,field_test,4642a2055406a6f680d94a5ea4a13629c5daa9bd,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_74.jpg,Apple___Cedar_apple_rust,g053815,field_dev,df4caa1f8d2a0947801fb2df4b70c995d94881a6,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_76.jpg,Apple___Cedar_apple_rust,g053816,field_dev,7f95b639957b8f141b8b1f007b639b0dd8c7b48c,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_8.jpg,Apple___Cedar_apple_rust,g053818,field_train,0da08232a40008db9d997d14811b77f9642d29e7,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_84.jpg,Apple___Cedar_apple_rust,g053819,field_train,428e8d1b117b63bde5109eb2726b8fbfdd573540,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_9.jpg,Apple___Cedar_apple_rust,g053820,field_train,364586f16f2324a8eaaf13d1a890313b5cdf7d21,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_92.jpg,Apple___Cedar_apple_rust,g053821,field_train,df4206d4265cad1d1c044b858815c7a18d4980d3,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_93.jpg,Apple___Cedar_apple_rust,g053822,field_train,96dc67bc6ff3885680a26836c5503427d4f1197b,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_94.jpg,Apple___Cedar_apple_rust,g053823,field_train,fd47466cc70aef0e5e1c28db689d4eb07cda569e,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_94.jpg,Apple___Cedar_apple_rust,g053823,field_test,fd47466cc70aef0e5e1c28db689d4eb07cda569e,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_95.jpg,Apple___Cedar_apple_rust,g053824,field_train,aee6b5e17030b556234a01b82abe435b04af5ed0,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_98.jpg,Apple___Cedar_apple_rust,g053825,field_dev,93e8978e7bb56316b057653a0fa663c956506acb,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_98.jpg,Apple___Cedar_apple_rust,g053825,field_train,93e8978e7bb56316b057653a0fa663c956506acb,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_google_0007.jpg,Apple___Cedar_apple_rust,g053826,field_dev,1baf151996b076c52881ffb850c0919dbdd275ba,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_google_0008.jpg,Apple___Cedar_apple_rust,g053827,field_train,6393fff892404aa8bbffc0ef9090faa3da5967c6,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_google_0011.jpg,Apple___Cedar_apple_rust,g053828,field_train,c31dc2319769e1693b4ed0210d5f6be10d493b46,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_google_0013.jpg,Apple___Cedar_apple_rust,g053829,field_train,b6eefc75c52d431b91e7609894303f6dca7126e6,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_google_0019.jpg,Apple___Cedar_apple_rust,g053830,field_train,f16ddcdcfeca3f20b10efcb513419f8544fbcc94,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_google_0027.jpg,Apple___Cedar_apple_rust,g053831,field_train,c168a92946147f3a6578c92be6edb822264d98ec,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_google_0028.jpg,Apple___Cedar_apple_rust,g053832,field_train,1f53a01e3855f70ae052de439ef7ab19a85d4189,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_google_0031.jpg,Apple___Cedar_apple_rust,g053833,field_test,c150c43e4ca98ddb28224922eadc358a5e0bcae6,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_google_0035.jpg,Apple___Cedar_apple_rust,g053834,field_dev,2723bae9d8dfd1c9cb6bcf8ec56e65a1951eaefa,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_google_0037.jpg,Apple___Cedar_apple_rust,g053835,field_test,be23d653f0d9ed856e0d89258d4b3f8e44a21997,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_google_0008.jpg,Apple___Cedar_apple_rust,g053827,field_test,6393fff892404aa8bbffc0ef9090faa3da5967c6,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_google_0011.jpg,Apple___Cedar_apple_rust,g053828,field_test,c31dc2319769e1693b4ed0210d5f6be10d493b46,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_google_0013.jpg,Apple___Cedar_apple_rust,g053829,field_test,b6eefc75c52d431b91e7609894303f6dca7126e6,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_google_0019.jpg,Apple___Cedar_apple_rust,g053830,field_test,f16ddcdcfeca3f20b10efcb513419f8544fbcc94,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_google_0027.jpg,Apple___Cedar_apple_rust,g053831,field_dev,c168a92946147f3a6578c92be6edb822264d98ec,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_google_0028.jpg,Apple___Cedar_apple_rust,g053832,field_test,1f53a01e3855f70ae052de439ef7ab19a85d4189,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_google_0031.jpg,Apple___Cedar_apple_rust,g053833,field_train,c150c43e4ca98ddb28224922eadc358a5e0bcae6,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_google_0035.jpg,Apple___Cedar_apple_rust,g051454,field_dev,2723bae9d8dfd1c9cb6bcf8ec56e65a1951eaefa,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_google_0037.jpg,Apple___Cedar_apple_rust,g053835,field_train,be23d653f0d9ed856e0d89258d4b3f8e44a21997,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_google_0049.jpg,Apple___Cedar_apple_rust,g053836,field_train,af3eecde2c3a292acb4cf3148002534a9f8ba7e7,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_google_0054.jpg,Apple___Cedar_apple_rust,g053837,field_train,00984be708279ae18587b9aedda892588627e2ae,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_google_0054.jpg,Apple___Cedar_apple_rust,g053837,field_test,00984be708279ae18587b9aedda892588627e2ae,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_google_0057.jpg,Apple___Cedar_apple_rust,g053838,field_train,f690366bcee687f153bf680a1e758ac754bbb393,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_google_0058.jpg,Apple___Cedar_apple_rust,g053839,field_dev,66808b0ca8646084babf844fdf259be6f01b2144,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_google_0058.jpg,Apple___Cedar_apple_rust,g053839,field_test,66808b0ca8646084babf844fdf259be6f01b2144,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_google_0065.jpg,Apple___Cedar_apple_rust,g053840,field_train,5a407a100712e7de352f0bf8b921b8db2b578f9a,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_google_0069.jpg,Apple___Cedar_apple_rust,g051449,field_train,7202daccfc73bcb63fdc9c63e993e904d4f69096,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_google_0073.jpg,Apple___Cedar_apple_rust,g053842,field_train,bb8fd307e1f0eff6799f6881938a39312912affe,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_google_0083.jpg,Apple___Cedar_apple_rust,g053843,field_train,46cc59cb2cbf73bbfc5b1053360eb05a48d20d36,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_google_0092.jpg,Apple___Cedar_apple_rust,g053844,field_dev,09483a921687ead210e6e8c5f2e06cd5cc0cd736,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_google_0094.jpg,Apple___Cedar_apple_rust,g053845,field_dev,ef1dea328fe1b0be7296b1c627ad0207f34bc086,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_google_0095.jpg,Apple___Cedar_apple_rust,g053846,field_dev,acaa08bae23c5fda399771abf40c1fb11ca7e246,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_google_0092.jpg,Apple___Cedar_apple_rust,g053844,field_train,09483a921687ead210e6e8c5f2e06cd5cc0cd736,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_google_0094.jpg,Apple___Cedar_apple_rust,g053845,field_train,ef1dea328fe1b0be7296b1c627ad0207f34bc086,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_google_0095.jpg,Apple___Cedar_apple_rust,g053846,field_train,acaa08bae23c5fda399771abf40c1fb11ca7e246,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_google_0111.jpg,Apple___Cedar_apple_rust,g053847,field_train,cb330d5e86a2dca485fd490189e01a9923f4f5eb,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_google_0121.jpg,Apple___Cedar_apple_rust,g053848,field_test,b9b27c95f525d43fbb23afd68e882d5232935d61,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_google_0121.jpg,Apple___Cedar_apple_rust,g053848,field_dev,b9b27c95f525d43fbb23afd68e882d5232935d61,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_google_0135.jpg,Apple___Cedar_apple_rust,g053849,field_dev,f73542b825d2aafc4b837d6b32ea52121b56329b,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_google_0139.jpg,Apple___Cedar_apple_rust,g053850,field_test,7d1cde99df51c0d31d40ed3b8fb9f2c7e8378e2e,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_google_0139.jpg,Apple___Cedar_apple_rust,g053850,field_train,7d1cde99df51c0d31d40ed3b8fb9f2c7e8378e2e,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_google_0147.jpg,Apple___Cedar_apple_rust,g053851,field_train,b80446943c6cfe711507c287971f0c8c6f140eb0,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_google_0172.jpg,Apple___Cedar_apple_rust,g053852,field_dev,e57fda2475c7305ccd4d1c91001112174c745c36,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_google_0175.jpg,Apple___Cedar_apple_rust,g053853,field_test,25acf0b50f38e26df460a8941e7a739830ee1feb,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_google_0172.jpg,Apple___Cedar_apple_rust,g053852,field_train,e57fda2475c7305ccd4d1c91001112174c745c36,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_google_0175.jpg,Apple___Cedar_apple_rust,g053853,field_dev,25acf0b50f38e26df460a8941e7a739830ee1feb,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_google_0191.jpg,Apple___Cedar_apple_rust,g053854,field_dev,4f39bc65673ce1ca3789c6361a053c5b3a94898a,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_google_0201.jpg,Apple___Cedar_apple_rust,g053855,field_dev,ed56a699760ba19229e21128e6f0a24e11dbb99c,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_google_0203.jpg,Apple___Cedar_apple_rust,g053856,field_train,c86894ec081d03e1d3e08e792c4a58430654d910,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_google_0201.jpg,Apple___Cedar_apple_rust,g053855,field_train,ed56a699760ba19229e21128e6f0a24e11dbb99c,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_google_0203.jpg,Apple___Cedar_apple_rust,g053856,field_dev,c86894ec081d03e1d3e08e792c4a58430654d910,plantseg
 datasets/raw/plantseg_field/apple rust/apple_rust_google_0215.jpg,Apple___Cedar_apple_rust,g053857,field_train,ee009d3f6d733b81ae00eaebbcebeebf4826d51c,plantseg
-datasets/raw/plantseg_field/apple rust/apple_rust_google_0238.jpg,Apple___Cedar_apple_rust,g053858,field_test,f268d0afc21e9f4d8b4a14ad96c8066a2bc0fc5e,plantseg
+datasets/raw/plantseg_field/apple rust/apple_rust_google_0238.jpg,Apple___Cedar_apple_rust,g053858,field_train,f268d0afc21e9f4d8b4a14ad96c8066a2bc0fc5e,plantseg
 datasets/raw/plantseg_field/apple scab/apple_scab_1.jpg,Apple___Apple_scab,g053859,field_train,343262bc916333d216034b1cca52b7d305483b41,plantseg
 datasets/raw/plantseg_field/apple scab/apple_scab_11.jpg,Apple___Apple_scab,g053860,field_train,b8ffb10b5369a8921e0de832aca0680e03078e1e,plantseg
 datasets/raw/plantseg_field/apple scab/apple_scab_118.jpg,Apple___Apple_scab,g053861,field_train,79c3785f3cc7fd4922859913ec5076789761d2bb,plantseg
@@ -3284,36 +3280,36 @@ datasets/raw/plantseg_field/grape black rot/grape_black_rot_google_0330.jpg,Grap
 datasets/raw/plantseg_field/grape black rot/grape_black_rot_google_0332.jpg,Grape___Black_rot,g054497,field_test,0008742dd0ba67cd5c0f9a5962983d25b23d54b1,plantseg
 datasets/raw/plantseg_field/grape black rot/grape_black_rot_google_0356.jpg,Grape___Black_rot,g054498,field_dev,3aaf68f7478d08dc3b1da1b7245635c0f16be40e,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_1.jpg,Potato___Early_blight,g054499,field_train,4abdb211c0630da9146e0cb57f7a330ddea3e425,plantseg
-datasets/raw/plantseg_field/potato early blight/potato_early_blight_100.jpg,Potato___Early_blight,g054500,field_train,14969a155d11e37a9817a63a766161960e44e4de,plantseg
-datasets/raw/plantseg_field/potato early blight/potato_early_blight_11.jpg,Potato___Early_blight,g054501,field_dev,686079130bb4d0b4c46da6062c7a850ccab3828a,plantseg
-datasets/raw/plantseg_field/potato early blight/potato_early_blight_13.jpg,Potato___Early_blight,g054502,field_test,6926ab4cc891320c104cb83c7bdf15aab74aebb3,plantseg
-datasets/raw/plantseg_field/potato early blight/potato_early_blight_14.jpg,Potato___Early_blight,g054503,field_train,581c447549240e43d74801cbd69181c80a615df2,plantseg
-datasets/raw/plantseg_field/potato early blight/potato_early_blight_16.jpg,Potato___Early_blight,g054504,field_train,71e57c7cf741b2d39314e4dc0e4b42a802f0f75f,plantseg
+datasets/raw/plantseg_field/potato early blight/potato_early_blight_100.jpg,Potato___Early_blight,g054500,field_dev,14969a155d11e37a9817a63a766161960e44e4de,plantseg
+datasets/raw/plantseg_field/potato early blight/potato_early_blight_11.jpg,Potato___Early_blight,g054501,field_test,686079130bb4d0b4c46da6062c7a850ccab3828a,plantseg
+datasets/raw/plantseg_field/potato early blight/potato_early_blight_13.jpg,Potato___Early_blight,g054502,field_train,6926ab4cc891320c104cb83c7bdf15aab74aebb3,plantseg
+datasets/raw/plantseg_field/potato early blight/potato_early_blight_14.jpg,Potato___Early_blight,g054503,field_dev,581c447549240e43d74801cbd69181c80a615df2,plantseg
+datasets/raw/plantseg_field/potato early blight/potato_early_blight_16.jpg,Potato___Early_blight,g054504,field_dev,71e57c7cf741b2d39314e4dc0e4b42a802f0f75f,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_21.jpg,Potato___Early_blight,g054505,field_train,4d55a45ade96f293958bef19836b9bc66fb8eb44,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_23.jpg,Potato___Early_blight,g054505,field_train,0230f53129db8115bb1c0323fa9090c0eb664004,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_3.jpg,Potato___Early_blight,g054506,field_train,741948110c1cfd0d3f240ecc2eddb95023360cc8,plantseg
-datasets/raw/plantseg_field/potato early blight/potato_early_blight_30.jpg,Potato___Early_blight,g054507,field_train,c91a9b6e449ea8f087a8fe4dc9be824242386bf4,plantseg
-datasets/raw/plantseg_field/potato early blight/potato_early_blight_37.jpg,Potato___Early_blight,g054508,field_test,d48576f2c9692ee32e1486c7ebaf9f92ed129e9d,plantseg
+datasets/raw/plantseg_field/potato early blight/potato_early_blight_30.jpg,Potato___Early_blight,g054507,field_test,c91a9b6e449ea8f087a8fe4dc9be824242386bf4,plantseg
+datasets/raw/plantseg_field/potato early blight/potato_early_blight_37.jpg,Potato___Early_blight,g054508,field_train,d48576f2c9692ee32e1486c7ebaf9f92ed129e9d,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_38.jpg,Potato___Early_blight,g054509,field_test,32d2e862b751fcc37f4a23fbf694b8bb591ace7d,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_44.jpg,Potato___Early_blight,g054511,field_train,5af1891e6818f1385ed6be1bcf660b0954113b61,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_45.jpg,Potato___Early_blight,g054512,field_dev,1f80e70a66b56e62a9e1cd87e8236329d6be12ee,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_5.jpg,Potato___Early_blight,g054513,field_test,1d139f081d1339ebb33538c0351b92f5184cbf16,plantseg
-datasets/raw/plantseg_field/potato early blight/potato_early_blight_51.jpg,Potato___Early_blight,g054514,field_test,6739362b95abb593cf49c236aa28fcec3fbfd3e1,plantseg
-datasets/raw/plantseg_field/potato early blight/potato_early_blight_56.jpg,Potato___Early_blight,g054508,field_test,692dd1d7b39bc74ebb142646ee10e6baed8876d2,plantseg
-datasets/raw/plantseg_field/potato early blight/potato_early_blight_59.jpg,Potato___Early_blight,g054517,field_dev,107d39130579b9435f82616e45eade51f09bd9fa,plantseg
+datasets/raw/plantseg_field/potato early blight/potato_early_blight_51.jpg,Potato___Early_blight,g054514,field_dev,6739362b95abb593cf49c236aa28fcec3fbfd3e1,plantseg
+datasets/raw/plantseg_field/potato early blight/potato_early_blight_56.jpg,Potato___Early_blight,g054508,field_train,692dd1d7b39bc74ebb142646ee10e6baed8876d2,plantseg
+datasets/raw/plantseg_field/potato early blight/potato_early_blight_59.jpg,Potato___Early_blight,g054517,field_train,107d39130579b9435f82616e45eade51f09bd9fa,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_6.jpg,Potato___Early_blight,g054518,field_train,2fb974ad93d6ed8f6efc8b143250ee90994f2657,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_60.jpg,Potato___Early_blight,g054519,field_train,e1c25c3177704761222d3c3b2431319f41fcc1c1,plantseg
-datasets/raw/plantseg_field/potato early blight/potato_early_blight_64.jpg,Potato___Early_blight,g054520,field_train,64205d722fd682c172d063f9b65e2333cdd24639,plantseg
-datasets/raw/plantseg_field/potato early blight/potato_early_blight_68.jpg,Potato___Early_blight,g054521,field_dev,018955eb0e35b9eff2b1ce7837ba69baf78f573b,plantseg
-datasets/raw/plantseg_field/potato early blight/potato_early_blight_69.jpg,Potato___Early_blight,g054522,field_test,d0d2abb5e2b869c0a13027b4a6ac9305b7f29b38,plantseg
+datasets/raw/plantseg_field/potato early blight/potato_early_blight_64.jpg,Potato___Early_blight,g054520,field_test,64205d722fd682c172d063f9b65e2333cdd24639,plantseg
+datasets/raw/plantseg_field/potato early blight/potato_early_blight_68.jpg,Potato___Early_blight,g054521,field_train,018955eb0e35b9eff2b1ce7837ba69baf78f573b,plantseg
+datasets/raw/plantseg_field/potato early blight/potato_early_blight_69.jpg,Potato___Early_blight,g054522,field_train,d0d2abb5e2b869c0a13027b4a6ac9305b7f29b38,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_75.jpg,Potato___Early_blight,g054523,field_train,50d31386a2feb2a36e83682f067ec01b0eb4007e,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_78.jpg,Potato___Early_blight,g054524,field_train,a9627feb05a138de6025a73081ddd7f7faeecfac,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_9.jpg,Potato___Early_blight,g054525,field_test,39c1447937687b557b5b4bd7e5f320d5ae106785,plantseg
-datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0001.jpg,Potato___Early_blight,g054526,field_test,dab3df0b8623324cb0872c9caf3e02d78547e154,plantseg
+datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0001.jpg,Potato___Early_blight,g054520,field_test,dab3df0b8623324cb0872c9caf3e02d78547e154,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0004.jpg,Potato___Early_blight,g052302,field_test,a50878baab2b1f11627dc81ade37de1d0baa920c,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0006.jpg,Potato___Early_blight,g054528,field_dev,bb235647958c791cee65f41e017bde557a7ba329,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0007.jpg,Potato___Early_blight,g054529,field_train,1f8326252f7bfec1ae26df3ae5c49d05f27422a2,plantseg
-datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0011.jpg,Potato___Early_blight,g054530,field_test,3a3026d63fb2e06683cf0031a4a6d27f7d3c0707,plantseg
+datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0011.jpg,Potato___Early_blight,g054530,field_dev,3a3026d63fb2e06683cf0031a4a6d27f7d3c0707,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0012.jpg,Potato___Early_blight,g054531,field_test,b1f8ad5890c86f5a8cbb033555b1c63e3324ce44,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0015.jpg,Potato___Early_blight,g054532,field_train,1a639e24bc0ab54603952c3d621173e43f71f589,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0021.jpg,Potato___Early_blight,g052331,field_test,a3b4427be4ef793c10ac9d9112024b0eefe76278,plantseg
@@ -3322,86 +3318,86 @@ datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0063.
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0071.jpg,Potato___Early_blight,g054538,field_dev,9d4ee9892b1e1a29631b54f19c215c284537bb44,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0077.jpg,Potato___Early_blight,g054539,field_dev,40b1fbad88ed2d936a175f82a1621b1a72f897c4,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0089.jpg,Potato___Early_blight,g054541,field_train,ee208ef680625fb735140173e9834a6ac6230de5,plantseg
-datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0095.jpg,Potato___Early_blight,g054542,field_test,169aac74ca36d2be642b72c9b41bf0d3053bfcbc,plantseg
+datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0095.jpg,Potato___Early_blight,g054542,field_train,169aac74ca36d2be642b72c9b41bf0d3053bfcbc,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0119.jpg,Potato___Early_blight,g054544,field_dev,62f6cfc8b12cb97249616a46318678f329acdb89,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0156.jpg,Potato___Early_blight,g054545,field_train,38f983195ac8ce4c14d1d2dd9887aff663967de4,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0168.jpg,Potato___Early_blight,g054546,field_dev,a48ea60e2e14032b860268c309c3051021bf7431,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0183.jpg,Potato___Early_blight,g054547,field_train,4c6b91d17f8e4eaf0f2099894112cc2fe65bcd19,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0185.jpg,Potato___Early_blight,g054548,field_train,7ade949f6d51a00b3d31ccc518815e3ed5019a20,plantseg
-datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0197.jpg,Potato___Early_blight,g054549,field_dev,011b02fca5943125c592fd8da5ac444649a312f9,plantseg
+datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0197.jpg,Potato___Early_blight,g054549,field_train,011b02fca5943125c592fd8da5ac444649a312f9,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0215.jpg,Potato___Early_blight,g054551,field_train,6a8b13421f963b8b8e5719c8d260f26235cd222e,plantseg
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0345.jpg,Potato___Early_blight,g052302,field_test,6814e80acfde6314c329089fb9a25de0e4762270,plantseg
-datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0366.jpg,Potato___Early_blight,g054553,field_train,626f8a0d97094124f6955e23bb63dcfe1e67d0ed,plantseg
+datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0366.jpg,Potato___Early_blight,g054553,field_test,626f8a0d97094124f6955e23bb63dcfe1e67d0ed,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_1.jpg,Potato___Late_blight,g054554,field_train,cbf61cebf64d92adece0cc47b842a93ee6cf0215,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_105.jpg,Potato___Late_blight,g054555,field_train,2d7af5e58204e5594931554db8445228b56454ad,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_11.jpg,Potato___Late_blight,g054556,field_test,ee40ae84bb259c95aab20b1073c7b5a4ed3ec482,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_12.jpg,Potato___Late_blight,g054557,field_train,4a8005fe87d943fdc3f7a842b5e0eb33b0168be0,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_13.jpg,Potato___Late_blight,g054558,field_test,16dcdf08630f39c01507822d00d54651553a9a6d,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_18.jpg,Potato___Late_blight,g054559,field_test,a99656ee62086a485246d7f32181879ee63df64b,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_2.jpg,Potato___Late_blight,g054560,field_dev,e2f29b293f0046433374f189a51275e88f6829ac,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_20.jpg,Potato___Late_blight,g054561,field_test,056fec7576eec50d28cdfbc331c8a44c84378239,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_11.jpg,Potato___Late_blight,g054556,field_dev,ee40ae84bb259c95aab20b1073c7b5a4ed3ec482,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_12.jpg,Potato___Late_blight,g054557,field_test,4a8005fe87d943fdc3f7a842b5e0eb33b0168be0,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_13.jpg,Potato___Late_blight,g054558,field_dev,16dcdf08630f39c01507822d00d54651553a9a6d,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_18.jpg,Potato___Late_blight,g054559,field_dev,a99656ee62086a485246d7f32181879ee63df64b,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_2.jpg,Potato___Late_blight,g054560,field_train,e2f29b293f0046433374f189a51275e88f6829ac,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_20.jpg,Potato___Late_blight,g054561,field_train,056fec7576eec50d28cdfbc331c8a44c84378239,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_23.jpg,Potato___Late_blight,g054562,field_train,389bd37140265ea114866b18e9183f0d6fc66ea4,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_25.jpg,Potato___Late_blight,g054563,field_dev,283bf072a99b90b8449e9d2c29674af3373cc448,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_3.jpg,Potato___Late_blight,g054564,field_train,1fa8f021798a5f57c00c3ca4640db318c6621bb9,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_25.jpg,Potato___Late_blight,g054563,field_train,283bf072a99b90b8449e9d2c29674af3373cc448,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_3.jpg,Potato___Late_blight,g054564,field_test,1fa8f021798a5f57c00c3ca4640db318c6621bb9,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_35.jpg,Potato___Late_blight,g054565,field_test,7dc521eb2be39f701e92e426f0e32702f457c96b,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_36.jpg,Potato___Late_blight,g054566,field_train,bce5849d38d16ac49ea129d2da72fe5a4b40ee1e,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_37.jpg,Potato___Late_blight,g054567,field_test,67158542d897ec8109943bcee6e8938416009461,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_36.jpg,Potato___Late_blight,g054566,field_test,bce5849d38d16ac49ea129d2da72fe5a4b40ee1e,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_37.jpg,Potato___Late_blight,g054567,field_dev,67158542d897ec8109943bcee6e8938416009461,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_38.jpg,Potato___Late_blight,g054568,field_train,04b97549cd0da154423a6a99556ae1acaa862358,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_39.jpg,Potato___Late_blight,g054569,field_train,713bb0925e78e5b7da0627b8365ee69fd4e8c46d,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_4.jpg,Potato___Late_blight,g054570,field_dev,ed55b6ec046a2924f3badec9e472f03420b935d8,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_4.jpg,Potato___Late_blight,g054570,field_test,ed55b6ec046a2924f3badec9e472f03420b935d8,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_41.jpg,Potato___Late_blight,g054571,field_train,b9ce52808109f54d7bc1f41909ac2f470f0e50e4,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_43.jpg,Potato___Late_blight,g054572,field_train,32cc56f4a8d1abcee51f623d793764b18e8ad7a2,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_44.jpg,Potato___Late_blight,g054573,field_train,41a158d6eafafccd0db7305727a773edfde53dfe,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_44.jpg,Potato___Late_blight,g054573,field_dev,41a158d6eafafccd0db7305727a773edfde53dfe,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_5.jpg,Potato___Late_blight,g054574,field_train,5b0412a5a02445b96cf97ff2924da025608812ab,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_58.jpg,Potato___Late_blight,g054575,field_dev,b90551d8082fd959bc5b5cdf50db9444540b4e45,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_6.jpg,Potato___Late_blight,g054576,field_dev,7f2802c88a9f4e08a4e5180e76e94551ceb02b6a,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_67.jpg,Potato___Late_blight,g054577,field_train,de6229a1d939199a702e9d5666796b5d1234dc23,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_58.jpg,Potato___Late_blight,g054575,field_test,b90551d8082fd959bc5b5cdf50db9444540b4e45,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_6.jpg,Potato___Late_blight,g054576,field_test,7f2802c88a9f4e08a4e5180e76e94551ceb02b6a,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_67.jpg,Potato___Late_blight,g054577,field_test,de6229a1d939199a702e9d5666796b5d1234dc23,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_7.jpg,Potato___Late_blight,g054578,field_dev,6992cf91136002ac01c2dd0eb7ba03857a9aa3f2,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_78.jpg,Potato___Late_blight,g054579,field_dev,fc62761d7da998e8a9221cfae3c6214de7ebf23d,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_79.jpg,Potato___Late_blight,g054580,field_train,bfeff4d1a2f22a7d62833bfecc42af1a60dcd230,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_78.jpg,Potato___Late_blight,g054579,field_test,fc62761d7da998e8a9221cfae3c6214de7ebf23d,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_79.jpg,Potato___Late_blight,g054580,field_dev,bfeff4d1a2f22a7d62833bfecc42af1a60dcd230,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_86.jpg,Potato___Late_blight,g054581,field_test,67c26a066ff933d8fe468632d8a0f2fd7187c08b,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_87.jpg,Potato___Late_blight,g054582,field_train,fddefc2b71584a8441715e9ba9fa2048144ce60e,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_93.jpg,Potato___Late_blight,g052407,field_train,fb85fc81dad17e90dbc39954345e0d19080687dd,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_95.jpg,Potato___Late_blight,g054583,field_dev,9a6dec71b2459332e46bc31b64ad6e14507af157,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_96.jpg,Potato___Late_blight,g054584,field_test,183590189d42161346f50695982cc613f7bd2f65,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_96.jpg,Potato___Late_blight,g054584,field_train,183590189d42161346f50695982cc613f7bd2f65,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0000.jpg,Potato___Late_blight,g054585,field_train,04d884aa623e84dbc4c4bece625002112b778ec7,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0006.jpg,Potato___Late_blight,g054586,field_dev,63628b360d207cf666ec7924b91e0a9c80cb8d40,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0011.jpg,Potato___Late_blight,g052451,field_test,f9f48117ef8e822747ef6a4c93b29c8d461989e0,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0006.jpg,Potato___Late_blight,g054586,field_train,63628b360d207cf666ec7924b91e0a9c80cb8d40,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0011.jpg,Potato___Late_blight,g052451,field_dev,f9f48117ef8e822747ef6a4c93b29c8d461989e0,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0013.jpg,Potato___Late_blight,g054588,field_train,dde34331fbb17051a2d5c7be9e4e9bfa3d8adbd8,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0021.jpg,Potato___Late_blight,g054589,field_train,bc6a469eed8b14ee6515ca9db3ed8ac6feb2273d,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0022.jpg,Potato___Late_blight,g054590,field_test,585c0fd77e822e89a8c60308ceb6a0f02f52da99,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0029.jpg,Potato___Late_blight,g054591,field_test,61765aca8845d6c0070ffbda377f993725ca5662,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0030.jpg,Potato___Late_blight,g052365,field_dev,5b50d16d894dcb63be0256dfece8816a03f12a62,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0021.jpg,Potato___Late_blight,g054589,field_dev,bc6a469eed8b14ee6515ca9db3ed8ac6feb2273d,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0022.jpg,Potato___Late_blight,g054590,field_train,585c0fd77e822e89a8c60308ceb6a0f02f52da99,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0029.jpg,Potato___Late_blight,g054591,field_train,61765aca8845d6c0070ffbda377f993725ca5662,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0030.jpg,Potato___Late_blight,g052365,field_train,5b50d16d894dcb63be0256dfece8816a03f12a62,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0032.jpg,Potato___Late_blight,g054592,field_train,4133e594a655c47f42bfa86188302c1bb85fe29a,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0033.jpg,Potato___Late_blight,g054593,field_dev,4febcbef04593aebfc0523f3e3a63af55e3eb006,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0033.jpg,Potato___Late_blight,g054593,field_train,4febcbef04593aebfc0523f3e3a63af55e3eb006,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0039.jpg,Potato___Late_blight,g052362,field_train,d8d3f6403cd982264219536a523d234000ef372c,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0042.jpg,Potato___Late_blight,g054595,field_dev,231679081ba449d99a3bd13fe826e4eb2c91100f,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0042.jpg,Potato___Late_blight,g054595,field_test,231679081ba449d99a3bd13fe826e4eb2c91100f,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0043.jpg,Potato___Late_blight,g054596,field_train,815708a6dd7848cfcf64a2fdc7f2334cdd7ef79f,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0048.jpg,Potato___Late_blight,g054564,field_train,2a2e0d942da08815f59fd05d7c18983d863942ea,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0050.jpg,Potato___Late_blight,g054597,field_test,162a51bbd97c6cba61c8dfcba5b412f2856a2124,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0048.jpg,Potato___Late_blight,g054564,field_test,2a2e0d942da08815f59fd05d7c18983d863942ea,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0050.jpg,Potato___Late_blight,g054597,field_train,162a51bbd97c6cba61c8dfcba5b412f2856a2124,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0053.jpg,Potato___Late_blight,g052426,field_dev,c6733b425789df58d29d2070ceced5d2d52db935,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0063.jpg,Potato___Late_blight,g052367,field_test,af93498cddf7d3c7fe0080d988eff8c4b00755ce,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0068.jpg,Potato___Late_blight,g054598,field_test,7c86dce28cb4649e5183ff529482092c4b3f1b43,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0079.jpg,Potato___Late_blight,g054599,field_train,c331686a94e85178c1c877c70180429625b0a85b,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0063.jpg,Potato___Late_blight,g052367,field_dev,af93498cddf7d3c7fe0080d988eff8c4b00755ce,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0068.jpg,Potato___Late_blight,g054598,field_dev,7c86dce28cb4649e5183ff529482092c4b3f1b43,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0079.jpg,Potato___Late_blight,g054599,field_dev,c331686a94e85178c1c877c70180429625b0a85b,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0082.jpg,Potato___Late_blight,g054600,field_train,dd1a5b87f116aeec460d559a54a987dd6d3f15d9,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0084.jpg,Potato___Late_blight,g054601,field_dev,434586398b56f57c409aedb41948b475ecaad3bf,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0085.jpg,Potato___Late_blight,g052378,field_train,57a654ae6795496123efd12cab7c26a795f18bac,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0086.jpg,Potato___Late_blight,g054602,field_dev,1f790430986276f28fcda3f3f9ad84288c4c0306,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0100.jpg,Potato___Late_blight,g054603,field_train,cd9b73bd0a055874d0a88ec6cfcd8b5f49ff63fb,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0102.jpg,Potato___Late_blight,g054604,field_test,0c3b5c5a47f95b09733edd7de93ee81a3789d9a3,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0105.jpg,Potato___Late_blight,g054605,field_test,2e611db59ab635049f7da7d3082c21a59c71168b,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0084.jpg,Potato___Late_blight,g054601,field_train,434586398b56f57c409aedb41948b475ecaad3bf,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0085.jpg,Potato___Late_blight,g052378,field_test,57a654ae6795496123efd12cab7c26a795f18bac,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0086.jpg,Potato___Late_blight,g054602,field_train,1f790430986276f28fcda3f3f9ad84288c4c0306,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0100.jpg,Potato___Late_blight,g054603,field_test,cd9b73bd0a055874d0a88ec6cfcd8b5f49ff63fb,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0102.jpg,Potato___Late_blight,g054604,field_dev,0c3b5c5a47f95b09733edd7de93ee81a3789d9a3,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0105.jpg,Potato___Late_blight,g054605,field_dev,2e611db59ab635049f7da7d3082c21a59c71168b,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0107.jpg,Potato___Late_blight,g054606,field_train,1d1334f19e2f2c7482a1bc892dc96130caa0f410,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0114.jpg,Potato___Late_blight,g054607,field_test,c011a72d96e2dac08abf83befaa1c32d5d7a3b7c,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0118.jpg,Potato___Late_blight,g054608,field_test,a226125f5a7cb9cebfe24f37193b5efdb94970f1,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0114.jpg,Potato___Late_blight,g054607,field_dev,c011a72d96e2dac08abf83befaa1c32d5d7a3b7c,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0118.jpg,Potato___Late_blight,g054608,field_train,a226125f5a7cb9cebfe24f37193b5efdb94970f1,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0121.jpg,Potato___Late_blight,g054609,field_train,355fd9aabdb5a493c7b17bd58c923be7b2768505,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0130.jpg,Potato___Late_blight,g052442,field_dev,8c02b77c51da64338a71ff31bf9988cd13628332,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0130.jpg,Potato___Late_blight,g052442,field_train,8c02b77c51da64338a71ff31bf9988cd13628332,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0136.jpg,Potato___Late_blight,g054611,field_train,af2a54c221e401d5ab2d7a4aa8e83800a93f36c1,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0137.jpg,Potato___Late_blight,g054612,field_test,3e5007d507a40a6a8e56df7296ee4e77ed9e3bb4,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0154.jpg,Potato___Late_blight,g054613,field_dev,3a61811cebfcefddf4afb6e23636cbb822591a3d,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0137.jpg,Potato___Late_blight,g054612,field_train,3e5007d507a40a6a8e56df7296ee4e77ed9e3bb4,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0154.jpg,Potato___Late_blight,g054613,field_test,3a61811cebfcefddf4afb6e23636cbb822591a3d,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0155.jpg,Potato___Late_blight,g054614,field_test,b5c5fa50b323704e46f450358c3fac2a7d0a843b,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0160.jpg,Potato___Late_blight,g054615,field_test,7880894303a81609f89886d0b607680447010c4d,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0175.jpg,Potato___Late_blight,g054616,field_train,0ea62df87a40e16b53c6dc066a7c7c9a9dd35d9b,plantseg
-datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0205.jpg,Potato___Late_blight,g052368,field_test,01453a2eb106bfd830da2724ec33c62057e0a07a,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0160.jpg,Potato___Late_blight,g054615,field_train,7880894303a81609f89886d0b607680447010c4d,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0175.jpg,Potato___Late_blight,g054616,field_test,0ea62df87a40e16b53c6dc066a7c7c9a9dd35d9b,plantseg
+datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0205.jpg,Potato___Late_blight,g052368,field_train,01453a2eb106bfd830da2724ec33c62057e0a07a,plantseg
 datasets/raw/plantseg_field/potato late blight/potato_late_blight_google_0234.jpg,Potato___Late_blight,g054617,field_train,8f7f936355ce91629d74a9a83edf7c66b8b599b1,plantseg
 datasets/raw/plantseg_field/squash powdery mildew/squash_powdery_mildew_1.jpg,Squash___Powdery_mildew,g054618,field_train,e4ab1aa6d3542c1edaca94b83e42a1e21cb060a1,plantseg
 datasets/raw/plantseg_field/squash powdery mildew/squash_powdery_mildew_10.jpg,Squash___Powdery_mildew,g054619,field_test,1fa8e91ca44ddd92fde9b3e2135c7e47a8ccd8e8,plantseg
@@ -3770,28 +3766,28 @@ datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_google_0397.
 datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_google_0406.jpg,Tomato___Early_blight,g054972,field_dev,4fe5de4f40e6616916c80974d113c58204abb348,plantseg
 datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_google_0427.jpg,Tomato___Early_blight,g054973,field_train,455976774eaf88a69c403e0bc2636ab35659b439,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_10.jpg,Tomato___Late_blight,g054974,field_train,f78e7c45fb10c945366945b18ec117391f4277bc,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_100.jpg,Tomato___Late_blight,g054975,field_test,b2e464e856a798d35b4b53ee5c168144168145f6,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_104.jpg,Tomato___Late_blight,g054976,field_dev,ef3124a580a17af3eff7c1948f14f2a8cbb0c7ce,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_100.jpg,Tomato___Late_blight,g054975,field_dev,b2e464e856a798d35b4b53ee5c168144168145f6,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_104.jpg,Tomato___Late_blight,g054976,field_train,ef3124a580a17af3eff7c1948f14f2a8cbb0c7ce,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_107.jpg,Tomato___Late_blight,g054977,field_train,cafb72f6af8c22b798ae593aacb9d164c1f8a8bf,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_122.jpg,Tomato___Late_blight,g054978,field_train,42de4c36323207669e522c29e5d8fe646049294e,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_127.jpg,Tomato___Late_blight,g054979,field_dev,a7dce8acadac701a4b1d0a3862275ca95fc15834,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_13.jpg,Tomato___Late_blight,g054980,field_train,c72d1bea0d84e17edeab5cf1b815feda86a299d5,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_130.jpg,Tomato___Late_blight,g054981,field_train,f6fccde163ae3d4dadb3d974c68a249c1b519135,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_135.jpg,Tomato___Late_blight,g054982,field_train,af553588e7a66323292f1d639817eb3792292a61,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_135.jpg,Tomato___Late_blight,g054982,field_test,af553588e7a66323292f1d639817eb3792292a61,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_159.jpg,Tomato___Late_blight,g054983,field_train,d8661aefcc13a0f4f17f85d0aa0cedaadaac343c,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_16.jpg,Tomato___Late_blight,g054984,field_test,b88272539c736409fc24e4f340f04e016f854bb6,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_16.jpg,Tomato___Late_blight,g054984,field_dev,b88272539c736409fc24e4f340f04e016f854bb6,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_162.jpg,Tomato___Late_blight,g054985,field_train,4cb5ddcd77311e2a79bed04266021ba67cc4b060,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_163.jpg,Tomato___Late_blight,g053277,field_dev,fd2172a385bf98638db572ed7524477cf5cbb270,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_166.jpg,Tomato___Late_blight,g054986,field_dev,2a9a01e72002a09a0f719e5d112099e61bf4d2b6,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_168.jpg,Tomato___Late_blight,g054987,field_dev,8149864c6e9f92eff4c4c0e64698bdd5872e3bb6,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_170.jpg,Tomato___Late_blight,g054988,field_test,44d6be16a53b47b834a7794262162c78c7bfb6b9,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_166.jpg,Tomato___Late_blight,g054986,field_train,2a9a01e72002a09a0f719e5d112099e61bf4d2b6,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_168.jpg,Tomato___Late_blight,g054987,field_train,8149864c6e9f92eff4c4c0e64698bdd5872e3bb6,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_170.jpg,Tomato___Late_blight,g054988,field_dev,44d6be16a53b47b834a7794262162c78c7bfb6b9,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_171.jpg,Tomato___Late_blight,g054989,field_train,1e224a32cfa1d886afce073d67af544bb2164549,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_173.jpg,Tomato___Late_blight,g054990,field_test,1fcd1e3d754517f9287da8da9e6532195ab4cae6,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_179.jpg,Tomato___Late_blight,g054992,field_train,4ad6bed2d48db666803ff1c58d32243d6771f417,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_18.jpg,Tomato___Late_blight,g054993,field_dev,0713793aa77dbd24b376b396d105623fd84d4350,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_182.jpg,Tomato___Late_blight,g054994,field_test,f3ac5fe0783af8141d5643b36123c5133629434b,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_185.jpg,Tomato___Late_blight,g054995,field_test,659108e38a7879448bbc9417741fc870688da836,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_186.jpg,Tomato___Late_blight,g054996,field_dev,187f2d7e73d62a4469c8823fb08be25b265fc5ff,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_179.jpg,Tomato___Late_blight,g054992,field_test,4ad6bed2d48db666803ff1c58d32243d6771f417,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_18.jpg,Tomato___Late_blight,g054993,field_train,0713793aa77dbd24b376b396d105623fd84d4350,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_182.jpg,Tomato___Late_blight,g054994,field_dev,f3ac5fe0783af8141d5643b36123c5133629434b,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_185.jpg,Tomato___Late_blight,g054995,field_dev,659108e38a7879448bbc9417741fc870688da836,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_186.jpg,Tomato___Late_blight,g054996,field_train,187f2d7e73d62a4469c8823fb08be25b265fc5ff,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_189.jpg,Tomato___Late_blight,g054997,field_dev,58ff903b722deca8a0df17d117c011f5ccdaae12,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_190.jpg,Tomato___Late_blight,g054998,field_test,d43041a4088b5a8a00ddd073d7ee31aa65d9c7d2,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_198.jpg,Tomato___Late_blight,g054999,field_train,a9cf420d919014f60352681aed9c88299a439c2c,plantseg
@@ -3799,7 +3795,7 @@ datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_199.jpg,Tomato
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_203.jpg,Tomato___Late_blight,g055001,field_test,f2be3e3f5ca897402d98c6665cc1a8f4c620ca11,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_204.jpg,Tomato___Late_blight,g055002,field_train,05d9c69bd45af9427f00e909468cf4aa8f50e5e4,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_205.jpg,Tomato___Late_blight,g055003,field_test,4c500c69f1c1e02733b11aa62178f5985472aabd,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_207.jpg,Tomato___Late_blight,g055004,field_dev,ff3e32e8255c0d2716994904f64262a75f7e881d,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_207.jpg,Tomato___Late_blight,g055004,field_train,ff3e32e8255c0d2716994904f64262a75f7e881d,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_209.jpg,Tomato___Late_blight,g055005,field_test,ce598eb3ce1ab3e678a68ea0ce1365e7d94c66d8,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_216.jpg,Tomato___Late_blight,g055006,field_test,9c89e401fc5de3408fa40842bb00d6322e5b8260,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_217.jpg,Tomato___Late_blight,g055007,field_train,98ce162b4501fd93a28b660a8d6b36059754da7e,plantseg
@@ -3809,77 +3805,77 @@ datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_233.jpg,Tomato
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_234.jpg,Tomato___Late_blight,g055011,field_test,d03442d054c39e17265126c38b5eaf1c6827a3ae,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_238.jpg,Tomato___Late_blight,g055012,field_train,4de6f5269998ca694b8f573215c70d2163e64a32,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_24.jpg,Tomato___Late_blight,g055013,field_train,766132e3828f9a50a8495b1daf9877036cfb0d15,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_246.jpg,Tomato___Late_blight,g055014,field_dev,f5ad70d82d73785c0cbfb8eaea49cfa473de192c,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_246.jpg,Tomato___Late_blight,g055014,field_train,f5ad70d82d73785c0cbfb8eaea49cfa473de192c,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_3.jpg,Tomato___Late_blight,g055015,field_train,d0543f17ff3663d2456bc258ff960ce4c0ba967f,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_30.jpg,Tomato___Late_blight,g055016,field_train,c70affff53a91c75736f06dfdeb412ba62b63c2f,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_31.jpg,Tomato___Late_blight,g055017,field_dev,be440fc2c766d26344673859070938ab32b0019b,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_33.jpg,Tomato___Late_blight,g055018,field_test,6bd052c52e48ba6aa8e9e22237a90bddd1733040,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_36.jpg,Tomato___Late_blight,g055019,field_test,7bc4cb6da52d31a1bedd34072c622f166bbb812a,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_36.jpg,Tomato___Late_blight,g055019,field_train,7bc4cb6da52d31a1bedd34072c622f166bbb812a,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_39.jpg,Tomato___Late_blight,g055020,field_train,12969c2d5a4b4aa9f3efea1eed24fcbe48b135e5,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_4.jpg,Tomato___Late_blight,g055021,field_train,76b2fa60beee828602d02410bbb2c74f3feab480,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_41.jpg,Tomato___Late_blight,g055022,field_train,b7c2e08fc96beb00d95d0a171c7c62309484489d,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_41.jpg,Tomato___Late_blight,g055022,field_test,b7c2e08fc96beb00d95d0a171c7c62309484489d,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_44.jpg,Tomato___Late_blight,g055023,field_train,6ca0cd908e0dc4d98ffc2d6e2220983d68b97ced,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_5.jpg,Tomato___Late_blight,g055024,field_train,a9b879bfda5c71ae258b9bce5c8c8fd98520f54b,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_50.jpg,Tomato___Late_blight,g055025,field_test,9bec540a0d00aa26ed6bd166098ccdd8414d6f2b,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_51.jpg,Tomato___Late_blight,g055026,field_dev,a2aa8a6fb458b33c7add9afa2212f3544ecc935b,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_56.jpg,Tomato___Late_blight,g055027,field_train,8e7c5edc4a2da6a530a57190b002fc44eb50b252,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_57.jpg,Tomato___Late_blight,g055028,field_test,3bca2e8222ae87fe0f7dac29df8634ef4a6daea9,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_6.jpg,Tomato___Late_blight,g055029,field_dev,511b7512242446a06ad46ad0411b49d2b7e96824,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_5.jpg,Tomato___Late_blight,g055024,field_dev,a9b879bfda5c71ae258b9bce5c8c8fd98520f54b,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_50.jpg,Tomato___Late_blight,g055025,field_dev,9bec540a0d00aa26ed6bd166098ccdd8414d6f2b,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_51.jpg,Tomato___Late_blight,g055026,field_train,a2aa8a6fb458b33c7add9afa2212f3544ecc935b,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_56.jpg,Tomato___Late_blight,g055027,field_test,8e7c5edc4a2da6a530a57190b002fc44eb50b252,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_57.jpg,Tomato___Late_blight,g055028,field_dev,3bca2e8222ae87fe0f7dac29df8634ef4a6daea9,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_6.jpg,Tomato___Late_blight,g055029,field_test,511b7512242446a06ad46ad0411b49d2b7e96824,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_61.jpg,Tomato___Late_blight,g055007,field_train,cbba641d05a4d567b5890497cf7f90f784f87913,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_66.jpg,Tomato___Late_blight,g055031,field_test,278d044128dfbb0bc7ea5ea0cc8756ceec9f8c5a,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_69.jpg,Tomato___Late_blight,g055032,field_test,df5b96524694212e906e1f66cac1df354247c985,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_66.jpg,Tomato___Late_blight,g055031,field_train,278d044128dfbb0bc7ea5ea0cc8756ceec9f8c5a,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_69.jpg,Tomato___Late_blight,g055032,field_dev,df5b96524694212e906e1f66cac1df354247c985,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_7.jpg,Tomato___Late_blight,g055033,field_train,0f951d4b757545b1af2b0ad493b970357436c82d,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_75.jpg,Tomato___Late_blight,g055034,field_train,ee7d3f12918e0c6ba29aad421996da50027b9b5e,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_78.jpg,Tomato___Late_blight,g055035,field_train,4ecedf80d2110d0244afa94db0e59e85303a602a,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_79.jpg,Tomato___Late_blight,g055036,field_train,741e18428baad7d2650b3fb2ebb32c070301f07e,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_81.jpg,Tomato___Late_blight,g055037,field_test,8e71fd33747266f56695f87ae7bfdb95d7a11ae8,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_83.jpg,Tomato___Late_blight,g055038,field_dev,fa57581eb14edb1ba4f4666036a4d81e6a081a86,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_79.jpg,Tomato___Late_blight,g055036,field_dev,741e18428baad7d2650b3fb2ebb32c070301f07e,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_81.jpg,Tomato___Late_blight,g055037,field_dev,8e71fd33747266f56695f87ae7bfdb95d7a11ae8,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_83.jpg,Tomato___Late_blight,g055038,field_train,fa57581eb14edb1ba4f4666036a4d81e6a081a86,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_99.jpg,Tomato___Late_blight,g055039,field_train,4dacaf44b23d129f0272daca0e0fe81b3ec2ef9a,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0000.jpg,Tomato___Late_blight,g055040,field_test,402f86d74c40a959ae962e5fcc3ff0b541e25f3e,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0000.jpg,Tomato___Late_blight,g055040,field_dev,402f86d74c40a959ae962e5fcc3ff0b541e25f3e,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0005.jpg,Tomato___Late_blight,g055041,field_train,4ad903ba9c58c82d68ee7adf1cb4cf2b345e82d4,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0007.jpg,Tomato___Late_blight,g055042,field_train,db0a878d687229e95e6002539c43081728628fa2,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0012.jpg,Tomato___Late_blight,g055043,field_test,28dc37da0a1505d0aad8c666f8760053b607e022,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0013.jpg,Tomato___Late_blight,g055044,field_train,f3490f53a2e8e35e1fa9ebed208f584adc678217,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0015.jpg,Tomato___Late_blight,g055045,field_train,970eb3e707aa6ab8adf3844e9faaeef717c134b0,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0007.jpg,Tomato___Late_blight,g055042,field_test,db0a878d687229e95e6002539c43081728628fa2,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0012.jpg,Tomato___Late_blight,g055043,field_train,28dc37da0a1505d0aad8c666f8760053b607e022,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0013.jpg,Tomato___Late_blight,g055044,field_test,f3490f53a2e8e35e1fa9ebed208f584adc678217,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0015.jpg,Tomato___Late_blight,g055045,field_dev,970eb3e707aa6ab8adf3844e9faaeef717c134b0,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0021.jpg,Tomato___Late_blight,g055046,field_dev,6ffa19623f3d7b2691b6b8c80037a481d294212c,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0043.jpg,Tomato___Late_blight,g055047,field_dev,01284ed82b634f849d747c4afdb3982b9d4bee98,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0044.jpg,Tomato___Late_blight,g055048,field_train,34e9e136aff9a082eed8faed300faae1547d5408,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0045.jpg,Tomato___Late_blight,g055049,field_train,d2105d15102fabfbe83d83532925e8566ee817db,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0043.jpg,Tomato___Late_blight,g055047,field_train,01284ed82b634f849d747c4afdb3982b9d4bee98,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0044.jpg,Tomato___Late_blight,g055048,field_test,34e9e136aff9a082eed8faed300faae1547d5408,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0045.jpg,Tomato___Late_blight,g055049,field_dev,d2105d15102fabfbe83d83532925e8566ee817db,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0048.jpg,Tomato___Late_blight,g055050,field_dev,7de5c36c567ac51eec29d16ccb2beb4312aac974,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0058.jpg,Tomato___Late_blight,g055051,field_dev,ac0a8db78bc4d0bbbdccc0bd5d843769af82a97c,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0066.jpg,Tomato___Late_blight,g055052,field_train,e682a648bd64656e4e6c31e3c876575a5ad19477,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0067.jpg,Tomato___Late_blight,g055053,field_train,87502f6f517c09a1987d91e07c70faa69d9f02e4,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0077.jpg,Tomato___Late_blight,g055054,field_test,b77841e7772f5860b11b4bcf2e9c494195d88174,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0080.jpg,Tomato___Late_blight,g055055,field_dev,7e9e2143c0564feac8d0dc3f551486b9a04b73e8,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0083.jpg,Tomato___Late_blight,g055056,field_dev,3b7ca30e21692fb0fc84906786cec4640098335b,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0084.jpg,Tomato___Late_blight,g055057,field_train,4ec3c2c97047975c31736f719b70a180a1deeb24,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0058.jpg,Tomato___Late_blight,g055051,field_train,ac0a8db78bc4d0bbbdccc0bd5d843769af82a97c,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0066.jpg,Tomato___Late_blight,g055052,field_test,e682a648bd64656e4e6c31e3c876575a5ad19477,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0067.jpg,Tomato___Late_blight,g055053,field_test,87502f6f517c09a1987d91e07c70faa69d9f02e4,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0077.jpg,Tomato___Late_blight,g055054,field_dev,b77841e7772f5860b11b4bcf2e9c494195d88174,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0080.jpg,Tomato___Late_blight,g055055,field_train,7e9e2143c0564feac8d0dc3f551486b9a04b73e8,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0083.jpg,Tomato___Late_blight,g055056,field_train,3b7ca30e21692fb0fc84906786cec4640098335b,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0084.jpg,Tomato___Late_blight,g055057,field_dev,4ec3c2c97047975c31736f719b70a180a1deeb24,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0085.jpg,Tomato___Late_blight,g055058,field_dev,d23c366269efeae66aba8e5a249ed7349b2e78f5,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0087.jpg,Tomato___Late_blight,g055059,field_dev,9ffcd479dda15295e3874df48e03102d4ae26a23,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0087.jpg,Tomato___Late_blight,g055059,field_train,9ffcd479dda15295e3874df48e03102d4ae26a23,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0091.jpg,Tomato___Late_blight,g053189,field_train,080cff7601865bcc83d4422fc9d7cb74c0858cb0,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0092.jpg,Tomato___Late_blight,g055060,field_train,1e1dda2d84ba1da7770b77f9860520b1439b47de,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0100.jpg,Tomato___Late_blight,g055061,field_train,776aca876b34f450443cb029ea637ef88f7fe69c,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0101.jpg,Tomato___Late_blight,g055062,field_train,c55eb1164e65df3b439a1a3749565fc7761284d7,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0116.jpg,Tomato___Late_blight,g055063,field_train,1fa5c18292b4735da4145379693bcbfcfe27a944,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0118.jpg,Tomato___Late_blight,g055064,field_train,f0b7d2d4aaacc9825cb174b0d86a8d598f0f27f1,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0120.jpg,Tomato___Late_blight,g055065,field_train,36bb0b81128ce8c767f9e2c8744564e40b434bc9,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0124.jpg,Tomato___Late_blight,g055066,field_test,41b31d3ee2204e1dd40bc22f975df67acf926e94,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0118.jpg,Tomato___Late_blight,g055064,field_test,f0b7d2d4aaacc9825cb174b0d86a8d598f0f27f1,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0120.jpg,Tomato___Late_blight,g055065,field_dev,36bb0b81128ce8c767f9e2c8744564e40b434bc9,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0124.jpg,Tomato___Late_blight,g055066,field_train,41b31d3ee2204e1dd40bc22f975df67acf926e94,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0134.jpg,Tomato___Late_blight,g055067,field_train,e2241ac1e2c86b0446c957dbe99a1add8c10cc02,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0137.jpg,Tomato___Late_blight,g055068,field_train,370dc4a75fd3f34ea68f74e70cdd355c52ce18cb,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0140.jpg,Tomato___Late_blight,g055069,field_dev,05bb1dfbc6033d37979230c07de3b2380faec33b,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0137.jpg,Tomato___Late_blight,g055068,field_dev,370dc4a75fd3f34ea68f74e70cdd355c52ce18cb,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0140.jpg,Tomato___Late_blight,g055069,field_train,05bb1dfbc6033d37979230c07de3b2380faec33b,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0142.jpg,Tomato___Late_blight,g055070,field_train,6b5d05390da8546b3c2b49c4200b5e9c0d18f3ea,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0150.jpg,Tomato___Late_blight,g053190,field_dev,b0d8cb339a3650ff1094f9e1e32a0ec8daa92d06,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0150.jpg,Tomato___Late_blight,g053190,field_train,b0d8cb339a3650ff1094f9e1e32a0ec8daa92d06,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0157.jpg,Tomato___Late_blight,g055071,field_train,fb891f74a187c71928b590b8b1e99859602f605e,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0188.jpg,Tomato___Late_blight,g055072,field_dev,7ca8c5d6c5681bf2e0a14977a530a184c31bb595,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0189.jpg,Tomato___Late_blight,g055073,field_train,6477e0580eac2b088d817170fda042ba76724c6c,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0194.jpg,Tomato___Late_blight,g055074,field_dev,f06377987854524e5c03be1346ee8d47aef06389,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0205.jpg,Tomato___Late_blight,g055075,field_train,e6a3e73df26407b41e7b1355576174f6a96db07a,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0188.jpg,Tomato___Late_blight,g055072,field_train,7ca8c5d6c5681bf2e0a14977a530a184c31bb595,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0189.jpg,Tomato___Late_blight,g055073,field_dev,6477e0580eac2b088d817170fda042ba76724c6c,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0194.jpg,Tomato___Late_blight,g055074,field_test,f06377987854524e5c03be1346ee8d47aef06389,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0205.jpg,Tomato___Late_blight,g055075,field_test,e6a3e73df26407b41e7b1355576174f6a96db07a,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0206.jpg,Tomato___Late_blight,g055076,field_test,de1576fc107e992ad49a8567dc99518dffaa312b,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0217.jpg,Tomato___Late_blight,g055077,field_train,14693cae00771ce43e95c30a10cce1ef28a78826,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0220.jpg,Tomato___Late_blight,g055078,field_test,c4f188c02d832310ba84e6e77daf9c0d2dcf275c,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0221.jpg,Tomato___Late_blight,g055079,field_train,eb7f0c105dbffb26b71716427ebc333e9e7368f6,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0217.jpg,Tomato___Late_blight,g055077,field_test,14693cae00771ce43e95c30a10cce1ef28a78826,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0220.jpg,Tomato___Late_blight,g055078,field_train,c4f188c02d832310ba84e6e77daf9c0d2dcf275c,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0221.jpg,Tomato___Late_blight,g054994,field_dev,eb7f0c105dbffb26b71716427ebc333e9e7368f6,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0235.jpg,Tomato___Late_blight,g055080,field_train,12ac35bca8cf3e88867f6807bf6070bb181644fe,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0244.jpg,Tomato___Late_blight,g055081,field_test,ed208b784dfa8e4a283787a3cef4a580108ab15b,plantseg
-datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0263.jpg,Tomato___Late_blight,g053268,field_train,d376f499c1317450858f69a9cc759bf1d546c23b,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0244.jpg,Tomato___Late_blight,g055081,field_train,ed208b784dfa8e4a283787a3cef4a580108ab15b,plantseg
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0263.jpg,Tomato___Late_blight,g053268,field_test,d376f499c1317450858f69a9cc759bf1d546c23b,plantseg
 datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0271.jpg,Tomato___Late_blight,g053266,field_train,3988567e514590d8b206fee989459a951bbb8aa1,plantseg
 datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_10.jpg,Tomato___Leaf_Mold,g055082,field_train,00b8107455b78713497f2ba828abf25fb322e6c5,plantseg
 datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_13.jpg,Tomato___Leaf_Mold,g055083,field_dev,ebc81d49c990138f927b3884959014f189e610ba,plantseg

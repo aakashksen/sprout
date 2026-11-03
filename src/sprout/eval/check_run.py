@@ -122,11 +122,13 @@ def _gate_or_rag_metric(name: str, s: Scored) -> object:
         return _rate(~s.accepted, s.is_plant)
     if name == "not_plant_acceptance_rate" and s.accepted is not None and s.is_plant is not None:
         return _rate(s.accepted, ~s.is_plant)
-    if name in ("answers_when_answerable", "declines_when_unanswerable") and s.answered is not None:
+    declines = {"declines_when_unanswerable": "abstain", "declines_when_crop_mismatch": "crop_mismatch",
+                "declines_when_ambiguous": "clarify"}
+    if (name == "answers_when_answerable" or name in declines) and s.answered is not None:
         gold = np.array(s.expected or [])
         if name == "answers_when_answerable":
             return _rate(s.answered, gold == "answer")
-        return _rate(~s.answered, gold == "abstain")
+        return _rate(~s.answered, gold == declines[name])
     if name == "median_iou" and s.iou is not None:
         return float(np.median(s.iou))
     return _OTHER

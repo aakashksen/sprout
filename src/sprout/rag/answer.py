@@ -158,6 +158,7 @@ def answer(
     retriever,
     llm: LLMClient,
     config: AnswerConfig | None = None,
+    crop: str | None = None,
 ) -> Answer:
     cfg = config or AnswerConfig()
     history = bounded_history(history, cfg)
@@ -166,8 +167,10 @@ def answer(
         text = identification.guidance or "I couldn't see a plant in that photo. Please send a clear photo of a leaf."
         return Answer(text, [], False, ["photo"], "no_plant", prompt_version=version)
     unsure = identification is not None and identification.status == "unsure"
-    crop = None
-    if identification is not None and identification.top is not None and not unsure:
+    if crop is not None:  # the plant the user named; one with no documents of its own uses general guidance
+        crop = crop.strip().lower()
+        crop = crop if crop in retriever.crops else GENERAL_CROP
+    elif identification is not None and identification.top is not None and not unsure:
         crop = crop_of_label(identification.top.label, retriever.crops) or GENERAL_CROP
     asks = ["clearer photo"] if unsure else []
     query = build_query(question, identification, history, cfg.query_mode)

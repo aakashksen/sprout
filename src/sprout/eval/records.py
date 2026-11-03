@@ -100,7 +100,7 @@ def scoring_part(groups: list[str], seed: int, fit_percent: int) -> np.ndarray:
 def subset_positions(name: str, split: str, info: SplitInfo, root: Path = ROOT) -> list[int]:
     """Positions within the split of a declared subset: `first_<N>` rows, `source:<name>` (field rows whose
     `source` column in field.csv is <name>), `shared_classes` (labels present in both lab.csv and field.csv),
-    or `group_part:<seed>:<fit_percent>` (the scoring part of `scoring_part`, for settings fitted on the rest)."""
+    `answerable` (RAG questions whose gold behaviour is to answer), or `group_part:<seed>:<fit_percent>` (the scoring part of `scoring_part`, for settings fitted on the rest)."""
     part = re.fullmatch(r"group_part:(\d+):(\d+)", name)
     if part:
         return [int(i) for i in np.flatnonzero(scoring_part(info.groups, int(part.group(1)), int(part.group(2))))]
@@ -112,6 +112,8 @@ def subset_positions(name: str, split: str, info: SplitInfo, root: Path = ROOT) 
         part = _manifest(root, "field")
         part = part[part["split"] == split]
         return [i for i, s in enumerate(part["source"]) if s == source.group(1)]
+    if name == "answerable" and info.expected is not None:
+        return [i for i, e in enumerate(info.expected) if e == "answer"]
     if name == "shared_classes" and info.labels is not None:
         shared = set(_manifest(root, "lab")["label"]) & set(_manifest(root, "field")["label"])
         return [i for i, label in enumerate(info.labels) if label in shared]

@@ -1,7 +1,7 @@
 {
   "experiment": "E2",
   "checkpoint": "models/e1/best.pt",
-  "e1_run_id": "E1-20261103T074728015380Z",
+  "e1_run_id": "E1-20261103T092124608963Z",
   "splits": ["field_dev", "lab_dev"],
   "batch_size": 32,
   "num_workers": 8,

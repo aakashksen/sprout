@@ -88,3 +88,20 @@ License: Apache-2.0 (Hugging Face API: `apache-2.0`, not gated).
 Classes: none; it's a language and vision model.
 Use: the local model through Ollama, as `qwen3.5:4b-q4_K_M`. See `docs/model-choice.md`.
 Approved: yes. Reason: Apache-2.0, ungated, no signed agreement.
+
+## PlantWild (extra real photos for training)
+
+URL: https://tqwei05.github.io/PlantWild ; files at https://huggingface.co/datasets/uqtwei2/PlantWild (`plantwild.zip` v1 and `plantwild_v2.zip` v2); paper https://arxiv.org/abs/2408.03120
+License: CC BY-NC-ND 4.0, as the authors state on https://tqwei05.github.io/PlantWild/access ; the Hugging Face repo metadata says `cc-by-nc-nd-4.0` (https://huggingface.co/api/datasets/uqtwei2/PlantWild). The images were collected from Google Images, Ecosia and Baidu Images (paper), and per-image rights were not checked. Non-commercial research use is allowed. The no-derivatives term is unresolved: whether a model trained on the images counts as a derivative was not decided, so weights trained on it need the person's check before publishing. The images are never committed or published.
+Size: `plantwild.zip` 2,708,493,416 bytes; `plantwild_v2.zip` 1,640,342,849 bytes (Hugging Face; both downloaded in full 2026-11-03 into the git-ignored `datasets/raw/plantwild_dl`).
+Classes: counted after download: v1 has 18,542 images in 89 class folders (56 diseased, 33 healthy-leaf); v2 has 11,488 images in 115 disease-only class folders. Class names match PlantSeg's style. Mapped to lab classes in `datasets/class_map_extra.csv`; per-class results in `docs/extra-sources.md`.
+Access: Public, repo not gated (`"gated": false`), no login. The UQRDM link on the authors' page is password protected and was not used. Each zip was extracted into its own new folder with a check that no member path escapes it.
+Approved: yes, under the person's rule for public data without login, paywall or block, for local non-commercial training only. Not for publishing
+
+## Plant Pathology 2021 (FGVC8), not used
+
+URL: https://www.kaggle.com/competitions/plant-pathology-2021-fgvc8 ; third-party mirror https://huggingface.co/datasets/timm/plant-pathology-2021
+License: Not confirmed from the competition (its pages return HTTP 404 to anonymous requests); the third-party mirror card says `apache-2.0`, which is the uploader's statement, not the authors'.
+Classes: Apple foliar disease, 6 classes (complex, frog_eye_leaf_spot, healthy, powdery_mildew, rust, scab); the mirror holds 18,632 images in 16,094,440,857 bytes.
+Access: The Kaggle source needs login. The only other copy is the third-party mirror.
+Approved: no, needs the person. Not used: the Kaggle source needs login, and the only public copy is a third-party mirror covering three usable apple classes at 16 GB. The coordinator may overrule this

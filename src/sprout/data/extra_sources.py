@@ -7,14 +7,28 @@ from pathlib import Path
 
 import pandas as pd
 
-from sprout.data.field import link_same_scene
+from sprout.data.field import (
+    RESIDUAL_DISTANCE,
+    _gray64,
+    hash_pairs,
+    link_same_scene,
+    same_scene_score,
+)
 from sprout.data.grouping import group_near_duplicates
 from sprout.data.inventory import IMAGE_SUFFIXES, file_sha1
 from sprout.data.splits import COLUMNS, MANIFEST_DIR, load_manifest
 
 EXTRA_SPLIT = "extra_train"
 EXTRA_COLUMNS = COLUMNS + ["source"]
-MAP_COLUMNS = ["source", "source_class", "lab_class", "status", "reason", "n_images", "n_kept"]
+MAP_COLUMNS = [
+    "source",
+    "source_class",
+    "lab_class",
+    "status",
+    "reason",
+    "n_images",
+    "n_kept",
+]
 # Chosen before any E12 result. field_train classes hold at most 136 photos (median about 60),
 # so 200 gives thin classes everything while no class can outweigh the real-photo sets.
 CAP_PER_CLASS = 200
@@ -22,6 +36,10 @@ CLASS_MAP_EXTRA_PATH = MANIFEST_DIR.parent / "class_map_extra.csv"
 RAW = Path("datasets") / "raw"
 # When a photo matches several field splits, the frozen evaluation splits are named first.
 FIELD_PRIORITY = ("field_test", "field_dev", "field_train")
+# After the rule ran once, 3 of the 60 hash-close extra/field_dev-or-test pairs scoring highest were viewed:
+# two were the same photo at another size (scores 0.83 and 0.785) that the 0.88 rule had missed.
+# Extras are plentiful and a leaked copy is costly, so any hash-close pair at or above this score goes too.
+GUARD_SCORE = 0.75
 UNMAPPED_REASON = "no lab class for this plant or disease"
 
 # PlantWild class (v1 and v2 use the same names) to lab class. Healthy-leaf classes exist in v1 only.
@@ -74,7 +92,9 @@ def safe_extract(archive: Path, dest: Path) -> int:
         for info in z.infolist():
             target = (root / info.filename).resolve()
             if root != target and root not in target.parents:
-                raise ValueError(f"member escapes the extraction folder: {info.filename}")
+                raise ValueError(
+                    f"member escapes the extraction folder: {info.filename}"
+                )
         for info in z.infolist():
             if info.is_dir():
                 continue
@@ -134,7 +154,9 @@ def build_extra(
     df["lab_class"] = [key.get((s, c), "") for s, c in zip(df["source"], df["label"])]
     removed: Counter = Counter()
     removed["unmapped class"] = int((df["lab_class"] == "").sum())
-    df = df[df["lab_class"] != ""].sort_values(["source", "path"]).reset_index(drop=True)
+    df = (
+        df[df["lab_class"] != ""].sort_values(["source", "path"]).reset_index(drop=True)
+    )
 
     field_split = dict(zip(field["path"], field["split"]))
     sha_split = dict(zip(field["sha1"], field["split"]))
@@ -170,6 +192,14 @@ def build_extra(
         g = scene_members[scene[p]]
         if any(m in field_split for m in g):
             drop[p] = f"same scene as {_first_split(g, field_split)}"
+    left = df[~df["path"].isin(drop)]
+    close = hash_pairs(list(left["path"]) + field_paths, RESIDUAL_DISTANCE)
+    for a, b in zip(close["path_a"], close["path_b"]):
+        if (a in field_split) == (b in field_split):
+            continue
+        mine, theirs = (b, a) if a in field_split else (a, b)
+        if mine not in drop and same_scene_score(_gray64(a), _gray64(b)) >= GUARD_SCORE:
+            drop[mine] = f"close match to {field_split[theirs]}"
     left = df[~df["path"].isin(drop)].copy()
     removed.update(Counter(drop.values()))
 
@@ -214,7 +244,11 @@ def main() -> None:
     )
     out.to_csv(MANIFEST_DIR / "extra_train.csv", index=False)
     cmap.to_csv(CLASS_MAP_EXTRA_PATH, index=False)
-    print(json.dumps({"inventory": len(inv), "kept": len(out), "removed": removed}, indent=1))
+    print(
+        json.dumps(
+            {"inventory": len(inv), "kept": len(out), "removed": removed}, indent=1
+        )
+    )
 
 
 if __name__ == "__main__":

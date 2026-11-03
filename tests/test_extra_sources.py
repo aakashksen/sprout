@@ -130,7 +130,9 @@ def test_cap_limits_every_class(tmp_path):
     assert removed["over the per-class cap"] == 4
     real = MANIFEST_DIR / "extra_train.csv"
     if real.exists():
-        assert load_manifest("extra_train").groupby("label").size().max() <= CAP_PER_CLASS
+        assert (
+            load_manifest("extra_train").groupby("label").size().max() <= CAP_PER_CLASS
+        )
 
 
 def test_unmapped_classes_excluded(tmp_path):
@@ -162,3 +164,18 @@ def test_extract_rejects_paths_that_escape(tmp_path):
     with pytest.raises(ValueError):
         safe_extract(bad, tmp_path / "out")
     assert not (tmp_path / "evil.txt").exists()
+
+
+def test_hash_close_lookalike_of_a_field_photo_is_dropped(tmp_path):
+    inv, cmap, lab, field, paths, new, *_ = _world(tmp_path)
+    noisy = tmp_path / "extra" / "x" / "noisy.png"
+    arr = np.asarray(Image.open(tmp_path / "field" / "d.png").convert("RGB")).astype(
+        int
+    )
+    arr = np.clip(arr + np.random.default_rng(0).integers(-12, 12, arr.shape), 0, 255)
+    Image.fromarray(arr.astype("uint8")).save(noisy)
+    extra_row = _rows([noisy.as_posix()], "x")
+    extra_row["source"] = "plantwild"
+    inv = pd.concat([inv, extra_row], ignore_index=True)
+    out, _, _ = build_extra(inv, cmap, lab, field, cap=100)
+    assert noisy.as_posix() not in set(out["path"])

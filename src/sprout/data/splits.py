@@ -39,7 +39,8 @@ def dataset_hash(manifest: pd.DataFrame) -> str:
 
 
 def load_manifest(name: str) -> pd.DataFrame:
-    return pd.read_csv(MANIFEST_DIR / f"{name}.csv")[COLUMNS]
+    df = pd.read_csv(MANIFEST_DIR / f"{name}.csv")
+    return df[COLUMNS + [c for c in ("source",) if c in df.columns]]
 
 
 def build_manifest(name: str, root: str) -> pd.DataFrame:

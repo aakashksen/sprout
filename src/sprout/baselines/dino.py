@@ -23,7 +23,35 @@ SOURCE = {
 }
 
 
-def load_dino_encoder() -> nn.Module:
-    """Downloads into the normal torch hub cache on first use. `trust_repo` runs the pinned repository's hubconf."""
-    model = torch.hub.load(f"{SOURCE['repo']}:{SOURCE['commit']}", SOURCE["model_id"], trust_repo=True)
+def load_dino_encoder(pretrained: bool = True) -> nn.Module:
+    """Downloads into the normal torch hub cache on first use. `trust_repo` runs the pinned repository's hubconf.
+    `pretrained=False` builds the same network without fetching weights, for loading a saved state."""
+    model = torch.hub.load(
+        f"{SOURCE['repo']}:{SOURCE['commit']}", SOURCE["model_id"], trust_repo=True, pretrained=pretrained
+    )
     return freeze(model)
+
+
+class DinoClassifier(nn.Module):
+    """DINOv2 class token into a linear head. The encoder is frozen except its last `unfreeze_blocks` blocks and
+    final norm. It stays in evaluation mode (the network has no dropout), so the one state_dict holds
+    everything needed to rebuild and export it."""
+
+    def __init__(self, encoder: nn.Module, num_classes: int, unfreeze_blocks: int = 0, feature_dim: int = 384):
+        super().__init__()
+        self.encoder = freeze(encoder)
+        if unfreeze_blocks:
+            for module in (*encoder.blocks[-unfreeze_blocks:], encoder.norm):
+                module.requires_grad_(True)
+        self.head = nn.Linear(feature_dim, num_classes)
+
+    def train(self, mode: bool = True) -> "DinoClassifier":
+        super().train(mode)
+        self.encoder.eval()
+        return self
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.head(self.encoder(x))
+
+    def backbone_parameters(self) -> list[nn.Parameter]:
+        return [p for p in self.encoder.parameters() if p.requires_grad]

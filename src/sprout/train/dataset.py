@@ -6,7 +6,9 @@ import torch
 from PIL import Image, ImageEnhance
 from torch.utils.data import DataLoader, Dataset
 
+from sprout.data.splits import load_manifest
 from sprout.preprocess import preprocess
+from sprout.train.augment import augment_extra
 from sprout.train.config import TrainConfig
 
 
@@ -24,7 +26,7 @@ def augment(image: Image.Image, transforms: tuple[str, ...]) -> Image.Image:
     if "color_jitter" in transforms:
         for enhance in (ImageEnhance.Brightness, ImageEnhance.Contrast, ImageEnhance.Color):
             image = enhance(image).enhance(random.uniform(0.7, 1.3))
-    return image
+    return augment_extra(image, transforms)
 
 
 def train_transform(image: Image.Image, transforms: tuple[str, ...]) -> torch.Tensor:
@@ -49,12 +51,25 @@ class ManifestDataset(Dataset):
             return self.transform(im), self.targets[i]
 
 
+def load_training_manifest(config: TrainConfig) -> pd.DataFrame:
+    """The manifest `train` reads: the one named manifest, or lab and real rows together for joint training."""
+    if config.field_manifest:
+        from sprout.train.joint import load_joint_manifest
+
+        return load_joint_manifest(config)
+    return load_manifest(config.manifest)
+
+
 def make_class_map(manifest: pd.DataFrame) -> dict[str, int]:
     return {c: i for i, c in enumerate(sorted(manifest["label"].unique()))}
 
 
 def build_datasets(manifest: pd.DataFrame, config: TrainConfig, class_map: dict[str, int]):
     """Separate train and validation datasets; only the train one augments."""
+    if config.field_manifest:
+        from sprout.train.joint import joint_datasets
+
+        return joint_datasets(manifest, config, class_map)
     tfs = config.transforms
     train = ManifestDataset(
         manifest[manifest["split"] == "lab_train"], class_map, partial(train_transform, transforms=tfs)

@@ -7,10 +7,10 @@ from pathlib import Path
 import torch
 from torch import nn
 
-from sprout.data.splits import dataset_hash, load_manifest
+from sprout.data.splits import dataset_hash
 from sprout.train.checkpoint import load_checkpoint, save_checkpoint
 from sprout.train.config import TrainConfig
-from sprout.train.dataset import build_loaders, make_class_map
+from sprout.train.dataset import build_loaders, load_training_manifest, make_class_map
 
 
 @dataclass
@@ -22,7 +22,7 @@ class RunOutput:
     history: list[dict]
 
 
-def build_model(name: str, num_classes: int, pretrained: bool = True) -> nn.Module:
+def build_model(name: str, num_classes: int, pretrained: bool = True, unfreeze_blocks: int = 0) -> nn.Module:
     if name == "tiny_cnn":
         return nn.Sequential(
             nn.Conv2d(3, 8, 7, stride=8),
@@ -37,7 +37,22 @@ def build_model(name: str, num_classes: int, pretrained: bool = True) -> nn.Modu
         model = convnext_tiny(weights="DEFAULT" if pretrained else None)
         model.classifier[2] = nn.Linear(model.classifier[2].in_features, num_classes)
         return model
+    if name == "dinov2_small":
+        from sprout.baselines.dino import DinoClassifier, load_dino_encoder
+
+        return DinoClassifier(load_dino_encoder(pretrained), num_classes, unfreeze_blocks)
     raise ValueError(f"unknown model: {name}")
+
+
+def _optimizer(model: nn.Module, config: TrainConfig) -> torch.optim.Optimizer:
+    backbone = model.backbone_parameters() if hasattr(model, "backbone_parameters") else []
+    if not backbone:
+        return torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=config.lr)
+    ids = {id(p) for p in backbone}
+    rest = [p for p in model.parameters() if p.requires_grad and id(p) not in ids]
+    return torch.optim.AdamW(
+        [{"params": rest, "lr": config.lr}, {"params": backbone, "lr": config.backbone_lr or config.lr}]
+    )
 
 
 def _evaluate(model, loader, loss_fn, device) -> tuple[float, float]:
@@ -63,14 +78,15 @@ def train(config: TrainConfig, *, resume: Path | None = None) -> RunOutput:
     if resume is not None and not Path(resume).is_file():
         raise FileNotFoundError(resume)
 
-    manifest = load_manifest(config.manifest)
+    manifest = load_training_manifest(config)
     config = dataclasses.replace(config, manifest_hash=dataset_hash(manifest))
     class_map = make_class_map(manifest)
     train_dl, val_dl = build_loaders(manifest, config, class_map)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = build_model(config.model, len(class_map)).to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=config.lr)
+    extra = {"unfreeze_blocks": config.unfreeze_blocks} if config.unfreeze_blocks else {}
+    model = build_model(config.model, len(class_map), **extra).to(device)
+    optimizer = _optimizer(model, config)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=max(config.epochs, 1))
     scaler = torch.amp.GradScaler("cuda", enabled=device.type == "cuda")
     loss_fn = nn.CrossEntropyLoss()

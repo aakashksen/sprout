@@ -63,11 +63,17 @@
         "{py} -m pytest tests/test_lab_data.py -q",
         "{py} -m sprout.data.check_splits lab"
       ],
-      "status": "blocked",
-      "reason": "Fetch of pinned PlantVillage commit into datasets/raw/_pv_upstream denied by the permission system, for both the implementer and the orchestrator. Needs the person to run it or allow it.",
-      "attempts": 0,
-      "note": "fetch allowed inside the project",
-      "started_at": "2026-11-03T00:19:19+00:00"
+      "status": "done",
+      "reason": "source_id regex misses real suffix form 'R.S_HL 0626copy.jpg' (no space): file splits from its siblings; data-counts says 1,366 copy files, real count is 1,367",
+      "attempts": 1,
+      "note": "data fetched by the person",
+      "started_at": "2026-11-03T00:19:19+00:00",
+      "verified": {
+        "commit": "87096719301f4695b4e7b582140ac8624620983f",
+        "passed": true,
+        "at": "2026-11-03T03:00:13+00:00"
+      },
+      "done_at": "2026-11-03T03:20:32+00:00"
     },
     {
       "id": "T1.2",

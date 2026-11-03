@@ -377,3 +377,247 @@ def test_real_answers_precede_every_real_record():
     if answers.exists():
         for line in answers.read_text(encoding="utf-8").splitlines():
             assert set(json.loads(line)) == {"path", "question", "answer"}
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# the flow and the records, on fake earlier records
+
+from sprout.eval.check_run import check  # noqa: E402
+from sprout.eval.predict import Predictions  # noqa: E402
+from sprout.eval.records import split_info, subset_positions, write_run  # noqa: E402
+
+N_PHOTOS = 36
+
+
+def _field_rows():
+    rows = ["path,label,group,split,sha1,source"]
+    for i in range(N_PHOTOS + 3):
+        split = "field_test" if i >= N_PHOTOS else "field_dev"
+        rows.append(f"f/{i}.jpg,{NAMES[i % 6]},h{i},{split},s{i},{'plantdoc' if i % 3 else 'plantseg'}")
+    return rows
+
+
+def _model_probs(label, kind):
+    """The model is unsure: the true class is second for 'seen' rows and first for others; a rival is nearby."""
+    rival = (label + 1) % 6 if (label + 1) % 6 != 2 else 3
+    p = np.full(6, 0.02)
+    if kind == "hard":
+        p[rival], p[label] = 0.45, 0.35
+    elif kind == "easy":
+        p[label], p[rival] = 0.45, 0.35
+    else:
+        p[label] = 0.9
+    return p / p.sum()
+
+
+def _kind(i, model):
+    if i % 4 == 3:
+        return "sure"
+    return "hard" if (i + (model == "heldout")) % 2 == 0 else "easy"
+
+
+@pytest.fixture
+def lab(tmp_path):
+    (tmp_path / "datasets/manifests").mkdir(parents=True)
+    (tmp_path / "datasets/manifests/field.csv").write_text("\n".join(_field_rows()) + "\n")
+    (tmp_path / "datasets/manifests/lab.csv").write_text(
+        "\n".join(["path,label,group,split,sha1"] + [f"l/{i}.jpg,{n},g{i},lab_dev,l{i}" for i, n in enumerate(NAMES)]) + "\n")
+    (tmp_path / "datasets/label_exclusions.csv").write_text(
+        "version,image_id,path,source,split,label,reason_code,note,began_as\n"
+        "1,s1,f/1.jpg,plantdoc,field_dev,Tomato___Early_blight,wrong_plant,x,remove\n")
+    (tmp_path / "orchestration").mkdir()
+    (tmp_path / "orchestration/tasks.json").write_text("{}")
+    (tmp_path / "datasets/followup").mkdir()
+    (tmp_path / ".gitignore").write_text("datasets/followup/sheets/\ndatasets/followup/key/\n")
+    _git(tmp_path, "init", "-q")
+    _git(tmp_path, "config", "user.email", "t@t")
+    _git(tmp_path, "config", "user.name", "t")
+    _git(tmp_path, "add", "-A")
+    _git(tmp_path, "commit", "-q", "-m", "init")
+    return tmp_path
+
+
+def _e4(root, system_kinds, subset):
+    info = split_info("field_dev", root)
+    pos = subset_positions(subset, "field_dev", info, root)
+    paths = [info.ids[i] for i in pos]
+    labels = np.array([NAMES.index(info.labels[i]) for i in pos])
+    preds = {}
+    for system, model in system_kinds.items():
+        probs = np.array([_model_probs(y, _kind(int(p.split("/")[1].split(".")[0]), model)) for p, y in zip(paths, labels)])
+        preds[system] = Predictions(paths, labels, probs)
+    metrics = {s: E.standard_image_metrics(p.probs, labels, NAMES) for s, p in preds.items()}
+    out = write_run("E4", "field_dev", {"class_names": NAMES}, {s: s for s in preds}, metrics, {}, [{"setting": "x"}],
+                    preds, info.hash, root=root, subset=subset)
+    return out.stem
+
+
+def _config(rids):
+    cfg = json.loads((ROOT / "configs" / "e11.json").read_text(encoding="utf-8"))
+    cfg["sheets"] = {**cfg["sheets"], **SHEET_CFG, "photos_per_sheet": 6, "columns": 3}
+    cfg["models"] = {
+        "seen": {"record": rids[0], "system": "convnext_joint"},
+        "heldout_plantdoc": {"record": rids[1], "system": "heldout_plantdoc", "source": "plantdoc"},
+        "heldout_plantseg": {"record": rids[2], "system": "heldout_plantseg", "source": "plantseg"},
+    }
+    return cfg
+
+
+def _answered_world(lab, oracle=True, flip=False):
+    """Fake E4 records, a plan, and answers a test oracle gives (it knows the class; the real answerer does not)."""
+    rids = [
+        _e4(lab, {"convnext_joint": "joint"}, "shared_classes"),
+        _e4(lab, {"convnext_joint": "joint", "heldout_plantdoc": "heldout"}, "source:plantdoc"),
+        _e4(lab, {"convnext_joint": "joint", "heldout_plantseg": "heldout"}, "source:plantseg"),
+    ]
+    cfg = _config(rids)
+    plan = E.make_plan(cfg, lab, FAKE_BANK, NAMES)
+    truth = {r.split(",")[0]: r.split(",")[1] for r in _field_rows()[1:]}
+    answers = []
+    for entry in plan["plan"]:
+        for q in entry["needed"] + entry["decoys"]:
+            cls = next(b.classes[0] for b in FAKE_BANK if b.id == q)
+            yes = (cls == truth[entry["path"]]) != flip
+            answers.append({"path": entry["path"], "question": q, "answer": "yes" if yes else "no"})
+    answers.sort(key=lambda r: (r["path"], r["question"]))
+    (lab / "datasets/followup/answers.jsonl").write_text("".join(json.dumps(r) + "\n" for r in answers))
+    (lab / "datasets/followup/answers.meta.json").write_text(json.dumps({
+        "answerer": "a test oracle", "kind": E.KIND, "sheets": 1, "photos": len(plan["plan"]), "rows": len(answers),
+        "yes": 0, "no": 0, "unknown": 0}))
+    _git(lab, "add", "-A")
+    _git(lab, "commit", "-q", "-m", "answers")
+    return cfg, plan
+
+
+def test_plan_only_covers_unsure_cleaned_field_dev_photos(lab):
+    cfg, plan = _answered_world(lab)
+    paths = [e["path"] for e in plan["plan"]]
+    assert paths and "f/1.jpg" not in paths  # excluded by the label cleaning
+    assert all(int(p.split("/")[1].split(".")[0]) < N_PHOTOS for p in paths)  # no field_test photo
+    assert plan["summary"]["seen"]["unsure"] > 0
+    assert set(plan["summary"]) == {"seen", "heldout_plantdoc", "heldout_plantseg"}
+
+
+def test_unsure_subset_gain_is_not_mistaken_for_a_whole_split_gain(lab):
+    cfg, _ = _answered_world(lab)
+    paths = E.run_all(cfg, lab, bank=FAKE_BANK)
+    assert len(paths) == 3
+    rec = json.loads(paths[0].read_text(encoding="utf-8"))
+    assert rec["experiment"] == "E11" and rec["subset"] == "clean:1" and rec["split"] == "field_dev"
+    assert rec["config"]["device"].startswith("none")
+    flow = rec["config"]["flow"]["joint"]
+    assert flow["asked_subset"]["accuracy_before"] < flow["asked_subset"]["accuracy_after"]
+    assert flow["whole_split"]["accuracy_after"] - flow["whole_split"]["accuracy_before"] < (
+        flow["asked_subset"]["accuracy_after"] - flow["asked_subset"]["accuracy_before"])
+    assert flow["better"] > 0 and flow["worse"] == 0 and flow["n_rows"] == rec["n"]
+    # the whole-split numbers in the record are the ones check_run recomputes
+    assert rec["metrics"]["joint_after"]["accuracy"] == pytest.approx(flow["whole_split"]["accuracy_after"])
+    assert check("E11", root=lab, min_n=10, split="field_dev") == []
+
+
+def test_wrong_answers_make_it_worse_and_that_is_counted(lab):
+    cfg, _ = _answered_world(lab, flip=True)
+    rec = json.loads(E.run_all(cfg, lab, bank=FAKE_BANK)[0].read_text(encoding="utf-8"))
+    flow = rec["config"]["flow"]["joint"]
+    assert flow["worse"] > 0 and flow["better"] == 0
+    assert flow["asked_subset"]["accuracy_after"] < flow["asked_subset"]["accuracy_before"]
+    lo, hi = flow["asked_subset"]["accuracy_diff_ci"]
+    assert hi < 0
+
+
+def test_flow_summary_matches_the_saved_rows(lab):
+    cfg, _ = _answered_world(lab)
+    rec = json.loads(E.run_all(cfg, lab, bank=FAKE_BANK)[0].read_text(encoding="utf-8"))
+    rows = {s: [json.loads(x) for x in (lab / rec["predictions"][s]).read_text().splitlines()]
+            for s in ("joint_before", "joint_after")}
+    before = {r["path"]: r for r in rows["joint_before"]}
+    asked = [r for r in rows["joint_after"] if r["asked"]]
+    flow = rec["config"]["flow"]["joint"]
+    assert flow["questions_asked"] == sum(len(r["asked"]) for r in asked)
+    assert flow["asked_subset"]["n"] == len(asked)
+    assert max(len(r["asked"]) for r in asked) <= 2
+    better = sum(np.argmax(r["probs"]) == r["label"] and np.argmax(before[r["path"]]["probs"]) != r["label"] for r in asked)
+    assert flow["better"] == better
+    assert all(r["probs"] == before[r["path"]]["probs"] for r in rows["joint_after"] if not r["asked"])
+    for r in asked:  # the top-3 mass does not move
+        assert sum(r["probs"]) == pytest.approx(sum(before[r["path"]]["probs"]))
+    assert flow["answers"] == {"yes": flow["answers"]["yes"], "no": flow["answers"]["no"], "unknown": 0}
+    assert flow["unknown_rate"] == 0
+
+
+def test_held_out_models_sit_beside_the_seen_one_with_the_same_answers(lab):
+    cfg, _ = _answered_world(lab)
+    seen, pdoc, pseg = (json.loads(p.read_text(encoding="utf-8")) for p in E.run_all(cfg, lab, bank=FAKE_BANK))
+    assert pdoc["subset"] == "source:plantdoc+clean:1" and pseg["subset"] == "source:plantseg+clean:1"
+    assert set(pdoc["config"]["flow"]) == {"joint", "heldout"} == set(pseg["config"]["flow"])
+    assert {c["a"] for c in pdoc["comparisons"]} == {"joint_after", "heldout_after"}
+    assert pdoc["config"]["seen_source_number"]["accuracy_after"] == pytest.approx(
+        seen["config"]["flow"]["joint"]["whole_split"]["accuracy_after"])
+    assert check("E11", root=lab, min_n=10, split="field_dev") == []
+
+
+def test_mismatched_saved_rows_are_refused(lab):
+    cfg, _ = _answered_world(lab)
+    rec = json.loads((lab / "results/runs" / f"{cfg['models']['heldout_plantdoc']['record']}.json").read_text())
+    path = lab / rec["predictions"]["convnext_joint"]
+    rows = [json.loads(x) for x in path.read_text().splitlines()]
+    for r in rows:
+        r["probs"][0] += 0.01
+    path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    with pytest.raises(ValueError, match="do not match"):
+        E.run_all(cfg, lab, bank=FAKE_BANK)
+
+
+def test_record_refuses_answers_that_are_not_committed_first(lab):
+    cfg, _ = _answered_world(lab)
+    (lab / "datasets/followup/answers.jsonl").write_text("")
+    with pytest.raises(RuntimeError, match="answers"):
+        E.run_all(cfg, lab, bank=FAKE_BANK)
+
+
+def test_missing_answer_for_a_planned_question_is_refused(lab):
+    cfg, _ = _answered_world(lab)
+    path = lab / "datasets/followup/answers.jsonl"
+    path.write_text("")
+    _git(lab, "add", "-A")
+    _git(lab, "commit", "-q", "-m", "answers emptied")
+    with pytest.raises(ValueError, match="no saved answer"):
+        E.run_all(cfg, lab, bank=FAKE_BANK)
+
+
+def test_unknown_answers_are_counted_and_change_nothing(lab):
+    cfg, _ = _answered_world(lab)
+    path = lab / "datasets/followup/answers.jsonl"
+    rows = [json.loads(x) for x in path.read_text().splitlines()]
+    path.write_text("".join(json.dumps({**r, "answer": "unknown"}) + "\n" for r in rows))
+    _git(lab, "add", "-A")
+    _git(lab, "commit", "-q", "-m", "all unknown")
+    rec = json.loads(E.run_all(cfg, lab, bank=FAKE_BANK)[0].read_text(encoding="utf-8"))
+    flow = rec["config"]["flow"]["joint"]
+    assert flow["unknown_rate"] == 1 and flow["better"] == 0 and flow["worse"] == 0
+    assert rec["metrics"]["joint_after"] == rec["metrics"]["joint_before"]
+
+
+def test_field_test_is_never_read(lab):
+    cfg, plan = _answered_world(lab)
+    for rec_path in E.run_all(cfg, lab, bank=FAKE_BANK):
+        rec = json.loads(rec_path.read_text(encoding="utf-8"))
+        assert rec["split"] == "field_dev"
+        for rel in rec["predictions"].values():
+            for line in (lab / rel).read_text().splitlines():
+                assert int(json.loads(line)["path"].split("/")[1].split(".")[0]) < N_PHOTOS
+    (lab / "c.json").write_text(json.dumps({**cfg, "split": "field_test"}))
+    with pytest.raises(ValueError, match="field_dev only"):
+        E.load_config(lab / "c.json")
+
+
+def test_ece_difference_interval_is_paired_and_zero_when_nothing_changed():
+    rng = np.random.default_rng(0)
+    probs = rng.dirichlet(np.ones(4), size=60)
+    labels = rng.integers(0, 4, size=60)
+    groups = [f"g{i // 2}" for i in range(60)]
+    diff, lo, hi = E.ece_diff(probs, probs, labels, groups, n=200, seed=1)
+    assert diff == lo == hi == 0
+    sharper = probs ** 3 / (probs ** 3).sum(axis=1, keepdims=True)
+    diff, lo, hi = E.ece_diff(probs, sharper, labels, groups, n=200, seed=1)
+    assert diff == pytest.approx(E.M.ece(sharper, labels) - E.M.ece(probs, labels)) and lo <= diff <= hi

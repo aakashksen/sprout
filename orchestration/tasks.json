@@ -350,6 +350,22 @@
       "reason": "tests/test_e5.py::test_probs_stage_scores_not_plant_photos_from_a_checkpoint fails when a GPU is visible: np.allclose on probabilities, because the stage scores on cuda while the test compares with CPU"
     },
     {
+      "id": "T4.7",
+      "phase": 4,
+      "title": "Experiment E13, clean the real-photo labels",
+      "owner": "agent",
+      "deps": [
+        "T4.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_label_review.py tests/test_e13.py -q",
+        "{py} -m sprout.eval.check_run E13 --min-n 200 --split field_dev"
+      ],
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-03T17:22:31+00:00"
+    },
+    {
       "id": "T4.3",
       "phase": 4,
       "title": "Experiment E11, follow-up questions on top-3",
@@ -411,20 +427,6 @@
       "acceptance": [
         "{py} -m pytest tests/test_e12.py -q",
         "{py} -m sprout.eval.check_run E12 --min-n 200 --split field_dev"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "T4.7",
-      "phase": 4,
-      "title": "Experiment E13, clean the real-photo labels",
-      "owner": "agent",
-      "deps": [
-        "T4.1"
-      ],
-      "acceptance": [
-        "{py} -m pytest tests/test_label_review.py tests/test_e13.py -q",
-        "{py} -m sprout.eval.check_run E13 --min-n 200 --split field_dev"
       ],
       "status": "pending"
     },

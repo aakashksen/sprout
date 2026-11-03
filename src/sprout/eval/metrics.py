@@ -78,3 +78,41 @@ def recall_at_k(ranks, k: int) -> float:
 
 def mrr(ranks) -> float:
     return float(np.mean([0.0 if r is None else 1.0 / r for r in ranks]))
+
+
+def top_k_accuracy(probs, labels, k: int) -> float:
+    """Share of rows whose true class is among the k highest probabilities. Ties go to the lower index,
+    as in argmax, so k=1 equals accuracy exactly."""
+    if k < 1:
+        raise ValueError("k must be at least 1")
+    probs, labels = np.asarray(probs, dtype=float), np.asarray(labels, dtype=int)
+    true_p = probs[np.arange(len(labels)), labels][:, None]
+    before = (probs > true_p).sum(axis=1) + ((probs == true_p) & (np.arange(probs.shape[1]) < labels[:, None])).sum(axis=1)
+    return float((before < k).mean())
+
+
+def plant_of(class_name: str) -> str | None:
+    """The plant is the part of the class name before `___`; None when the name has no plant part."""
+    return class_name.split("___", 1)[0] if "___" in class_name else None
+
+
+def options_per_plant(class_names: list[str]) -> dict[str, int]:
+    """How many classes each plant has among the model's outputs."""
+    counts: dict[str, int] = {}
+    for name in class_names:
+        plant = plant_of(name)
+        if plant is not None:
+            counts[plant] = counts.get(plant, 0) + 1
+    return counts
+
+
+def plant_given_top_k(probs, labels, class_names: list[str], k: int) -> float:
+    """Top-k accuracy when each row's outputs are restricted to the classes of its true plant.
+    nan (undefined) when any true label has no plant, as for a non-plant image."""
+    probs, labels = np.asarray(probs, dtype=float), np.asarray(labels, dtype=int)
+    plants = [plant_of(n) for n in class_names]
+    if probs.shape[1] != len(class_names) or any(plants[y] is None for y in labels):
+        return float("nan")
+    column_plant = np.array([p if p is not None else "" for p in plants])
+    keep = column_plant[None, :] == column_plant[labels][:, None]
+    return top_k_accuracy(np.where(keep, probs, -np.inf), labels, k)

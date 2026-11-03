@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from sprout.data import class_report as cr
-from sprout.rag.evalset import index_pages, load_questions, normalize
+from sprout.rag.evalset import answer_candidates, index_pages, load_questions, normalize
 from sprout.rag.ingest import build_index, load_manifest, missing_from_manifest
 
 PAGE = """<html><head><title>T</title><style>p{color:red}</style><script>var secret=1;</script></head>
@@ -129,3 +129,73 @@ def test_every_class_has_a_coverage_row():
         if r["symptoms_described"] == "no":
             assert "Queries" in r["evidence"], r["label"]
     assert set(rows[rows["symptoms_described"] == "no"]["label"]) == set()
+
+
+# What a document would have to say to answer each out-of-scope question: the plant (with family
+# terms where a family document would cover it) and the problem, in the same chunk.
+ABSTAIN_SPEC = {
+    "not_in_documents-001": (["magnolia"], "leaf spot"),
+    "not_in_documents-002": (["orchid"], "rot|mushy|brown"),
+    "not_in_documents-003": (["cannabis", "hemp", "marijuana"], "powdery mildew"),
+    "not_in_documents-004": (["mango"], "anthracnose"),
+    "not_in_documents-005": (["banana"], "panama|fusarium"),
+    "not_in_documents-006": (["peony"], "botrytis|blight"),
+    "not_in_documents-007": (["lettuce"], r"tip ?burn|slimy|soft rot"),
+    "not_in_documents-008": (["lavender"], "root|wet soil|dying back"),
+    "not_in_documents-009": (["avocado"], r"tip ?burn|brown(ing)? (leaf )?tips"),
+    "not_in_documents-010": (["pineapple"], "heart rot|rot"),
+    "not_in_documents-011": (["hibiscus"], "bud drop|buds"),
+    "not_in_documents-012": (["watermelon"], "fusarium"),
+    "not_in_documents-013": (["broccoli"], r"head rot|brown(ing)? head|rotting"),
+    "not_in_documents-014": (["tulip"], "bulb|rot"),
+    "not_in_documents-015": (["celery"], "late blight"),
+    "not_in_documents-016": (["boxwood"], "blight"),
+    "not_in_documents-017": (["pomegranate"], "crack|rot"),
+    "not_in_documents-018": (["persimmon"], r"blacken|black spot|fruit rot"),
+    "not_in_documents-019": (["cranberr"], r"fruit rot|bbogs?b"),
+    "not_in_documents-020": (["hops"], "downy mildew"),
+    "not_in_documents-021": (["papaya"], r"sunken|dark spots"),
+    "not_in_documents-022": (["sugarcane"], "red rot|rot"),
+    "not_in_documents-023": (["sunflower"], r"head rot|brown(ed)? heads?|heads? (turn|rot)"),
+    "not_in_documents-024": (["basil"], "downy mildew"),
+    "not_in_documents-025": (["cabbage"], "clubroot|club root"),
+    "not_in_documents-026": (["parsley"], "yellow|spot"),
+    "not_in_documents-027": (["bamboo"], "rust"),
+    "not_in_documents-028": (["cacao", "cocoa"], "pod rot|rot"),
+}
+
+
+def test_answer_candidates_flags_a_family_document_and_ignores_a_passing_mention(tmp_path):
+    chunks = tmp_path / "chunks.jsonl"
+    rows = [
+        {"text": "Powdery mildew of squash, zucchini and pumpkin shows white spots.", "source": "s.html", "page": 1},
+        {"text": "Plant lettuce, zucchini and beans in rows.", "source": "g.html", "page": 1},
+    ]
+    chunks.write_text("\n".join(json.dumps(r) for r in rows), encoding="utf-8")
+    assert answer_candidates(chunks, ["zucchini", "squash", "cucurbit"], "powdery mildew") == [("s.html", 1)]
+    assert answer_candidates(chunks, ["lettuce"], r"tip ?burn|slimy") == []
+
+
+@needs_new_index
+def test_abstain_questions_have_no_answer_in_the_index():
+    questions = [q for q in load_questions(QUESTIONS) if q.category == "not_in_documents"]
+    assert {q.id for q in questions} == set(ABSTAIN_SPEC)
+    for q in questions:
+        plants, topic = ABSTAIN_SPEC[q.id]
+        assert answer_candidates(_new_index(), plants, topic) == [], q.id
+
+
+UNKNOWN_SOURCE = "unknown: inherited from the legacy project, source not confirmed"
+
+
+def test_every_row_has_a_url_or_the_exact_unknown_phrase():
+    rows = _manifest_rows()
+    unknown = [r["file"] for r in rows if r["source_url"] == UNKNOWN_SOURCE]
+    for r in rows:
+        assert r["source_url"] == UNKNOWN_SOURCE or r["source_url"].startswith(("https://", "http://")), r["file"]
+        assert r["publisher"].strip() or r["source_url"] == UNKNOWN_SOURCE, r["file"]
+    assert all(not NEW_FILE.match(f) for f in unknown)
+    sources = (ROOT / "docs" / "document-sources.md").read_text(encoding="utf-8")
+    assert f"{len(unknown)} of the 28 original documents have an unknown source" in sources
+    evidence = {r["file"] for r in csv.DictReader((ROOT / "docs" / "original-doc-sources.csv").open(encoding="utf-8"))}
+    assert set(unknown) <= evidence

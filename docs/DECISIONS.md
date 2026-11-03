@@ -110,6 +110,21 @@ A task with no entry gets a line `<id>: no new decisions` at the end of this fil
 - **Evidence:** `docs/document-coverage.md`; `tests/test_more_documents.py::test_every_class_has_a_coverage_row`.
 - **Would change if:** a class's cited passage is found to describe a different disease.
 
+### T6.5 - Two abstain questions answered by the new documents were replaced (2026-11-03)
+- **Chose:** every `not_in_documents` question (28, both splits) was checked against `knowledge/index-t65` by looking for a chunk that names the plant, or a family term, together with the problem, then reading the hits. Two were answered, so their text was replaced and their ID, split and category kept. `results/runs/` holds no E7 or `rag_test` record, so no result shaped this.
+  - `not_in_documents-008` (test): "How do I control powdery mildew on my zucchini?" became "Why are my lavender plants dying back from the roots in wet soil?". The new squash and cucurbit pages describe powdery mildew on zucchini and its relatives.
+  - `not_in_documents-011` (dev): "Why are my pumpkin vines wilting with white mold?" became "Why is my hibiscus dropping its buds before they open?". The new pumpkin and winter squash pages cover powdery mildew (white growth) and bacterial wilt of pumpkin.
+  - The replacements name plants that appear nowhere in the index (`lavender`, `hibiscus`). The other 26 were kept; plant names that appear only in lists or passing mentions (for example cranberry in a blueberry pest list, papaya in a host list, sunflower in a rotation note) do not answer them.
+- **Considered:** dropping the two (lost: the category needs at least 20 per split pair); adding gold pages from new documents (lost: no gold document may be new). Watermelon fusarium wilt (012) was kept: the new watermelon pages cover powdery mildew only.
+- **Evidence:** `tests/test_more_documents.py::test_abstain_questions_have_no_answer_in_the_index` (index-dependent, skipped when the ignored index is absent) and its fast fixture test; `answer_candidates` in `src/sprout/rag/evalset.py`.
+- **Would change if:** a later document round names one of these plants together with its problem; the test then fails and the question must be replaced the same way.
+
+### T6.5 - Unconfirmed sources are stated, not guessed (2026-11-03)
+- **Chose:** 7 of the 18 original manifest rows without a source URL were filled from `docs/original-doc-sources.csv`; 11 carry `unknown: inherited from the legacy project, source not confirmed`. A test accepts only a URL or that exact phrase on every row, and `docs/document-sources.md` states the count.
+- **Considered:** leaving them blank (lost: a blank cannot be told from an oversight); guessing the likeliest publisher (lost: not allowed).
+- **Evidence:** `docs/original-doc-sources.csv`, `docs/document-sources.md`.
+- **Would change if:** a source for any of the 11 is found.
+
 ---
 
 ## Evaluation and records

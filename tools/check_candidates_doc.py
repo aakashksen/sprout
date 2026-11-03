@@ -55,7 +55,11 @@ def check(text: str, classes: list[str]) -> list[str]:
 
 
 def main() -> int:
-    errors = check(DOC.read_text(encoding="utf-8"), uncovered_classes(COVERAGE))
+    classes = uncovered_classes(COVERAGE)
+    if not classes:
+        print("no uncovered classes; nothing to check")
+        return 0
+    errors = check(DOC.read_text(encoding="utf-8"), classes)
     for e in errors:
         print(e)
     return 1 if errors else 0

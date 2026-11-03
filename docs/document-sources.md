@@ -145,3 +145,24 @@ The other documents were not checked for licence text. Treat them the same way.
 | tomato | 8 | 44 |
 
 Round two documents that supplied symptom evidence for coverage: 201 and 204 (cherry powdery mildew), 211 (grape leaf blight), 212 (tomato yellow leaf curl), 218 (tomato mosaic), 222 (huanglongbing), 247 (peach bacterial spot), 267 (squash powdery mildew). The other round-two pages are mostly home-growing guides, added for plant care on the thin crops.
+
+## Sources of the 28 original documents
+
+The 28 original documents (the ones without a number prefix) were copied from the legacy project's documents into the main folder's `knowledge/raw/` by T6.1, and that folder is git-ignored. A worktree reaches them only through its `knowledge/raw` link to the main folder; a rebuild from a fresh checkout without that link would not find them (nor any of the downloaded files), so keep the main folder's `knowledge/raw/` as the single copy.
+
+`docs/original-doc-sources.csv` is a researcher's check of those 28 rows and is kept as the evidence. Seven rows that had no `source_url` were confirmed and filled in; 11 could not be found and carry the value `unknown: inherited from the legacy project, source not confirmed`. The other 10 already had a URL in the manifest, which the check kept without re-verifying.
+
+11 of the 28 original documents have an unknown source: `Apple - G-sible_240513.pdf`, `Apple.pdf`, `CitrusOrange-Greening-Guide.pdf`, `grapediseaseidguide.pdf`, `Growing Blueberries.pdf`, `Learning-from-Peach-Bacterial-Spot-Epidemics.pdf`, `Orangeax739e.pdf`, `Organic-Blueberry-Growing-Guide.pdf`, `strawberry.pdf`, `strawberry2.pdf`, `tomatodoc1.md`.
+
+Limits on the seven confirmed rows:
+- `Apple-Pest-Management-for-Home-Gardeners-1.pdf`: the URL is a copy on the UW Learning Store CDN (`cdn.shopify.com`), not the publisher's own site.
+- `BacterialSpotPeach.pdf`: partly confirmed; the Cornell clinic's fact-sheet listing page links this file name, but the PDF's text was not readable there.
+- `GeneralInfo1.pdf`: the URL is the IAOM page about the manual, not the document itself.
+- `growing_blueberries_in_your_home_garden_osu_2.pdf`: the page shows EC 1304 revised in 2025 while the file is the 2008 version, so the manifest date (2008-03) is kept and the text may differ.
+- `Grape-343478.pdf`, `PP362_PP362_ Bacterial Spot of Pepper.pdf`, `tomatodoc2.md`: confirmed by opening the document.
+
+Coverage rows that cited only unknown-source documents (apple scab, apple black rot, cedar apple rust, strawberry leaf scorch) now also cite documents with known sources. Grape black rot, grape esca and orange huanglongbing still cite one unknown-source document each alongside known ones. The tomato bacterial spot and spider mite rows cite two known-source documents each plus `tomatodoc2.md`, whose source is now confirmed.
+
+## Page navigation left in some HTML text
+
+A few pages keep site navigation words at the top of their extracted text (239 "Skip to main navigation...", 203 "USU Home A-Z Index...", and 241's topic and contact lines) because their templates use no `<nav>`, `<main>` or `<article>` tag. No small general rule removes them without risking real text, so extraction was left as is. This goes to T6.4 under structure-aware chunking. Page 203 is also only the abstract page; the fact sheet itself is a PDF that was not fetched.

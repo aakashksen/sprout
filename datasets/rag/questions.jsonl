@@ -139,10 +139,10 @@
 {"id": "not_in_documents-005", "category": "not_in_documents", "split": "dev", "question": "How do I manage Panama disease in bananas?", "expected": "abstain", "absent_terms": ["banana"]}
 {"id": "not_in_documents-006", "category": "not_in_documents", "split": "test", "question": "What is the treatment for peony botrytis blight?", "expected": "abstain", "absent_terms": ["peony"]}
 {"id": "not_in_documents-007", "category": "not_in_documents", "split": "dev", "question": "My lettuce has tip burn and slimy rot. What should I do?", "expected": "abstain", "absent_terms": ["lettuce"]}
-{"id": "not_in_documents-008", "category": "not_in_documents", "split": "test", "question": "How do I control powdery mildew on my zucchini?", "expected": "abstain", "absent_terms": ["zucchini"]}
+{"id": "not_in_documents-008", "category": "not_in_documents", "split": "test", "question": "Why are my lavender plants dying back from the roots in wet soil?", "expected": "abstain", "absent_terms": ["lavender"]}
 {"id": "not_in_documents-009", "category": "not_in_documents", "split": "dev", "question": "Why are my avocado leaves turning brown at the tips?", "expected": "abstain", "absent_terms": ["avocado"]}
 {"id": "not_in_documents-010", "category": "not_in_documents", "split": "test", "question": "How do I save a pineapple with heart rot?", "expected": "abstain", "absent_terms": ["pineapple"]}
-{"id": "not_in_documents-011", "category": "not_in_documents", "split": "dev", "question": "Why are my pumpkin vines wilting with white mold?", "expected": "abstain", "absent_terms": ["pumpkin"]}
+{"id": "not_in_documents-011", "category": "not_in_documents", "split": "dev", "question": "Why is my hibiscus dropping its buds before they open?", "expected": "abstain", "absent_terms": ["hibiscus"]}
 {"id": "not_in_documents-012", "category": "not_in_documents", "split": "test", "question": "How do I stop fusarium wilt in watermelon?", "expected": "abstain", "absent_terms": ["watermelon"]}
 {"id": "not_in_documents-013", "category": "not_in_documents", "split": "dev", "question": "My broccoli heads have brown rotting spots. What is it?", "expected": "abstain", "absent_terms": ["broccoli"]}
 {"id": "not_in_documents-014", "category": "not_in_documents", "split": "test", "question": "What fungus makes tulip bulbs rot in storage?", "expected": "abstain", "absent_terms": ["tulip"]}

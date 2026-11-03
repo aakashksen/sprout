@@ -154,12 +154,17 @@
         "{py} -m pytest tests/test_records.py -q",
         "{py} -m sprout.eval.claims check"
       ],
-      "status": "in_progress",
-      "worktree": "<local path>",
+      "status": "done",
       "started_at": "2026-11-03T05:12:02+00:00",
       "attempts": 0,
       "reason": "test-once bypass: _uses() keeps the latest add per stem, so deleting and re-adding, or git mv away and back, the first test record makes a second use rank first with no override_note; no test covers it",
-      "note": "one more narrow attempt, decided by the coordinator: first add per stem wins"
+      "note": "one more narrow attempt, decided by the coordinator: first add per stem wins",
+      "verified": {
+        "commit": "84f37bbf74eacc7ac2bff97df48cd2bcdd8d329f",
+        "passed": true,
+        "at": "2026-11-03T06:43:06+00:00"
+      },
+      "done_at": "2026-11-03T06:52:33+00:00"
     },
     {
       "id": "T3.1",
@@ -430,7 +435,12 @@
       ],
       "status": "in_progress",
       "worktree": "<local path>",
-      "started_at": "2026-11-03T06:20:03+00:00"
+      "started_at": "2026-11-03T06:20:03+00:00",
+      "verified": {
+        "commit": "afec93a495275d23b94e6a6a0684146cfd69581d",
+        "passed": true,
+        "at": "2026-11-03T06:42:12+00:00"
+      }
     },
     {
       "id": "T7.4",

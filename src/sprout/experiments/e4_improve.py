@@ -355,29 +355,15 @@ def arm_entries(cfg: dict[str, Any], root: Path, results: dict[str, dict[str, An
     return out
 
 
-def run_arm(cfg: dict[str, Any], name: str, root: Path = ROOT, *, resume: bool = False, note: str = "") -> Path | None:
-    """Decide, train, score and write the record of one arm; None when the arm is recorded as not run."""
-    if is_dirty(root):
-        raise RuntimeError("working tree has uncommitted changes; commit first")
-    started = datetime.now(timezone.utc).isoformat()
-    out_root = root / cfg["out_dir"]
-    check_disk(out_root, cfg["min_free_disk_gb"])
+def _plan_arm(cfg: dict[str, Any], root: Path, name: str, joint: pd.DataFrame, class_names: list[str],
+              results: dict[str, dict[str, Any]], notrun: dict[str, Any]):
+    """Apply the arm's stated rules to earlier results. Returns (settings, None) to train, or
+    (None, (reason, inputs)) when the arm is not run. Raises Blocked when an earlier arm it reads is missing."""
     spec0 = arm_spec(cfg, name)
-    results, notrun = arm_results(cfg, root), not_run_entries(cfg, root)
-    log_path = out_root / name / "epochs.log"
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-
-    joint = load_joint_manifest(TrainConfig(
-        manifest=cfg["lab_manifest"], out_dir="", field_manifest=cfg["field_manifest"],
-        train_splits=("lab_train", "field_train"), select_split="field_dev"))
-    class_map = make_class_map(joint)
-    class_names = sorted(class_map, key=class_map.get)
-
-    # arm-specific decisions, each a stated rule read from earlier results
     if spec0.get("requires") == "arm_5":
         go, why = arm5_rule(results)
         if not go:
-            return _record_not_run(cfg, root, name, why, {n: results[n]["macro_f1"] for n in ("dinov2_head", "convnext_joint")})
+            return None, (why, {n: results[n]["macro_f1"] for n in ("dinov2_head", "convnext_joint")})
     if spec0["kind"] == "crop_of_best":
         for a in cfg["arms"]:
             if a["kind"] == "train" and a["name"] not in results and a["name"] not in notrun:
@@ -387,15 +373,22 @@ def run_arm(cfg: dict[str, Any], name: str, root: Path = ROOT, *, resume: bool =
     if baseline["config"]["class_names"] != class_names:
         raise RuntimeError("the baseline record's classes differ from the joint manifest's")
     if spec0.get("requires") == "arm_3":
-        probe = train_config(cfg, spec, root)
-        lab_rows, _ = select_rows(joint, probe)
-        lab_rows = lab_rows[lab_rows["source"] == "lab"]
-        share, kinds = mask_share(lab_rows)
+        lab_rows, _ = select_rows(joint, train_config(cfg, spec, root))
+        share, kinds = mask_share(lab_rows[lab_rows["source"] == "lab"])
         need = cfg["rules"]["min_good_mask_share"]
         if share < need:
-            return _record_not_run(cfg, root, name, f"only {share:.3f} of the capped lab_train photos have a believable "
-                                   f"leaf mask; the rule needs {need}", {"mask_kinds": kinds})
+            return None, (f"only {share:.3f} of the capped lab_train photos have a believable "
+                          f"leaf mask; the rule needs {need}", {"mask_kinds": kinds})
+    reference = spec.get("reference")
+    if reference and reference not in results:
+        raise Blocked(f"reference arm {reference} has no record yet; run it first")
+    return spec, None
 
+
+def _train_arm(cfg: dict[str, Any], root: Path, name: str, spec: dict[str, Any], joint: pd.DataFrame,
+               resume: bool, log_path: Path):
+    """Train one arm (or resume it). Returns the train config, the rows used, the run output, the attempts and
+    the history across all attempts."""
     crop_masks = ""
     if spec.get("crop"):
         plain = train_config(cfg, spec, root)
@@ -405,7 +398,6 @@ def run_arm(cfg: dict[str, Any], name: str, root: Path = ROOT, *, resume: bool =
                                            lambda m: print(m, flush=True)))
     tc = train_config(cfg, spec, root, crop_masks)
     train_rows, sel_rows = select_rows(joint, tc)
-    on_plantdoc = bool((train_rows["source"] == "plantdoc").any())
 
     latest = Path(tc.out_dir) / "latest.pt"
     if not resume and (latest.exists() or (Path(tc.out_dir) / "best.pt").exists()):
@@ -413,41 +405,60 @@ def run_arm(cfg: dict[str, Any], name: str, root: Path = ROOT, *, resume: bool =
     if resume and not latest.is_file():
         raise FileNotFoundError(f"--resume given but {latest} does not exist")
     attempts = start_attempt(cfg, root, name, resume)
-    resume_path = latest if resume else None
     with log_path.open("a", encoding="utf-8") as logfile, contextlib.redirect_stdout(Tee(sys.stdout, logfile)):
         print(f"arm {name}: train={len(train_rows)} select={len(sel_rows)} resume={resume}", flush=True)
-        out = train(tc, resume=resume_path)  # an error leaves the attempt "started"; --resume marks it interrupted
+        # an error leaves the attempt "started"; --resume marks it interrupted
+        out = train(tc, resume=latest if resume else None)
     finish_attempt(cfg, root, name, attempts, out.history, "complete")
-    history = [h for a in attempts for h in a["history"]]
+    return tc, train_rows, sel_rows, out, attempts, [h for a in attempts for h in a["history"]]
 
-    # score on field_dev
-    ckpt = load_checkpoint(out.best_path)
-    assert ckpt["class_map"] == class_map
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = build_model(tc.model, len(class_map), pretrained=False, **({"unfreeze_blocks": tc.unfreeze_blocks} if tc.unfreeze_blocks else {}))
-    model.load_state_dict(ckpt["model"])
 
-    shared = shared_classes()
+def _field_rows(cfg: dict[str, Any], spec: dict[str, Any], shared: set[str]):
+    """The field_dev rows an arm is scored on, and the subset name for the record."""
     field = load_rows(cfg["split"], shared)
     held = spec.get("held_out_source")
-    if held:
-        source = dict(zip(*(load_manifest(cfg["field_manifest"])[c] for c in ("path", "source"))))
-        field = field[field["path"].map(source) == held].reset_index(drop=True)
-        subset = f"source:{held}"
-    else:
-        subset = cfg["subset"]
+    if not held:
+        return field, cfg["subset"]
+    manifest = load_manifest(cfg["field_manifest"])
+    source = dict(zip(manifest["path"], manifest["source"], strict=True))
+    return field[field["path"].map(source) == held].reset_index(drop=True), f"source:{held}"
+
+
+def _measure_energy(cfg, name, spec, tc, model, class_map, device, shared, root, measurements) -> str:
+    """Add Grad-CAM energy samples for the arm and E1 to `measurements`; returns the sentence for the notes."""
+    if tc.model not in ENERGY_MODELS or spec.get("crop"):
+        why = ("the input is cropped, so the leaf mask would not line up" if spec.get("crop")
+               else "a ViT has no convolutional Grad-CAM layer")
+        return f" Grad-CAM energy outside the leaf was not measured for this arm: {why}."
+    lab = load_rows("lab_dev", shared)
+    lab = lab.sample(n=min(cfg["cam_sample"], len(lab)), random_state=cfg["seed"]).reset_index(drop=True)
+    e1 = load_checkpoint(root / cfg["e1_checkpoint"])
+    e1_model = build_model(e1["config"].model, len(e1["class_map"]), pretrained=False)
+    e1_model.load_state_dict(e1["model"])
+    for label, m, mname, mmap in ((name, model, tc.model, class_map), ("e1", e1_model, e1["config"].model, e1["class_map"])):
+        vals = lab_energy(m, mname, mmap, cfg, tc, device, lab)
+        if vals:
+            measurements[f"energy_outside_leaf_{label}"] = vals
+    return (f" Grad-CAM energy outside the leaf: {len(lab)} lab_dev photos sampled with seed {cfg['seed']}, "
+            f"the same for e1 and {name}.")
+
+
+def _crop_config(cfg: dict[str, Any]) -> dict[str, Any]:
+    return {"masks": "sprout.segment.model.predict_mask with models/e10/best.pt, cached at 320 px",
+            "e10_record": cfg["e10"]["record"],
+            "caveat": "E10 was trained on PlantSeg-style masks only; how well it carries over to PlantDoc "
+                      "and lab photos is untested"}
+
+
+def _score_arm(cfg, root, name, reference, results, field, class_map, class_names, probs):
+    """Rows of the arm, its baselines and its reference; their metrics and intervals; the paired comparisons."""
     paths = list(field["path"])
     labels = np.array([class_map[x] for x in field["label"]], dtype=int)
-    probs = predict_probs(model, field, class_map, tc, device)
-
     systems: dict[str, list[dict[str, Any]]] = baseline_rows(cfg, root, paths)
-    reference = spec.get("reference")
-    if reference and reference not in results:
-        raise Blocked(f"reference arm {reference} has no record yet; run it first")
     if reference:
         systems[reference] = saved_rows(root, results[reference]["predictions"], paths)
     systems[name] = [{"path": p, "label": int(y), "probs": [float(v) for v in pr]}
-                     for p, y, pr in zip(paths, labels, probs)]
+                     for p, y, pr in zip(paths, labels, probs, strict=True)]
     groups = list(field["group"])
     arrays = {s: (np.array([r["label"] for r in rows], dtype=int), np.array([r["probs"] for r in rows], dtype=float))
               for s, rows in systems.items()}
@@ -462,26 +473,54 @@ def run_arm(cfg: dict[str, Any], name: str, root: Path = ROOT, *, resume: bool =
             got = recompute_comparison(scored[name], scored[other], metric)
             comparisons.append({"a": name, "b": other, "metric": metric, "diff": got["diff"], "ci": got["ci"],
                                 "mcnemar_p": got["mcnemar_p"]})
+    return systems, metrics, intervals, comparisons
+
+
+def run_arm(cfg: dict[str, Any], name: str, root: Path = ROOT, *, resume: bool = False, note: str = "") -> Path | None:
+    """Decide, train, score and write the record of one arm; None when the arm is recorded as not run."""
+    if is_dirty(root):
+        raise RuntimeError("working tree has uncommitted changes; commit first")
+    started = datetime.now(timezone.utc).isoformat()
+    out_root = root / cfg["out_dir"]
+    check_disk(out_root, cfg["min_free_disk_gb"])
+    arm_spec(cfg, name)
+    results, notrun = arm_results(cfg, root), not_run_entries(cfg, root)
+    log_path = out_root / name / "epochs.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    joint = load_joint_manifest(TrainConfig(
+        manifest=cfg["lab_manifest"], out_dir="", field_manifest=cfg["field_manifest"],
+        train_splits=("lab_train", "field_train"), select_split="field_dev"))
+    class_map = make_class_map(joint)
+    class_names = sorted(class_map, key=class_map.get)
+
+    spec, skipped = _plan_arm(cfg, root, name, joint, class_names, results, notrun)
+    if skipped:
+        return _record_not_run(cfg, root, name, *skipped)
+    tc, train_rows, sel_rows, out, attempts, history = _train_arm(cfg, root, name, spec, joint, resume, log_path)
+    on_plantdoc = bool((train_rows["source"] == "plantdoc").any())
+
+    # score on field_dev
+    ckpt = load_checkpoint(out.best_path)
+    assert ckpt["class_map"] == class_map
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    extra = {"unfreeze_blocks": tc.unfreeze_blocks} if tc.unfreeze_blocks else {}
+    model = build_model(tc.model, len(class_map), pretrained=False, **extra)
+    model.load_state_dict(ckpt["model"])
+
+    shared = shared_classes()
+    field, subset = _field_rows(cfg, spec, shared)
+    probs = predict_probs(model, field, class_map, tc, device)
+
+    reference = spec.get("reference")
+    systems, metrics, intervals, comparisons = _score_arm(cfg, root, name, reference, results, field, class_map,
+                                                          class_names, probs)
 
     measurements: dict[str, list[float]] = {f"epoch_seconds_{name}": [h["seconds"] for h in history]}
     peaks = [float(h["peak_mem_allocated"]) for h in history if h.get("peak_mem_allocated") is not None]
     if peaks:
         measurements[f"peak_gpu_mem_bytes_{name}"] = peaks
-    energy_note = ""
-    if tc.model in ENERGY_MODELS and not spec.get("crop"):
-        lab = load_rows("lab_dev", shared)
-        lab = lab.sample(n=min(cfg["cam_sample"], len(lab)), random_state=cfg["seed"]).reset_index(drop=True)
-        e1 = load_checkpoint(root / cfg["e1_checkpoint"])
-        e1_model = build_model(e1["config"].model, len(e1["class_map"]), pretrained=False)
-        e1_model.load_state_dict(e1["model"])
-        for label, m, mname, mmap in ((name, model, tc.model, class_map), ("e1", e1_model, e1["config"].model, e1["class_map"])):
-            vals = lab_energy(m, mname, mmap, cfg, tc, device, lab)
-            if vals:
-                measurements[f"energy_outside_leaf_{label}"] = vals
-        energy_note = f" Grad-CAM energy outside the leaf: {len(lab)} lab_dev photos sampled with seed {cfg['seed']}, the same for e1 and {name}."
-    else:
-        why = "the input is cropped, so the leaf mask would not line up" if spec.get("crop") else "a ViT has no convolutional Grad-CAM layer"
-        energy_note = f" Grad-CAM energy outside the leaf was not measured for this arm: {why}."
+    energy_note = _measure_energy(cfg, name, spec, tc, model, class_map, device, shared, root, measurements)
 
     current = {
         "arm": name, "status": "run", "setting": {k: v for k, v in spec.items()}, "train_config": tc.to_dict(),
@@ -501,23 +540,19 @@ def run_arm(cfg: dict[str, Any], name: str, root: Path = ROOT, *, resume: bool =
         "selected_on": "field_dev (optimistic)", "started_at": started,
     }
     if spec.get("crop"):
-        config["crop"] = {"masks": "sprout.segment.model.predict_mask with models/e10/best.pt, cached at 320 px",
-                          "e10_record": cfg["e10"]["record"],
-                          "caveat": "E10 was trained on PlantSeg-style masks only; how well it carries over to PlantDoc "
-                                    "and lab photos is untested"}
+        config["crop"] = _crop_config(cfg)
     models = {s: f"{s}: saved predictions of E3 record {cfg['baselines']['record']}" for s in cfg["baselines"]["systems"]}
     if reference:
         models[reference] = f"{reference}: arm record {results[reference]['run_id']}"
     models[name] = f"{name}: {tc.model} trained here ({spec['change']})"
+    held = spec.get("held_out_source")
     notes = (
         f"{CAVEAT_DEV} PlantDoc is cleared for local use only; weights trained on it: {on_plantdoc}. "
         f"Lab photos are capped at {cfg['lab_cap']} per class. field_test and lab_test were not read."
         + energy_note + " Paired comparisons: " + "; ".join(verdict(c) for c in comparisons)
+        + (f" Held-out run: {held} was left out of training and selection; scored on its field_dev part." if held else "")
+        + (f" {note}" if note else "")
     )
-    if held:
-        notes += f" Held-out run: {held} was left out of training and selection; scored on its field_dev part."
-    if note:
-        notes += f" {note}"
     return write_run(
         cfg["experiment"], cfg["split"], config, models, metrics, intervals, attempts_list, systems,
         dataset_hash(load_manifest(cfg["field_manifest"])), root=root, notes=notes, subset=subset,

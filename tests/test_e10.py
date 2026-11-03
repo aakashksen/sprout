@@ -44,7 +44,7 @@ def test_no_field_dev_or_field_test_photo_in_seg_manifest():
     seg = pd.read_csv(MANIFEST_DIR / "seg.csv")
     field = pd.read_csv(MANIFEST_DIR / "field.csv")
     held = field[field["split"].isin(["field_dev", "field_test"])]
-    held_names = {Path(p).name for p, s in zip(held["path"], held["source"]) if s == "plantseg"}
+    held_names = {Path(p).name for p, s in zip(held["path"], held["source"], strict=False) if s == "plantseg"}
     assert not held_names & {Path(p).name for p in seg["path"]}
     assert not set(held["sha1"]) & set(seg["sha1"])
     assert set(seg["split"]) == {"seg_train", "seg_dev"}
@@ -133,6 +133,16 @@ def test_extract_masks_takes_only_masks_and_rejects_escapes(tmp_path):
     with pytest.raises(ValueError, match="unsafe"):
         extract_masks(bad, tmp_path / "out2")
     assert not (tmp_path / "out2").exists() and not (tmp_path / "evil.png").exists()
+
+
+def test_failed_extraction_leaves_no_partial_folder_behind(tmp_path):
+    bad = tmp_path / "bad.zip"
+    with zipfile.ZipFile(bad, "w") as z:
+        z.writestr("plantseg/annotations/train/a.png", b"x")
+        z.writestr("plantseg/annotations/../../evil.png", b"x")
+    with pytest.raises(ValueError, match="unsafe"):
+        extract_masks(bad, tmp_path / "out")
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["bad.zip"]
 
 
 # ---- training and records on a tiny fixture, on the CPU ----

@@ -11,6 +11,7 @@ import pandas as pd
 from PIL import Image
 from torch.utils.data import Dataset
 
+from sprout.atomic import atomic_write
 from sprout.data.masks import BLACK_BELOW, hsv_mask, segmented_path
 from sprout.data.splits import load_manifest
 from sprout.segment.crop import crop_to_disease
@@ -81,19 +82,14 @@ class MaskStore:
     def save(self, path: Path) -> None:
         paths = sorted(self.masks)
         bits = np.stack([np.packbits(self.masks[p].astype(bool)) for p in paths]) if paths else np.zeros((0, 1), np.uint8)
-        np.savez_compressed(path, paths=np.array(paths), bits=bits)
+        atomic_write(Path(path), lambda f: np.savez_compressed(f, paths=np.array(paths), bits=bits))
 
     @classmethod
     def load(cls, path: str | Path) -> "MaskStore":
         with np.load(path) as z:
             paths, bits = z["paths"], z["bits"]
         n = MASK_SIZE * MASK_SIZE
-        return cls({str(p): np.unpackbits(b)[:n].reshape(MASK_SIZE, MASK_SIZE).astype(bool) for p, b in zip(paths, bits)})
-
-
-def crop_image(image: Image.Image, mask: np.ndarray) -> Image.Image:
-    """The T4.0 crop; a tiny or empty predicted area leaves the whole photo."""
-    return crop_to_disease(image, mask)
+        return cls({str(p): np.unpackbits(b)[:n].reshape(MASK_SIZE, MASK_SIZE).astype(bool) for p, b in zip(paths, bits, strict=True)})
 
 
 def leaf_mask(path: str, image: Image.Image) -> tuple[np.ndarray | None, str]:
@@ -135,7 +131,7 @@ class JointDataset(Dataset):
                 if leaf is not None:
                     image = paste_background(image, leaf, random)
         if self.masks is not None:
-            image = crop_image(image, self.masks.get(self.paths[i]))
+            image = crop_to_disease(image, self.masks.get(self.paths[i]))  # a tiny or empty area keeps the photo
         return image
 
     def __getitem__(self, i: int):

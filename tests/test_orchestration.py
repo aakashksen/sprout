@@ -14,6 +14,10 @@ CTL = REPO / "tools" / "taskctl.py"
 LOOP = REPO / "tools" / "run_loop.py"
 
 
+# Every task the sandbox uses has a line, so the decision-log check passes unless a test removes it.
+NO_DECISIONS = "".join(f"{name}: no new decisions\n" for name in ("T1", "T2", "T3"))
+
+
 def task(task_id, owner="agent", deps=(), acceptance=("git --version",)):
     return {"id": task_id, "phase": 0, "title": task_id, "owner": owner, "deps": list(deps),
             "acceptance": list(acceptance), "status": "pending"}
@@ -28,7 +32,9 @@ class Sandbox(unittest.TestCase):
         self.git("config", "user.email", "test@example.com")
         self.git("config", "user.name", "test")
         (self.root / "a.txt").write_text("a")
-        self.git("add", "a.txt")
+        (self.root / "docs").mkdir()
+        (self.root / "docs" / "DECISIONS.md").write_text(NO_DECISIONS)
+        self.git("add", "a.txt", "docs/DECISIONS.md")
         self.git("commit", "-qm", "init")
         self.write([task("T1"), task("T2", deps=["T1"]), task("H1", owner="human")])
 
@@ -127,6 +133,66 @@ class Gate(Sandbox):
         self.assertEqual(state["human"][0]["id"], "H1")
         self.assertEqual(self.ctl("human-done", "H1", "--note", "ok").returncode, 0)
         self.assertEqual(json.loads(self.ctl("next").stdout)["task"]["id"], "T1")
+
+
+class DecisionLog(Sandbox):
+    """A task is not finished until docs/DECISIONS.md says what it decided, or that it decided nothing."""
+
+    def log(self, text):
+        (self.root / "docs" / "DECISIONS.md").write_text(text)
+        self.git("add", "docs/DECISIONS.md")
+        self.git("commit", "-qm", "decisions")
+
+    def finish(self, task_id):
+        self.write([task(task_id)])
+        self.ctl("start", task_id)
+        self.assertEqual(self.ctl("verify", task_id).returncode, 0)
+        self.verdict(task_id)
+        return self.ctl("done", task_id)
+
+    def test_done_is_refused_without_an_entry(self):
+        self.log("### T9 - something else\n")
+        out = self.finish("T1")
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn("docs/DECISIONS.md", out.stderr)
+        self.assertIn("T1", out.stderr)
+        self.assertEqual(self.state("T1")["status"], "in_progress")
+        self.assertNotIn("done_at", self.state("T1"))
+
+    def test_done_passes_with_an_entry(self):
+        self.log("### T1 - chose a thing over another\n- Chose: it\n")
+        out = self.finish("T1")
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertEqual(self.state("T1")["status"], "done")
+
+    def test_done_passes_with_the_no_decisions_line(self):
+        self.log("T1: no new decisions\n")
+        out = self.finish("T1")
+        self.assertEqual(out.returncode, 0, out.stderr)
+
+    def test_a_longer_task_id_does_not_count(self):
+        self.log("### T4.10 - another task\nT4.10: no new decisions\nT14.1: no new decisions\nXT4.1 is not it\n")
+        out = self.finish("T4.1")
+        self.assertNotEqual(out.returncode, 0)
+        self.assertEqual(self.state("T4.1")["status"], "in_progress")
+        self.log("T4.10 and also T4.1, which ends a sentence.\n")
+        self.assertEqual(self.ctl("verify", "T4.1").returncode, 0)
+        self.verdict("T4.1")
+        self.assertEqual(self.ctl("done", "T4.1").returncode, 0)
+
+    def test_a_missing_log_file_refuses(self):
+        (self.root / "docs" / "DECISIONS.md").unlink()
+        self.git("add", "-A")
+        self.git("commit", "-qm", "no log")
+        out = self.finish("T1")
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn("docs/DECISIONS.md", out.stderr)
+
+    def test_tasks_already_done_are_not_rechecked(self):
+        self.write([{**task("T1"), "status": "done"}, task("T2")])
+        self.log("T9: no new decisions\n")
+        self.assertEqual(json.loads(self.ctl("next").stdout)["task"]["id"], "T2")
+        self.assertEqual(self.state("T1")["status"], "done")
 
 
 class Loop(Sandbox):
@@ -286,6 +352,51 @@ class Tracks(Sandbox):
         self.assertNotEqual(self.ctl("land", "T1").returncode, 0)
         self.assertFalse((self.root / "one.txt").exists())
         self.assertEqual(self.state("T1")["status"], "in_progress")
+
+    def worktree_log(self, task_id, text):
+        path = Path(self.state(task_id)["worktree"])
+        (path / "docs" / "DECISIONS.md").write_text(text)
+        subprocess.run(["git", "add", "docs/DECISIONS.md"], cwd=path, check=True, capture_output=True)
+        subprocess.run(["git", "commit", "-qm", "decisions"], cwd=path, check=True, capture_output=True)
+
+    def test_land_is_refused_without_an_entry_and_moves_nothing(self):
+        self.ctl("start", "T1", "--worktree")
+        self.worktree_log("T1", "T9: no new decisions\n")
+        commit = self.build("T1", "one.txt", "1")
+        self.pass_gates("T1", commit)
+        before = self.git("rev-parse", "HEAD")
+        out = self.ctl("land", "T1")
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn("docs/DECISIONS.md", out.stderr)
+        self.assertEqual(self.git("rev-parse", "HEAD"), before)
+        self.assertFalse((self.root / "one.txt").exists())
+        self.assertEqual(self.state("T1")["status"], "in_progress")
+        self.assertTrue(Path(self.state("T1")["worktree"]).exists())
+        self.assertIn("task/T1", self.git("branch"))
+
+    def test_land_goes_by_the_worktrees_copy_of_the_log(self):
+        (self.root / "docs" / "DECISIONS.md").write_text("T9: no new decisions\n")
+        self.git("add", "docs/DECISIONS.md")
+        self.git("commit", "-qm", "main log lacks T1")
+        self.ctl("start", "T1", "--worktree")
+        self.worktree_log("T1", "### T1 - chose a thing\n")
+        commit = self.build("T1", "one.txt", "1")
+        self.pass_gates("T1", commit)
+        out = self.ctl("land", "T1")
+        self.assertEqual(out.returncode, 0, out.stdout + out.stderr)
+        self.assertEqual(self.state("T1")["status"], "done")
+
+    def test_land_word_boundary(self):
+        self.write([task("T4.1"), task("T4.10")])
+        self.ctl("start", "T4.1", "--worktree")
+        self.worktree_log("T4.1", "### T4.10 - someone else's entry\n")
+        commit = self.build("T4.1", "one.txt", "1")
+        self.pass_gates("T4.1", commit)
+        self.assertIn("docs/DECISIONS.md", self.ctl("land", "T4.1").stderr)
+        self.worktree_log("T4.1", "### T4.10 - someone else's entry\nT4.1: no new decisions\n")
+        commit = self.build("T4.1", "two.txt", "2")
+        self.pass_gates("T4.1", commit)
+        self.assertEqual(self.ctl("land", "T4.1").returncode, 0)
 
     def test_done_refuses_a_worktree_task(self):
         self.ctl("start", "T1", "--worktree")

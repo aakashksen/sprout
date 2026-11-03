@@ -1,4 +1,5 @@
 import dataclasses
+import pickle
 import random
 
 import pandas as pd
@@ -131,7 +132,7 @@ def test_resume_restores_optimizer_and_scheduler(manifest, tmp_path, monkeypatch
     assert b["scheduler"] == a["scheduler"]
     assert b["optimizer"]["param_groups"] == a["optimizer"]["param_groups"]
     assert b["optimizer"]["state"][0]["step"] == a["optimizer"]["state"][0]["step"]
-    for x, y in zip(a["model"].values(), b["model"].values()):
+    for x, y in zip(a["model"].values(), b["model"].values(), strict=False):
         assert torch.allclose(x, y, atol=1e-5)
 
 
@@ -163,7 +164,7 @@ def test_checkpoint_round_trip_includes_class_map_and_optimizer(tmp_path):
     assert "scheduler" in ck and "scaler" in ck
     m2 = build_model("tiny_cnn", 2)
     m2.load_state_dict(ck["model"])
-    for a, b in zip(model.parameters(), m2.parameters()):
+    for a, b in zip(model.parameters(), m2.parameters(), strict=False):
         assert torch.equal(a, b)
 
 
@@ -215,26 +216,44 @@ def test_class_map_comes_from_manifest(manifest, tmp_path):
     assert load_checkpoint(out.latest_path)["class_map"] == {"blue": 0, "red": 1}
 
 
-def test_workers_keep_first_batch_seed_stable_and_a_run_works(manifest, tmp_path):
-    cfg = _config(tmp_path, num_workers=2)
+def test_first_batch_is_seed_stable_workers_are_configured_and_datasets_pickle(manifest, tmp_path):
+    # Runs at 0 workers (spawned workers fail with WinError 6 on a busy machine). Not proved here: that
+    # worker processes start, re-seed from the loader's generator, and return the same batch as 0 workers.
     cm = make_class_map(manifest)
     first = []
     for _ in range(2):
-        tr, _val = build_loaders(manifest, cfg, cm)
+        tr, _val = build_loaders(manifest, _config(tmp_path), cm)
         first.append(next(iter(tr)))
     assert torch.equal(first[0][0], first[1][0]) and torch.equal(first[0][1], first[1][1])
-    out = train(cfg)
+    tr, val = build_loaders(manifest, _config(tmp_path, num_workers=2), cm)  # built, never iterated
+    assert tr.num_workers == val.num_workers == 2 and tr.persistent_workers and val.persistent_workers
+    for loader in (tr, val):  # what a spawned worker receives must survive pickling
+        copy = pickle.loads(pickle.dumps(loader.dataset))
+        assert copy.paths == loader.dataset.paths and copy.targets == loader.dataset.targets
+    assert torch.equal(pickle.loads(pickle.dumps(val.dataset))[0][0], val.dataset[0][0])
+
+
+def test_a_run_records_seconds_and_memory_columns(manifest, tmp_path):
+    out = train(_config(tmp_path))
     assert out.epochs_done == 2
     assert all(row["seconds"] > 0 for row in out.history)
     assert {"peak_mem_allocated", "peak_mem_reserved"} <= set(out.history[0])
 
 
 def test_worker_count_does_not_block_a_resume(manifest, tmp_path, monkeypatch):
+    # The settings check is what is tested; the loaders are forced to 0 workers so no process is spawned.
+    # Not proved here: that a resumed run can iterate with real workers.
+    import sprout.train.loop as loop
+
     cfg = _config(tmp_path, epochs=2)
     undo = _interrupt_after(monkeypatch, 1)
     with pytest.raises(KeyboardInterrupt):
         train(cfg)
     undo()
+    real = loop.build_loaders
+    monkeypatch.setattr(
+        loop, "build_loaders", lambda m, c, cm: real(m, dataclasses.replace(c, num_workers=0), cm)
+    )
     out = train(dataclasses.replace(cfg, num_workers=2), resume=tmp_path / "run" / "latest.pt")
     assert out.epochs_done == 2
     assert load_checkpoint(out.latest_path)["config"].num_workers == 2

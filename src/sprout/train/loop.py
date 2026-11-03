@@ -69,6 +69,40 @@ def _evaluate(model, loader, loss_fn, device) -> tuple[float, float]:
     return loss_sum / max(total, 1), correct / max(total, 1)
 
 
+def _restore(ckpt: dict, config: TrainConfig, class_map: dict[str, int], model, optimizer, scheduler, scaler):
+    """Check that the checkpoint belongs to this run, load its state, and return (epoch, best_metric)."""
+    if ckpt["config"].manifest_hash != config.manifest_hash:
+        raise ValueError("checkpoint was trained on a different manifest")
+    if dataclasses.replace(ckpt["config"], out_dir=config.out_dir, num_workers=config.num_workers) != config:
+        raise ValueError("training settings differ from the checkpoint's; resume with the same settings")
+    if ckpt["class_map"] != class_map:
+        raise ValueError("checkpoint class map differs from the manifest")
+    model.load_state_dict(ckpt["model"])
+    optimizer.load_state_dict(ckpt["optimizer"])
+    scheduler.load_state_dict(ckpt["scheduler"])
+    scaler.load_state_dict(ckpt["scaler"])
+    return ckpt["epoch"], ckpt["best_metric"]
+
+
+def _train_epoch(model, loader, optimizer, scaler, loss_fn, device, epoch: int) -> float:
+    """One pass over the training data; returns the mean loss. A non-finite loss stops the run."""
+    model.train()
+    loss_sum, n = 0.0, 0
+    for x, y in loader:
+        x, y = x.to(device), y.to(device)
+        optimizer.zero_grad()
+        with torch.autocast(device.type, enabled=device.type == "cuda"):
+            loss = loss_fn(model(x), y)
+        if not math.isfinite(loss.item()):
+            raise RuntimeError(f"epoch {epoch + 1}: train loss is {loss.item()}, not finite; run stopped")
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
+        loss_sum += loss.item() * len(y)
+        n += len(y)
+    return loss_sum / max(n, 1)
+
+
 def train(config: TrainConfig, *, resume: Path | None = None) -> RunOutput:
     """Fresh run when `resume` is None, otherwise continue from that checkpoint."""
     out_dir = Path(config.out_dir)
@@ -94,37 +128,14 @@ def train(config: TrainConfig, *, resume: Path | None = None) -> RunOutput:
     start, best_metric = 0, float("-inf")
     if resume is not None:
         ckpt = load_checkpoint(Path(resume))
-        if ckpt["config"].manifest_hash != config.manifest_hash:
-            raise ValueError("checkpoint was trained on a different manifest")
-        if dataclasses.replace(ckpt["config"], out_dir=config.out_dir, num_workers=config.num_workers) != config:
-            raise ValueError("training settings differ from the checkpoint's; resume with the same settings")
-        if ckpt["class_map"] != class_map:
-            raise ValueError("checkpoint class map differs from the manifest")
-        model.load_state_dict(ckpt["model"])
-        optimizer.load_state_dict(ckpt["optimizer"])
-        scheduler.load_state_dict(ckpt["scheduler"])
-        scaler.load_state_dict(ckpt["scaler"])
-        start, best_metric = ckpt["epoch"], ckpt["best_metric"]
+        start, best_metric = _restore(ckpt, config, class_map, model, optimizer, scheduler, scaler)
 
     history: list[dict] = []
     for epoch in range(start, config.epochs):
         began = time.perf_counter()
         if device.type == "cuda":
             torch.cuda.reset_peak_memory_stats()
-        model.train()
-        loss_sum, n = 0.0, 0
-        for x, y in train_dl:
-            x, y = x.to(device), y.to(device)
-            optimizer.zero_grad()
-            with torch.autocast(device.type, enabled=device.type == "cuda"):
-                loss = loss_fn(model(x), y)
-            if not math.isfinite(loss.item()):
-                raise RuntimeError(f"epoch {epoch + 1}: train loss is {loss.item()}, not finite; run stopped")
-            scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
-            loss_sum += loss.item() * len(y)
-            n += len(y)
+        train_loss = _train_epoch(model, train_dl, optimizer, scaler, loss_fn, device, epoch)
         scheduler.step()
         val_loss, val_acc = _evaluate(model, val_dl, loss_fn, device)
         if not math.isfinite(val_loss):
@@ -132,7 +143,7 @@ def train(config: TrainConfig, *, resume: Path | None = None) -> RunOutput:
         history.append(
             {
                 "epoch": epoch + 1,
-                "train_loss": loss_sum / max(n, 1),
+                "train_loss": train_loss,
                 "val_loss": val_loss,
                 "val_acc": val_acc,
                 "seconds": time.perf_counter() - began,

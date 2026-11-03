@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import shutil
 import tempfile
 import zipfile
 from pathlib import Path, PurePosixPath
@@ -17,6 +18,7 @@ from PIL import Image
 
 from sprout.data.field import link_same_scene
 from sprout.data.grouping import group_near_duplicates
+from sprout.data.masks import iou as mask_iou
 from sprout.data.splits import COLUMNS, MANIFEST_DIR
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -52,6 +54,16 @@ def extract_masks(zip_path: Path, dest: Path) -> int:
         return sum(1 for _ in dest.glob("*/*.png"))
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = Path(tempfile.mkdtemp(prefix=f".{dest.name}.", dir=dest.parent))
+    try:
+        count = _extract_into(zip_path, tmp)
+        os.rename(tmp, dest)
+    except BaseException:
+        shutil.rmtree(tmp, ignore_errors=True)
+        raise
+    return count
+
+
+def _extract_into(zip_path: Path, tmp: Path) -> int:
     count = 0
     with zipfile.ZipFile(zip_path) as z:
         for info in z.infolist():
@@ -66,7 +78,6 @@ def extract_masks(zip_path: Path, dest: Path) -> int:
             out.parent.mkdir(exist_ok=True)
             out.write_bytes(z.read(info))
             count += 1
-    os.rename(tmp, dest)
     return count
 
 
@@ -94,12 +105,6 @@ def rle_decode(rle: dict[str, Any]) -> np.ndarray:
         raise ValueError("run lengths do not add up to the mask size")
     values = np.arange(len(counts)) % 2 == 1
     return np.repeat(values, counts).reshape(h, w)
-
-
-def mask_iou(pred: np.ndarray, gt: np.ndarray) -> float:
-    """Intersection over union; 1.0 when both masks are empty (nothing to find, nothing predicted)."""
-    union = int(np.logical_or(pred, gt).sum())
-    return 1.0 if union == 0 else float(np.logical_and(pred, gt).sum()) / union
 
 
 def rle_iou(pred: dict[str, Any], gt: dict[str, Any]) -> float:
@@ -139,10 +144,10 @@ def build_seg_manifest(meta: pd.DataFrame, field: pd.DataFrame, root: Path = ROO
     covers PlantSeg images outside field.csv too (unmapped classes, label conflicts, reviewed removals).
     """
     held = field[field["split"].isin(["field_dev", "field_test"])]
-    held_names = {Path(p).name for p, s in zip(held["path"], held["source"]) if s == "plantseg"}
+    held_names = {Path(p).name for p, s in zip(held["path"], held["source"], strict=True) if s == "plantseg"}
     held_sha = set(held["sha1"])
     rows = []
-    for name, disease, label_file, split in zip(meta["Name"], meta["Disease"], meta["Label file"], meta["Split"]):
+    for name, disease, label_file, split in zip(meta["Name"], meta["Disease"], meta["Label file"], meta["Split"], strict=True):
         path = image_rel / SPLIT_DIR[split] / name
         sha1 = hashlib.sha1((root / path).read_bytes()).hexdigest()
         if name in held_names or sha1 in held_sha:

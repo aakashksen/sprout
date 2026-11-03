@@ -12,6 +12,8 @@ def _default_manifest() -> str:
     return str(DEFAULT_MANIFEST) if DEFAULT_MANIFEST.exists() else ""
 
 
+MIN_SECRET_LENGTH = 16
+
 # (allowed events, window in seconds)
 DEFAULT_LIMITS: dict[str, tuple[int, int]] = {
     "login": (10, 60),
@@ -43,8 +45,10 @@ class Config:
     def validate(self) -> None:
         if self.ENV not in ("production", "development", "testing"):
             raise RuntimeError(f"SPROUT_ENV must be production, development or testing, got {self.ENV!r}")
-        if not self.SECRET_KEY:
+        if not self.SECRET_KEY.strip():
             raise RuntimeError("SPROUT_SECRET_KEY is required")
+        if self.ENV != "testing" and len(self.SECRET_KEY.strip()) < MIN_SECRET_LENGTH:
+            raise RuntimeError(f"SPROUT_SECRET_KEY must be at least {MIN_SECRET_LENGTH} characters")
 
     @classmethod
     def from_env(cls, env: dict[str, str]) -> Config:

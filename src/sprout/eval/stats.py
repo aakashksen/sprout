@@ -83,7 +83,7 @@ def _macro_f1_draws(flats: list[np.ndarray], num_classes: int, n: int, seed: int
         m = min(step, n - start)
         draw = rng.integers(0, g, size=(m, g)) + (np.arange(m) * g)[:, None]
         weights = np.bincount(draw.ravel(), minlength=m * g).reshape(m, g).astype(float)
-        for o, flat in zip(out, flats):
+        for o, flat in zip(out, flats, strict=True):
             o[start : start + m] = _macro_f1_of(weights @ flat, num_classes)
     return out
 

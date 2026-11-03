@@ -8,6 +8,7 @@ import contextlib
 import datetime as dt
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -324,6 +325,16 @@ def verdict_commit(task_id):
     return verdict.get("commit")
 
 
+def require_decision_entry(task_id, base):
+    """A task is not finished until docs/DECISIONS.md names it, in an entry or as `<id>: no new decisions`.
+    The id must stand alone, so T4.1 is not found inside T4.10 or T4.1.5."""
+    path = Path(base) / "docs" / "DECISIONS.md"
+    text = path.read_text(encoding="utf-8") if path.exists() else ""
+    if not re.search(r"(?<!\w)" + re.escape(task_id) + r"(?!\w|\.\d)", text):
+        sys.exit(f"refused: docs/DECISIONS.md does not mention {task_id}; add an entry for what it decided, "
+                 f"or a line `{task_id}: no new decisions`")
+
+
 def cmd_done(args):
     plan = load()
     task = find(plan, args.id)
@@ -339,6 +350,7 @@ def cmd_done(args):
         sys.exit("refused: acceptance commands have not passed at this commit; run verify")
     if verdict_commit(args.id) != commit:
         sys.exit("refused: the verifier has not passed this exact commit")
+    require_decision_entry(args.id, ROOT)
     with editing() as plan:
         task = find(plan, args.id)
         task["status"] = "done"
@@ -360,6 +372,7 @@ def cmd_land(args):
         sys.exit("refused: acceptance commands have not passed at this commit; run verify")
     if verdict_commit(args.id) != verified["commit"]:
         sys.exit("refused: the verifier has not passed this exact commit")
+    require_decision_entry(args.id, worktree)
     with file_lock(LAND_LOCK, wait_s=3600, stale_s=7200):
         if dirty():
             sys.exit("refused: the build branch has uncommitted changes")

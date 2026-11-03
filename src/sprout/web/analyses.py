@@ -32,6 +32,7 @@ from .uploads import BadImage, check_image, save_private
 bp = Blueprint("analyses", __name__)
 MAX_MESSAGE = 1000
 MAX_REPORT = 1000
+CHATTABLE = ("answered", "unsure")
 NO_SOURCE = "No supporting document was found for this question, so no advice is given."
 GENERAL_ONLY = "No document covers this plant, so only general guidance is shown, which may not apply to it."
 LABEL_NOTE = "Check the product label and local rules before using any chemical or disposal advice."
@@ -48,6 +49,10 @@ def _owned(analysis_id: int):
 
 def _candidates(ident: Identification) -> list[str]:
     return ([ident.top.label] if ident.top else []) + [a.label for a in ident.alternatives]
+
+
+def _shown_label(row, ident: Identification) -> str | None:
+    return row["selected_label"] or (ident.top.label if ident.top else None)
 
 
 def pretty(label: str) -> str:
@@ -155,6 +160,9 @@ def history():
 @login_required
 def chat(analysis_id: int):
     row = _owned(analysis_id)
+    ident = Identification.from_json(row["prediction_json"])
+    if ident.status not in CHATTABLE:
+        abort(409, "this image was not identified as a plant, so there is nothing to ask about")
     rate_limit("chat", str(g.user["id"]))
     body = request.get_json(silent=True)
     message = body.get("message") if isinstance(body, dict) else None
@@ -164,16 +172,9 @@ def chat(analysis_id: int):
     retriever = current_app.extensions["sprout_retriever"]
     if retriever is not None and current_app.extensions["sprout_chat"]["state"] != "ready":
         abort(503, "chat is not ready yet")  # before anything is stored: a rejected message leaves no trace
-    db = get_db()
-    db.execute(
-        "insert into chat_messages (user_id, analysis_id, role, content) values (?, ?, 'user', ?)",
-        (g.user["id"], analysis_id, message),
-    )
-    db.commit()
     passages = []
     general_only = False
-    top = Identification.from_json(row["prediction_json"]).top
-    label = row["selected_label"] or (top.label if top else None)
+    label = _shown_label(row, ident)
     if retriever is not None and label:
         crop = crop_for_label(label, retriever.crops)
         # the score floor only works on reranked scores, so reranking stays on here
@@ -182,6 +183,13 @@ def chat(analysis_id: int):
         general_only = crop is None or (bool(found) and all(p.crop == GENERAL_CROP for p in found))
         sources = current_app.extensions["sprout_sources"]
         passages = [_passage(p, sources) for p in found]
+    # stored only once retrieval worked: a failed call leaves no trace, so a retry is not a duplicate
+    db = get_db()
+    db.execute(
+        "insert into chat_messages (user_id, analysis_id, role, content) values (?, ?, 'user', ?)",
+        (g.user["id"], analysis_id, message),
+    )
+    db.commit()
     # generated answers arrive with sprout.rag.answer; until then the reply is the cited passages
     note = LABEL_NOTE if passages else NO_SOURCE
     if passages and general_only:
@@ -203,11 +211,11 @@ def report(analysis_id: int):
     note = body.get("note") if isinstance(body, dict) else None
     if not isinstance(note, str) or not 1 <= len(note.strip()) <= MAX_REPORT:
         abort(400, f"describe the problem in 1-{MAX_REPORT} characters")
-    top = Identification.from_json(row["prediction_json"]).top
+    shown = _shown_label(row, Identification.from_json(row["prediction_json"]))
     db = get_db()
     cur = db.execute(
         "insert into reports (user_id, analysis_id, shown_label, note) values (?, ?, ?, ?)",
-        (g.user["id"], analysis_id, row["selected_label"] or (top.label if top else None), note.strip()),
+        (g.user["id"], analysis_id, shown, note.strip()),
     )
     db.commit()
     return jsonify(stored=True, id=cur.lastrowid), 201

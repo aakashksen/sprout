@@ -49,7 +49,9 @@
         "T0.2"
       ],
       "acceptance": [],
-      "status": "pending"
+      "status": "done",
+      "note": "ok: the person read the dataset choices and approved them, 2026-11-03",
+      "done_at": "2026-11-03T17:10:10+00:00"
     },
     {
       "id": "T1.1",
@@ -336,9 +338,32 @@
         "{py} -m pytest tests/test_e5.py -q",
         "{py} -m sprout.eval.check_run E5 --min-n 200 --split field_dev"
       ],
+      "status": "done",
+      "started_at": "2026-11-03T15:59:32+00:00",
+      "verified": {
+        "commit": "c0b1ae1bee164b65b8710e5b19e15d1631fdb241",
+        "passed": true,
+        "at": "2026-11-03T17:16:58+00:00"
+      },
+      "attempts": 1,
+      "reason": "tests/test_e5.py::test_probs_stage_scores_not_plant_photos_from_a_checkpoint fails when a GPU is visible: np.allclose on probabilities, because the stage scores on cuda while the test compares with CPU",
+      "done_at": "2026-11-03T17:27:17+00:00"
+    },
+    {
+      "id": "T4.7",
+      "phase": 4,
+      "title": "Experiment E13, clean the real-photo labels",
+      "owner": "agent",
+      "deps": [
+        "T4.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_label_review.py tests/test_e13.py -q",
+        "{py} -m sprout.eval.check_run E13 --min-n 200 --split field_dev"
+      ],
       "status": "in_progress",
       "worktree": "<local path>",
-      "started_at": "2026-11-03T15:59:32+00:00"
+      "started_at": "2026-11-03T17:22:31+00:00"
     },
     {
       "id": "T4.3",
@@ -346,7 +371,8 @@
       "title": "Experiment E11, follow-up questions on top-3",
       "owner": "agent",
       "deps": [
-        "T4.2"
+        "T4.2",
+        "T4.7"
       ],
       "acceptance": [
         "{py} -m pytest tests/test_e11.py -q",
@@ -385,7 +411,9 @@
       "acceptance": [
         "{py} -m pytest tests/test_extra_sources.py -q"
       ],
-      "status": "pending"
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-03T16:45:43+00:00"
     },
     {
       "id": "T4.6",
@@ -393,7 +421,8 @@
       "title": "Experiment E12, best configuration with more sources",
       "owner": "agent",
       "deps": [
-        "T4.5"
+        "T4.5",
+        "T4.7"
       ],
       "acceptance": [
         "{py} -m pytest tests/test_e12.py -q",
@@ -522,7 +551,9 @@
         "T6.3"
       ],
       "acceptance": [],
-      "status": "pending"
+      "status": "done",
+      "note": "the person went through the scenarios-style text samples by hand on 2026-11-03: mostly fine. The photo sample showed mismatched thumbnails, so photo labels are not signed; they're handled by the field label cleanup task. Agent reviews in orchestration/evidence/H2-agent-review*.md",
+      "done_at": "2026-11-03T17:19:52+00:00"
     },
     {
       "id": "T6.5",
@@ -535,7 +566,9 @@
       "acceptance": [
         "{py} -m pytest tests/test_more_documents.py -q"
       ],
-      "status": "pending"
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-03T16:45:52+00:00"
     },
     {
       "id": "T6.4",
@@ -654,9 +687,10 @@
       "title": "Experiment E9, final test",
       "owner": "agent",
       "deps": [
-        "T7.4",
         "H1",
-        "H2"
+        "H2",
+        "T4.7",
+        "T7.4"
       ],
       "acceptance": [
         "{py} -m pytest tests/test_e9.py -q",

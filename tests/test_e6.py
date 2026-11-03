@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
 import torch
@@ -109,3 +111,149 @@ def test_running_and_quantizing_a_model_loads_no_torch(tmp_path):
     done = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
                           env={**os.environ, "PYTHONPATH": str(src)})
     assert done.returncode == 0, done.stderr[-500:]
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# the experiment, on a tiny world: tiny_cnn, a handful of generated photos, a throwaway git repo
+
+import json  # noqa: E402
+import subprocess  # noqa: E402
+
+from sprout.eval.check_run import check  # noqa: E402
+from sprout.experiments import e6_onnx as e6  # noqa: E402
+
+NAMES = ["A", "B"]
+FIELD_ROWS = [(f"f/dev{i}.jpg", NAMES[i % 2], f"g{i}", "field_dev") for i in range(8)]
+FIELD_ROWS += [("f/test0.jpg", "A", "gt0", "field_test"), ("f/train0.jpg", "B", "gtr0", "field_train"),
+               ("f/train1.jpg", "A", "gtr1", "field_train")]
+LAB_ROWS = [(f"l/dev{i}.jpg", NAMES[i % 2], f"lg{i}", "lab_dev") for i in range(3)]
+
+
+def _git(root, *args):
+    subprocess.run(["git", *args], cwd=root, check=True, capture_output=True)
+
+
+def _commit(root):
+    _git(root, "add", "-A")
+    _git(root, "commit", "-q", "-m", "stage")
+
+
+@pytest.fixture
+def world(tmp_path):
+    root = tmp_path / "w"
+    for rel, rows, extra in (("field", FIELD_ROWS, ",s,plantdoc"), ("lab", LAB_ROWS, ",s")):
+        lines = ["path,label,group,split,sha1" + (",source" if extra.endswith("plantdoc") else "")]
+        lines += [f"{p},{label},{g},{s}{extra}" for p, label, g, s in rows]
+        (root / "datasets/manifests").mkdir(parents=True, exist_ok=True)
+        (root / f"datasets/manifests/{rel}.csv").write_text("\n".join(lines) + "\n")
+        for k, (p, *_rest) in enumerate(rows):
+            (root / p).parent.mkdir(parents=True, exist_ok=True)
+            _photo(60 + k, 40 + 3 * k, seed=k).save(root / p)
+    (root / "datasets/label_exclusions.csv").write_text(
+        "version,image_id,path,source,split,label,reason_code,note,began_as\n"
+        "1,s,f/dev1.jpg,plantdoc,field_dev,B,wrong_plant,x,remove\n")
+    (root / "orchestration").mkdir()
+    (root / "orchestration/tasks.json").write_text("{}")
+    (root / "models/e4").mkdir(parents=True)
+    torch.manual_seed(0)
+    model = build_model("tiny_cnn", 2, pretrained=False)
+    config = TrainConfig(manifest="m.csv", out_dir="o", model="tiny_cnn")
+    torch.save({"model": model.state_dict(), "class_map": {"A": 0, "B": 1}, "config": config.to_dict()},
+               root / "models/e4/best.pt")
+    _git(root, "init", "-q")
+    _git(root, "config", "user.email", "t@t")
+    _git(root, "config", "user.name", "t")
+    _commit(root)
+    return root
+
+
+@pytest.fixture
+def cfg():
+    return {
+        "experiment": "E6", "split": "field_dev", "subset": "clean:1", "out_dir": "results/e6",
+        "model_dir": "models/e6", "model": {"name": "tiny", "checkpoint": "models/e4/best.pt"},
+        "crop_kept": False, "torch_device": "cpu", "threads": 1, "batch_size": 3, "chunk": 2,
+        "calibration": {"split": "lab_dev", "n": 3, "seed": 0},
+        "latency": {"images": 3, "warmup": 1},
+    }
+
+
+def _run_stages(cfg, root, stages=("export", "probs", "latency")):
+    for stage in stages:
+        e6.run_stage(stage, cfg, root)
+        _commit(root)
+
+
+def _rows(root, system):
+    return [json.loads(x) for x in (root / f"results/e6/probs.{system}.jsonl").read_text().splitlines()]
+
+
+def test_stages_end_to_end_and_the_record_passes_check_run(world, cfg):
+    _run_stages(cfg, world)
+    record = e6.run_stage("record", cfg, world)
+    rec = json.loads(record.read_text())
+    assert rec["experiment"] == "E6" and rec["split"] == "field_dev" and rec["subset"] == "clean:1"
+    assert set(rec["predictions"]) == {"pytorch", "onnx", "onnx_dynamic", "onnx_static"}
+    assert rec["n"] == 7  # eight field_dev photos, one excluded; field_test and field_train never read
+    assert {r["path"] for r in _rows(world, "pytorch")} == {f"f/dev{i}.jpg" for i in range(8)} - {"f/dev1.jpg"}
+    assert rec["metrics"]["onnx"]["changed_vs@pytorch"] == pytest.approx(0.0)
+    assert "changed_vs@pytorch" not in rec["metrics"]["pytorch"]
+    c = rec["config"]
+    assert set(c["probs_device"].values()) == {"cpu"} and c["latency"]["threads"] == 1 and c["latency"]["cpu"]
+    assert c["segmentation_model"].startswith("not exported") and "crop" in c["segmentation_model"]
+    assert c["calibration"]["split"] == "lab_dev" and len(c["calibration"]["paths"]) == 3
+    assert {"latency_ms_onnx_static_p50", "latency_ms_onnx_static_p95"} <= set(rec["measurements"]["values"])
+    assert {f"size_bytes_{s}_p50" for s in rec["predictions"]} <= set(rec["measurements"]["values"])
+    assert check("E6", root=world, min_n=7, split="field_dev") == []
+
+
+def test_record_refuses_without_latency(world, cfg):
+    _run_stages(cfg, world, ("export", "probs"))
+    with pytest.raises(RuntimeError, match="latency"):
+        e6.run_stage("record", cfg, world)
+
+
+def test_probs_stage_resumes_and_does_not_redo_finished_rows(world, cfg, monkeypatch):
+    _run_stages(cfg, world, ("export", "probs"))
+    path = world / "results/e6/probs.onnx.jsonl"
+    full = path.read_text()
+    path.write_text("".join(full.splitlines(keepends=True)[:3]) + '{"path": "f/dev')  # crash mid-line
+    calls = []
+    real = OnnxModel.predict
+    monkeypatch.setattr(OnnxModel, "predict", lambda self, img: calls.append(1) or real(self, img))
+    e6.run_stage("probs", cfg, world)
+    assert len(calls) == 4 and path.read_text() == full
+
+
+def test_new_checkpoint_discards_old_outputs(world, cfg):
+    _run_stages(cfg, world, ("export", "probs"))
+    before = _rows(world, "onnx")
+    torch.manual_seed(5)
+    model = build_model("tiny_cnn", 2, pretrained=False)
+    ckpt = TrainConfig(manifest="m.csv", out_dir="o", model="tiny_cnn")
+    torch.save({"model": model.state_dict(), "class_map": {"A": 0, "B": 1}, "config": ckpt.to_dict()},
+               world / "models/e4/best.pt")
+    _run_stages(cfg, world, ("export", "probs"))
+    after = _rows(world, "onnx")
+    assert [r["path"] for r in after] == [r["path"] for r in before] and after != before
+
+
+def test_calibration_never_comes_from_field_dev_or_test(world, cfg, tmp_path):
+    for split in ("field_dev", "field_test", "lab_test"):
+        with pytest.raises(ValueError, match="calibration"):
+            e6.check_config({**cfg, "calibration": {"split": split, "n": 3, "seed": 0}})
+    paths = e6.calibration_paths({**cfg, "calibration": {"split": "field_train", "n": 5, "seed": 0}}, world)
+    assert sorted(paths) == ["f/train0.jpg", "f/train1.jpg"]  # fewer rows than asked: all of them
+
+
+def test_crop_kept_is_read_from_config(cfg):
+    with pytest.raises(ValueError, match="segmentation"):
+        e6.check_config({**cfg, "crop_kept": True})
+    with pytest.raises(ValueError, match="field_dev"):
+        e6.check_config({**cfg, "split": "field_test"})
+
+
+def test_real_config_is_valid_and_names_the_model_path():
+    cfg = json.loads((Path(__file__).resolve().parents[1] / "configs" / "e6.json").read_text())
+    e6.check_config(cfg)
+    assert cfg["model"]["checkpoint"].endswith(".pt")

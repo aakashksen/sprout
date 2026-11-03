@@ -91,7 +91,13 @@ class _Calibration:
 def quantize(path: Path, mode: str, calibration_images=None) -> Path:
     """Write `<name>.dynamic.onnx` or `<name>.static.onnx` beside the model and return its path.
     Static mode needs calibration images (PIL images or file paths)."""
-    from onnxruntime.quantization import CalibrationDataReader, QuantFormat, QuantType, quantize_dynamic, quantize_static
+    from onnxruntime.quantization import (
+        CalibrationDataReader,
+        QuantFormat,
+        QuantType,
+        quantize_dynamic,
+        quantize_static,
+    )
 
     if mode not in MODES:
         raise ValueError(f"mode must be one of {MODES}, not {mode!r}")

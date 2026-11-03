@@ -1,0 +1,25 @@
+{
+  "experiment": "E6",
+  "split": "field_dev",
+  "subset": "clean:1",
+  "out_dir": "results/e6",
+  "model_dir": "models/e6",
+  "model": {
+    "name": "convnext_joint",
+    "checkpoint": "models/e4/convnext_joint/best.pt",
+    "note": "Placeholder for code checks: E4's joint ConvNeXt. The real run waits for E12's chosen model; change `name` and `checkpoint` (one line each) then. Everything under results/e6 and models/e6 is rebuilt when the checkpoint's checksum changes."
+  },
+  "crop_kept": false,
+  "crop_note": "E4 kept no crop (docs/DECISIONS.md, T4.1 'Crop kept out of serving'), so the segmentation model is not exported or timed. If this becomes true the stages refuse: that path is not built.",
+  "torch_device": "cpu",
+  "threads": 4,
+  "batch_size": 32,
+  "chunk": 32,
+  "calibration": {
+    "split": "lab_dev",
+    "n": 100,
+    "seed": 0,
+    "note": "As the plan says. Allowed: lab_dev, lab_train, field_train. Never field_dev (scored here) or any test split."
+  },
+  "latency": {"images": 100, "warmup": 10}
+}

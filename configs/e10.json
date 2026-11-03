@@ -1,0 +1,15 @@
+{
+  "experiment": "E10",
+  "manifest": "seg",
+  "out_dir": "models/e10",
+  "min_free_disk_gb": 40,
+  "model": "lraspp_mobilenet_v3_large",
+  "pretrained": true,
+  "size": 320,
+  "batch_size": 16,
+  "num_workers": 4,
+  "epochs": 12,
+  "lr": 0.0003,
+  "weight_decay": 0.01,
+  "seed": 0
+}

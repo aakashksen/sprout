@@ -27,7 +27,7 @@ SYSTEM_NAME = re.compile(r"^[A-Za-z0-9_-]+$")
 MEASURE_QUANTILES = (50, 95)
 BOOTSTRAP_N = 10000
 BOOTSTRAP_SEED = 13
-IMAGE_MANIFESTS = ("lab", "field", "not_plant")
+IMAGE_MANIFESTS = ("lab", "field", "not_plant", "seg")
 
 
 def git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:

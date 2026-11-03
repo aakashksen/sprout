@@ -64,6 +64,7 @@ class Scored:
     is_plant: np.ndarray | None = None  # from the manifest's labels
     answered: np.ndarray | None = None  # RAG: answered rather than declined
     expected: list[str] | None = None  # RAG gold behaviour from the questions file
+    iou: np.ndarray | None = None  # segmentation: per-image IoU, recomputed from the saved masks
 
 
 def _num(x: float) -> float | None:
@@ -81,6 +82,11 @@ def item_series(name: str, s: Scored) -> np.ndarray | None:
             return (s.probs.max(axis=1) >= float(m.group(1))).astype(float)
     if name == "end_to_end_accuracy" and s.probs is not None and s.labels is not None and s.accepted is not None:
         return ((s.probs.argmax(axis=1) == s.labels) & s.accepted).astype(float)
+    if s.iou is not None:
+        if name == "mean_iou":
+            return s.iou
+        if name == "iou_ge_0.5":
+            return (s.iou >= 0.5).astype(float)
     if s.ranks is not None:
         m = re.fullmatch(r"recall@(\d+)", name)
         if m:
@@ -106,6 +112,8 @@ def recompute_metric(name: str, s: Scored, others: dict[str, Scored] | None = No
         if name == "answers_when_answerable":
             return _rate(s.answered, gold == "answer")
         return _rate(~s.answered, gold == "abstain")
+    if name == "median_iou" and s.iou is not None:
+        return float(np.median(s.iou))
     changed = re.fullmatch(r"changed_vs@([A-Za-z0-9_-]+)", name)
     if changed:
         other = (others or {}).get(changed.group(1))
@@ -247,6 +255,18 @@ def _score(
             out.append(tag + "saved labels do not match the manifest's labels")
             return None
         scored.probs, scored.labels, scored.class_names = probs, labels, names
+    if "iou" in rows[0]:
+        from sprout.segment.data import rle_iou
+
+        try:
+            fresh = np.array([rle_iou(r["pred"], r["gt"]) for r in ordered])
+        except (KeyError, ValueError, TypeError) as exc:
+            out.append(tag + f"masks cannot be decoded to recompute IoU: {exc}")
+            return None
+        saved = [r["iou"] for r in ordered]
+        if not all(isinstance(v, (int, float)) and abs(v - f) <= TOLERANCE for v, f in zip(saved, fresh)):
+            out.append(tag + "a row's iou does not recompute from its saved masks")
+        scored.iou = fresh
     if "rank" in rows[0]:
         scored.ranks = [r["rank"] for r in ordered]
     return scored

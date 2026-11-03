@@ -228,13 +228,13 @@ def test_answer_without_a_citation_is_labeled_not_grounded():
 
 
 def test_no_support_reply_becomes_the_no_document_answer():
-    out = ask(FakeLLM(["NO_SUPPORT"]), cfg=AnswerConfig(prompt_version="v3"))
+    out = ask(FakeLLM(["NO_SUPPORT"]), cfg=AnswerConfig(prompt_version="base+abstain"))
     assert out.text == NO_DOCUMENT and not out.grounded
 
 
 def test_need_reply_asks_for_the_missing_details():
     out = ask(FakeLLM(["NEED: crop, symptoms\nWhich plant is it and what do the leaves look like?"]),
-              ident=None, cfg=AnswerConfig(prompt_version="v4"))
+              ident=None, cfg=AnswerConfig(prompt_version="base+ask"))
     assert out.asks_for == ["crop", "symptoms"] and out.state == "clarify" and not out.grounded
     assert "Which plant" in out.text
 

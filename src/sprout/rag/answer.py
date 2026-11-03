@@ -62,7 +62,7 @@ class Answer:
 
 @dataclass(frozen=True)
 class AnswerConfig:
-    prompt_version: str = "v1"
+    prompt_version: str = "base"
     mode: str = "hybrid"
     rerank: bool = True
     k: int = 5
@@ -91,10 +91,12 @@ def load_sources(manifest: Path) -> dict[str, SourceInfo]:
 
 
 def load_prompt(version: str) -> str:
-    path = PROMPT_DIR / f"{version}.txt"
-    if not path.is_file():
+    """A prompt is `base` plus zero or more single-rule additions, named like `base+faithful+abstain`."""
+    parts = version.split("+")
+    paths = [PROMPT_DIR / f"{p}.txt" for p in parts]
+    if parts[0] != "base" or not all(p.is_file() for p in paths):
         raise ValueError(f"unknown prompt version {version!r}")
-    return path.read_text(encoding="utf-8").strip()
+    return "\n".join(p.read_text(encoding="utf-8").strip() for p in paths)
 
 
 def _clean(text: str) -> str:

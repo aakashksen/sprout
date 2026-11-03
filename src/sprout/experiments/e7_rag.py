@@ -219,6 +219,51 @@ def write_retrieval_record(
     return path, comparisons
 
 
+def pair_comparison(rows_a: list[dict], rows_b: list[dict], root: Path = ROOT) -> dict:
+    """recall@5 of a minus b on the answerable questions, with the paired interval (see better())."""
+    info = split_info(SPLIT, root)
+    pos = subset_positions("answerable", SPLIT, info, root)
+    ids, groups = [info.ids[i] for i in pos], [info.groups[i] for i in pos]
+    sa, sb = ({r["id"]: r["rank"] for r in rows} for rows in (rows_a, rows_b))
+    a, b = (Scored(groups=groups, ranks=[m[i] for i in ids]) for m in (sa, sb))
+    return recompute_comparison(a, b, DECIDING_METRIC)
+
+
+# A rule added to the base prompt is kept when the thing it targets improves and answering answerable questions does
+# not drop by more than this. There are too few graded items per version for an interval, so the rule is about
+# direction only. Each addition is measured alone against the base; the kept ones are then combined and re-checked.
+MAX_ANSWER_DROP = 0.05
+ADDITIONS = (("faithful", "faithfulness"), ("abstain", "declines_when_unanswerable"), ("ask", "declines_when_ambiguous"))
+
+
+def choose_prompt(values: dict[str, dict[str, float | None]]) -> tuple[str, list[dict], bool]:
+    """(prompt version, decisions, whether the kept additions still need a combined run).
+    `values[name]` holds the behaviour metrics and `faithfulness` for `base`, each addition, and `combined`."""
+    base = values["base"]
+    decisions, kept = [], []
+    for add, target in ADDITIONS:
+        if add not in values:
+            continue
+        gain = (values[add].get(target) or 0.0) - (base.get(target) or 0.0)
+        drop = (base.get("answers_when_answerable") or 0.0) - (values[add].get("answers_when_answerable") or 0.0)
+        ok = gain > 0 and drop <= MAX_ANSWER_DROP
+        decisions.append({"addition": add, "target": target, "gain": gain, "answer_drop": drop, "kept": ok})
+        if ok:
+            kept.append((add, gain))
+    names = [a for a, _ in kept]
+    if len(names) <= 1:
+        return "+".join(["base", *names]), decisions, False
+    if "combined" not in values:
+        return "+".join(["base", *names]), decisions, True
+    comb = values["combined"]
+    targets = dict(ADDITIONS)
+    drop = (base.get("answers_when_answerable") or 0.0) - (comb.get("answers_when_answerable") or 0.0)
+    holds = drop <= MAX_ANSWER_DROP and all((comb.get(targets[a]) or 0.0) > (base.get(targets[a]) or 0.0) for a in names)
+    decisions.append({"addition": "combined", "kept": holds, "answer_drop": drop})
+    best = max(kept, key=lambda x: x[1])[0]
+    return ("+".join(["base", *names]) if holds else f"base+{best}"), decisions, False
+
+
 def choose_floor(kept_scores: list[float], dropped_scores: list[float]) -> dict:
     """The floor that best keeps the answerable questions' best passage and drops the unanswerable ones' (balanced
     over the two groups); halfway between the two neighbouring scores. Picked on rag_dev, so slightly optimistic."""
@@ -252,7 +297,8 @@ def write_floor_record(
     metrics, out_rows = {}, {}
     for mode, rows in by_mode.items():
         top = {r["id"]: r["top_score"] for r in rows}
-        for tag, floor in ((f"floor_chosen_{mode}", floors[mode]["floor"]), (f"floor_default_{mode}", default_floor)):
+        key = mode.replace("+", "_")
+        for tag, floor in ((f"floor_chosen_{key}", floors[mode]["floor"]), (f"floor_default_{key}", default_floor)):
             out_rows[tag] = [{"id": i, "answered": bool(top[i] >= floor)} for i in info.ids]
             s = Scored(groups=info.ids, answered=np.array([r["answered"] for r in out_rows[tag]]), expected=info.expected)
             metrics[tag] = {m: recompute_metric(m, s) for m in BEHAVIOUR_METRICS}

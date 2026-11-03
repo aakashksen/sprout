@@ -155,9 +155,9 @@ def writer_reply(messages):
     return "Rings appear on potato leaves [1]. Thrips are sampled weekly [2]."
 
 
-def generate(root, tmp_path, system="v3", reply=writer_reply):
+def generate(root, tmp_path, system="abstain", reply=writer_reply):
     r = retriever(root)
-    cfg = AnswerConfig(prompt_version="v3", mode="bm25", rerank=False)
+    cfg = AnswerConfig(prompt_version="base+abstain", mode="bm25", rerank=False)
     qs = e7.dev_questions(root)
     found = e7.run_answer_retrieval(r, cfg, qs, tmp_path / "w", root)
     cached = e7.cached_retriever(r.crops, found)
@@ -180,10 +180,10 @@ def test_an_outage_is_not_recorded_as_an_answer_and_resumes(root, tmp_path):
     def down(messages):
         raise LLMError("ollama down")
 
-    qs, (rows, missing), _ = generate(root, tmp_path, system="v1", reply=down)
+    qs, (rows, missing), _ = generate(root, tmp_path, system="base", reply=down)
     assert rows == [] or all(r["state"] != "unavailable" for r in rows)
     assert missing  # retrieved questions that needed the model are left to resume
-    qs, (rows2, missing2), _ = generate(root, tmp_path, system="v1")
+    qs, (rows2, missing2), _ = generate(root, tmp_path, system="base")
     assert not missing2 and len(rows2) == len(qs)
 
 
@@ -194,7 +194,7 @@ def judge_reply(messages):
 def test_judged_rows_keep_everything_a_second_grader_needs(root, tmp_path):
     qs, (rows, _), _ = generate(root, tmp_path)
     judge = FakeLLM(reply=judge_reply, model="judge-test")
-    judged = e7.run_judging("v3", rows, {q.id: q for q in qs}, judge, tmp_path / "w")
+    judged = e7.run_judging("abstain", rows, {q.id: q for q in qs}, judge, tmp_path / "w")
     assert {r["id"] for r in judged} == {"s1", "s2", "w1"} or len(judged) >= 2
     one = next(r for r in judged if r["id"] == "s1")
     assert one["question"] and one["passages"][0]["n"] == 1 and one["answer"] and one["rubric"].startswith("You check")
@@ -211,22 +211,22 @@ def test_judged_rows_keep_everything_a_second_grader_needs(root, tmp_path):
 def test_judging_resumes_per_answer(root, tmp_path):
     qs, (rows, _), _ = generate(root, tmp_path)
     judge = FakeLLM(reply=judge_reply, model="judge-test")
-    e7.run_judging("v3", rows, {q.id: q for q in qs}, judge, tmp_path / "w")
+    e7.run_judging("abstain", rows, {q.id: q for q in qs}, judge, tmp_path / "w")
     calls = len(judge.calls)
-    e7.run_judging("v3", rows, {q.id: q for q in qs}, judge, tmp_path / "w")
+    e7.run_judging("abstain", rows, {q.id: q for q in qs}, judge, tmp_path / "w")
     assert len(judge.calls) == calls
 
 
 def test_generation_record_passes_check_run_and_carries_the_judge(root, tmp_path):
     qs, (rows, _), _ = generate(root, tmp_path)
-    judged = e7.run_judging("v3", rows, {q.id: q for q in qs}, FakeLLM(reply=judge_reply, model="gemma-test"), tmp_path / "w")
+    judged = e7.run_judging("abstain", rows, {q.id: q for q in qs}, FakeLLM(reply=judge_reply, model="gemma-test"), tmp_path / "w")
     path = e7.write_generation_record(
-        "prompts", None, {"v3": rows}, {"v3": judged}, {"writer": "qwen-test", "judge": "gemma-test"},
+        "prompts", None, {"abstain": rows}, {"abstain": judged}, {"writer": "qwen-test", "judge": "gemma-test"},
         {"judge": {"model": "gemma-test"}, "writer": "qwen-test"}, root)
     assert check_file(path, root) == []
     rec = json.loads(path.read_text())
-    assert rec["n"] == 5 and rec["judged"]["values"]["faithfulness_v3"] < 1.0
-    assert rec["metrics"]["v3"]["declines_when_unanswerable"] == 1.0
+    assert rec["n"] == 5 and rec["judged"]["values"]["faithfulness_abstain"] < 1.0
+    assert rec["metrics"]["abstain"]["declines_when_unanswerable"] == 1.0
 
 
 def test_split_claims_skips_the_notes_the_system_adds():
@@ -249,3 +249,26 @@ def test_answerable_subset_and_new_behaviour_metrics_recompute(root):
 
     info = split_info("rag_dev", root)
     assert subset_positions("answerable", "rag_dev", info, root) == [0, 1]
+
+
+def test_prompt_additions_are_kept_only_when_they_help_without_costing_answers():
+    def vals(f, u, a, ans):
+        return {"faithfulness": f, "declines_when_unanswerable": u, "declines_when_ambiguous": a, "answers_when_answerable": ans}
+
+    v = {"base": vals(0.7, 0.5, 0.1, 0.9), "faithful": vals(0.8, 0.5, 0.1, 0.88),
+         "abstain": vals(0.7, 0.9, 0.1, 0.70), "ask": vals(0.7, 0.5, 0.6, 0.9)}
+    version, decisions, needs_combined = e7.choose_prompt(v)
+    assert [d["kept"] for d in decisions] == [True, False, True]  # abstain costs too many answers
+    assert version == "base+faithful+ask" and needs_combined
+    ok = e7.choose_prompt({**v, "combined": vals(0.8, 0.5, 0.6, 0.87)})
+    assert ok[0] == "base+faithful+ask" and not ok[2]
+    worse = e7.choose_prompt({**v, "combined": vals(0.8, 0.5, 0.05, 0.87)})
+    assert worse[0] == "base+ask"  # the larger single gain wins when the combination loses one
+
+
+def test_pair_comparison_matches_what_the_record_stores(root, tmp_path):
+    r = retriever(root)
+    qs = e7.dev_questions(root)
+    a = e7.run_retrieval("a", r, e7.RetrievalSpec(mode="bm25"), qs, tmp_path / "w", root)
+    b = e7.run_retrieval("b", r, e7.RetrievalSpec(mode="bm25", query_mode="history"), qs, tmp_path / "w", root)
+    assert set(e7.pair_comparison(a, b, root)) == {"diff", "ci", "mcnemar_p"}

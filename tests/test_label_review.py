@@ -217,7 +217,7 @@ def test_wilson_interval_and_report(tmp_path):
     ids = lr.with_ids(field)
     first = _joined(field, list(ids["image_id"]), "ok", "")
     log = lr.log_rows(_joined(field, [ids["image_id"][0], ids["image_id"][1]], "remove"), 1)
-    text = lr.write_report(first, log, lr.read_log(tmp_path / "none.csv"), 0, tmp_path / "r.md")
+    text = lr.write_report(first, log, lr.read_log(tmp_path / "none.csv"), {"remove": 1, "ok": 2, "uncertain": 3}, tmp_path / "r.md")
     assert "## By class" in text and "Wilson 95%" in text
 
 
@@ -255,9 +255,10 @@ def test_report_states_calibration_and_how_removals_began(tmp_path):
         lr.log_rows(_joined(field, [ids["image_id"][1]], "remove"), 1),
         lr.log_rows(_joined(field, [ids["image_id"][2]], "remove").assign(began_as="uncertain"), 1),
     ])
-    text = lr.write_report(first, log, lr.read_log(tmp_path / "none.csv"), 0, tmp_path / "r.md")
+    text = lr.write_report(first, log, lr.read_log(tmp_path / "none.csv"), {"remove": 1, "ok": 2, "uncertain": 3}, tmp_path / "r.md")
     assert "of 4 known-bad photos" in text and "2 were `remove`" in text and "1 was `uncertain`" in text
     assert "1 was `ok`" in text and "lower bound" in text
+    assert "1 confirmed, 2 called ok" in text and "3 called uncertain" in text
     assert "began as `remove`: 1" in text and "began as `uncertain`: 1" in text
 
 

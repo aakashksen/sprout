@@ -2,7 +2,7 @@
 
 Agent review, not a human review: vision agents looked at each photo with its label and file name and nothing else (no split name, no score, no prediction). A removal counts only after a second look at larger size. The rules: not a plant photo, wrong plant, or a label clearly contradicted by the photo; no relabeling and no fine disease judgments. Removed photos stay in `field.csv`; `field_clean.csv` leaves them out. Exclusion version: 1.
 
-Reviewed: 2075 photos of `field_dev` and `field_test`, shuffled together. Removed: 31. Uncertain (kept): 248. Proposed for removal and kept after the second look: 3.
+Reviewed: 2075 photos of `field_dev` and `field_test`, shuffled together. Removed: 31. Uncertain (kept): 248. First-pass removals: 46. At the larger second look: 30 confirmed, 3 called ok (overturned), 13 called uncertain (kept, in `label_uncertain.csv`).
 
 Limit, from a calibration of the first pass: of 4 known-bad photos placed on the sheets, 2 were `remove`, 1 was `uncertain` ("framed slide-like image") and 1 was `ok`. The sheets are conservative, so the removal rates below are a lower bound on bad photos.
 
@@ -71,3 +71,22 @@ How the removals began (all reviewed photos): began as `remove`: 30; began as `u
 ## field_train, estimated from a seeded sample
 
 A random sample of 400 of the `field_train` photos (seed 13), reviewed the same way and kept apart from the numbers above: 7 removed, 1.8%, Wilson 95% interval [0.9%, 3.6%]. Uncertain: 35. The point estimate is not above 5%; the interval's lower end is not above it.
+
+## Effect on the earlier models' dev scores
+
+Cleaned `field_dev` rows (exclusion version 1) against all rows, from the E13 run records (saved predictions filtered, so each pair is on the same models and the same photos apart from the removed ones; no model was rerun, no GPU). Only `field_dev` is scored; `field_test` waits for T8.1. Accuracy and macro-F1, old -> new.
+
+| view | system | rows | accuracy | macro-F1 | record |
+|---|---|---|---|---|---|
+| shared_classes | e1 | 1040 -> 1028 | 0.2240 -> 0.2257 | 0.1990 -> 0.1978 | `E13-20261103T184414193293Z` |
+| shared_classes | frozen_convnext | 1040 -> 1028 | 0.2519 -> 0.2539 | 0.2127 -> 0.2134 | `E13-20261103T184414193293Z` |
+| shared_classes | xgboost | 1040 -> 1028 | 0.0413 -> 0.0418 | 0.0295 -> 0.0297 | `E13-20261103T184414193293Z` |
+| shared_classes | dinov2_small | 1040 -> 1028 | 0.4067 -> 0.4076 | 0.3819 -> 0.3835 | `E13-20261103T184414193293Z` |
+| shared_classes | convnext_joint | 1040 -> 1028 | 0.7644 -> 0.7695 | 0.7653 -> 0.7712 | `E13-20261103T184414193293Z` |
+| shared_classes | dinov2_head | 1040 -> 1028 | 0.7462 -> 0.7500 | 0.7469 -> 0.7498 | `E13-20261103T184414193293Z` |
+| heldout_plantdoc | e1 | 619 -> 610 | 0.2294 -> 0.2311 | 0.2251 -> 0.2242 | `E13-20261103T184438106036Z` |
+| heldout_plantdoc | convnext_joint | 619 -> 610 | 0.7447 -> 0.7525 | 0.7322 -> 0.7398 | `E13-20261103T184438106036Z` |
+| heldout_plantdoc | heldout_plantdoc | 619 -> 610 | 0.4330 -> 0.4377 | 0.3778 -> 0.3789 | `E13-20261103T184438106036Z` |
+| heldout_plantseg | e1 | 421 -> 418 | 0.2162 -> 0.2177 | 0.1982 -> 0.1998 | `E13-20261103T184452515675Z` |
+| heldout_plantseg | convnext_joint | 421 -> 418 | 0.7933 -> 0.7943 | 0.7752 -> 0.7757 | `E13-20261103T184452515675Z` |
+| heldout_plantseg | heldout_plantseg | 421 -> 418 | 0.5463 -> 0.5478 | 0.5185 -> 0.5182 | `E13-20261103T184452515675Z` |

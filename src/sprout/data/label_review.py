@@ -230,6 +230,12 @@ def decide(
     return removals, uncertain, overturned
 
 
+def second_outcomes(first: pd.DataFrame, second: pd.DataFrame) -> dict[str, int]:
+    """How the second look judged the photos the first pass proposed for removal."""
+    ids = first[first["verdict"] == "remove"]["image_id"]
+    return second[second["image_id"].isin(ids)]["verdict"].value_counts().to_dict()
+
+
 def log_rows(verdicts: pd.DataFrame, version: int) -> pd.DataFrame:
     out = verdicts.assign(version=version)
     return out[LOG_COLUMNS].reset_index(drop=True)
@@ -335,7 +341,7 @@ def _rate_table(reviewed: pd.DataFrame, removed: pd.DataFrame, uncertain: pd.Dat
 
 
 def write_report(
-    first: pd.DataFrame, log: pd.DataFrame, uncertain: pd.DataFrame, overturned: int, path: Path = REPORT
+    first: pd.DataFrame, log: pd.DataFrame, uncertain: pd.DataFrame, outcomes: dict[str, int], path: Path = REPORT
 ) -> str:
     """Write docs/label-review.md. `first` is every joined first-pass verdict, dev, test and train sample alike."""
     dev_test = first[first["split"].isin(REVIEW_SPLITS)]
@@ -355,7 +361,9 @@ def write_report(
         f"Reviewed: {len(dev_test)} photos of `field_dev` and `field_test`, shuffled together. "
         f"Removed: {int(gone['split'].isin(REVIEW_SPLITS).sum())}. "
         f"Uncertain (kept): {int(unsure['split'].isin(REVIEW_SPLITS).sum())}. "
-        f"Proposed for removal and kept after the second look: {overturned}.",
+        f"First-pass removals: {sum(outcomes.values())}. At the larger second look: {outcomes.get('remove', 0)} "
+        f"confirmed, {outcomes.get('ok', 0)} called ok (overturned), {outcomes.get('uncertain', 0)} called uncertain "
+        "(kept, in `label_uncertain.csv`).",
         "",
         CALIBRATION,
         "",
@@ -465,10 +473,11 @@ def main(argv: list[str] | None = None) -> int:
               f"in {SHEETS}")
     elif a.cmd == "finish":
         first = pd.concat([_read_csv(p) for p in a.first], ignore_index=True)
-        removals, unsure, overturned = decide(first, _read_csv(a.second), _pattern(a.also_uncertain))
+        second = _read_csv(a.second)
+        removals, unsure, overturned = decide(first, second, _pattern(a.also_uncertain))
         append_log(EXCLUSIONS, log_rows(removals, a.version), field)
         append_log(UNCERTAIN, log_rows(unsure, a.version), field, need_reason=False)
-        write_report(first, read_log(EXCLUSIONS), read_log(UNCERTAIN), len(overturned))
+        write_report(first, read_log(EXCLUSIONS), read_log(UNCERTAIN), second_outcomes(first, second))
         print(f"removed {len(removals)}, uncertain {len(unsure)}, overturned {len(overturned)}; "
               f"clean hash {write_clean()}")
     return 0

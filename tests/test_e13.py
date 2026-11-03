@@ -66,10 +66,10 @@ HEAVY_FIELD = ["path,label,group,split,sha1,source"] + [
     for i in range(36)
 ]
 HEAVY_LOG = (
-    "version,image_id,path,source,split,label,reason_code,note\n"
-    "1,s1,f/1.jpg,plantdoc,field_dev,B,wrong_plant,x\n"
-    "1,s4,f/4.jpg,plantdoc,field_dev,A,not_plant_photo,y\n"
-    "1,s31,f/31.jpg,plantdoc,field_test,B,wrong_plant,z\n"
+    "version,image_id,path,source,split,label,reason_code,note,began_as\n"
+    "1,s1,f/1.jpg,plantdoc,field_dev,B,wrong_plant,x,remove\n"
+    "1,s4,f/4.jpg,plantdoc,field_dev,A,not_plant_photo,y,remove\n"
+    "1,s31,f/31.jpg,plantdoc,field_test,B,wrong_plant,z,remove\n"
 )
 
 

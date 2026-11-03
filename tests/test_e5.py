@@ -285,7 +285,7 @@ def test_probs_stage_scores_not_plant_photos_from_a_checkpoint(world, tmp_path):
                     scaler=torch.amp.GradScaler("cuda", enabled=False), epoch=1, best_metric=0.0,
                     class_map={c: i for i, c in enumerate(CLASSES)}, config=TrainConfig(manifest="x", out_dir="y", model="tiny_cnn"))
     local = {**cfg, "out_dir": str(tmp_path / "out"), "model": {**cfg["model"], "checkpoint": str(tmp_path / "best.pt")}}
-    path = e5.stage_probs_not_plant(local, root, e5.StageLog(local, root))
+    path = e5.stage_probs_not_plant(local, root, e5.StageLog(local, root), device=torch.device("cpu"))
     rows = [json.loads(x) for x in path.read_text().splitlines()]
     assert len(rows) == NN and all(abs(sum(r["probs"]) - 1) < 1e-5 for r in rows)
     with Image.open(root / rows[0]["path"]) as img:

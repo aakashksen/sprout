@@ -185,7 +185,8 @@ def score_images(model, paths: list[str], root: Path, batch_size: int, num_worke
     return np.concatenate(out).astype(np.float64)
 
 
-def stage_probs_not_plant(cfg: dict[str, Any], root: Path, log: StageLog) -> Path:
+def stage_probs_not_plant(cfg: dict[str, Any], root: Path, log: StageLog, device=None) -> Path:
+    """`device` defaults to the GPU when one is visible; tests pass the CPU."""
     import torch
 
     from sprout.train.checkpoint import load_checkpoint
@@ -201,7 +202,7 @@ def stage_probs_not_plant(cfg: dict[str, Any], root: Path, log: StageLog) -> Pat
         raise RuntimeError("the checkpoint's classes differ from the E4 record's")
     model = build_model(ckpt["config"].model, len(names), pretrained=False)
     model.load_state_dict(ckpt["model"])
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if device.type == "cuda":
         torch.cuda.reset_peak_memory_stats()
     log(f"probs-not-plant: {len(info.ids)} photos on {device}, workers {cfg['num_workers']}")

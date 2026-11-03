@@ -179,3 +179,91 @@ def test_hash_close_lookalike_of_a_field_photo_is_dropped(tmp_path):
     inv = pd.concat([inv, extra_row], ignore_index=True)
     out, _, _ = build_extra(inv, cmap, lab, field, cap=100)
     assert noisy.as_posix() not in set(out["path"])
+
+
+def _watermarked_crop(src: Path, dest: Path) -> str:
+    from PIL import ImageDraw
+
+    with Image.open(src) as img:
+        w, h = img.size
+        box = (int(w * 0.02), int(h * 0.02), int(w * 0.98), int(h * 0.98))
+        out = img.convert("RGB").crop(box).resize((w, h), Image.BICUBIC)
+    ImageDraw.Draw(out).rectangle((w - 40, h - 14, w - 6, h - 6), fill=(255, 255, 255))
+    out.save(dest.with_suffix(".jpg"), quality=80)
+    return dest.with_suffix(".jpg").as_posix()
+
+
+def test_correlation_check_catches_a_watermarked_crop_under_another_label(tmp_path):
+    from sprout.data.extra_sources import drop_copies_of_eval_photos
+
+    inv, cmap, lab, field, _, new, other, _ = _world(tmp_path)
+    test_photo = field[field["split"] == "field_test"]["path"].iloc[0]
+    copy = _watermarked_crop(Path(test_photo), tmp_path / "extra" / "y" / "wm")
+    unrelated = _photo(tmp_path / "extra" / "y" / "far.png", 999)
+    extra = _rows([copy, unrelated], "y")
+    extra["source"] = "plantwild"
+    inv = pd.concat([inv, extra], ignore_index=True)
+    gone = drop_copies_of_eval_photos(inv, cmap, field, "cpu")
+    assert gone[copy] == "field_test"
+    assert unrelated not in gone
+    # not a field_train photo: only dev and test are read
+    train_photo = field[field["split"] == "field_train"]["path"].iloc[0]
+    assert train_photo not in set(gone.values())
+
+
+def test_correlation_check_matches_a_plain_numpy_reference_and_the_gpu(tmp_path):
+    from sprout.data.copy_check import gray_vector, max_correlation, variants
+
+    paths = [_photo(tmp_path / f"p{i}.png", 50 + i) for i in range(5)]
+    refs = paths[:3] + [_watermarked_crop(Path(paths[3]), tmp_path / "w")]
+    scores, best = max_correlation(paths, refs, "cpu")
+    for i, p in enumerate(paths):
+        want = max(
+            float((variants(gray_vector(r)) @ gray_vector(p)).max()) for r in refs
+        )
+        assert scores[i] == pytest.approx(want, abs=1e-5)
+    assert best[3] == 3 and scores[0] > 0.999
+    import torch
+
+    if torch.cuda.is_available():
+        s2, b2 = max_correlation(paths, refs, "cuda")
+        assert list(b2) == list(best)
+        assert np.allclose(s2, scores, atol=1e-4)
+
+
+def test_extra_groups_have_their_own_namespace(tmp_path):
+    inv, cmap, lab, field, *_ = _world(tmp_path)
+    out, _, _ = build_extra(inv, cmap, lab, field, cap=100)
+    assert out["group"].str.startswith("x").all()
+    assert not set(out["group"]) & (set(field["group"]) | set(lab["group"]))
+    real = MANIFEST_DIR / "extra_train.csv"
+    if real.exists():
+        groups = set(load_manifest("extra_train")["group"])
+        assert not groups & set(load_manifest("field")["group"])
+        assert not groups & set(load_manifest("lab")["group"])
+
+
+VERIFIER_PAIRS = [
+    "datasets/raw/plantwild/plantwild/images/strawberry leaf/google_0526.jpg",
+    "datasets/raw/plantwild/plantwild/images/soybean leaf/google_0562.jpg",
+    "datasets/raw/plantwild/plantwild/images/blueberry leaf/169.jpg",
+    "datasets/raw/plantwild/plantwild/images/raspberry leaf/61.jpg",
+    "datasets/raw/plantwild/plantwild/images/strawberry leaf/google_0201.jpg",
+    "datasets/raw/plantwild/plantwild/images/raspberry leaf/google_0075.jpg",
+]
+
+
+def test_no_extra_is_a_near_copy_of_a_field_dev_or_field_test_photo():
+    from sprout.data.copy_check import COPY_SCORE, max_correlation
+
+    extra = load_manifest("extra_train")
+    assert not set(VERIFIER_PAIRS) & set(extra["path"])
+    field = load_manifest("field")
+    held = field[field["split"].isin(["field_dev", "field_test"])]
+    paths = list(extra["path"])
+    if not Path(paths[0]).exists():
+        pytest.skip("raw images are not on this machine")
+    scores, _ = max_correlation(paths, list(held["path"]), "cpu")
+    assert scores.max() < COPY_SCORE, (
+        f"{int((scores >= COPY_SCORE).sum())} extras are copies"
+    )

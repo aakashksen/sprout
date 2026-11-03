@@ -1,5 +1,6 @@
 """Extra real-photo training sources (PlantWild), mapped, deduplicated and capped."""
 
+import contextlib
 import json
 import zipfile
 from collections import Counter
@@ -7,6 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from sprout.data.copy_check import COPY_SCORE, copies_of
 from sprout.data.field import (
     RESIDUAL_DISTANCE,
     _gray64,
@@ -217,7 +219,12 @@ def build_extra(
     removed["over the per-class cap"] = int(over.sum())
     left = left[~over]
 
-    out = left.assign(label=left["lab_class"], split=EXTRA_SPLIT)
+    # own namespace: group ids come from a numbering that field.csv and lab.csv also use
+    out = left.assign(
+        label=left["lab_class"],
+        split=EXTRA_SPLIT,
+        group="x" + left["group"].astype(str),
+    )
     out = out.sort_values("path")[EXTRA_COLUMNS].reset_index(drop=True)
 
     n_images, n_kept, status, reason = [], [], [], []
@@ -232,21 +239,54 @@ def build_extra(
     return out, cmap[MAP_COLUMNS], dict(removed)
 
 
-def main() -> None:
+def drop_copies_of_eval_photos(
+    inv: pd.DataFrame, class_map: pd.DataFrame, field: pd.DataFrame, device: str
+) -> dict[str, str]:
+    """Mapped extras at or above COPY_SCORE against any field_dev or field_test photo, to the split."""
+    mapped = class_map[class_map["lab_class"].fillna("") != ""]
+    keys = set(zip(mapped["source"], mapped["source_class"]))
+    todo = [
+        p for p, s, c in zip(inv["path"], inv["source"], inv["label"]) if (s, c) in keys
+    ]
+    held = field[field["split"].isin(["field_dev", "field_test"])]
+    split = dict(zip(held["path"], held["split"]))
+    return {p: split[r] for p, r in copies_of(todo, list(held["path"]), device).items()}
+
+
+def main(device_scope=None) -> None:
+    """device_scope: optional context manager that yields the device name (e.g. holds a GPU share)."""
     roots = {
         "plantwild": RAW / "plantwild" / "plantwild" / "images",
         "plantwild_v2": RAW / "plantwild_v2" / "plantwild_v2",
     }
     inv = extra_inventory(roots)
     classes = {s: sorted(inv[inv["source"] == s]["label"].unique()) for s in roots}
-    out, cmap, removed = build_extra(
-        inv, make_extra_class_map(classes), load_manifest("lab"), load_manifest("field")
+    cmap = make_extra_class_map(classes)
+    field = load_manifest("field")
+    with device_scope() if device_scope else contextlib.nullcontext("cpu") as device:
+        copies = drop_copies_of_eval_photos(inv, cmap, field, device)
+    out, cmap_out, removed = build_extra(
+        inv[~inv["path"].isin(copies)], cmap, load_manifest("lab"), field
     )
+    for split in ("field_dev", "field_test"):
+        removed[f"correlation >= {COPY_SCORE} with {split}"] = sum(
+            v == split for v in copies.values()
+        )
+    full = inv.groupby(["source", "label"]).size()
+    cmap_out["n_images"] = [
+        int(full.get((r.source, r.source_class), 0)) for r in cmap_out.itertuples()
+    ]
     out.to_csv(MANIFEST_DIR / "extra_train.csv", index=False)
-    cmap.to_csv(CLASS_MAP_EXTRA_PATH, index=False)
+    cmap_out.to_csv(CLASS_MAP_EXTRA_PATH, index=False)
     print(
         json.dumps(
-            {"inventory": len(inv), "kept": len(out), "removed": removed}, indent=1
+            {
+                "device": device,
+                "inventory": len(inv),
+                "kept": len(out),
+                "removed": removed,
+            },
+            indent=1,
         )
     )
 

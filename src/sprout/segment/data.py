@@ -18,6 +18,7 @@ from PIL import Image
 
 from sprout.data.field import link_same_scene
 from sprout.data.grouping import group_near_duplicates
+from sprout.data.masks import iou as mask_iou
 from sprout.data.splits import COLUMNS, MANIFEST_DIR
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -104,12 +105,6 @@ def rle_decode(rle: dict[str, Any]) -> np.ndarray:
         raise ValueError("run lengths do not add up to the mask size")
     values = np.arange(len(counts)) % 2 == 1
     return np.repeat(values, counts).reshape(h, w)
-
-
-def mask_iou(pred: np.ndarray, gt: np.ndarray) -> float:
-    """Intersection over union; 1.0 when both masks are empty (nothing to find, nothing predicted)."""
-    union = int(np.logical_or(pred, gt).sum())
-    return 1.0 if union == 0 else float(np.logical_and(pred, gt).sum()) / union
 
 
 def rle_iou(pred: dict[str, Any], gt: dict[str, Any]) -> float:

@@ -92,11 +92,6 @@ class MaskStore:
         return cls({str(p): np.unpackbits(b)[:n].reshape(MASK_SIZE, MASK_SIZE).astype(bool) for p, b in zip(paths, bits, strict=True)})
 
 
-def crop_image(image: Image.Image, mask: np.ndarray) -> Image.Image:
-    """The T4.0 crop; a tiny or empty predicted area leaves the whole photo."""
-    return crop_to_disease(image, mask)
-
-
 def leaf_mask(path: str, image: Image.Image) -> tuple[np.ndarray | None, str]:
     """True on the leaf, at the photo's size, and where it came from: the official segmented copy of this lab
     photo (matched by file name), else the colour threshold. None when the mask is not believable."""
@@ -136,7 +131,7 @@ class JointDataset(Dataset):
                 if leaf is not None:
                     image = paste_background(image, leaf, random)
         if self.masks is not None:
-            image = crop_image(image, self.masks.get(self.paths[i]))
+            image = crop_to_disease(image, self.masks.get(self.paths[i]))  # a tiny or empty area keeps the photo
         return image
 
     def __getitem__(self, i: int):

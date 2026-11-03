@@ -10,9 +10,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from sprout.data.splits import COLUMNS, dataset_hash
+from sprout.eval import metrics as M
 from sprout.eval.predict import Predictions
 from sprout.eval.stats import percentile
 
@@ -54,6 +56,7 @@ class SplitInfo:
     ids: list[str]
     groups: list[str]
     labels: list[str] | None  # class names; None when the split has none (RAG, perf)
+    expected: list[str] | None = None  # RAG gold behaviour per question: answer, abstain, ...
 
 
 def _manifest(root: Path, name: str) -> pd.DataFrame:
@@ -68,7 +71,7 @@ def split_info(split: str, root: Path = ROOT) -> SplitInfo:
         rows = [r for r in rows if r["split"] == split.removeprefix("rag_")]
         digest = hashlib.sha256("\n".join(json.dumps(r, sort_keys=True) for r in rows).encode()).hexdigest()
         ids = [r["id"] for r in rows]
-        return SplitInfo(digest, ids, ids, None)
+        return SplitInfo(digest, ids, ids, None, [r.get("expected", "answer") for r in rows])
     if split == "perf":
         data = (root / PERF_REL).read_bytes()
         ids = [x.strip() for x in data.decode("utf-8").splitlines() if x.strip()]
@@ -100,6 +103,13 @@ def _rows(system_rows: Any) -> list[dict[str, Any]]:
             for p, y, pr in zip(system_rows.path, system_rows.label, system_rows.probs)
         ]
     return list(system_rows)
+
+
+def classification_tables(rows: list[dict[str, Any]], class_names: list[str]) -> tuple[dict, list]:
+    """Per-class precision, recall, F1 and support, and the confusion matrix, from saved rows."""
+    labels = np.array([r["label"] for r in rows], dtype=int)
+    pred = np.array([r["probs"] for r in rows], dtype=float).argmax(axis=1)
+    return M.per_class_report(labels, pred, class_names), M.confusion(labels, pred, len(class_names)).tolist()
 
 
 def _write_samples(runs: Path, run_id: str, kind: str, samples: dict[str, list]) -> str:
@@ -144,6 +154,13 @@ def write_run(
     runs = root / RUNS_REL
     runs.mkdir(parents=True, exist_ok=True)
     rows = {name: _rows(r) for name, r in predictions.items()}
+    tables = {}
+    for name, system_rows in rows.items():
+        if system_rows and "probs" in system_rows[0] and "label" in system_rows[0]:
+            names = config.get("class_names")
+            if not isinstance(names, list):
+                raise ValueError("config.class_names is required for classification predictions")
+            tables[name] = classification_tables(system_rows, names)
     pred_paths = {}
     for name, system_rows in rows.items():
         p = runs / f"{run_id}.{name}.predictions.jsonl"
@@ -172,6 +189,8 @@ def write_run(
         "measurements": measured,
         "judged": judgments,
         "intervals": {s: {k: list(v) for k, v in d.items()} for s, d in intervals.items()},
+        "per_class": {k: v[0] for k, v in tables.items()},
+        "confusion": {k: v[1] for k, v in tables.items()},
         "bootstrap": {"n": BOOTSTRAP_N, "seed": BOOTSTRAP_SEED},
         "comparisons": comparisons or [],
         "attempts": attempts,

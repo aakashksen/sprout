@@ -33,9 +33,11 @@ from sprout.eval.stats import (
 
 REQUIRED = (
     "run_id experiment git_commit dirty dataset_hash split subset config models n metrics measurements judged "
-    "intervals bootstrap comparisons attempts claude_calls labels_reviewed predictions started_at finished_at notes"
+    "intervals bootstrap per_class confusion comparisons attempts claude_calls labels_reviewed predictions started_at finished_at notes"
 ).split()
 TOLERANCE = 1e-9
+NOT_PLANT = "not_plant"
+SIDECAR = re.compile(r".+\.(measurements|judged)\.json")
 FAKE = re.compile(r"fake|stub", re.I)
 TIMESTAMP = re.compile(r"\d{8}T\d{12}Z")
 THRESHOLDED = ("coverage", "selective_accuracy", "confident_error_rate")
@@ -49,6 +51,10 @@ class Scored:
     labels: np.ndarray | None = None
     probs: np.ndarray | None = None
     ranks: list[int | None] | None = None
+    accepted: np.ndarray | None = None  # gate decision per image
+    is_plant: np.ndarray | None = None  # from the manifest's labels
+    answered: np.ndarray | None = None  # RAG: answered rather than declined
+    expected: list[str] | None = None  # RAG gold behaviour from the questions file
 
 
 def _num(x: float) -> float | None:
@@ -73,8 +79,30 @@ def item_series(name: str, s: Scored) -> np.ndarray | None:
     return None
 
 
-def recompute_metric(name: str, s: Scored) -> float | None:
-    """The metric from saved rows, using sprout.eval.metrics. Raises KeyError for an unknown metric."""
+def _rate(flags: np.ndarray, among: np.ndarray) -> float | None:
+    return float(flags[among].mean()) if among.any() else None
+
+
+def recompute_metric(name: str, s: Scored, others: dict[str, Scored] | None = None) -> float | None:
+    """The metric from saved rows, using sprout.eval.metrics. None when it is undefined for these rows
+    (nothing to divide by, or the rows lack the needed fields). Raises KeyError for an unknown metric."""
+    if name == "plant_rejection_rate" and s.accepted is not None and s.is_plant is not None:
+        return _rate(~s.accepted, s.is_plant)
+    if name == "not_plant_acceptance_rate" and s.accepted is not None and s.is_plant is not None:
+        return _rate(s.accepted, ~s.is_plant)
+    if name in ("answers_when_answerable", "declines_when_unanswerable") and s.answered is not None:
+        gold = np.array(s.expected or [])
+        if name == "answers_when_answerable":
+            return _rate(s.answered, gold == "answer")
+        return _rate(~s.answered, gold == "abstain")
+    changed = re.fullmatch(r"changed_vs@([A-Za-z0-9_-]+)", name)
+    if changed:
+        other = (others or {}).get(changed.group(1))
+        if other is None:
+            raise KeyError(name)
+        if s.probs is None or other.probs is None:
+            return None
+        return float((s.probs.argmax(axis=1) != other.probs.argmax(axis=1)).mean())
     series = item_series(name, s)
     if series is not None:
         return float(series.mean())
@@ -171,6 +199,21 @@ def _score(
     by_id = dict(zip(ids, rows))
     ordered = [by_id[i] for i in wanted]
     scored = Scored(groups=[info.groups[i] for i in positions])
+    if "accepted" in rows[0]:
+        flags = [r.get("accepted") for r in ordered]
+        if not all(isinstance(f, bool) for f in flags):
+            out.append(tag + "accepted must be true or false in every row")
+            return None
+        scored.accepted = np.array(flags)
+        if info.labels is not None:
+            scored.is_plant = np.array([info.labels[i] != NOT_PLANT for i in positions])
+    if "answered" in rows[0]:
+        flags = [r.get("answered") for r in ordered]
+        if not all(isinstance(f, bool) for f in flags) or info.expected is None:
+            out.append(tag + "answered must be true or false in every row of a RAG split")
+            return None
+        scored.answered = np.array(flags)
+        scored.expected = [info.expected[i] for i in positions]
     if "probs" in rows[0]:
         names = rec["config"].get("class_names") if isinstance(rec["config"], dict) else None
         probs = np.array([r["probs"] for r in ordered], dtype=float)
@@ -182,7 +225,7 @@ def _score(
             out.append(tag + "saved labels do not match the manifest's labels")
             return None
         scored.probs, scored.labels = probs, labels
-    elif "rank" in rows[0]:
+    if "rank" in rows[0]:
         scored.ranks = [r["rank"] for r in ordered]
     return scored
 
@@ -206,6 +249,25 @@ def _measurement_problems(block: Any, root: Path, kind: str) -> list[str]:
             out.append(f"{kind} value {name} has no samples in {block['file']}")
         elif not _same(fresh, saved):
             out.append(f"{kind} value {name} does not match its saved file")
+    return out
+
+
+def _table_problems(rec: dict[str, Any], name: str, s: Scored, tag: str) -> list[str]:
+    """Per-class report and confusion matrix: saved for every classification system, and recomputed."""
+    saved_pc, saved_cm = rec["per_class"].get(name), rec["confusion"].get(name)
+    if s.probs is None or s.labels is None:
+        return [tag + f"{k} given for rows that are not classifications" for k, v in
+                (("per_class", saved_pc), ("confusion", saved_cm)) if v]
+    names, pred = rec["config"]["class_names"], s.probs.argmax(axis=1)
+    out = []
+    fresh_pc = M.per_class_report(s.labels, pred, names)
+    if not isinstance(saved_pc, dict) or set(saved_pc) != set(fresh_pc) or not all(
+        set(saved_pc[c]) == set(v) and all(_same(float(v[k]), saved_pc[c][k]) for k in v)
+        for c, v in fresh_pc.items()
+    ):
+        out.append(tag + "per_class does not recompute from predictions")
+    if saved_cm != M.confusion(s.labels, pred, len(names)).tolist():
+        out.append(tag + "confusion does not recompute from predictions")
     return out
 
 
@@ -284,9 +346,12 @@ def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
         if scored is None:
             continue
         usable[name] = scored
+
+    for name, scored in usable.items():
+        tag = f"system {name}: "
         for metric, saved in metrics[name].items():
             try:
-                fresh = recompute_metric(metric, scored)
+                fresh = recompute_metric(metric, scored, usable)
             except KeyError:
                 problems.append(tag + f"metric {metric} cannot be recomputed from predictions")
                 continue
@@ -298,6 +363,7 @@ def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
                 problems.append(tag + f"interval {metric} cannot be recomputed from predictions")
             elif not _same_pair(got, saved):
                 problems.append(tag + f"interval {metric} does not recompute from predictions")
+        problems += _table_problems(rec, name, scored, tag)
 
     for i, c in enumerate(rec["comparisons"]):
         tag = f"comparison {i}: "
@@ -324,22 +390,46 @@ def _load_records(experiment: str, root: Path) -> list[tuple[Path, dict[str, Any
     return [(p, json.loads(p.read_text(encoding="utf-8"))) for p in records_for(experiment, root)]
 
 
+def _row_map(root: Path, rel: str) -> dict[str, str]:
+    rows = _read_rows(root / rel) if (root / rel).is_file() else []
+    return {str(r.get("path", r.get("id"))): json.dumps(r, sort_keys=True) for r in rows}
+
+
+def _is_view_of(view: dict[str, Any], full: dict[str, Any], root: Path) -> bool:
+    """A declared subset drawn from the same commit, models, config and predictions as a full record."""
+    if view.get("subset") is None or full.get("subset") is not None:
+        return False
+    drop = lambda c: {k: v for k, v in (c or {}).items() if k != "override_note"}  # noqa: E731
+    if any(view.get(k) != full.get(k) for k in ("git_commit", "models", "split")) or drop(view.get("config")) != drop(
+        full.get("config")
+    ):
+        return False
+    for system, rel in (view.get("predictions") or {}).items():
+        if system not in (full.get("predictions") or {}):
+            return False
+        theirs = _row_map(root, full["predictions"][system])
+        if not all(theirs.get(k) == v for k, v in _row_map(root, rel).items()):
+            return False
+    return True
+
+
 def test_once_problems(root: Path) -> list[str]:
-    """A test split is scored once. Every record on it counts, whatever its experiment; a later one
-    needs config.override_note saying why."""
-    found: dict[str, list[tuple[str, str, dict[str, Any]]]] = {}
+    """A test split is scored once. Every record file on it counts, whatever its name or experiment; a
+    later one needs config.override_note. A declared subset of a full record's own predictions (same
+    commit, models, config) is a view of that use, not another."""
+    found: dict[str, list[tuple[str, dict[str, Any]]]] = {}
     for p in (root / RUNS_REL).glob("*.json"):
-        if not re.fullmatch(rf".+-{TIMESTAMP.pattern}\.json", p.name):
+        if SIDECAR.fullmatch(p.name):
             continue
         rec = json.loads(p.read_text(encoding="utf-8"))
-        split = rec.get("split", "")
-        if split.endswith("_test"):
-            found.setdefault(split, []).append((_timestamp(p.name), p.name, rec))
+        if isinstance(rec, dict) and str(rec.get("split", "")).endswith("_test"):
+            found.setdefault(rec["split"], []).append((p.stem, rec))
     out = []
     for split, recs in found.items():
-        recs.sort(key=lambda t: t[:2])
-        out += [f"{r.get('run_id')}: more than one {split} record and no override_note in config"
-                for _, _, r in recs[1:] if not (r.get("config") or {}).get("override_note")]
+        uses = [(s, r) for s, r in recs if not any(_is_view_of(r, f, root) for t, f in recs if t != s)]
+        uses.sort(key=lambda t: (str(t[1].get("finished_at")), not TIMESTAMP.search(t[0]), t[0]))
+        out += [f"{stem}: more than one {split} record and no override_note in config"
+                for stem, r in uses[1:] if not (r.get("config") or {}).get("override_note")]
     return out
 
 
@@ -351,9 +441,11 @@ def check(experiment: str, *, root: Path = ROOT, min_n: int = 0, split: str | No
         return [f"no run record for {experiment}"]
     problems = []
     for path, rec in recs:
+        if rec.get("run_id") != path.stem:
+            problems.append(f"{path.name}: run_id {rec.get('run_id')!r} differs from the file name")
         problems += [f"{path.name}: {m}" for m in check_record(rec, root, min_n)]
-    ids = {r.get("run_id") for _, r in recs}
-    problems += [m for m in test_once_problems(root) if m.split(":")[0] in ids]
+    stems = {p.stem for p, _ in recs}
+    problems += [m for m in test_once_problems(root) if m.split(":")[0] in stems]
     return problems
 
 

@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from sprout.eval.check_run import check_record, test_once_problems
+from sprout.eval.check_run import TIMESTAMP, check_record, test_once_problems
 from sprout.eval.records import ROOT, RUNS_REL
 
 CLAIMS_REL = Path("results/claims.json")
@@ -72,6 +72,9 @@ def check_claims(root: Path = ROOT) -> list[str]:
             problems.append(f"claim {cid}: no run record {c.get('run_id')}")
             continue
         rec = json.loads(path.read_text(encoding="utf-8"))
+        if rec.get("run_id") != path.stem or not TIMESTAMP.search(path.stem):
+            problems.append(f"claim {cid}: the record's run_id must equal its file name and end in a write timestamp")
+            continue
         saved, problem = _cited(c, rec)
         if problem:
             problems.append(f"claim {cid}: {problem}")

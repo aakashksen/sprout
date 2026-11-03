@@ -4,6 +4,7 @@ import subprocess
 import numpy as np
 import pytest
 
+from sprout.eval import check_run
 from sprout.eval import metrics as M
 from sprout.eval.check_run import (
     Scored,
@@ -25,7 +26,14 @@ LAB = ["path,label,group,split,sha1"] + [
 FIELD = ["path,label,group,split,sha1,source"] + [
     f"f/{i}.jpg,A,h{i},field_test,t{i},plantdoc" for i in range(4)
 ] + ["f/9.jpg,C,h9,field_test,t9,plantdoc"]
-RAG = [json.dumps({"id": f"q{i}", "split": "dev" if i < 4 else "test", "question": "?"}) for i in range(6)]
+RAG = [
+    json.dumps({"id": f"q{i}", "split": "dev" if i < 4 else "test", "question": "?",
+                "expected": ["answer", "answer", "abstain", "abstain", "answer", "answer"][i]})
+    for i in range(6)
+]
+NOT_PLANT = ["path,label,group,split,sha1"] + [
+    f"n/{i}.jpg,not_plant,n{i},not_plant_dev,z{i}" for i in range(4)
+]
 PERF = [f"p/{i}.jpg" for i in range(3)]
 
 
@@ -40,6 +48,7 @@ def root(tmp_path):
         "datasets/manifests/field.csv": FIELD,
         "datasets/rag/questions.jsonl": RAG,
         "datasets/perf/images.txt": PERF,
+        "datasets/manifests/not_plant.csv": NOT_PLANT,
         "orchestration/tasks.json": ["{}"],
     }.items():
         (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
@@ -384,3 +393,117 @@ def test_check_needs_manifests_and_predictions_not_images(root):
     make(root, split="lab_dev")
     assert not (root / "datasets/raw").exists() and not (root / "img").exists()
     assert check("E1", root=root) == []
+
+
+def test_claim_on_a_renamed_copy_of_a_record_fails(root):
+    make(root)
+    second = make(root, experiment="E9")
+    hand = second.with_name("E9-hand.json")
+    rec = json.loads(second.read_text())
+    rec["run_id"] = "E9-hand"
+    hand.write_text(json.dumps(rec))
+    claim(root, "E9-hand", rec["metrics"]["a"]["accuracy"])
+    assert any("file name" in p for p in check_claims(root))
+    rec["run_id"] = hand.stem
+    renamed = second.with_name("E9-20990101T000000000000Z.json")
+    rec["run_id"] = renamed.stem
+    renamed.write_text(json.dumps(rec))
+    claim(root, renamed.stem, rec["metrics"]["a"]["accuracy"])
+    assert any("more than one lab_test" in p for p in check_claims(root))
+
+
+def test_test_once_counts_files_with_any_name(root):
+    first = make(root)
+    (first.with_name("copy.json")).write_text(first.read_text())
+    assert any("copy: more than one" in p for p in check_run.test_once_problems(root))
+
+
+def test_subset_of_same_predictions_is_not_a_second_test_use(root):
+    p, info = preds(root, "lab_test", flip=(0, 3))
+    cfg = {"class_names": NAMES}
+    sp = scored(p, info)
+    make(root, split="lab_test", config=cfg, predictions={"a": p}, comparisons=[], intervals={},
+         metrics={"a": {"accuracy": recompute_metric("accuracy", sp)}}, dataset_hash=info.hash)
+    k = 2
+    sub = Predictions(p.path[:k], p.label[:k], p.probs[:k])
+    ssub = Scored(groups=info.groups[:k], labels=sub.label, probs=sub.probs)
+    make(root, split="lab_test", subset="first_2", config=cfg, predictions={"a": sub}, comparisons=[],
+         intervals={}, metrics={"a": {"accuracy": recompute_metric("accuracy", ssub)}}, dataset_hash=info.hash)
+    assert check_run.test_once_problems(root) == []
+    # different predictions, or different settings, are a second use
+    other = Predictions(p.path[:k], p.label[:k], p.probs[:k][:, ::-1].copy())
+    so = Scored(groups=info.groups[:k], labels=other.label, probs=other.probs)
+    make(root, split="lab_test", subset="first_2", config=cfg, predictions={"a": other}, comparisons=[],
+         intervals={}, metrics={"a": {"accuracy": recompute_metric("accuracy", so)}}, dataset_hash=info.hash)
+    assert len(check_run.test_once_problems(root)) == 1
+    make(root, split="lab_test", subset="first_2", config={**cfg, "threshold": 0.9}, predictions={"a": sub},
+         comparisons=[], intervals={}, metrics={"a": {"accuracy": recompute_metric("accuracy", ssub)}},
+         dataset_hash=info.hash)
+    assert len(check_run.test_once_problems(root)) == 2
+
+
+def gate_rows(info, accepted):
+    return [{"path": p, "accepted": a} for p, a in zip(info.ids, accepted)]
+
+
+def test_rejection_rates_recompute_and_tampering_fails(root):
+    info = split_info("field_test", root)  # all plant labels, one is C
+    rows = gate_rows(info, [True, False, True, True, False])
+    s = Scored(groups=info.groups, accepted=np.array([r["accepted"] for r in rows]),
+               is_plant=np.array([True] * 5))
+    assert recompute_metric("plant_rejection_rate", s) == pytest.approx(0.4)
+    assert recompute_metric("not_plant_acceptance_rate", s) is None
+    path = make(root, split="field_test", config={}, predictions={"g": rows}, comparisons=[], intervals={},
+                metrics={"g": {"plant_rejection_rate": 0.4, "not_plant_acceptance_rate": None}},
+                dataset_hash=info.hash)
+    assert check("E1", root=root) == []
+    edit(path, lambda r: r["metrics"]["g"].update(plant_rejection_rate=0.1))
+    failing(root, "plant_rejection_rate does not recompute")
+
+
+def test_not_plant_split_has_acceptance_rate_without_probabilities(root):
+    info = split_info("not_plant_dev", root)
+    rows = gate_rows(info, [False, False, True, False])
+    path = make(root, split="not_plant_dev", config={}, predictions={"g": rows}, comparisons=[], intervals={},
+                metrics={"g": {"not_plant_acceptance_rate": 0.25, "plant_rejection_rate": None}},
+                dataset_hash=info.hash)
+    assert check("E1", root=root) == []
+    edit(path, lambda r: r["metrics"]["g"].update(not_plant_acceptance_rate=0.0))
+    failing(root, "not_plant_acceptance_rate does not recompute")
+
+
+def test_changed_vs_other_system(root):
+    path = make(root, split="lab_dev")
+    p, info = preds(root, "lab_dev", flip=(0, 3))
+    q, _ = preds(root, "lab_dev", flip=(0,))
+    assert recompute_metric("changed_vs@b", scored(p, info), {"b": scored(q, info)}) == pytest.approx(1 / 6)
+    edit(path, lambda r: r["metrics"]["a"].update({"changed_vs@b": 1 / 6}))
+    assert check("E1", root=root) == []
+    edit(path, lambda r: r["metrics"]["a"].update({"changed_vs@b": 0.5}))
+    failing(root, "changed_vs@b does not recompute")
+    edit(path, lambda r: r["metrics"]["a"].update({"changed_vs@b": 1 / 6, "changed_vs@zz": 0.1}))
+    failing(root, "changed_vs@zz cannot be recomputed")
+
+
+def test_abstention_both_sides_recompute(root):
+    info = split_info("rag_dev", root)  # expected: answer, answer, abstain, abstain
+    rows = [{"id": i, "rank": 1, "answered": a} for i, a in zip(info.ids, [True, False, False, True])]
+    path = make(root, split="rag_dev", config={}, predictions={"a": rows}, comparisons=[], intervals={},
+                metrics={"a": {"answers_when_answerable": 0.5, "declines_when_unanswerable": 0.5}},
+                dataset_hash=info.hash)
+    assert check("E1", root=root) == []
+    edit(path, lambda r: r["metrics"]["a"].update(declines_when_unanswerable=1.0))
+    failing(root, "declines_when_unanswerable does not recompute")
+
+
+def test_per_class_and_confusion_saved_and_checked(root):
+    path = make(root, split="lab_dev")
+    rec = json.loads(path.read_text())
+    assert set(rec["per_class"]["a"]) == {"A", "B"} and sum(map(sum, rec["confusion"]["a"])) == 6
+    edit(path, lambda r: r["confusion"]["a"][0].__setitem__(0, 99))
+    failing(root, "confusion does not recompute")
+    edit(path, lambda r: r["confusion"]["a"][0].__setitem__(0, rec["confusion"]["a"][0][0]))
+    edit(path, lambda r: r["per_class"]["a"]["A"].update(recall=0.0))
+    failing(root, "per_class does not recompute")
+    edit(path, lambda r: r.update(per_class={}))
+    failing(root, "per_class does not recompute")

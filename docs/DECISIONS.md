@@ -80,6 +80,60 @@ A task with no entry gets a line `<id>: no new decisions` at the end of this fil
 - **Evidence:** `docs/PLAN.md` ("Later stages"), commits `b95985f`, `f150227`, `3493a8c`. Why PlantWild was picked over other sources is reason not recorded. No results exist yet.
 - **Would change if:** E12 does not clearly help; the plan keeps E4's model then.
 
+### T6.5 - Document set: public extension and agency pages, 237 documents, saved raw outside git (2026-11-03)
+- **Chose:** 237 documents (209 added to the original 28) from university extension services and agencies, fetched one at a time with a plain client name and a 2 second pause, `robots.txt` respected, nothing run. Raw files stay in the ignored `knowledge/raw/`; only the manifest (URL, publisher, title, date) is committed. A page whose URL redirected to a different page is recorded under the URL actually saved.
+- **Considered:** keeping only PDFs (lost: most extension content is HTML, and ingest now reads HTML with the standard-library parser, no new dependency); working around the five Incapsula bot-block pages (lost: the rule is never to get around a block); following PDF links from landing pages (lost: those links were not in the researcher's list).
+- **Evidence:** `docs/document-sources.md` (drops with reasons, counts, reuse limits), `tests/test_more_documents.py`, commits `42edd78` and the second-round commit. Twelve first-round documents also appear in `docs/document-candidates.md` with stated reuse restrictions.
+- **Would change if:** the documents are ever published (reuse terms would need checking one by one), or a host asks for removal.
+
+### T6.5 - Crop of a multi-crop document is its leading crop, or `general` (2026-11-03)
+- **Chose:** the crop mentioned most often when it leads clearly, else `general`. Mixed pages such as tomato and pepper bacterial spot carry one crop only.
+- **Considered:** one manifest row per crop for the same file (lost: file names must be unique and the tests assume one row per file).
+- **Evidence:** manifest `crop` column. Pepper retrieval misses a tomato-tagged mixed page; this was not measured.
+- **Would change if:** retrieval for a crop is found to miss a mixed document that its questions need.
+
+### T6.5 - Three earlier test expectations changed on purpose (2026-11-03)
+- **Chose:** `test_shipped_manifest_is_complete` now asks for at least 28 files instead of exactly 28; the class report and web tests now expect raspberry, soybean and squash to map to their own crop, since they have documents.
+- **Considered:** leaving the tests alone (lost: they would fail for the exact reason the task exists). No check was loosened beyond that.
+- **Evidence:** commit `9821a72`.
+- **Would change if:** the person wants the 28-file count kept as a regression guard.
+
+### T6.5 - Index embedded on the GPU, built beside the current index (2026-11-03)
+- **Chose:** `tools/build_index_gpu.py` embeds with `BAAI/bge-small-en-v1.5` through transformers on CUDA, holds a `taskctl` GPU share only for that stage, fails without CUDA, and writes the device to `build-info.json`. The new index is `knowledge/index-t65`; the current `knowledge/index` stays until it is renamed.
+- **Considered:** the fastembed ONNX path on the GPU (lost: installed onnxruntime has no CUDA provider; swapping it risks the shared venv). Cosine between the two paths was at least 0.99999 on a 31-chunk sample.
+- **Evidence:** `build-info.json` in the index folder (device `cuda`, RTX 4070 Laptop). Reranking is query-time, so it is not part of the build.
+- **Would change if:** vectors from the CUDA path ever differ from the CPU path on a retrieval result.
+
+### T6.5 - Coverage after round two: all classes describe symptoms (2026-11-03)
+- **Chose:** the per-class review in `docs/document-coverage.csv` was redone by reading indexed passages; cherry powdery mildew moved from no to yes after round-two pages 201 and 204 were read. Totals: yes 26, no 0, not applicable 12.
+- **Considered:** trusting the manifest disease lists (lost: T3.4 showed they overstate coverage).
+- **Evidence:** `docs/document-coverage.md`; `tests/test_more_documents.py::test_every_class_has_a_coverage_row`.
+- **Would change if:** a class's cited passage is found to describe a different disease.
+
+### T6.5 - Two abstain questions answered by the new documents were replaced (2026-11-03)
+- **Chose:** every `not_in_documents` question (28, both splits) was checked against `knowledge/index-t65` by looking for a chunk that names the plant, or a family term, together with the problem, then reading the hits. Two were answered, so their text was replaced and their ID, split and category kept. `results/runs/` holds no E7 or `rag_test` record, so no result shaped this.
+  - `not_in_documents-008` (test): "How do I control powdery mildew on my zucchini?" became "Why are my lavender plants dying back from the roots in wet soil?". The new squash and cucurbit pages describe powdery mildew on zucchini and its relatives.
+  - `not_in_documents-011` (dev): "Why are my pumpkin vines wilting with white mold?" became "Why is my hibiscus dropping its buds before they open?". The new pumpkin and winter squash pages cover powdery mildew (white growth) and bacterial wilt of pumpkin.
+  - The replacements name plants that appear nowhere in the index (`lavender`, `hibiscus`). The other 26 were kept; plant names that appear only in lists or passing mentions (for example cranberry in a blueberry pest list, papaya in a host list, sunflower in a rotation note) do not answer them.
+- **Considered:** dropping the two (lost: the category needs at least 20 per split pair); adding gold pages from new documents (lost: no gold document may be new). Watermelon fusarium wilt (012) was first kept on the wrong belief that the watermelon pages cover powdery mildew only; verification attempt 2 found document 268 (Clemson cucurbit diseases) describes Fusarium wilt (Fusarium oxysporum f. sp. niveum) in a section that never says watermelon, so a same-chunk check on the plant name missed it. It was replaced in the second round below.
+- **Evidence:** `tests/test_more_documents.py::test_abstain_questions_have_no_answer_in_the_index` (index-dependent, skipped when the ignored index is absent) and its fast fixture test; `answer_candidates` in `src/sprout/rag/evalset.py`.
+- **Would change if:** a later document round names one of these plants together with its problem; the test then fails and the question must be replaced the same way.
+
+### T6.5 - Abstain questions rechecked with family terms; two more replaced (2026-11-03)
+- **Chose:** every `not_in_documents` question was rerun against `knowledge/index-t65` with the plant's family terms as well (cucurbit, melon, squash, brassica, Apiaceae, Vaccinium and so on), reading every hit. Generic matches were narrowed (`rust`, `crown rot`, and dropping words such as "houseplant", "vegetable" and "herb" that only match menus and index pages). Two more were replaced, keeping ID, split and category; `results/runs/` still has no E7 or `rag_test` record.
+  - `not_in_documents-012` (test): "How do I stop fusarium wilt in watermelon?" became "How do I treat crown rot on my hosta plants?". Document 268 answers the old one.
+  - `not_in_documents-019` (dev): "How do I treat fruit rot in cranberry bogs?" became "Why are my daylily flower buds turning to mush before they open?". Cranberry shares its genus with blueberry, and the blueberry pages (019, 238) describe fruit rot, so a family link exists. This one is a precaution, not a clear answer.
+  - Replacement plants (`hosta`, `daylily`, with `lavender` and `hibiscus` from before) appear nowhere in the index, and neither does a crop in their family.
+- **Kept after reading:** the other 24. Family hits were menu lists (for example "Carrots", "Asparagus" in a growing-problems menu), index pages, host lists (hops downy mildew in a list of vine-crop pages; sunflower in a Sclerotinia host list) or title lists (Brassica diseases in a vegetable pathology index).
+- **Fixed:** the cranberry pattern had lost its backslashes (`bbogs?b`); the test patterns are now raw strings.
+- **Would change if:** a later round names any of these plants or families together with its problem; the test fails and the question is replaced the same way.
+
+### T6.5 - Unconfirmed sources are stated, not guessed (2026-11-03)
+- **Chose:** 7 of the 18 original manifest rows without a source URL were filled from `docs/original-doc-sources.csv`; 11 carry `unknown: inherited from the legacy project, source not confirmed`. A test accepts only a URL or that exact phrase on every row, and `docs/document-sources.md` states the count.
+- **Considered:** leaving them blank (lost: a blank cannot be told from an oversight); guessing the likeliest publisher (lost: not allowed).
+- **Evidence:** `docs/original-doc-sources.csv`, `docs/document-sources.md`.
+- **Would change if:** a source for any of the 11 is found.
+
 ---
 
 ## Evaluation and records

@@ -313,8 +313,8 @@ def test_lab_class_names_map_to_knowledge_crops():
     assert got["Corn_(maize)___Common_rust_"] == "corn"
     assert got["Orange___Haunglongbing_(Citrus_greening)"] == "orange"
     assert got["Tomato___Tomato_mosaic_virus"] == "tomato"
-    # these plants have no knowledge documents, so they get no plant-specific crop
-    assert {label.split("___")[0] for label, crop in got.items() if crop is None} == {"Raspberry", "Soybean", "Squash"}
+    # every plant now has documents of its own (T6.5 added raspberry, soybean and squash)
+    assert {label.split("___")[0] for label, crop in got.items() if crop is None} == set()
     assert {c for c in got.values() if c} <= known
 
 

@@ -134,7 +134,7 @@ def test_every_file_is_in_the_manifest(tmp_path, raw):
 def test_shipped_manifest_is_complete():
     entries = load_manifest(Path(__file__).parents[1] / "knowledge" / "manifest.csv")
     files = [e.file for e in entries]
-    assert len(files) == len(set(files)) == 28
+    assert len(files) == len(set(files)) >= 28
     assert all(e.crop and e.title for e in entries)
 
 

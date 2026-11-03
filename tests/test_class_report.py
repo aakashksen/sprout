@@ -92,7 +92,7 @@ def test_yes_rows_cite_document_and_page_and_no_rows_record_queries():
     rows = cr.load_coverage()
     yes = rows[rows["symptoms_described"] == "yes"]
     no = rows[rows["symptoms_described"] == "no"]
-    assert len(yes) and len(no)
+    assert len(yes)  # no class is uncovered after T6.5, so `no` may be empty
     for _, r in yes.iterrows():
         assert r["document"].strip() and r["page"].strip(), r["label"]
     for _, r in no.iterrows():

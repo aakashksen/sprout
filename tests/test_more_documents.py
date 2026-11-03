@@ -128,4 +128,4 @@ def test_every_class_has_a_coverage_row():
             assert all(any((d, n) in pages for d in docs) for n in nums), r["label"]
         if r["symptoms_described"] == "no":
             assert "Queries" in r["evidence"], r["label"]
-    assert set(rows[rows["symptoms_described"] == "no"]["label"]) == {"Cherry_(including_sour)___Powdery_mildew"}
+    assert set(rows[rows["symptoms_described"] == "no"]["label"]) == set()

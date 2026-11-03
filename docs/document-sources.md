@@ -13,7 +13,7 @@ Where the documents added in T6.5 came from and how they were chosen. Raw files 
 
 ## Counts
 
-Added: 134 documents (163 listed, 2 skipped by robots.txt, 27 dropped after download, listed below). Total in the manifest: 162. Below the 200 to 400 the plan asks for.
+Added in round one: 134 documents (163 listed, 2 skipped by robots.txt, 27 dropped after download, listed below). Total after round one: 162 (round two below).
 
 | crop | new | before | total |
 |---|---|---|---|
@@ -120,4 +120,28 @@ The other documents were not checked for licence text. Treat them the same way.
 ## Not done
 
 - Several dropped pages (038, 048, 093, 148, 158, 161, 163) are landing pages that link to a PDF. The PDF links were not followed, since they are not in the candidate list.
-- No cherry powdery mildew document was saved: the two Penn State pages redirected to index pages, and the Michigan State cherry pages were blocked. Another search is needed for that class.
+- After round one no cherry powdery mildew document had been saved (round two found them): the two Penn State pages redirected to index pages, and the Michigan State cherry pages were blocked. Another search is needed for that class.
+
+## Round two
+
+76 more URLs from `docs/document-urls-2.csv`, fetched the same way (one at a time, 2 seconds apart, `robots.txt` first, via `tools/fetch_documents.py`); file numbers start at 201. All 76 answered, none was refused by `robots.txt` or blocked. One was dropped: 248 (https://site.extension.uga.edu/peaches/2025/09/an-update-of-bacterial-spot-in-peaches/), a blog page whose text is not in the HTML. 75 were added, so the manifest now has 237 documents. Titles, crops and diseases come from each page's own text as in round one; publishers come from the host. Pages that cover several tree fruits (for example 205, 207, 231 and 233) are marked `general`. The index was rebuilt with `tools/build_index_gpu.py` (device recorded in its `build-info.json`).
+
+| crop | round two | total |
+|---|---|---|
+| apple | 0 | 17 |
+| blueberry | 8 | 14 |
+| cherry | 10 | 13 |
+| corn | 0 | 21 |
+| general | 7 | 15 |
+| grape | 1 | 15 |
+| orange | 7 | 13 |
+| peach | 6 | 13 |
+| pepper | 0 | 10 |
+| potato | 0 | 9 |
+| raspberry | 10 | 16 |
+| soybean | 7 | 10 |
+| squash | 11 | 18 |
+| strawberry | 0 | 9 |
+| tomato | 8 | 44 |
+
+Round two documents that supplied symptom evidence for coverage: 201 and 204 (cherry powdery mildew), 211 (grape leaf blight), 212 (tomato yellow leaf curl), 218 (tomato mosaic), 222 (huanglongbing), 247 (peach bacterial spot), 267 (squash powdery mildew). The other round-two pages are mostly home-growing guides, added for plant care on the thin crops.

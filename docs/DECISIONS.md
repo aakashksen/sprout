@@ -80,6 +80,36 @@ A task with no entry gets a line `<id>: no new decisions` at the end of this fil
 - **Evidence:** `docs/PLAN.md` ("Later stages"), commits `b95985f`, `f150227`, `3493a8c`. Why PlantWild was picked over other sources is reason not recorded. No results exist yet.
 - **Would change if:** E12 does not clearly help; the plan keeps E4's model then.
 
+### T6.5 - Document set: public extension and agency pages, 237 documents, saved raw outside git (2026-11-03)
+- **Chose:** 237 documents (209 added to the original 28) from university extension services and agencies, fetched one at a time with a plain client name and a 2 second pause, `robots.txt` respected, nothing run. Raw files stay in the ignored `knowledge/raw/`; only the manifest (URL, publisher, title, date) is committed. A page whose URL redirected to a different page is recorded under the URL actually saved.
+- **Considered:** keeping only PDFs (lost: most extension content is HTML, and ingest now reads HTML with the standard-library parser, no new dependency); working around the five Incapsula bot-block pages (lost: the rule is never to get around a block); following PDF links from landing pages (lost: those links were not in the researcher's list).
+- **Evidence:** `docs/document-sources.md` (drops with reasons, counts, reuse limits), `tests/test_more_documents.py`, commits `42edd78` and the second-round commit. Twelve first-round documents also appear in `docs/document-candidates.md` with stated reuse restrictions.
+- **Would change if:** the documents are ever published (reuse terms would need checking one by one), or a host asks for removal.
+
+### T6.5 - Crop of a multi-crop document is its leading crop, or `general` (2026-11-03)
+- **Chose:** the crop mentioned most often when it leads clearly, else `general`. Mixed pages such as tomato and pepper bacterial spot carry one crop only.
+- **Considered:** one manifest row per crop for the same file (lost: file names must be unique and the tests assume one row per file).
+- **Evidence:** manifest `crop` column. Pepper retrieval misses a tomato-tagged mixed page; this was not measured.
+- **Would change if:** retrieval for a crop is found to miss a mixed document that its questions need.
+
+### T6.5 - Three earlier test expectations changed on purpose (2026-11-03)
+- **Chose:** `test_shipped_manifest_is_complete` now asks for at least 28 files instead of exactly 28; the class report and web tests now expect raspberry, soybean and squash to map to their own crop, since they have documents.
+- **Considered:** leaving the tests alone (lost: they would fail for the exact reason the task exists). No check was loosened beyond that.
+- **Evidence:** commit `9821a72`.
+- **Would change if:** the person wants the 28-file count kept as a regression guard.
+
+### T6.5 - Index embedded on the GPU, built beside the current index (2026-11-03)
+- **Chose:** `tools/build_index_gpu.py` embeds with `BAAI/bge-small-en-v1.5` through transformers on CUDA, holds a `taskctl` GPU share only for that stage, fails without CUDA, and writes the device to `build-info.json`. The new index is `knowledge/index-t65`; the current `knowledge/index` stays until it is renamed.
+- **Considered:** the fastembed ONNX path on the GPU (lost: installed onnxruntime has no CUDA provider; swapping it risks the shared venv). Cosine between the two paths was at least 0.99999 on a 31-chunk sample.
+- **Evidence:** `build-info.json` in the index folder (device `cuda`, RTX 4070 Laptop). Reranking is query-time, so it is not part of the build.
+- **Would change if:** vectors from the CUDA path ever differ from the CPU path on a retrieval result.
+
+### T6.5 - Coverage after round two: all classes describe symptoms (2026-11-03)
+- **Chose:** the per-class review in `docs/document-coverage.csv` was redone by reading indexed passages; cherry powdery mildew moved from no to yes after round-two pages 201 and 204 were read. Totals: yes 26, no 0, not applicable 12.
+- **Considered:** trusting the manifest disease lists (lost: T3.4 showed they overstate coverage).
+- **Evidence:** `docs/document-coverage.md`; `tests/test_more_documents.py::test_every_class_has_a_coverage_row`.
+- **Would change if:** a class's cited passage is found to describe a different disease.
+
 ---
 
 ## Evaluation and records

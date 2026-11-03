@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="hero-section text-center">
+  <h1 class="hero-title">SPROUT</h1>
+  <p class="hero-subtitle">Smart Plant Recovery and Optimization Utility Tool</p>
+</div>
+
+<div class="row">
+  <div class="col-md-4">
+    <div class="card h-100 hover-lift">
+      <div class="card-body text-center">
+        <i class="bi bi-upload card-icon"></i>
+        <h5 class="card-title mt-3">Upload Photo</h5>
+        <p class="card-text text-muted">Upload an existing photo from your device.</p>
+        <a href="{{ url_for('pages.upload') }}" class="btn btn-brown">Upload Photo</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100 hover-lift">
+      <div class="card-body text-center">
+        <i class="bi bi-camera card-icon"></i>
+        <h5 class="card-title mt-3">Take Photo</h5>
+        <p class="card-text text-muted">Use your camera to take a photo right now.</p>
+        <a href="{{ url_for('pages.camera') }}" class="btn btn-brown">Take Photo</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100 hover-lift">
+      <div class="card-body text-center">
+        <i class="bi bi-person-circle card-icon"></i>
+        <h5 class="card-title mt-3">User Account</h5>
+        <p class="card-text text-muted">Log in or sign up to save your history.</p>
+        {% if g.user %}
+          <a href="{{ url_for('pages.dashboard') }}" class="btn btn-brown">Dashboard</a>
+        {% else %}
+          <a href="{{ url_for('auth.login') }}" class="btn btn-brown">Log in</a>
+          <a href="{{ url_for('auth.signup') }}" class="btn btn-brown">Sign up</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="how-it-works-section text-center">
+  <h3 class="mb-4">How It Works</h3>
+  <div class="row">
+    <div class="col-md-3 p-3">
+      <div class="how-it-works-icon mb-2"><i class="bi bi-cloud-upload"></i></div>
+      <h5>1. Upload</h5>
+      <p class="small">Take or upload a photo of one leaf.</p>
+    </div>
+    <div class="col-md-3 p-3">
+      <div class="how-it-works-icon mb-2"><i class="bi bi-search"></i></div>
+      <h5>2. Analyze</h5>
+      <p class="small">A model checks the photo and says how sure it is, or that it is unsure.</p>
+    </div>
+    <div class="col-md-3 p-3">
+      <div class="how-it-works-icon mb-2"><i class="bi bi-bar-chart"></i></div>
+      <h5>3. Get Results</h5>
+      <p class="small">See the result and ask questions answered from source documents.</p>
+    </div>
+    <div class="col-md-3 p-3">
+      <div class="how-it-works-icon mb-2"><i class="bi bi-clock-history"></i></div>
+      <h5>4. Track</h5>
+      <p class="small">Log in to keep your past analyses.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

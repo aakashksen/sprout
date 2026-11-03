@@ -88,15 +88,17 @@
         "{py} -m pytest tests/test_field_data.py -q",
         "{py} -m sprout.data.check_splits field"
       ],
-      "status": "in_progress",
+      "status": "done",
       "started_at": "2026-11-03T03:20:32+00:00",
+      "attempts": 0,
+      "reason": "one same-photo pair still crosses train/dev with conflicting labels: 2013Corn_GrayLeafSpot_0815_0003.JPG.jpg in Corn Gray leaf spot (dev) and Corn leaf blight (train), pHash 16 dHash 13, outside the 12-bit proposal rule",
+      "note": "user approved one final attempt, relayed by the coordinator: remove bad data only, no re-split, no new thresholds",
       "verified": {
-        "commit": "63692024108aadd5a3a808704b2f830d586f1aa0",
+        "commit": "846048c4949b85e9a4247156d9d4a99bc6c0b5e6",
         "passed": true,
-        "at": "2026-11-03T04:56:02+00:00"
+        "at": "2026-11-03T06:19:41+00:00"
       },
-      "attempts": 2,
-      "reason": "genuine same-photo pairs remain across field splits above dHash 6 (about 10 pairs at dHash<=8, 6-7 at pHash<=8), incl. one potato photo labelled early blight in train and late blight in dev/test; no independent cross-split similarity test"
+      "done_at": "2026-11-03T06:26:10+00:00"
     },
     {
       "id": "T2.1",
@@ -152,7 +154,12 @@
         "{py} -m pytest tests/test_records.py -q",
         "{py} -m sprout.eval.claims check"
       ],
-      "status": "pending"
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-03T05:12:02+00:00",
+      "attempts": 0,
+      "reason": "test-once bypass: _uses() keeps the latest add per stem, so deleting and re-adding, or git mv away and back, the first test record makes a second use rank first with no override_note; no test covers it",
+      "note": "one more narrow attempt, decided by the coordinator: first add per stem wins"
     },
     {
       "id": "T3.1",
@@ -378,9 +385,16 @@
       "acceptance": [
         "{py} -m pytest tests/test_web.py -q"
       ],
-      "status": "in_progress",
-      "worktree": "<local path>",
-      "started_at": "2026-11-03T05:06:17+00:00"
+      "status": "done",
+      "started_at": "2026-11-03T05:06:17+00:00",
+      "verified": {
+        "commit": "1ce6ed30a83a21adb70ec7ae209d944f76bed634",
+        "passed": true,
+        "at": "2026-11-03T05:21:17+00:00"
+      },
+      "attempts": 1,
+      "reason": "vector cache in Retriever not atomic and load has no error handling: truncated file makes every chat 500 permanently; cold embed exceeds 20s timeout, concurrent threads rewrite the file; /readyz ready while chat times out",
+      "done_at": "2026-11-03T05:35:49+00:00"
     },
     {
       "id": "T7.2",
@@ -393,7 +407,14 @@
       "acceptance": [
         "{py} -m pytest tests/test_frontend.py -q"
       ],
-      "status": "pending"
+      "status": "done",
+      "started_at": "2026-11-03T05:36:12+00:00",
+      "verified": {
+        "commit": "10d83880536abc205ea5efb28ef1c0418d971729",
+        "passed": true,
+        "at": "2026-11-03T06:00:30+00:00"
+      },
+      "done_at": "2026-11-03T06:18:10+00:00"
     },
     {
       "id": "T7.3",
@@ -407,7 +428,9 @@
         "docker compose build app",
         "{py} -m pytest tests/test_container.py -q -m \"real or not real\""
       ],
-      "status": "pending"
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-03T06:20:03+00:00"
     },
     {
       "id": "T7.4",

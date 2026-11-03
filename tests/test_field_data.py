@@ -4,14 +4,19 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from PIL import Image
+import pytest
+from PIL import Image, ImageDraw
 
 from sprout.data.field import (
     FIELD_SPLITS,
     PLANTDOC_MAP,
     assemble_field,
+    hash_pairs,
+    link_same_scene,
     make_class_map,
+    merge_reviewed_links,
     not_plant_images,
+    unreviewed_same_names,
 )
 from sprout.data.inventory import file_sha1
 from sprout.data.splits import MANIFEST_DIR, load_manifest
@@ -59,7 +64,7 @@ def _fixture(tmp_path):
     a_images = [_img(tmp_path / "f" / "a" / f"x{i}.png", next(seed)) for i in range(12)]
     dup = tmp_path / "f" / "a" / "x0_dup.png"
     dup.write_bytes(Path(a_images[0]).read_bytes())
-    # same scene at a different crop: dHash close, pHash far, so only the field pass links them
+    # same scene at a different crop: pHash far, so only the field pass links them
     same = [tmp_path / "f" / "a" / "p1.png", tmp_path / "f" / "a" / "p1_crop.png"]
     _smooth(2).save(same[0])
     _smooth(2, (0, 0, 124, 124)).save(same[1])
@@ -231,3 +236,141 @@ def test_class_map_reasons_match_status():
     assert (out[out["lab_class"] == ""]["reason"] != "").all()
     real = pd.read_csv(MANIFEST_DIR.parent / "class_map.csv", keep_default_na=False)
     assert (real[real["status"] == "shared"]["reason"] == "").all()
+
+
+def _shape(kind: str, path: Path) -> str:
+    img = Image.new("RGB", (128, 128), "white")
+    draw = ImageDraw.Draw(img)
+    if kind == "ellipse":
+        draw.ellipse((14, 44, 114, 84), fill=(40, 140, 50))
+    else:
+        draw.polygon([(20, 110), (64, 14), (108, 110), (64, 80)], fill=(30, 100, 40))
+    img.save(path)
+    return path.as_posix()
+
+
+def test_loose_hash_candidates_cannot_merge_unrelated_images(tmp_path):
+    paths = [
+        _img(tmp_path / "a.png", 0),
+        _img(tmp_path / "b.png", 1),
+        _shape("ellipse", tmp_path / "e.png"),
+        _shape("kite", tmp_path / "k.png"),
+    ]
+    _smooth(10).save(tmp_path / "s.png")
+    _smooth(10, (4, 4, 124, 124)).save(tmp_path / "s_crop.png")
+    _smooth(10, (0, 0, 120, 120)).save(tmp_path / "s_crop2.png")
+    paths += [(tmp_path / n).as_posix() for n in ("s.png", "s_crop.png", "s_crop2.png")]
+    # hash_distance 64 proposes every pair, so only the verification can keep them apart
+    out = link_same_scene(
+        paths, {p: f"g{i}" for i, p in enumerate(paths)}, hash_distance=64
+    )
+    assert len({out[p] for p in paths[:4]}) == 4
+    assert len({out[p] for p in paths[4:]}) == 1
+    assert out[paths[4]] not in {out[p] for p in paths[:4]}
+
+
+def test_reviewed_links_merge_groups_on_top_of_the_rule(tmp_path):
+    a = _img(tmp_path / "a.png", 20)
+    b = _img(tmp_path / "b.png", 21)
+    c = _img(tmp_path / "c.png", 22)
+    groups = {a: "g0", b: "g1", c: "g2"}
+    links = pd.DataFrame({"path_a": [a], "path_b": [b], "reason": ["same photo"]})
+    out = merge_reviewed_links(groups, links)
+    assert out[a] == out[b] and out[c] != out[a]
+    gone = pd.DataFrame({"path_a": [a], "path_b": ["missing.png"], "reason": ["x"]})
+    assert merge_reviewed_links(groups, gone) == groups
+
+
+def test_reviewed_links_are_applied_to_the_assembled_field(tmp_path):
+    inv, cmap, lab = _fixture(tmp_path)
+    plain, _, _ = assemble_field(inv, cmap, lab)
+    pair = ["x1.png", "y1.png"]  # unrelated images in classes a and b
+    paths = [p for p in inv["path"] if Path(p).name in pair]
+    links = pd.DataFrame({"path_a": [paths[0]], "path_b": [paths[1]], "reason": ["r"]})
+    field, _, conflicts = assemble_field(inv, cmap, lab, reviewed_links=links)
+    # different labels, so the usual conflict removal drops both
+    assert not set(paths) & set(field["path"]) and set(paths) <= set(conflicts["path"])
+    assert set(paths) <= set(plain["path"])
+
+
+def test_reviewed_links_file_and_residual_judgments_are_consistent():
+    links = pd.read_csv(MANIFEST_DIR / "field_reviewed_links.csv")
+    assert len(links) > 0 and (links["reason"].str.len() > 0).all()
+    real = load_manifest("field")
+    split = dict(zip(real["path"], real["split"]))
+    group = dict(zip(real["path"], real["group"]))
+    for a, b in zip(links["path_a"], links["path_b"]):
+        if a in group and b in group:
+            assert group[a] == group[b] and split[a] == split[b]
+    listed = pd.read_csv(MANIFEST_DIR / "field_residual_pairs.csv")
+    assert set(listed["reviewed_same_photo"]) <= {"yes", "no"}
+    assert (listed["reviewed_same_photo"] == "no").all()
+
+
+def test_no_unlisted_cross_split_near_duplicate_in_real_manifest():
+    real = load_manifest("field")
+    if not Path(real["path"].iloc[0]).exists():
+        pytest.skip("raw images are not on this machine")
+    split = dict(zip(real["path"], real["split"]))
+    found = hash_pairs(list(real["path"]), 8)
+    found = found[
+        [split[a] != split[b] for a, b in zip(found["path_a"], found["path_b"])]
+    ]
+    listed = pd.read_csv(MANIFEST_DIR / "field_residual_pairs.csv")
+    assert set(zip(found["path_a"], found["path_b"])) <= set(
+        zip(listed["path_a"], listed["path_b"])
+    )
+
+
+def test_residual_pairs_are_recorded_with_scores():
+    real = load_manifest("field")
+    split = dict(zip(real["path"], real["split"]))
+    listed = pd.read_csv(MANIFEST_DIR / "field_residual_pairs.csv")
+    assert len(listed) > 0 and listed["scene_score"].between(0, 1).all()
+    assert all(split[a] != split[b] for a, b in zip(listed["path_a"], listed["path_b"]))
+    assert (listed["scene_score"] < 0.88).all()
+
+
+def test_descriptive_same_name_photos_need_a_recorded_judgment():
+    field = pd.DataFrame(
+        {
+            "path": [
+                "r/a/photo.jpg", "r/b/photo.jpg",
+                "r/a/0001.jpg", "r/b/0001.jpg",
+                "r/a/Leaf-Blight-3.JPG", "r/b/leaf-blight-3.jpg",
+                "r/a/unique.jpg", "r/b/other.jpg",
+            ],
+            "split": ["field_train", "field_test"] * 4,
+        }
+    )  # fmt: skip
+    assert unreviewed_same_names(field, pd.DataFrame({"name": []})) == [
+        "leaf-blight-3.jpg"
+    ]
+    judged = pd.DataFrame(
+        {"name": ["leaf-blight-3.jpg"], "judgment": ["different photos"]}
+    )
+    assert unreviewed_same_names(field, judged) == []
+
+
+def test_reviewed_removals_leave_every_other_assignment_alone(tmp_path):
+    inv, cmap, lab = _fixture(tmp_path)
+    base, _, _ = assemble_field(inv, cmap, lab)
+    victim = base["path"].iloc[3]
+    removals = pd.DataFrame(
+        {"path": [victim], "reason": ["same photo, conflicting label"]}
+    )
+    field, _, conflicts = assemble_field(inv, cmap, lab, reviewed_removals=removals)
+    assert victim not in set(field["path"]) and victim in set(conflicts["path"])
+    rest = base[base["path"] != victim].reset_index(drop=True)
+    assert field.reset_index(drop=True).equals(rest)
+
+
+def test_same_name_judgments_are_recorded_for_the_real_manifest():
+    real = load_manifest("field")
+    reviews = pd.read_csv(MANIFEST_DIR / "field_same_name_review.csv")
+    assert unreviewed_same_names(real, reviews) == []
+    assert (reviews["judgment"].str.len() > 0).all()
+    removed = pd.read_csv(MANIFEST_DIR / "field_reviewed_removals.csv")
+    assert len(removed) > 0 and set(removed["path"]).isdisjoint(set(real["path"]))
+    conflicts = pd.read_csv(MANIFEST_DIR / "field_conflicts.csv")
+    assert set(removed["path"]) <= set(conflicts["path"])

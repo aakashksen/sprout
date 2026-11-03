@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<title>{% block title %}SPROUT{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+<script src="{{ url_for('static', filename='vendor/bootstrap.bundle.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+  <div class="container d-flex justify-content-between">
+    <a class="navbar-brand fw-semibold" href="{{ url_for('pages.home') }}">SPROUT</a>
+    <div class="d-flex align-items-center gap-2">
+    {% if g.user %}
+      <a href="{{ url_for('pages.dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('analyses.history') }}">History</a>
+      <span>{{ g.user.username }}</span>
+      <form method="post" action="{{ url_for('auth.logout') }}" class="m-0">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm btn-outline-secondary">Log out</button>
+      </form>
+    {% else %}
+      <a href="{{ url_for('auth.login') }}">Log in</a>
+      <a href="{{ url_for('auth.signup') }}">Sign up</a>
+    {% endif %}
+    </div>
+  </div>
+</nav>
+<main class="container">
+{% block body %}{% endblock %}
+</main>
+<footer><div class="container">&copy; 2025 Sprout Team</div></footer>
+</body>
+</html>

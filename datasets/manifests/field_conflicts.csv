@@ -5,44 +5,43 @@ datasets/raw/plantdoc/Corn Gray leaf spot/2015070295153021.jpg,Corn_(maize)___Ce
 datasets/raw/plantdoc/Corn Gray leaf spot/IMG_42231.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,plantdoc,g051807,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Corn Gray leaf spot/corn-gray-leaf-spot-f4.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,plantdoc,g051816,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Corn Gray leaf spot/g1902-1.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,plantdoc,g051822,same image or scene carries conflicting labels
+datasets/raw/plantdoc/Corn Gray leaf spot/glfspot.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,plantdoc,g051824,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Corn Gray leaf spot/gls99-anamosa.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,plantdoc,g051825,same image or scene carries conflicting labels
+datasets/raw/plantdoc/Corn Gray leaf spot/gray_leaf_spot.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,plantdoc,g051828,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Corn leaf blight/022.jpg,Corn_(maize)___Northern_Leaf_Blight,plantdoc,g051848,same image or scene carries conflicting labels
-datasets/raw/plantdoc/Corn leaf blight/07c.jpg,Corn_(maize)___Northern_Leaf_Blight,plantdoc,g051857,same image or scene carries conflicting labels
+datasets/raw/plantdoc/Corn leaf blight/0796.20graylssymt.jpg,Corn_(maize)___Northern_Leaf_Blight,plantdoc,g051824,same image or scene carries conflicting labels
+datasets/raw/plantdoc/Corn leaf blight/07c.jpg,Corn_(maize)___Northern_Leaf_Blight,plantdoc,g051828,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Corn leaf blight/1321189.jpg,Corn_(maize)___Northern_Leaf_Blight,plantdoc,g051822,same image or scene carries conflicting labels
-datasets/raw/plantdoc/Corn leaf blight/2014-07-23-corngosswilt.jpg,Corn_(maize)___Northern_Leaf_Blight,plantdoc,g051869,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Corn leaf blight/2015070295153021.jpg,Corn_(maize)___Northern_Leaf_Blight,plantdoc,g051782,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Corn leaf blight/IMG_42231.jpg,Corn_(maize)___Northern_Leaf_Blight,plantdoc,g051807,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Corn leaf blight/corn-BLS-irregular-lesions.jpg,Corn_(maize)___Northern_Leaf_Blight,plantdoc,g051955,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Corn leaf blight/corn-bacterial-leaf-streak-f1.JPG.jpg,Corn_(maize)___Northern_Leaf_Blight,plantdoc,g051958,same image or scene carries conflicting labels
-datasets/raw/plantdoc/Corn leaf blight/corn-disease-update-fig-2-diplodia-leaf-streak1.jpg,Corn_(maize)___Northern_Leaf_Blight,plantdoc,g051965,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Corn leaf blight/corn-disease-update-fig-3-gray-leaf-spot.jpg,Corn_(maize)___Northern_Leaf_Blight,plantdoc,g051966,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Corn leaf blight/corn-gray-leaf-spot-f4.jpg,Corn_(maize)___Northern_Leaf_Blight,plantdoc,g051816,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Corn leaf blight/gls99-anamosa-400x334.jpg,Corn_(maize)___Northern_Leaf_Blight,plantdoc,g051825,same image or scene carries conflicting labels
-datasets/raw/plantdoc/Corn rust leaf/Corn-southern-rust-F1%20%281%29.jpg,Corn_(maize)___Common_rust_,plantdoc,g052046,same image or scene carries conflicting labels
-datasets/raw/plantdoc/Corn rust leaf/disease.JPG.jpg,Corn_(maize)___Common_rust_,plantdoc,g052046,same image or scene carries conflicting labels
-datasets/raw/plantdoc/Peach leaf/stock-photo-two-sides-of-peach-leaf-isolate-on-white-17407162.jpg,Peach___healthy,plantdoc,g052246,same image or scene carries conflicting labels
+datasets/raw/plantdoc/Corn rust leaf/rust.jpg,Corn_(maize)___Common_rust_,plantdoc,g052120,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/00009.jpg,Potato___Early_blight,plantdoc,g052247,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/1200px-Late_blight_on_potato_leaf_2.jpg,Potato___Early_blight,plantdoc,g052251,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/14321627273_58d893c3e2_potato-plant.jpg,Potato___Early_blight,plantdoc,g052252,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/18028_1.jpg,Potato___Early_blight,plantdoc,g052256,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/20080710-early%2Bblight%2Blesions%2Bwith%2Byellow%2Bhaloes.jpg,Potato___Early_blight,plantdoc,g052257,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/20100816earlyblight.jpg,Potato___Early_blight,plantdoc,g052258,same image or scene carries conflicting labels
+datasets/raw/plantdoc/Potato leaf early blight/2643371-version%3D1.0%26t%3D1260361493000.jpg,Potato___Early_blight,plantdoc,g052260,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/2OBH_29_Gardening_early_blight.jpg,Potato___Early_blight,plantdoc,g052264,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/36-early-blight-concentric-rings.jpg,Potato___Early_blight,plantdoc,g052266,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/45035_1.jpg,Potato___Early_blight,plantdoc,g052268,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/500px-Tomato_Early_Blight_Leaf.jpg,Potato___Early_blight,plantdoc,g052269,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/5688742112_147f33b89d_Phytophthora-Infestans.jpg,Potato___Early_blight,plantdoc,g052270,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/5816740026_d42ef24413_Phytophthora-Infestans.jpg,Potato___Early_blight,plantdoc,g052271,same image or scene carries conflicting labels
+datasets/raw/plantdoc/Potato leaf early blight/9b9a78d4961f.jpg,Potato___Early_blight,plantdoc,g052275,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/Blght.jpg,Potato___Early_blight,plantdoc,g052279,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/Early-Blight-Leaves-56a348bf3df78cf7727cb35e.jpg,Potato___Early_blight,plantdoc,g052283,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/Early_Blight_of_Tomato177.jpg,Potato___Early_blight,plantdoc,g052285,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/IMG_9055.JPG.jpg,Potato___Early_blight,plantdoc,g052290,same image or scene carries conflicting labels
-datasets/raw/plantdoc/Potato leaf early blight/a_solani.jpg,Potato___Early_blight,plantdoc,g051965,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/backus-045-potato-blight.jpg,Potato___Early_blight,plantdoc,g052303,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/backus-056-potato-blight.jpg,Potato___Early_blight,plantdoc,g052304,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/d81c0562a9ff.jpg,Potato___Early_blight,plantdoc,g052311,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/early-blight-closeup-NCSU.jpg,Potato___Early_blight,plantdoc,g052315,same image or scene carries conflicting labels
-datasets/raw/plantdoc/Potato leaf early blight/early-blight-or-target-spot-alternaria-solani-lesions-on-a-tomato-by9j8r.jpg,Potato___Early_blight,plantdoc,g052319,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/early-blight-potatoes.jpg,Potato___Early_blight,plantdoc,g052321,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/early_blight1.jpg,Potato___Early_blight,plantdoc,g052323,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf early blight/earlyblightpotato.jpg,Potato___Early_blight,plantdoc,g052325,same image or scene carries conflicting labels
@@ -54,10 +53,12 @@ datasets/raw/plantdoc/Potato leaf late blight/14321627273_58d893c3e2_b.jpg,Potat
 datasets/raw/plantdoc/Potato leaf late blight/1512154f7260.jpg,Potato___Late_blight,plantdoc,g052311,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf late blight/24064_1.jpg,Potato___Late_blight,plantdoc,g052256,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf late blight/5816740026_d42ef24413_Phytophthora-Infestans.jpg,Potato___Late_blight,plantdoc,g052271,same image or scene carries conflicting labels
+datasets/raw/plantdoc/Potato leaf late blight/7d556b7020de.jpg,Potato___Late_blight,plantdoc,g052275,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf late blight/IMG_0019.jpg,Potato___Late_blight,plantdoc,g052383,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf late blight/IMG_5813-1024x768.jpg,Potato___Late_blight,plantdoc,g052386,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf late blight/Jessore-potato-late-blight-8-2h2fdkl.jpg,Potato___Late_blight,plantdoc,g052387,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf late blight/Late+blight+on+potato.jpg,Potato___Late_blight,plantdoc,g052268,same image or scene carries conflicting labels
+datasets/raw/plantdoc/Potato leaf late blight/LateBlight03.jpg,Potato___Late_blight,plantdoc,g052260,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf late blight/Symptom_potato_late_blight.jpg,Potato___Late_blight,plantdoc,g052408,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf late blight/backus-056-potato-blight.jpg,Potato___Late_blight,plantdoc,g052304,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Potato leaf late blight/irish-blight-symptoms-on-potato-leaves-atmf8b.jpg,Potato___Late_blight,plantdoc,g052333,same image or scene carries conflicting labels
@@ -68,7 +69,6 @@ datasets/raw/plantdoc/Tomato Early blight leaf/MPC105550.jpg.rendition.largest.s
 datasets/raw/plantdoc/Tomato Early blight leaf/Tomato-Early-Blight-Leaves-Cornell-University.jpg,Tomato___Early_blight,plantdoc,g052892,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Tomato Early blight leaf/b54d0e40027ff5e90e8ba7e1e9abf9bd--garden-guide-garden-ideas.jpg,Tomato___Early_blight,plantdoc,g052900,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Tomato Early blight leaf/early-blight-closeup-sm.jpg,Tomato___Early_blight,plantdoc,g052315,same image or scene carries conflicting labels
-datasets/raw/plantdoc/Tomato Early blight leaf/early-blight-or-target-spot-alternaria-solani-lesions-on-a-tomato-BY9J8R.jpg,Tomato___Early_blight,plantdoc,g052319,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Tomato Early blight leaf/early_blight_spots_l.jpg,Tomato___Early_blight,plantdoc,g052918,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Tomato Early blight leaf/earlyblightpotato.jpg,Tomato___Early_blight,plantdoc,g052325,same image or scene carries conflicting labels
 datasets/raw/plantdoc/Tomato Early blight leaf/ebleafb.jpg,Tomato___Early_blight,plantdoc,g052321,same image or scene carries conflicting labels
@@ -112,25 +112,18 @@ datasets/raw/plantseg_field/apple rust/apple_rust_162.jpg,Apple___Cedar_apple_ru
 datasets/raw/plantseg_field/apple rust/apple_rust_30.jpg,Apple___Cedar_apple_rust,plantseg,g053790,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/apple rust/apple_rust_78.jpg,Apple___Cedar_apple_rust,plantseg,g053817,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/apple rust/apple_rust_96.jpg,Apple___Cedar_apple_rust,plantseg,g053710,same image or scene carries conflicting labels
-datasets/raw/plantseg_field/apple rust/apple_rust_google_0013.jpg,Apple___Cedar_apple_rust,plantseg,g053829,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/apple scab/apple_scab_33.jpg,Apple___Apple_scab,plantseg,g053790,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/apple scab/apple_scab_65.jpg,Apple___Apple_scab,plantseg,g053817,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/apple scab/apple_scab_66.jpg,Apple___Apple_scab,plantseg,g053700,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/apple scab/apple_scab_76.jpg,Apple___Apple_scab,plantseg,g053778,same image or scene carries conflicting labels
-datasets/raw/plantseg_field/apple scab/apple_scab_google_0018.jpg,Apple___Apple_scab,plantseg,g052046,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/apple scab/apple_scab_google_0223.jpg,Apple___Apple_scab,plantseg,g051413,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/bell pepper bacterial spot/bell_pepper_bacterial_spot_Bing_0110.jpg,"Pepper,_bell___Bacterial_spot",plantseg,g053151,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/bell pepper bacterial spot/bell_pepper_bacterial_spot_Google_0050.jpg,"Pepper,_bell___Bacterial_spot",plantseg,g053168,same image or scene carries conflicting labels
-datasets/raw/plantseg_field/corn gray leaf spot/corn_gray_leaf_spot_google_0021.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,plantseg,g051857,same image or scene carries conflicting labels
+datasets/raw/plantseg_field/corn gray leaf spot/corn_gray_leaf_spot_google_0021.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,plantseg,g051828,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/corn gray leaf spot/corn_gray_leaf_spot_google_0035.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,plantseg,g051966,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/corn gray leaf spot/corn_gray_leaf_spot_google_0061.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,plantseg,g051955,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/corn gray leaf spot/corn_gray_leaf_spot_google_0140.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,plantseg,g051848,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/corn gray leaf spot/corn_gray_leaf_spot_google_0152.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,plantseg,g051958,same image or scene carries conflicting labels
-datasets/raw/plantseg_field/corn gray leaf spot/corn_gray_leaf_spot_google_0270.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,plantseg,g053829,same image or scene carries conflicting labels
-datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_google_0069.jpg,Corn_(maize)___Northern_Leaf_Blight,plantseg,g051965,same image or scene carries conflicting labels
-datasets/raw/plantseg_field/corn rust/corn_rust_google_0006.jpg,Corn_(maize)___Common_rust_,plantseg,g052046,same image or scene carries conflicting labels
-datasets/raw/plantseg_field/corn rust/corn_rust_google_0196.jpg,Corn_(maize)___Common_rust_,plantseg,g051869,same image or scene carries conflicting labels
-datasets/raw/plantseg_field/corn rust/corn_rust_google_0207.jpg,Corn_(maize)___Common_rust_,plantseg,g052246,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/grape black rot/grape_black_rot_42.jpg,Grape___Black_rot,plantseg,g053722,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_41.jpg,Potato___Early_blight,plantseg,g054510,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/potato early blight/potato_early_blight_55.jpg,Potato___Early_blight,plantseg,g054515,same image or scene carries conflicting labels
@@ -160,7 +153,6 @@ datasets/raw/plantseg_field/tomato bacterial leaf spot/tomato_bacterial_leaf_spo
 datasets/raw/plantseg_field/tomato bacterial leaf spot/tomato_bacterial_leaf_spot_google_0017.jpg,Tomato___Bacterial_spot,plantseg,g054828,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/tomato bacterial leaf spot/tomato_bacterial_leaf_spot_google_0091.jpg,Tomato___Bacterial_spot,plantseg,g054841,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/tomato bacterial leaf spot/tomato_bacterial_leaf_spot_google_0163.jpg,Tomato___Bacterial_spot,plantseg,g054847,same image or scene carries conflicting labels
-datasets/raw/plantseg_field/tomato bacterial leaf spot/tomato_bacterial_leaf_spot_google_0315.jpg,Tomato___Bacterial_spot,plantseg,g053829,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_210.jpg,Tomato___Early_blight,plantseg,g054887,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_246.jpg,Tomato___Early_blight,plantseg,g054510,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_29.jpg,Tomato___Early_blight,plantseg,g054887,same image or scene carries conflicting labels
@@ -178,7 +170,6 @@ datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_google_0099.
 datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_google_0101.jpg,Tomato___Early_blight,plantseg,g054533,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_google_0120.jpg,Tomato___Early_blight,plantseg,g054536,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_google_0177.jpg,Tomato___Early_blight,plantseg,g053079,same image or scene carries conflicting labels
-datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_google_0179.jpg,Tomato___Early_blight,plantseg,g052319,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_google_0219.jpg,Tomato___Early_blight,plantseg,g052258,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_google_0260.jpg,Tomato___Early_blight,plantseg,g052323,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_google_0267.jpg,Tomato___Early_blight,plantseg,g054540,same image or scene carries conflicting labels
@@ -221,4 +212,9 @@ datasets/raw/plantseg_field/tomato yellow leaf curl virus/tomato_yellow_leaf_cur
 datasets/raw/plantseg_field/tomato yellow leaf curl virus/tomato_yellow_leaf_curl_virus_40.jpg,Tomato___Tomato_Yellow_Leaf_Curl_Virus,plantseg,g055180,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/tomato yellow leaf curl virus/tomato_yellow_leaf_curl_virus_62.jpg,Tomato___Tomato_Yellow_Leaf_Curl_Virus,plantseg,g055185,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/tomato yellow leaf curl virus/tomato_yellow_leaf_curl_virus_google_0077.jpg,Tomato___Tomato_Yellow_Leaf_Curl_Virus,plantseg,g053523,same image or scene carries conflicting labels
+datasets/raw/plantseg_field/tomato yellow leaf curl virus/tomato_yellow_leaf_curl_virus_google_0162.jpg,Tomato___Tomato_Yellow_Leaf_Curl_Virus,plantseg,g052120,same image or scene carries conflicting labels
 datasets/raw/plantseg_field/tomato yellow leaf curl virus/tomato_yellow_leaf_curl_virus_google_0172.jpg,Tomato___Tomato_Yellow_Leaf_Curl_Virus,plantseg,g053317,same image or scene carries conflicting labels
+datasets/raw/plantdoc/Corn Gray leaf spot/2013Corn_GrayLeafSpot_0815_0003.JPG.jpg,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,plantdoc,g051780,same leaf photo at two crops filed under Gray_leaf_spot and Northern_Leaf_Blight
+datasets/raw/plantdoc/Corn leaf blight/2013Corn_GrayLeafSpot_0815_0003.JPG.jpg,Corn_(maize)___Northern_Leaf_Blight,plantdoc,g051868,same leaf photo at two crops filed under Gray_leaf_spot and Northern_Leaf_Blight
+datasets/raw/plantdoc/Potato leaf early blight/early-blight-or-target-spot-alternaria-solani-lesions-on-a-tomato-by9j8r.jpg,Potato___Early_blight,plantdoc,g052319,same alamy tomato-leaf photo (different watermark) filed under Potato and Tomato early blight
+datasets/raw/plantdoc/Tomato Early blight leaf/early-blight-or-target-spot-alternaria-solani-lesions-on-a-tomato-BY9J8R.jpg,Tomato___Early_blight,plantdoc,g052914,same alamy tomato-leaf photo (different watermark) filed under Potato and Tomato early blight

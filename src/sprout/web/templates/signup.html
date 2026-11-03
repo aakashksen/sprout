@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Sign up | SPROUT{% endblock %}
+{% block body %}
+<div class="d-flex justify-content-center">
+  <div class="card auth-card p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <a href="{{ url_for('pages.home') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back to Home</a>
+      <h5 class="mb-0">SPROUT</h5>
+    </div>
+    <h1 class="text-center mb-4">Sign up</h1>
+    {% if error %}<div class="alert alert-danger error" role="alert">{{ error }}</div>{% endif %}
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="mb-3">
+        <label for="username" class="form-label">Username (4-20 characters)</label>
+        <input id="username" name="username" class="form-control" required minlength="4" maxlength="20" autocomplete="username">
+      </div>
+      <div class="mb-3">
+        <label for="password" class="form-label">Password (8-128 characters)</label>
+        <input id="password" type="password" name="password" class="form-control" required minlength="8" maxlength="128" autocomplete="new-password">
+      </div>
+      <div class="d-grid gap-2 mb-3"><button type="submit" class="btn btn-brown">Create account</button></div>
+    </form>
+    <div class="text-center"><a href="{{ url_for('auth.login') }}">Already have an account? Log in</a></div>
+  </div>
+</div>
+{% endblock %}

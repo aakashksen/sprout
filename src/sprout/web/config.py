@@ -1,0 +1,59 @@
+"""Settings come from the environment; production refuses to start without a secret."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+
+DEFAULT_MANIFEST = Path(__file__).resolve().parents[3] / "knowledge" / "manifest.csv"
+
+
+def _default_manifest() -> str:
+    return str(DEFAULT_MANIFEST) if DEFAULT_MANIFEST.exists() else ""
+
+
+# (allowed events, window in seconds)
+DEFAULT_LIMITS: dict[str, tuple[int, int]] = {
+    "login": (10, 60),
+    "signup": (5, 3600),
+    "upload": (20, 60),
+    "chat": (30, 60),
+}
+
+
+@dataclass
+class Config:
+    ENV: str = "production"  # production | development | testing
+    SECRET_KEY: str = ""
+    DATA_DIR: str = "var/sprout"
+    HTTPS: bool = False
+    MANIFEST: str = field(default_factory=_default_manifest)  # gives chat sources their titles and links
+    MAX_UPLOAD_BYTES: int = 8 * 1024 * 1024
+    API_TIMEOUT_SECONDS: float = 20.0
+    RATE_LIMITS: dict[str, tuple[int, int]] = field(default_factory=lambda: dict(DEFAULT_LIMITS))
+
+    @property
+    def db_path(self) -> Path:
+        return Path(self.DATA_DIR) / "sprout.db"
+
+    @property
+    def upload_dir(self) -> Path:
+        return Path(self.DATA_DIR) / "uploads"
+
+    def validate(self) -> None:
+        if self.ENV not in ("production", "development", "testing"):
+            raise RuntimeError(f"SPROUT_ENV must be production, development or testing, got {self.ENV!r}")
+        if not self.SECRET_KEY:
+            raise RuntimeError("SPROUT_SECRET_KEY is required")
+
+    @classmethod
+    def from_env(cls, env: dict[str, str]) -> Config:
+        cfg = cls(ENV=env.get("SPROUT_ENV", "production"))
+        cfg.SECRET_KEY = env.get("SPROUT_SECRET_KEY", "")
+        cfg.DATA_DIR = env.get("SPROUT_DATA_DIR", cfg.DATA_DIR)
+        cfg.MANIFEST = env.get("SPROUT_MANIFEST", cfg.MANIFEST)
+        cfg.HTTPS = env.get("SPROUT_HTTPS", "") == "1"
+        cfg.MAX_UPLOAD_BYTES = int(env.get("SPROUT_MAX_UPLOAD_BYTES", cfg.MAX_UPLOAD_BYTES))
+        cfg.API_TIMEOUT_SECONDS = float(env.get("SPROUT_API_TIMEOUT_SECONDS", cfg.API_TIMEOUT_SECONDS))
+        cfg.validate()
+        return cfg

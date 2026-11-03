@@ -168,7 +168,7 @@ class Retriever:
         vectors = self._vectors if self._vectors is not None else self._ensure_vectors()
         q = _unit(np.asarray(self._get_embedder().embed_query(query)))
         sims = vectors[idx] @ q
-        return {i: float(max(s, 0.0)) for i, s in zip(idx, sims)}
+        return {i: float(max(s, 0.0)) for i, s in zip(idx, sims, strict=True)}
 
     def _bm25(self, query: str, idx: list[int]) -> dict[int, float]:
         n, k1, b = len(self._chunks), 1.5, 0.75
@@ -200,7 +200,7 @@ class Retriever:
         if rerank:
             order = order[: k * self.config.rerank_pool]
             texts = [self._chunks[i]["text"] for i in order]
-            scores = dict(zip(order, self._get_reranker().score(query, texts)))
+            scores = dict(zip(order, self._get_reranker().score(query, texts), strict=True))
             order.sort(key=lambda i: scores[i], reverse=True)
         kept = [i for i in order if scores[i] >= self.config.min_score][:k]
         return [

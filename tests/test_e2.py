@@ -282,3 +282,35 @@ def test_report_says_when_masks_are_not_reliable(repo, cfg):
     run(cfg, repo)
     text = report(cfg, repo).read_text()
     assert "NOT shown to be reliable" in text and "not viewed" in text and "![" not in text
+
+
+# ---- the real backbone, untrained, on CPU -------------------------------------------------------
+
+
+def test_gradcam_on_convnext_tiny_last_stage():
+    torch.manual_seed(0)
+    model = build_model("convnext_tiny", 38, pretrained=False)
+    x = torch.randn(2, 3, 224, 224)
+    cam, logits = grad_cam(model, x, target_layer(model, "convnext_tiny"))
+    assert cam.shape == (2, 224, 224) and logits.shape == (2, 38)
+    assert np.isfinite(cam).all() and cam.min() >= 0 and cam.max() <= 1
+    assert all(np.ptp(c) > 0 for c in cam)
+    assert all(p.requires_grad for p in model.parameters())
+
+
+def test_runner_smoke_with_convnext_tiny(repo, cfg):
+    torch.manual_seed(0)
+    names = [A, B] + [f"Other___{i}" for i in range(36)]
+    model = build_model("convnext_tiny", 38, pretrained=False)
+    train_cfg = TrainConfig(manifest="lab", out_dir="x", model="convnext_tiny", epochs=1)
+    torch.save(
+        {"model": model.state_dict(), "class_map": {n: i for i, n in enumerate(names)},
+         "config": train_cfg.to_dict(), "best_metric": BEST, "epoch": 1},
+        repo / "models" / "e1" / "best.pt",
+    )
+    recs = records(run(cfg, repo))
+    for rec in recs.values():
+        assert rec["config"]["model"] == "convnext_tiny" and len(rec["config"]["class_names"]) == 38
+        assert len(rec["config"]["outputs_without_shared_class"]) == 36
+    assert recs["lab_dev"]["measurements"]["values"]["energy_outside_leaf_p50"] >= 0
+    assert check("E2", root=repo) == []

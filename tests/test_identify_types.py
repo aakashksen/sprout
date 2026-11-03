@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from sprout.serve.types import STATUSES, Candidate, FakeIdentifier, Identification
 
 
@@ -16,7 +14,7 @@ def _all() -> list[Identification]:
 
 def test_fake_returns_each_status():
     fake = FakeIdentifier(_all())
-    got = [fake.identify(Path("x.jpg")).status for _ in range(4)]
+    got = [fake.identify(b"x").status for _ in range(4)]
     assert got == list(STATUSES)
 
 

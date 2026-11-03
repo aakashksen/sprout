@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass, field
-from pathlib import Path
 from typing import Literal, Protocol
 
 Status = Literal["answered", "unsure", "not_plant", "invalid"]
@@ -34,7 +33,7 @@ class Identification:
 
 
 class IdentifierProtocol(Protocol):
-    def identify(self, image: Path) -> Identification: ...
+    def identify(self, image_bytes: bytes) -> Identification: ...
 
 
 class FakeIdentifier:
@@ -46,7 +45,7 @@ class FakeIdentifier:
         self._results = list(results)
         self._i = 0
 
-    def identify(self, image: Path) -> Identification:
+    def identify(self, image_bytes: bytes) -> Identification:
         r = self._results[min(self._i, len(self._results) - 1)]
         self._i += 1
         return r

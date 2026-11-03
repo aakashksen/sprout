@@ -203,7 +203,14 @@
         "{py} -m pytest tests/test_e2.py -q",
         "{py} -m sprout.eval.check_run E2 --min-n 200 --split field_dev"
       ],
-      "status": "pending"
+      "status": "done",
+      "started_at": "2026-11-03T07:59:02+00:00",
+      "verified": {
+        "commit": "dfa82b1797f75f0730cc329e5295c1ae59183251",
+        "passed": true,
+        "at": "2026-11-03T09:29:57+00:00"
+      },
+      "done_at": "2026-11-03T09:39:56+00:00"
     },
     {
       "id": "T3.3",

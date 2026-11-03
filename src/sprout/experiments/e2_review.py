@@ -42,7 +42,7 @@ def select_mask_sample(paths: list[str], n: int, seed: int) -> pd.DataFrame:
 def write_mask_images(sheet: pd.DataFrame, out_dir: Path, size: int = 224) -> None:
     """For each sampled photo: the photo on the left, the photo with everything outside the mask blacked out on the right."""
     out_dir.mkdir(parents=True, exist_ok=True)
-    for index, path in zip(sheet["index"], sheet["path"]):
+    for index, path in zip(sheet["index"], sheet["path"], strict=True):
         with Image.open(path) as im:
             photo = im.convert("RGB").resize((size, size))
             mask = hsv_mask(im, size)

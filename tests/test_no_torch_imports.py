@@ -1,3 +1,4 @@
+"""Modules that do not need torch must not load it, so checks and serving stay light."""
 import os
 import subprocess
 import sys
@@ -7,7 +8,7 @@ import pytest
 
 SRC = Path(__file__).resolve().parents[1] / "src"
 ENV = {**os.environ, "PYTHONPATH": str(SRC)}
-DATA_MODULES = [
+LIGHT_MODULES = [
     "sprout.data.check_splits",
     "sprout.data.class_report",
     "sprout.data.field",
@@ -17,6 +18,12 @@ DATA_MODULES = [
     "sprout.data.splits",
     "sprout.segment.data",
     "sprout.segment.crop",
+    "sprout.eval.check_run",
+    "sprout.eval.claims",
+    "sprout.eval.records",
+    "sprout.eval.metrics",
+    "sprout.eval.stats",
+    "sprout.eval.predict",
 ]
 
 
@@ -37,8 +44,8 @@ def test_serving_modules_do_not_import_torch():
     assert out.returncode == 0, out.stderr[-500:]
 
 
-@pytest.mark.parametrize("module", DATA_MODULES)
-def test_importing_a_data_module_does_not_load_torch(module):
+@pytest.mark.parametrize("module", LIGHT_MODULES)
+def test_importing_a_light_module_does_not_load_torch(module):
     code = f"import sys, {module}; sys.exit(1 if 'torch' in sys.modules else 0)"
     done = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=ENV)
     assert done.returncode == 0, f"{module} loaded torch\n{done.stderr}"

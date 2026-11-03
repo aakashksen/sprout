@@ -120,7 +120,7 @@ def _rows(system_rows: Any) -> list[dict[str, Any]]:
     if isinstance(system_rows, Predictions):
         return [
             {"path": p, "label": int(y), "probs": [float(v) for v in pr]}
-            for p, y, pr in zip(system_rows.path, system_rows.label, system_rows.probs)
+            for p, y, pr in zip(system_rows.path, system_rows.label, system_rows.probs, strict=True)
         ]
     return list(system_rows)
 

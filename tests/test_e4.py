@@ -395,6 +395,9 @@ def test_arms_that_read_earlier_results_refuse_to_guess(repo, e4cfg):
     with pytest.raises(e4.Blocked):
         e4.run_arm(e4cfg, "convnext_strong_aug", repo)  # its reference arm has no record
     assert not (repo / "models" / "e4" / "not_run").exists()
+    # refused before any training: no checkpoints, no attempt entry
+    assert not (repo / "models" / "e4" / "convnext_strong_aug" / "latest.pt").exists()
+    assert not (repo / "models" / "e4" / "convnext_strong_aug" / "attempts.json").exists()
 
 
 def test_best_arm_is_the_highest_macro_f1_and_ties_go_to_the_lower_number(e4cfg):

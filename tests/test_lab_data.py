@@ -50,6 +50,9 @@ def test_source_id_strips_the_suffixes_the_data_contains():
     for odd in (" copy 5.jpg", " copy3.jpg", " copy  3.jpg", " copy .jpg"):
         assert source_id("c/0009___JR_HL 9885" + odd) == base
     assert source_id("c/0007___JR_HL 9885_final_masked.jpg") == base
+    assert source_id("c/x___JR_HL 9885copy.jpg") == base
+    assert source_id("c/x___Photocopy 12.jpg") == "c/Photocopy 12"
+    assert source_id("c/x___Xcopy.jpg") == "c/Xcopy"
     assert source_id("c/RS_Rust 1563.JPG") == source_id("c/0007___RS_Rust 1563_final_masked.jpg")
     assert source_id("d/0007___JR_HL 9885.JPG") != base
 

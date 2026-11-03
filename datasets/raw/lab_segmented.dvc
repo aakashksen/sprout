@@ -1,0 +1,6 @@
+outs:
+- md5: 6bf9369acdbbef889663e710839848fb.dir
+  size: 513466925
+  nfiles: 54306
+  hash: md5
+  path: lab_segmented

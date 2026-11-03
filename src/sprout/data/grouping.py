@@ -6,11 +6,11 @@ import imagehash
 import numpy as np
 from PIL import Image
 
-# Surveyed in the official release: copies end in " copy", " copy 2" or " copy 3", and the
+# Surveyed in the official release: copies end in " copy" with an optional number (" copy 2" to " copy 5", also " copy3", " copy  3", " copy "), and the
 # segmented file adds "_final_masked". The leading uuid differs per file, and the code after
 # "___" (for example "JR_HL 9885") repeats across classes for unrelated photos, so the
 # source ID is the class folder plus that code.
-_COPY_SUFFIX = re.compile(r"( copy( \d+)?)$")
+_COPY_SUFFIX = re.compile(r"\s+copy\s*\d*\s*$")
 
 
 def source_id(path) -> str:

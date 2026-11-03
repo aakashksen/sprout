@@ -25,3 +25,4 @@ results/claude_calls.json
 knowledge/index*/
 datasets/review/thumbs/
 results/e2-gradcam/field/
+.dvcstore/

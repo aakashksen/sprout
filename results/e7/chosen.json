@@ -1,0 +1,49 @@
+{
+ "retrieval": {
+  "index": "index",
+  "mode": "dense",
+  "rerank": false,
+  "query_mode": "question",
+  "crops_from_title": false
+ },
+ "floors": {},
+ "prompt": "v1",
+ "decisions": [
+  {
+   "stage": "baseline",
+   "kept": "dense",
+   "record": "E7-20261103T211314827721Z",
+   "comparisons": [
+    {
+     "a": "hybrid",
+     "b": "dense",
+     "metric": "recall@5",
+     "diff": 0.0,
+     "ci": [
+      -0.15,
+      0.15
+     ],
+     "mcnemar_p": 1.0
+    },
+    {
+     "a": "hybrid_rerank",
+     "b": "dense",
+     "metric": "recall@5",
+     "diff": 0.11666666666666667,
+     "ci": [
+      0.0,
+      0.23333333333333334
+     ],
+     "mcnemar_p": 0.09228515625
+    }
+   ],
+   "device": {
+    "device": "cuda",
+    "torch": "2.11.0+cu128",
+    "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+    "cuda": "12.8",
+    "peak_gpu_mib": 480
+   }
+  }
+ ]
+}

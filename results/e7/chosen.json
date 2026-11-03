@@ -6,7 +6,11 @@
   "query_mode": "question",
   "crops_from_title": false
  },
- "floors": {},
+ "floors": {
+  "dense": 0.801127,
+  "hybrid": 0.886041,
+  "hybrid+rerank": 0.945975
+ },
  "prompt": "v1",
  "decisions": [
   {
@@ -165,6 +169,37 @@
     "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
     "cuda": "12.8",
     "peak_gpu_mib": 137
+   }
+  },
+  {
+   "stage": "floors",
+   "record": "E7-20261103T211722141404Z",
+   "floors": {
+    "dense": {
+     "floor": 0.801127,
+     "balanced": 0.7892857142857144,
+     "answerable_kept": 0.65,
+     "unanswerable_dropped": 0.9285714285714286
+    },
+    "hybrid": {
+     "floor": 0.886041,
+     "balanced": 0.7892857142857144,
+     "answerable_kept": 0.65,
+     "unanswerable_dropped": 0.9285714285714286
+    },
+    "hybrid+rerank": {
+     "floor": 0.945975,
+     "balanced": 0.8642857142857143,
+     "answerable_kept": 0.8,
+     "unanswerable_dropped": 0.9285714285714286
+    }
+   },
+   "device": {
+    "device": "cuda",
+    "torch": "2.11.0+cu128",
+    "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+    "cuda": "12.8",
+    "peak_gpu_mib": 480
    }
   }
  ]

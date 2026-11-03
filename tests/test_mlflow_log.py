@@ -4,9 +4,12 @@ import json
 from pathlib import Path
 
 import pytest
-from test_records import make, root  # noqa: F401  (root is a fixture)
+import test_records
 
 from sprout.eval import mlflow_log, records
+
+make = test_records.make
+root = test_records.root  # the fixture
 
 TOOL = Path(__file__).resolve().parents[1] / "tools" / "backfill_mlflow.py"
 spec = importlib.util.spec_from_file_location("backfill_mlflow", TOOL)

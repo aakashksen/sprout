@@ -1,9 +1,12 @@
 import json
 
 import pytest
-from test_records import make, root  # noqa: F401  (root is a fixture)
+import test_records
 
 from sprout.eval import check_cache, check_run
+
+make = test_records.make
+root = test_records.root  # the fixture
 
 
 @pytest.fixture

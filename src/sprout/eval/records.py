@@ -38,7 +38,7 @@ def git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
 
 def is_dirty(root: Path) -> bool:
     """Uncommitted changes, ignoring orchestration/ (as taskctl does), mlruns/ (logging output) and new untracked run files."""
-    out = git(root, "status", "--porcelain", "-uall", "--", ".", ":!orchestration", ":!mlruns")
+    out = git(root, "--no-optional-locks", "status", "--porcelain", "-uall", "--", ".", ":!orchestration", ":!mlruns")
     if out.returncode != 0:
         raise RuntimeError(f"git status failed: {out.stderr.strip()}")
     return any(ln and not ln.startswith(f"?? {RUNS_REL.as_posix()}/") for ln in out.stdout.splitlines())

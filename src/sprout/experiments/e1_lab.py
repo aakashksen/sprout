@@ -126,6 +126,8 @@ def run(cfg: dict[str, Any], root: Path = ROOT, resume: Path | None = None) -> P
     raw = predict(old.to(device), part, class_map, train_cfg.batch_size)
     legacy, top_dropped = legacy_to_shared(raw, names39, mapping, official)
 
+    # float32 outputs score differently from their saved float64 copies, so score what is saved
+    e1, legacy = (Predictions(p.path, p.label, p.probs.astype(np.float64)) for p in (e1, legacy))
     groups = list(part["group"])
     scored = {n: Scored(groups=groups, labels=p.label, probs=p.probs) for n, p in (("e1", e1), ("legacy", legacy))}
     metrics = {n: {m: recompute_metric(m, s) for m in METRICS} for n, s in scored.items()}

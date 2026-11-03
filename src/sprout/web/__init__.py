@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import threading
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 from flask import Flask, g, jsonify, render_template, request, session
 from werkzeug.exceptions import HTTPException
@@ -44,6 +45,7 @@ def create_app(config: Config | None = None, *, identifier: IdentifierProtocol |
     app.extensions["sprout_identifier"] = identifier
     app.extensions["sprout_retriever"] = retriever
     app.extensions["sprout_chat"] = {"state": "unavailable" if retriever is None else "warming"}
+    app.extensions["sprout_sources"] = _load_sources(cfg.MANIFEST)
     app.extensions["sprout_pool"] = ThreadPoolExecutor(max_workers=4, thread_name_prefix="sprout")
 
     if retriever is not None:
@@ -65,6 +67,10 @@ def create_app(config: Config | None = None, *, identifier: IdentifierProtocol |
         resp.headers.setdefault("X-Content-Type-Options", "nosniff")
         resp.headers.setdefault("X-Frame-Options", "DENY")
         resp.headers.setdefault("Referrer-Policy", "same-origin")
+        resp.headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+        )
         return resp
 
     @app.errorhandler(HTTPException)
@@ -78,6 +84,18 @@ def create_app(config: Config | None = None, *, identifier: IdentifierProtocol |
     app.register_blueprint(auth.bp)
     app.register_blueprint(analyses.bp)
     return app
+
+
+def _load_sources(manifest: str) -> dict[str, tuple[str, str]]:
+    """file name -> (title, link). Only http(s) addresses become links."""
+    if not manifest:
+        return {}
+    from sprout.rag.ingest import load_manifest
+
+    return {
+        e.file: (e.title, e.source_url if e.source_url.startswith(("http://", "https://")) else "")
+        for e in load_manifest(Path(manifest))
+    }
 
 
 def _warm(status: dict, retriever) -> None:

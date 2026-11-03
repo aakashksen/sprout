@@ -1,19 +1,32 @@
 {% extends "base.html" %}
 {% block body %}
+<div id="analysis" data-base="{{ url_for('analyses.show', analysis_id=analysis.id) }}">
 <h1>Result</h1>
 <img class="leaf" src="{{ url_for('analyses.image', analysis_id=analysis.id) }}" alt="Your uploaded photo">
 
 <h2>Model prediction</h2>
 {% if ident.status == "answered" and ident.top %}
-  <p>{{ pretty(ident.top.label) }} ({{ (ident.top.confidence * 100)|round(0)|int }}% confidence)</p>
+  {% set pct = (ident.top.confidence * 100)|round(0)|int %}
+  <p id="prediction">{{ pretty(ident.top.label) }}: {{ pct }}% confidence</p>
+  <progress value="{{ pct }}" max="100" aria-label="Confidence"></progress>
 {% elif ident.status == "unsure" %}
-  <p>The model is not sure what this is.</p>
+  <p id="prediction"><strong>Unsure.</strong> The model could not tell what this is.</p>
 {% elif ident.status == "not_plant" %}
-  <p>This does not look like a plant photo.</p>
+  <p id="prediction"><strong>Not a plant.</strong> This does not look like a plant photo.</p>
 {% else %}
-  <p>The image could not be used.</p>
+  <p id="prediction"><strong>Unusable image.</strong> The image could not be used.</p>
 {% endif %}
-{% if ident.guidance %}<p class="note">{{ ident.guidance }}</p>{% endif %}
+{% if ident.guidance %}<p class="note" id="guidance">{{ ident.guidance }}</p>{% endif %}
+{% if ident.status != "answered" %}<p>Try another photo: a close, well-lit view of one leaf works best.</p>{% endif %}
+
+{% if ident.alternatives %}
+<h2>Other possibilities</h2>
+<ul id="alternatives">
+{% for alt in ident.alternatives %}
+  <li>{{ pretty(alt.label) }}: {{ (alt.confidence * 100)|round(0)|int }}%</li>
+{% endfor %}
+</ul>
+{% endif %}
 
 {% if candidates %}
 <h2>Your selection</h2>
@@ -24,44 +37,28 @@
 {% endfor %}
 </div>
 <p id="selection-status" role="status"></p>
-{% endif %}
 
 <h2>Ask about this plant</h2>
 <p class="note">Answers show passages from source documents. Where nothing supports an answer, none is given.</p>
 <form id="chat-form">
-  <input id="chat-message" maxlength="1000" required>
-  <button type="submit">Ask</button>
+  <input id="chat-message" maxlength="1000" required aria-label="Your question">
+  <button id="chat-send" type="submit">Ask</button>
 </form>
-<div id="chat-log"></div>
+<div id="chat-log" aria-live="polite"></div>
+{% endif %}
 
-<script>
-const csrf = document.querySelector('meta[name="csrf-token"]').content;
-const base = {{ url_for('analyses.show', analysis_id=analysis.id)|tojson }};
-async function post(path, body) {
-  return fetch(base + path, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf}, body: JSON.stringify(body)});
-}
-document.querySelectorAll('input[name=choice]').forEach(el => el.addEventListener('change', async () => {
-  const r = await post('/selection', {label: el.value});
-  document.getElementById('selection-status').textContent = r.ok ? 'Saved.' : 'Could not save your selection.';
-}));
-document.getElementById('chat-form').addEventListener('submit', async ev => {
-  ev.preventDefault();
-  const input = document.getElementById('chat-message');
-  const log = document.getElementById('chat-log');
-  const r = await post('/chat', {message: input.value});
-  const box = document.createElement('div');
-  if (!r.ok) { box.textContent = 'Could not get an answer.'; log.append(box); return; }
-  const data = await r.json();
-  const note = document.createElement('p');
-  note.textContent = data.note;
-  box.append(note);
-  data.passages.forEach(p => {
-    const q = document.createElement('blockquote');
-    q.textContent = p.text + ' (' + p.source + ', page ' + p.page + ')';
-    box.append(q);
-  });
-  log.append(box);
-  input.value = '';
-});
-</script>
+<h2>Something wrong?</h2>
+<button id="report-open" type="button">Report a problem with this result</button>
+<form id="report-form" hidden>
+  <label for="report-note">What went wrong?</label>
+  <textarea id="report-note" maxlength="1000" required rows="3" cols="40"></textarea>
+  <button id="report-send" type="submit">Send report</button>
+</form>
+<p id="report-status" role="status"></p>
+
+<form method="post" action="{{ url_for('analyses.delete', analysis_id=analysis.id) }}" data-confirm="Delete this analysis and its photo?">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit">Delete this analysis</button>
+</form>
+</div>
 {% endblock %}

@@ -25,11 +25,13 @@ from sprout.rag.retrieve import GENERAL_CROP
 from sprout.serve.types import Identification
 
 from .crops import crop_for_label
+from .markup import render_markdown
 from .security import call_with_timeout, get_db, login_required, rate_limit
 from .uploads import BadImage, check_image, save_private
 
 bp = Blueprint("analyses", __name__)
 MAX_MESSAGE = 1000
+MAX_REPORT = 1000
 NO_SOURCE = "No supporting document was found for this question, so no advice is given."
 GENERAL_ONLY = "No document covers this plant, so only general guidance is shown, which may not apply to it."
 LABEL_NOTE = "Check the product label and local rules before using any chemical or disposal advice."
@@ -159,6 +161,9 @@ def chat(analysis_id: int):
     if not isinstance(message, str) or not 1 <= len(message.strip()) <= MAX_MESSAGE:
         abort(400, f"message must be 1-{MAX_MESSAGE} characters")
     message = message.strip()
+    retriever = current_app.extensions["sprout_retriever"]
+    if retriever is not None and current_app.extensions["sprout_chat"]["state"] != "ready":
+        abort(503, "chat is not ready yet")  # before anything is stored: a rejected message leaves no trace
     db = get_db()
     db.execute(
         "insert into chat_messages (user_id, analysis_id, role, content) values (?, ?, 'user', ?)",
@@ -167,20 +172,42 @@ def chat(analysis_id: int):
     db.commit()
     passages = []
     general_only = False
-    retriever = current_app.extensions["sprout_retriever"]
-    if retriever is not None and current_app.extensions["sprout_chat"]["state"] != "ready":
-        abort(503, "chat is not ready yet")
     top = Identification.from_json(row["prediction_json"]).top
     label = row["selected_label"] or (top.label if top else None)
     if retriever is not None and label:
         crop = crop_for_label(label, retriever.crops)
-        general_only = crop is None
-        crop = crop or GENERAL_CROP
         # the score floor only works on reranked scores, so reranking stays on here
-        found = call_with_timeout(lambda: retriever.search(message, crop=crop, rerank=True))
-        passages = [dict(text=p.text, source=p.source, page=p.page, score=p.score) for p in found]
+        found = call_with_timeout(lambda: retriever.search(message, crop=crop or GENERAL_CROP, rerank=True))
+        # search falls back to general documents when the plant's own are all filtered out
+        general_only = crop is None or (bool(found) and all(p.crop == GENERAL_CROP for p in found))
+        sources = current_app.extensions["sprout_sources"]
+        passages = [_passage(p, sources) for p in found]
     # generated answers arrive with sprout.rag.answer; until then the reply is the cited passages
     note = LABEL_NOTE if passages else NO_SOURCE
     if passages and general_only:
         note = f"{GENERAL_ONLY} {LABEL_NOTE}"
     return jsonify(passages=passages, note=note)
+
+
+def _passage(p, sources: dict) -> dict:
+    title, url = sources.get(p.source, (p.source, ""))
+    return dict(text=p.text, html=render_markdown(p.text), source=p.source, page=p.page, score=p.score,
+                title=title, url=url)
+
+
+@bp.post("/analyses/<int:analysis_id>/report")
+@login_required
+def report(analysis_id: int):
+    row = _owned(analysis_id)
+    body = request.get_json(silent=True)
+    note = body.get("note") if isinstance(body, dict) else None
+    if not isinstance(note, str) or not 1 <= len(note.strip()) <= MAX_REPORT:
+        abort(400, f"describe the problem in 1-{MAX_REPORT} characters")
+    top = Identification.from_json(row["prediction_json"]).top
+    db = get_db()
+    cur = db.execute(
+        "insert into reports (user_id, analysis_id, shown_label, note) values (?, ?, ?, ?)",
+        (g.user["id"], analysis_id, row["selected_label"] or (top.label if top else None), note.strip()),
+    )
+    db.commit()
+    return jsonify(stored=True, id=cur.lastrowid), 201

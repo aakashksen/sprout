@@ -20,6 +20,7 @@ class Config:
     SECRET_KEY: str = ""
     DATA_DIR: str = "var/sprout"
     HTTPS: bool = False
+    MANIFEST: str = ""  # knowledge/manifest.csv; gives chat sources their titles and links
     MAX_UPLOAD_BYTES: int = 8 * 1024 * 1024
     API_TIMEOUT_SECONDS: float = 20.0
     RATE_LIMITS: dict[str, tuple[int, int]] = field(default_factory=lambda: dict(DEFAULT_LIMITS))
@@ -43,6 +44,7 @@ class Config:
         cfg = cls(ENV=env.get("SPROUT_ENV", "production"))
         cfg.SECRET_KEY = env.get("SPROUT_SECRET_KEY", "")
         cfg.DATA_DIR = env.get("SPROUT_DATA_DIR", cfg.DATA_DIR)
+        cfg.MANIFEST = env.get("SPROUT_MANIFEST", "")
         cfg.HTTPS = env.get("SPROUT_HTTPS", "") == "1"
         cfg.MAX_UPLOAD_BYTES = int(env.get("SPROUT_MAX_UPLOAD_BYTES", cfg.MAX_UPLOAD_BYTES))
         cfg.API_TIMEOUT_SECONDS = float(env.get("SPROUT_API_TIMEOUT_SECONDS", cfg.API_TIMEOUT_SECONDS))

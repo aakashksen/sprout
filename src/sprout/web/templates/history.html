@@ -6,7 +6,7 @@
   <a href="{{ url_for('analyses.show', analysis_id=item.id) }}">{{ item.created_at }}</a>:
   {% if item.ident.top %}model said {{ pretty(item.ident.top.label) }}{% else %}{{ item.ident.status }}{% endif %}
   {% if item.selected %}, you chose {{ pretty(item.selected) }}{% endif %}
-  <form method="post" action="{{ url_for('analyses.delete', analysis_id=item.id) }}" style="display:inline">
+  <form method="post" action="{{ url_for('analyses.delete', analysis_id=item.id) }}" class="inline" data-confirm="Delete this analysis and its photo?">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button type="submit">Delete</button>
   </form>

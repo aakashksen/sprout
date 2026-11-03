@@ -5,9 +5,9 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
-SCHEMA = """
+BASE = """
 create table users (
     id integer primary key,
     username text not null unique,
@@ -39,6 +39,20 @@ create table rate_events (
 create index rate_by_key on rate_events(key, at);
 """
 
+REPORTS = """
+create table reports (
+    id integer primary key,
+    user_id integer not null references users(id) on delete cascade,
+    analysis_id integer not null references analyses(id) on delete cascade,
+    shown_label text,
+    note text not null,
+    created_at text not null default current_timestamp
+);
+create index reports_by_analysis on reports(analysis_id, id);
+"""
+SCHEMA = BASE + REPORTS
+
+
 
 def connect(path: Path | str) -> sqlite3.Connection:
     con = sqlite3.connect(path, timeout=10)
@@ -56,6 +70,10 @@ def init_db(path: Path) -> None:
         version = con.execute("pragma user_version").fetchone()[0]
         if version == 0:
             con.executescript(SCHEMA)
+            con.execute(f"pragma user_version = {SCHEMA_VERSION}")
+            con.commit()
+        elif version == 1:  # version 1 had no reports table
+            con.executescript(REPORTS)
             con.execute(f"pragma user_version = {SCHEMA_VERSION}")
             con.commit()
         elif version != SCHEMA_VERSION:

@@ -5,15 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <title>{% block title %}SPROUT{% endblock %}</title>
-<style>
-body { font-family: system-ui, sans-serif; max-width: 52rem; margin: 0 auto; padding: 1rem; color: #1b2a1b; }
-nav { display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; }
-nav form { margin: 0; }
-.error { color: #9b1c1c; }
-.note { background: #fff7e0; padding: .5rem .75rem; border-radius: 4px; }
-img.leaf { max-width: 100%; max-height: 22rem; }
-label { display: block; margin: .5rem 0 .2rem; }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+<script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
 <body>
 <nav>

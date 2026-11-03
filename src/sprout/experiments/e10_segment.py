@@ -108,11 +108,7 @@ def _save(path: Path, state: dict[str, Any]) -> None:
     atomic_write(path, lambda f: torch.save(state, f))
 
 
-def train_seg(cfg: dict[str, Any], manifest: pd.DataFrame, root: Path = ROOT, *, resume: bool = False,
-              device: torch.device | None = None) -> dict[str, Any]:
-    """Fine-tune on seg_train, pick the best epoch on seg_dev. Returns the history and checkpoint paths."""
-    out = root / cfg["out_dir"]
-    latest, best, hist_path = out / "latest.pt", out / "best.pt", out / "history.json"
+def _check_can_start(cfg: dict[str, Any], out: Path, latest: Path, best: Path, root: Path, resume: bool) -> None:
     if not resume and (latest.exists() or best.exists()):
         raise FileExistsError(f"{out} has checkpoints; pass --resume or use a new out_dir")
     if resume and not latest.is_file():
@@ -120,6 +116,51 @@ def train_seg(cfg: dict[str, Any], manifest: pd.DataFrame, root: Path = ROOT, *,
     free_gb = shutil.disk_usage(root).free / 1e9
     if free_gb < cfg["min_free_disk_gb"]:
         raise RuntimeError(f"only {free_gb:.0f} GB free; the config needs {cfg['min_free_disk_gb']} GB")
+
+
+def _restore(cfg, latest: Path, hist_path: Path, mhash: str, settings, model, optimizer, scheduler, scaler):
+    """Load the last checkpoint into the training objects; returns (epochs done, best IoU, history so far)."""
+    ckpt = torch.load(latest, map_location="cpu", weights_only=True)
+    if ckpt["manifest_hash"] != mhash:
+        raise ValueError("checkpoint was trained on a different manifest")
+    if ckpt["settings"] != settings:
+        raise ValueError("training settings differ from the checkpoint's; resume with the same settings")
+    model.load_state_dict(ckpt["model"])
+    optimizer.load_state_dict(ckpt["optimizer"])
+    scheduler.load_state_dict(ckpt["scheduler"])
+    scaler.load_state_dict(ckpt["scaler"])
+    start = ckpt["epoch"]
+    history = json.loads(hist_path.read_text(encoding="utf-8"))[:start]
+    torch.manual_seed(cfg["seed"] + start)
+    random.seed(cfg["seed"] + start)
+    return start, ckpt["best_iou"], history
+
+
+def _train_epoch(model, loader, optimizer, scaler, loss_fn, device: torch.device, epoch: int) -> float:
+    """One pass over the training loader; returns the mean loss per image."""
+    model.train()
+    loss_sum, n = 0.0, 0
+    for x, y in loader:
+        x, y = x.to(device), y.to(device)
+        optimizer.zero_grad()
+        with torch.autocast(device.type, enabled=device.type == "cuda"):
+            loss = loss_fn(model(x)["out"], y)
+        if not math.isfinite(loss.item()):
+            raise RuntimeError(f"epoch {epoch + 1}: train loss is {loss.item()}, not finite; run stopped")
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
+        loss_sum += loss.item() * len(y)
+        n += len(y)
+    return loss_sum / max(n, 1)
+
+
+def train_seg(cfg: dict[str, Any], manifest: pd.DataFrame, root: Path = ROOT, *, resume: bool = False,
+              device: torch.device | None = None) -> dict[str, Any]:
+    """Fine-tune on seg_train, pick the best epoch on seg_dev. Returns the history and checkpoint paths."""
+    out = root / cfg["out_dir"]
+    latest, best, hist_path = out / "latest.pt", out / "best.pt", out / "history.json"
+    _check_can_start(cfg, out, latest, best, root, resume)
     device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
     mhash = dataset_hash(manifest)
     settings = _settings(cfg)
@@ -140,45 +181,21 @@ def train_seg(cfg: dict[str, Any], manifest: pd.DataFrame, root: Path = ROOT, *,
 
     start, best_iou, history = 0, float("-inf"), []
     if resume:
-        ckpt = torch.load(latest, map_location="cpu", weights_only=True)
-        if ckpt["manifest_hash"] != mhash:
-            raise ValueError("checkpoint was trained on a different manifest")
-        if ckpt["settings"] != settings:
-            raise ValueError("training settings differ from the checkpoint's; resume with the same settings")
-        model.load_state_dict(ckpt["model"])
-        optimizer.load_state_dict(ckpt["optimizer"])
-        scheduler.load_state_dict(ckpt["scheduler"])
-        scaler.load_state_dict(ckpt["scaler"])
-        start, best_iou = ckpt["epoch"], ckpt["best_iou"]
-        history = json.loads(hist_path.read_text(encoding="utf-8"))[:start]
-        torch.manual_seed(cfg["seed"] + start)
-        random.seed(cfg["seed"] + start)
+        start, best_iou, history = _restore(cfg, latest, hist_path, mhash, settings, model, optimizer, scheduler,
+                                            scaler)
 
     for epoch in range(start, cfg["epochs"]):
         began = time.perf_counter()
         if device.type == "cuda":
             torch.cuda.reset_peak_memory_stats()
-        model.train()
-        loss_sum, n = 0.0, 0
-        for x, y in loaders["seg_train"]:
-            x, y = x.to(device), y.to(device)
-            optimizer.zero_grad()
-            with torch.autocast(device.type, enabled=device.type == "cuda"):
-                loss = loss_fn(model(x)["out"], y)
-            if not math.isfinite(loss.item()):
-                raise RuntimeError(f"epoch {epoch + 1}: train loss is {loss.item()}, not finite; run stopped")
-            scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
-            loss_sum += loss.item() * len(y)
-            n += len(y)
+        train_loss = _train_epoch(model, loaders["seg_train"], optimizer, scaler, loss_fn, device, epoch)
         scheduler.step()
         dev_iou = _dev_iou(model, loaders["seg_dev"], device)
         if not math.isfinite(dev_iou):
             raise RuntimeError(f"epoch {epoch + 1}: seg_dev IoU is {dev_iou}, not finite; run stopped")
         entry = {
             "epoch": epoch + 1,
-            "train_loss": loss_sum / max(n, 1),
+            "train_loss": train_loss,
             "dev_iou": dev_iou,
             "seconds": time.perf_counter() - began,
             "peak_mem_allocated": torch.cuda.max_memory_allocated() if device.type == "cuda" else None,
@@ -206,7 +223,7 @@ def train_seg(cfg: dict[str, Any], manifest: pd.DataFrame, root: Path = ROOT, *,
 def segment_rows(model: nn.Module, rows: pd.DataFrame, root: Path, size: int) -> list[dict[str, Any]]:
     """Prediction rows at each photo's own size: path, per-image IoU, and the predicted and true masks."""
     out = []
-    for path, mask_path in zip(rows["path"], rows["mask"]):
+    for path, mask_path in zip(rows["path"], rows["mask"], strict=True):
         with Image.open(root / path) as im:
             image = im.convert("RGB")
         gt = disease_mask(root / mask_path)

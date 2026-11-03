@@ -183,3 +183,16 @@ def test_warm_loads_vectors_and_reports_ready(tmp_path):
     assert not r.warmed
     r.warm()
     assert r.warmed
+
+
+def test_reranker_returning_the_wrong_number_of_scores_is_an_error(tmp_path):
+    import pytest
+
+    class ShortReranker:
+        def score(self, query, texts):
+            return [0.9]
+
+    r = make(tmp_path, min_score=0.0)
+    r._reranker = ShortReranker()
+    with pytest.raises(ValueError):
+        r.search("leaf spot", k=3, rerank=True)

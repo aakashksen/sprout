@@ -75,7 +75,7 @@ def test_fake_identifier_refused_outside_testing(monkeypatch, tmp_path):
     monkeypatch.syspath_prepend(str(ROOT / "deploy"))
     import wsgi
 
-    base = {"SPROUT_SECRET_KEY": "x", "SPROUT_DATA_DIR": str(tmp_path), "SPROUT_FAKE_IDENTIFIER": "1"}
+    base = {"SPROUT_SECRET_KEY": "x" * 32, "SPROUT_DATA_DIR": str(tmp_path), "SPROUT_FAKE_IDENTIFIER": "1"}
     for env in ("production", "development"):
         with pytest.raises(RuntimeError, match="only allowed"):
             wsgi.build({**base, "SPROUT_ENV": env})
@@ -84,7 +84,7 @@ def test_fake_identifier_refused_outside_testing(monkeypatch, tmp_path):
     app = wsgi.build({**base, "SPROUT_ENV": "testing"})
     assert app.extensions["sprout_identifier"] is not None
     # production with no flag: no model, so not ready
-    app = wsgi.build({"SPROUT_SECRET_KEY": "x", "SPROUT_DATA_DIR": str(tmp_path / "p")})
+    app = wsgi.build({"SPROUT_SECRET_KEY": "x" * 32, "SPROUT_DATA_DIR": str(tmp_path / "p")})
     assert app.extensions["sprout_identifier"] is None
     assert app.test_client().get("/readyz").status_code == 503
 
@@ -204,7 +204,7 @@ def test_smoke_in_clean_container(image):
 
 @pytest.mark.real
 def test_production_container_refuses_fake_and_missing_secret(image):
-    for env in ({"SPROUT_SECRET_KEY": "x", "SPROUT_FAKE_IDENTIFIER": "1"}, {}):
+    for env in ({"SPROUT_SECRET_KEY": "x" * 32, "SPROUT_FAKE_IDENTIFIER": "1"}, {}):
         flags = sum((["-e", f"{k}={v}"] for k, v in env.items()), [])
         assert _docker("run", "--rm", *flags, image, check=False).returncode != 0
     name, port = f"sprout-prod-{uuid.uuid4().hex[:8]}", _free_port()

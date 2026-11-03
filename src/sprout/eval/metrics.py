@@ -3,7 +3,7 @@ import numpy as np
 
 def confusion(y_true, y_pred, num_classes: int) -> np.ndarray:
     cm = np.zeros((num_classes, num_classes), dtype=int)
-    for t, p in zip(y_true, y_pred):
+    for t, p in zip(y_true, y_pred, strict=True):
         cm[t, p] += 1
     return cm
 

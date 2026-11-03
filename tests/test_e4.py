@@ -200,6 +200,14 @@ def test_mask_store_round_trips(tmp_path):
     assert np.array_equal(back.get("a/b.jpg"), m) and np.array_equal(back.get("c.jpg"), ~m)
 
 
+def test_mask_store_saves_to_the_exact_path_it_loads_from(tmp_path):
+    m = np.zeros((320, 320), bool)
+    m[5:9, 5:9] = True
+    MaskStore({"a.jpg": m}).save(tmp_path / "masks")  # np.savez would have written masks.npz
+    assert np.array_equal(MaskStore.load(tmp_path / "masks").get("a.jpg"), m)
+    assert [p.name for p in tmp_path.iterdir()] == ["masks"]
+
+
 def test_joint_run_trains_on_real_and_lab_selects_on_field_dev(world):
     from sprout.train.checkpoint import load_checkpoint
     from sprout.train.loop import train
@@ -240,7 +248,7 @@ def repo(world, monkeypatch):
     for system in BASELINES:
         p = runs / f"{BASELINE_ID}.{system}.predictions.jsonl"
         rows = []
-        for path, label in zip(dev["path"], dev["label"]):
+        for path, label in zip(dev["path"], dev["label"], strict=False):
             probs = rng.dirichlet(np.ones(2))
             rows.append({"path": path, "label": CLASSES.index(label), "probs": list(map(float, probs))})
         p.write_text("".join(json.dumps(r) + "\n" for r in rows))
@@ -387,6 +395,9 @@ def test_arms_that_read_earlier_results_refuse_to_guess(repo, e4cfg):
     with pytest.raises(e4.Blocked):
         e4.run_arm(e4cfg, "convnext_strong_aug", repo)  # its reference arm has no record
     assert not (repo / "models" / "e4" / "not_run").exists()
+    # refused before any training: no checkpoints, no attempt entry
+    assert not (repo / "models" / "e4" / "convnext_strong_aug" / "latest.pt").exists()
+    assert not (repo / "models" / "e4" / "convnext_strong_aug" / "attempts.json").exists()
 
 
 def test_best_arm_is_the_highest_macro_f1_and_ties_go_to_the_lower_number(e4cfg):

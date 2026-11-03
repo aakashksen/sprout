@@ -68,5 +68,6 @@ def energy_outside(cam: np.ndarray, mask: np.ndarray) -> float | None:
 
 
 def iou(a: np.ndarray, b: np.ndarray) -> float:
-    union = int((a | b).sum())
-    return float((a & b).sum() / union) if union else 1.0
+    """Intersection over union; 1.0 when both masks are empty (nothing to find, nothing predicted)."""
+    union = int(np.logical_or(a, b).sum())
+    return float(np.logical_and(a, b).sum() / union) if union else 1.0

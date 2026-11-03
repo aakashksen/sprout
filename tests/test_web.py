@@ -406,3 +406,82 @@ def test_readiness_reports_failed_warmup_and_missing_retriever(tmp_path):
     c = app.test_client()
     assert _wait(lambda: c.get("/readyz").get_json()["chat"] == "failed")
     assert make_app(tmp_path / "none").test_client().get("/readyz").get_json()["chat"] == "unavailable"
+
+
+def _app_with_retriever(tmp_path, retriever, ident=ANSWER):
+    app = create_app(
+        Config(ENV="testing", SECRET_KEY="s", DATA_DIR=str(tmp_path), RATE_LIMITS=LIMITS),
+        identifier=Counting([ident]),
+        retriever=retriever,
+    )
+    app.config["TESTING"] = False
+    app.config["PROPAGATE_EXCEPTIONS"] = False  # a failing chat call must answer 500, not raise into the test
+    return app
+
+
+class _BrokenRetriever:
+    crops = {"tomato"}
+    warmed = True
+
+    def warm(self, *, rerank=False):
+        pass
+
+    def search(self, query, **kw):
+        raise RuntimeError("index unreadable")
+
+
+def test_failed_chat_call_stores_no_message_so_a_retry_stores_one(tmp_path):
+    app = _app_with_retriever(tmp_path, _BrokenRetriever())
+    c = app.test_client()
+    signup(c)
+    aid = analysis_id(upload(c))
+    assert _wait(lambda: app.extensions["sprout_chat"]["state"] == "ready")
+    h = {"X-CSRF-Token": token(c)}
+    assert c.post(f"/analyses/{aid}/chat", json={"message": "treatment?"}, headers=h).status_code == 500
+    assert rows(app, "select id from chat_messages where analysis_id=?", aid) == []
+
+
+@pytest.mark.parametrize("status", ["not_plant", "invalid"])
+def test_chat_refused_when_the_image_was_not_identified_as_a_plant(tmp_path, status):
+    app = make_app(tmp_path, identifier=Counting([Identification(status, None, [], "try again")]))
+    c = app.test_client()
+    signup(c)
+    aid = analysis_id(upload(c))
+    r = c.post(f"/analyses/{aid}/chat", json={"message": "hello"}, headers={"X-CSRF-Token": token(c)})
+    assert r.status_code == 409
+    assert rows(app, "select id from chat_messages where analysis_id=?", aid) == []
+
+
+@pytest.mark.parametrize("secret", ["", "   ", "x", "short-secret", " " * 40])
+def test_short_or_blank_secret_key_refused_outside_testing(secret):
+    for env in ("production", "development"):
+        with pytest.raises(RuntimeError, match="SECRET_KEY"):
+            Config.from_env({"SPROUT_ENV": env, "SPROUT_SECRET_KEY": secret})
+    with pytest.raises(RuntimeError, match="SECRET_KEY"):
+        Config.from_env({"SPROUT_ENV": "testing", "SPROUT_SECRET_KEY": " "})
+
+
+def test_a_long_secret_key_is_accepted():
+    assert Config.from_env({"SPROUT_ENV": "production", "SPROUT_SECRET_KEY": "k" * 16}).SECRET_KEY == "k" * 16
+
+
+BS = chr(92)
+
+
+@pytest.mark.parametrize(
+    "href",
+    ["//evil.example/x", BS * 2 + "evil.example/x", "javascript:alert(1)", "ftp://x.example/f"],
+)
+def test_markdown_links_to_other_origins_by_odd_forms_lose_their_href(href):
+    from sprout.web.markup import render_markdown
+
+    html = render_markdown(f"[go]({href})")
+    assert "href" not in html and "go" in html
+
+
+def test_markdown_links_open_safely():
+    from sprout.web.markup import render_markdown
+
+    html = render_markdown("[ok](https://example.org/a) and [mail](mailto:a@example.org)")
+    assert html.count('rel="noopener noreferrer nofollow"') == 2
+    assert 'href="https://example.org/a"' in html

@@ -85,9 +85,23 @@ def split_info(split: str, root: Path = ROOT) -> SplitInfo:
     return SplitInfo(dataset_hash(df[COLUMNS]), list(part["path"]), list(part["group"]), list(part["label"]))
 
 
+def scoring_part(groups: list[str], seed: int, fit_percent: int) -> np.ndarray:
+    """True for rows in the scoring part of a group-wise split: the sorted distinct groups are shuffled with
+    `seed`, the first `fit_percent` percent of them form the fitting part, and the rest are scored. Every
+    group lands wholly on one side."""
+    distinct = sorted(set(groups))
+    order = np.random.default_rng(seed).permutation(len(distinct))
+    fit = {distinct[i] for i in order[: round(len(distinct) * fit_percent / 100)]}
+    return np.array([g not in fit for g in groups], dtype=bool)
+
+
 def subset_positions(name: str, split: str, info: SplitInfo, root: Path = ROOT) -> list[int]:
     """Positions within the split of a declared subset: `first_<N>` rows, `source:<name>` (field rows whose
-    `source` column in field.csv is <name>), or `shared_classes` (labels present in both lab.csv and field.csv)."""
+    `source` column in field.csv is <name>), `shared_classes` (labels present in both lab.csv and field.csv),
+    or `group_part:<seed>:<fit_percent>` (the scoring part of `scoring_part`, for settings fitted on the rest)."""
+    part = re.fullmatch(r"group_part:(\d+):(\d+)", name)
+    if part:
+        return [int(i) for i in np.flatnonzero(scoring_part(info.groups, int(part.group(1)), int(part.group(2))))]
     first = re.fullmatch(r"first_(\d+)", name)
     if first:
         return list(range(min(int(first.group(1)), len(info.ids))))

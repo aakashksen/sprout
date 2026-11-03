@@ -33,12 +33,11 @@ def green_ratio(image: Image.Image) -> float:
     return float(mask.mean())
 
 
-def normalized_entropy(probs) -> float:
-    """Entropy of the probabilities divided by log(number of classes): 0 for one sure class, 1 for a flat spread.
-    It is the out-of-distribution score, because it needs nothing but the probabilities."""
+def normalized_entropy(probs):
+    """Entropy of the probabilities (last axis) divided by log(number of classes): 0 for one sure class, 1 for a
+    flat spread. It is the out-of-distribution score, because it needs nothing but the probabilities."""
     p = np.asarray(probs, dtype=float)
-    p = p[p > 0]
-    return float(-(p * np.log(p)).sum() / np.log(len(np.asarray(probs))))
+    return -(p * np.log(np.where(p > 0, p, 1.0))).sum(axis=-1) / np.log(p.shape[-1])
 
 
 @dataclass(frozen=True)
@@ -48,13 +47,18 @@ class GateSettings:
     confidence_threshold: float | None = None  # confidence, confidence_ood: accept at or above this top probability
     ood_threshold: float | None = None  # confidence_ood: and at or below this normalized entropy
 
-    def accepts(self, *, green: float, probs) -> bool:
+    def accepts_many(self, green, probs) -> np.ndarray:
+        """One decision per row: `green` is each photo's green share, `probs` its calibrated probabilities."""
         if self.kind == "green_rule":
-            return green >= self.green_threshold
-        ok = float(np.max(probs)) >= self.confidence_threshold
+            return np.asarray(green, dtype=float) >= self.green_threshold
+        probs = np.asarray(probs, dtype=float)
+        ok = probs.max(axis=-1) >= self.confidence_threshold
         if self.kind == "confidence_ood":
-            ok = ok and normalized_entropy(probs) <= self.ood_threshold
-        return bool(ok)
+            ok = ok & (normalized_entropy(probs) <= self.ood_threshold)
+        return ok
+
+    def accepts(self, *, green: float, probs) -> bool:
+        return bool(self.accepts_many(np.array([green]), np.asarray(probs, dtype=float)[None])[0])
 
     @classmethod
     def from_dict(cls, d: dict) -> GateSettings:

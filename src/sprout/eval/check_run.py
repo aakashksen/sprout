@@ -213,6 +213,30 @@ def _read_rows(path: Path) -> list[dict[str, Any]]:
     return [json.loads(x) for x in path.read_text(encoding="utf-8").splitlines() if x.strip()]
 
 
+# A gate row that saves the numbers its decision came from must agree with them: accepted is the AND of
+# each saved (score, threshold) pair. Rows without any of these fields (older records) are not checked.
+GATE_RULES = (("confidence", "threshold", np.greater_equal), ("ood_score", "ood_threshold", np.less_equal),
+              ("green_ratio", "green_threshold", np.greater_equal))
+
+
+def _gate_problems(rows: list[dict[str, Any]], accepted: np.ndarray, tag: str) -> list[str]:
+    pairs = [(s, t, op) for s, t, op in GATE_RULES if s in rows[0] or t in rows[0]]
+    if not pairs:
+        return []
+    expected = np.ones(len(rows), dtype=bool)
+    for score, threshold, op in pairs:
+        try:
+            values = np.array([r[score] for r in rows], dtype=float)
+            limits = np.array([r[threshold] for r in rows], dtype=float)
+        except (KeyError, TypeError, ValueError):
+            return [tag + f"gate rows must hold numeric {score} and {threshold} together"]
+        if not (np.isfinite(values).all() and np.isfinite(limits).all()):
+            return [tag + f"{score} and {threshold} must be finite in every row"]
+        expected &= op(values, limits)
+    wrong = int((expected != accepted).sum())
+    return [tag + f"accepted does not follow from the saved scores and thresholds in {wrong} rows"] if wrong else []
+
+
 def _score(
     rows: list[dict[str, Any]], info: SplitInfo, positions: list[int], rec: dict[str, Any], tag: str, out: list[str]
 ) -> Scored | None:
@@ -235,6 +259,7 @@ def _score(
             out.append(tag + "accepted must be true or false in every row")
             return None
         scored.accepted = np.array(flags)
+        out.extend(_gate_problems(ordered, scored.accepted, tag))
         if info.labels is not None:
             scored.is_plant = np.array([info.labels[i] != NOT_PLANT for i in positions])
     if "answered" in rows[0]:

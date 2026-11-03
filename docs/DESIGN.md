@@ -37,7 +37,7 @@ ContextLens covers agents, LLM fine-tuning, and C++. SPROUT covers **training ri
 | Splits | Group by the source IDs in the original filenames and by perceptual hashing, including flips and rotations, then split by group; permanent manifests | A source ID isn't proven to identify one physical leaf, and same-leaf photos that look different can still slip through, so reports say "near-duplicate-grouped" |
 | Primary model | ConvNeXt-Tiny fine-tuned from ImageNet weights | The original architecture, retrained cleanly |
 | Comparisons | HOG and color histograms + XGBoost; frozen ConvNeXt head; DINOv2 | Classic ML and a newer model |
-| Fixes for real photos | Background randomization using official segmented images matched to `lab_train` by filename, with generated masks as the fallback; stronger augmentation; then targeted fine-tuning on a real-photo training split, excluding PlantDoc unless the person clears it for training | Tests the likely cause of the fall |
+| Fixes for real photos | Background randomization using official segmented images matched to `lab_train` by filename, with generated masks as the fallback; stronger augmentation; then targeted fine-tuning on a real-photo training split, which may include PlantDoc for local use; the person checks before publishing any weights trained on it | Tests the likely cause of the fall |
 | Understanding | Grad-CAM | Shows what the model looks at |
 | Statistics | Bootstrap confidence intervals, McNemar's test, ECE calibration | Uses the stats major |
 | Tracking | MLflow for runs, DVC for data, run records for claims | Reproducibility |

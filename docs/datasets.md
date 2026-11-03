@@ -11,7 +11,7 @@ License: See each dataset's section.
 Classes: not applicable
 1. PlantVillage: official 38-class release, CC BY-SA 3.0.
 2. `not_plant`: COCO 2017 validation, local non-commercial evaluation, potted-plant images excluded, images never committed or redistributed.
-3. PlantDoc: local evaluation only, no redistribution.
+3. PlantDoc: local evaluation only, no redistribution. Updated 2026-11-02: T4.1 may also fine-tune on PlantDoc images for local use. The images are not republished, and the person checks before publishing any weights trained on them.
 4. H1 is not yet signed. The person signs it at the end.
 Approved: yes, these are the person's recorded decisions
 
@@ -21,7 +21,7 @@ URL: https://github.com/spMohanty/PlantVillage-Dataset (`raw/color`, pinned to c
 License: CC BY-SA 3.0, per the repo's `README_HF.md` YAML (`license: cc-by-sa-3.0`), read directly (https://raw.githubusercontent.com/spMohanty/PlantVillage-Dataset/master/README_HF.md). The repo has no LICENSE file, and the GitHub API reports no license. PlantVillage's terms also state CC BY-SA 3.0 for its own content (https://plantvillage.psu.edu/tos, read through a summarizing fetch). ShareAlike applies to anything derived from the data.
 Size: Official README: 54,306 images. T1.1 records the actual counts in `docs/data-counts.md`.
 Classes: 38 folders in `raw/color`, read from the GitHub API, including healthy classes and with no background class.
-Access: Clone the repo at the pinned commit. Original filenames carry a source ID, for example `00075aa8-d81a-4184-8541-b692b78d398a___FREC_Scab 3335.JPG`. Checked on one class folder (`Apple___Apple_scab`, 630 files); T1.1 checks the rest.
+Access: Fetch the repo at the pinned commit into the git-ignored `datasets/raw/_pv_upstream`. Original filenames carry a source ID, for example `00075aa8-d81a-4184-8541-b692b78d398a___FREC_Scab 3335.JPG`. Checked on one class folder (`Apple___Apple_scab`, 630 files); T1.1 checks the rest.
 Approved: yes, by the person on 2026-11-02, under CC BY-SA 3.0
 
 ## PlantVillage (local 39-class copy, not used)
@@ -40,7 +40,7 @@ License: LICENSE.txt was read directly and begins "Attribution 4.0 International
 Size: 2,598 data points in total (README: "Our dataset contains 2,598 data points in total across 13 plant species and up to 17 classes of diseases"). A Roboflow mirror lists 2,569 images and 30 classes (https://universe.roboflow.com/sherif/plantdoc-cbl3c-wvbns); that is secondary and conflicts, so it was not used.
 Classes: "up to 17 classes of diseases across 13 plant species" (repo README). Per-class counts not given on the page read.
 Access: Browse or clone https://github.com/pratikkayal/PlantDoc-Dataset (not run). Top-level folders: `train/` and `test/`.
-Approved: yes, by the person on 2026-11-02, for local evaluation only with no redistribution. The images are never committed, and training on them is not cleared
+Approved: yes, by the person on 2026-11-02, for local evaluation and T4.1 fine-tuning, with no redistribution. The images are never committed, and the person checks before publishing any weights trained on them
 
 ## PlantSeg (second real-photo source, in-the-wild)
 

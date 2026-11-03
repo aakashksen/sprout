@@ -578,16 +578,16 @@
       "acceptance": [
         "{py} -m pytest tests/test_more_documents.py -q"
       ],
-      "status": "in_progress",
-      "worktree": "<local path>",
+      "status": "done",
       "started_at": "2026-11-03T16:45:52+00:00",
       "verified": {
         "commit": "fb3c483baba81b1a2f91f33ac125810458ee1b90",
         "passed": true,
-        "at": "2026-11-03T19:20:56+00:00"
+        "at": "2026-11-03T20:05:12+00:00"
       },
       "attempts": 2,
-      "reason": "not_in_documents-012, watermelon fusarium wilt, is answered by a general cucurbit page; the abstain check needs family terms"
+      "reason": "not_in_documents-012, watermelon fusarium wilt, is answered by a general cucurbit page; the abstain check needs family terms",
+      "done_at": "2026-11-03T20:05:33+00:00"
     },
     {
       "id": "T6.4",

@@ -12,6 +12,7 @@ STORE = "mlruns"
 PARAM_LIMIT = 100
 METRIC_LIMIT = 1000
 VALUE_CHARS = 250
+MAX_NESTED = 20
 BAD_NAME = re.compile(r"[^A-Za-z0-9_\-. /]")
 
 
@@ -26,10 +27,11 @@ def _params(rec: dict[str, Any]) -> dict[str, str]:
     out["device"] = rec.get("device") or (rec.get("config") or {}).get("device")
     for key, value in (rec.get("config") or {}).items():
         if isinstance(value, dict):
-            out.update({f"config.{key}.{k}": v for k, v in value.items()})
+            if len(value) <= MAX_NESTED:  # larger ones are tables keyed by data, such as options per plant
+                out.update({f"config.{key}.{k}": v for k, v in value.items()})
         else:
             out[f"config.{key}"] = value
-    return {k: str(v)[:VALUE_CHARS] for k, v in out.items() if isinstance(v, (str, int, float, bool)) and v != ""}
+    return {BAD_NAME.sub("_", k): str(v)[:VALUE_CHARS] for k, v in out.items() if isinstance(v, (str, int, float, bool)) and v != ""}
 
 
 def _metrics(rec: dict[str, Any]) -> list[tuple[str, float, int]]:
@@ -37,9 +39,11 @@ def _metrics(rec: dict[str, Any]) -> list[tuple[str, float, int]]:
     out = [(BAD_NAME.sub("_", f"{system}.{name}"), float(v), 0)
            for system, values in (rec.get("metrics") or {}).items() for name, v in values.items() if _finite(v)]
     for attempt in rec.get("attempts") or []:
-        for row in attempt.get("history") or [] if isinstance(attempt, dict) else []:
-            out += [(BAD_NAME.sub("_", k), float(v), int(row["epoch"]))
-                    for k, v in row.items() if k != "epoch" and _finite(v) and "epoch" in row]
+        history = attempt.get("history") if isinstance(attempt, dict) else None
+        for row in history if isinstance(history, list) else []:
+            if isinstance(row, dict) and _finite(row.get("epoch")):
+                out += [(BAD_NAME.sub("_", k), float(v), int(row["epoch"]))
+                        for k, v in row.items() if k != "epoch" and _finite(v)]
     return out
 
 
@@ -68,14 +72,18 @@ def log_record(rec: dict[str, Any], root: Path, *, skip_if_logged: bool = False)
         return False
     started, finished = _millis(rec.get("started_at")), _millis(rec.get("finished_at"))
     tags = {"run_id": rec["run_id"], "git_commit": str(rec.get("git_commit")), "split": str(rec.get("split"))}
-    run = client.create_run(experiment_id, start_time=started, tags=tags, run_name=rec["run_id"])
     params = [Param(k, v) for k, v in _params(rec).items()]
     stamp = finished or started or 0
     metrics = [Metric(k, v, stamp, step) for k, v, step in _metrics(rec)]
-    for i in range(0, len(params), PARAM_LIMIT):
-        client.log_batch(run.info.run_id, params=params[i:i + PARAM_LIMIT])
-    for i in range(0, len(metrics), METRIC_LIMIT):
-        client.log_batch(run.info.run_id, metrics=metrics[i:i + METRIC_LIMIT])
-    client.log_batch(run.info.run_id, tags=[RunTag("record_file", f"results/runs/{rec['run_id']}.json")])
-    client.set_terminated(run.info.run_id, end_time=finished)
+    run_id = client.create_run(experiment_id, start_time=started, tags=tags, run_name=rec["run_id"]).info.run_id
+    try:
+        for i in range(0, len(params), PARAM_LIMIT):
+            client.log_batch(run_id, params=params[i:i + PARAM_LIMIT])
+        for i in range(0, len(metrics), METRIC_LIMIT):
+            client.log_batch(run_id, metrics=metrics[i:i + METRIC_LIMIT])
+        client.log_batch(run_id, tags=[RunTag("record_file", f"results/runs/{rec['run_id']}.json")])
+        client.set_terminated(run_id, end_time=finished)
+    except Exception:
+        client.delete_run(run_id)  # a half-logged run would be skipped as "already there" by the backfill
+        raise
     return True

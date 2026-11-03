@@ -49,11 +49,14 @@ def test_only_finite_metrics_and_the_device_are_logged(root):
     rec["run_id"] = "E1-20990101T000000000000Z"
     rec["metrics"]["a"].update(nan=float("nan"), inf=float("inf"), none=None, yes=True)
     rec["config"]["device"] = "cuda"
+    rec["config"]["table"] = {f"Cherry_(sour){i}": i for i in range(30)}
+    rec["config"]["small"] = {"Cherry_(sour)": 1}
     mlflow_log.log_record(rec, root)
     client, runs = runs_of(root)
     run = next(r for r in runs if r.data.tags["run_id"] == rec["run_id"])
     assert not {"a.nan", "a.inf", "a.none", "a.yes"} & set(run.data.metrics)
     assert run.data.params["device"] == "cuda"
+    assert run.data.params["config.small.Cherry_(sour)".replace("(", "_").replace(")", "_")] == "1"
     assert client is not None
 
 

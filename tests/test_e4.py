@@ -200,6 +200,14 @@ def test_mask_store_round_trips(tmp_path):
     assert np.array_equal(back.get("a/b.jpg"), m) and np.array_equal(back.get("c.jpg"), ~m)
 
 
+def test_mask_store_saves_to_the_exact_path_it_loads_from(tmp_path):
+    m = np.zeros((320, 320), bool)
+    m[5:9, 5:9] = True
+    MaskStore({"a.jpg": m}).save(tmp_path / "masks")  # np.savez would have written masks.npz
+    assert np.array_equal(MaskStore.load(tmp_path / "masks").get("a.jpg"), m)
+    assert [p.name for p in tmp_path.iterdir()] == ["masks"]
+
+
 def test_joint_run_trains_on_real_and_lab_selects_on_field_dev(world):
     from sprout.train.checkpoint import load_checkpoint
     from sprout.train.loop import train

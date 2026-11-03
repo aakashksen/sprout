@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import shutil
 import tempfile
 import zipfile
 from pathlib import Path, PurePosixPath
@@ -52,6 +53,16 @@ def extract_masks(zip_path: Path, dest: Path) -> int:
         return sum(1 for _ in dest.glob("*/*.png"))
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = Path(tempfile.mkdtemp(prefix=f".{dest.name}.", dir=dest.parent))
+    try:
+        count = _extract_into(zip_path, tmp)
+        os.rename(tmp, dest)
+    except BaseException:
+        shutil.rmtree(tmp, ignore_errors=True)
+        raise
+    return count
+
+
+def _extract_into(zip_path: Path, tmp: Path) -> int:
     count = 0
     with zipfile.ZipFile(zip_path) as z:
         for info in z.infolist():
@@ -66,7 +77,6 @@ def extract_masks(zip_path: Path, dest: Path) -> int:
             out.parent.mkdir(exist_ok=True)
             out.write_bytes(z.read(info))
             count += 1
-    os.rename(tmp, dest)
     return count
 
 

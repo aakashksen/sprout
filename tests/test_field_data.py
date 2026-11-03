@@ -322,6 +322,17 @@ def test_no_unlisted_cross_split_near_duplicate_in_real_manifest():
     )
 
 
+def test_residual_pairs_with_nothing_close_is_an_empty_table(tmp_path):
+    from sprout.data.field import residual_pairs
+
+    paths = [_img(tmp_path / f"{i}.png", i) for i in range(3)]
+    field = pd.DataFrame(
+        {"path": paths, "split": ["field_train", "field_dev", "field_test"], "label": "x"}
+    )
+    out = residual_pairs(field, max_distance=0)
+    assert len(out) == 0 and "scene_score" in out.columns
+
+
 def test_residual_pairs_are_recorded_with_scores():
     real = load_manifest("field")
     split = dict(zip(real["path"], real["split"]))

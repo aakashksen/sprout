@@ -135,6 +135,16 @@ def test_extract_masks_takes_only_masks_and_rejects_escapes(tmp_path):
     assert not (tmp_path / "out2").exists() and not (tmp_path / "evil.png").exists()
 
 
+def test_failed_extraction_leaves_no_partial_folder_behind(tmp_path):
+    bad = tmp_path / "bad.zip"
+    with zipfile.ZipFile(bad, "w") as z:
+        z.writestr("plantseg/annotations/train/a.png", b"x")
+        z.writestr("plantseg/annotations/../../evil.png", b"x")
+    with pytest.raises(ValueError, match="unsafe"):
+        extract_masks(bad, tmp_path / "out")
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["bad.zip"]
+
+
 # ---- training and records on a tiny fixture, on the CPU ----
 
 def sh(root, *args):

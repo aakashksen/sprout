@@ -275,9 +275,8 @@ def residual_pairs(
     split = dict(zip(field["path"], field["split"]))
     label = dict(zip(field["path"], field["label"]))
     pairs = hash_pairs(list(field["path"]), max_distance)
-    pairs = pairs[
-        [split[a] != split[b] for a, b in zip(pairs["path_a"], pairs["path_b"])]
-    ]
+    across = [split[a] != split[b] for a, b in zip(pairs["path_a"], pairs["path_b"], strict=True)]
+    pairs = pairs[pd.Series(across, index=pairs.index, dtype=bool)]
     pairs = pairs.reset_index(drop=True)
     pairs["split_a"] = pairs["path_a"].map(split)
     pairs["split_b"] = pairs["path_b"].map(split)

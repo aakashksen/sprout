@@ -11,6 +11,7 @@ import pandas as pd
 from PIL import Image
 from torch.utils.data import Dataset
 
+from sprout.atomic import atomic_write
 from sprout.data.masks import BLACK_BELOW, hsv_mask, segmented_path
 from sprout.data.splits import load_manifest
 from sprout.segment.crop import crop_to_disease
@@ -81,7 +82,7 @@ class MaskStore:
     def save(self, path: Path) -> None:
         paths = sorted(self.masks)
         bits = np.stack([np.packbits(self.masks[p].astype(bool)) for p in paths]) if paths else np.zeros((0, 1), np.uint8)
-        np.savez_compressed(path, paths=np.array(paths), bits=bits)
+        atomic_write(Path(path), lambda f: np.savez_compressed(f, paths=np.array(paths), bits=bits))
 
     @classmethod
     def load(cls, path: str | Path) -> "MaskStore":

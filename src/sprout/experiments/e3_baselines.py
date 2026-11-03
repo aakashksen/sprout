@@ -53,10 +53,10 @@ from sprout.baselines.frozen import (
 from sprout.data.splits import dataset_hash, load_manifest
 from sprout.eval.check_run import Scored, recompute_comparison
 from sprout.eval.predict import Predictions
-from sprout.eval.records import ROOT, RUNS_REL, is_dirty, write_run
-from sprout.experiments.e2_field import KINDS, _system_scores, load_rows, shared_classes
+from sprout.eval.records import ROOT, is_dirty, write_run
+from sprout.experiments.common import load_e1, score_systems
+from sprout.experiments.e2_field import KINDS, load_rows, shared_classes
 from sprout.preprocess import preprocess
-from sprout.train.checkpoint import load_checkpoint
 from sprout.train.dataset import ManifestDataset, make_class_map, val_transform
 from sprout.train.loop import build_model
 
@@ -100,34 +100,12 @@ def load_split(split: str) -> pd.DataFrame:
     return df[df["split"] == split].reset_index(drop=True)
 
 
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def _digest(*parts: Any) -> str:
     return hashlib.sha256(json.dumps(parts, sort_keys=True, default=str).encode()).hexdigest()
 
 
 def tensor_bytes(state: dict[str, torch.Tensor]) -> int:
     return sum(v.numel() * v.element_size() for v in state.values())
-
-
-def load_e1(cfg: dict[str, Any], root: Path):
-    """The E1 model, after checking the checkpoint is the one the named E1 record produced."""
-    ckpt_path = root / cfg["checkpoint"]
-    if not ckpt_path.is_file():
-        raise RuntimeError(f"E1 checkpoint not found at {ckpt_path}; E3 cannot run without it")
-    e1_path = root / RUNS_REL / f"{cfg['e1_run_id']}.json"
-    if not e1_path.is_file():
-        raise RuntimeError(f"E1 record {cfg['e1_run_id']} not found at {e1_path}")
-    ckpt = load_checkpoint(ckpt_path)
-    attempt = json.loads(e1_path.read_text(encoding="utf-8"))["attempts"][0]
-    if abs(ckpt["best_metric"] - attempt["best_dev_accuracy"]) > 1e-9:
-        raise RuntimeError(
-            f"checkpoint best lab_dev accuracy {ckpt['best_metric']} differs from E1 record's "
-            f"{attempt['best_dev_accuracy']}; it was not produced by that run"
-        )
-    return ckpt, [h["seconds"] for h in attempt["history"]], _sha256(ckpt_path)
 
 
 def e1_probs(ckpt: dict, rows: pd.DataFrame, batch_size: int, num_workers: int, device: torch.device) -> np.ndarray:
@@ -270,7 +248,8 @@ def run(cfg: dict[str, Any], root: Path = ROOT) -> list[Path]:
         if split not in KINDS:
             raise ValueError(f"E3 scores only {sorted(KINDS)}; refusing {split!r}")
     log = Log(cache / "stages.log")
-    ckpt, e1_seconds, sha = load_e1(cfg, root)
+    ckpt, e1_attempt, sha = load_e1(cfg, root, "E3")
+    e1_seconds = [h["seconds"] for h in e1_attempt["history"]]
     class_map: dict[str, int] = ckpt["class_map"]
     class_names = sorted(class_map, key=class_map.get)
     if class_map != make_class_map(load_manifest("lab")):
@@ -325,7 +304,7 @@ def run(cfg: dict[str, Any], root: Path = ROOT) -> list[Path]:
         rows = eval_rows[split]
         labels_idx = np.array([class_map[x] for x in rows["label"]], dtype=int)
         systems = {s: Predictions(list(rows["path"]), labels_idx, results[s].probs[split]) for s in SYSTEMS}
-        metrics, intervals = _system_scores(rows, systems)
+        metrics, intervals = score_systems(rows, systems)
         groups = list(rows["group"])
         scored = {s: Scored(groups=groups, labels=p.label, probs=p.probs) for s, p in systems.items()}
         comparisons = []

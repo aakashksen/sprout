@@ -111,3 +111,9 @@ def test_legacy_classes_map_onto_38_shared_classes():
     assert len(mapping) == 38 and sorted(mapping.values()) == official
     assert mapping["Cherry___healthy"] == "Cherry_(including_sour)___healthy"
     assert mapping["Corn___Common_rust"] == "Corn_(maize)___Common_rust_"
+
+
+def test_note_is_appended_to_the_record_notes(repo, cfg):
+    rec = json.loads(run(cfg, repo, note="Restore of the lost checkpoint; same config and seed.").read_text())
+    assert LEGACY_LABEL in rec["notes"]
+    assert rec["notes"].endswith("Restore of the lost checkpoint; same config and seed.")

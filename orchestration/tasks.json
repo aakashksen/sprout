@@ -435,8 +435,7 @@
         "docker compose build app",
         "{py} -m pytest tests/test_container.py -q -m \"real or not real\""
       ],
-      "status": "in_progress",
-      "worktree": "<local path>",
+      "status": "done",
       "started_at": "2026-11-03T06:20:03+00:00",
       "verified": {
         "commit": "7af21698f8d021ce81318a809871f4c550c62681",
@@ -444,7 +443,8 @@
         "at": "2026-11-03T06:57:59+00:00"
       },
       "attempts": 1,
-      "reason": "deploy/entrypoint.sh has no line-ending protection: a fresh Windows clone gets CRLF, the image builds, and the container fails every start with exec no such file or directory, exit 255"
+      "reason": "deploy/entrypoint.sh has no line-ending protection: a fresh Windows clone gets CRLF, the image builds, and the container fails every start with exec no such file or directory, exit 255",
+      "done_at": "2026-11-03T07:03:40+00:00"
     },
     {
       "id": "T7.4",

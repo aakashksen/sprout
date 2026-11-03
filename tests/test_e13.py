@@ -2,7 +2,6 @@ import json
 import subprocess
 from pathlib import Path
 
-import pandas as pd
 import pytest
 
 from sprout.eval.records import split_info, subset_positions
@@ -171,3 +170,12 @@ def test_old_records_still_pass_check_run():
     assert found, "no earlier record to check"
     for exp in found:
         assert check(exp, root=root, min_n=200) == [], exp
+
+
+def test_real_config_names_saved_systems():
+    root = Path(__file__).resolve().parents[1]
+    cfg = e13.load_config(root / "configs" / "e13.json")
+    for view in cfg["views"]:
+        for system, rid in view["systems"].items():
+            rec = json.loads((root / "results" / "runs" / f"{rid}.json").read_text())
+            assert system in rec["predictions"] and rec["subset"] == view["subset"]

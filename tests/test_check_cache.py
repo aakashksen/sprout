@@ -76,6 +76,16 @@ def test_changed_manifest_rechecks_everything(root, calls):
     assert len(calls) == 2
 
 
+def test_changed_exclusion_list_rechecks_everything(root, calls):
+    make(root)
+    run(root)
+    calls.clear()
+    log = root / "datasets/label_exclusions.csv"
+    log.write_text("version,image_id\n1,abc\n")
+    run(root)
+    assert len(calls) == 1
+
+
 def test_changed_prediction_file_rechecks_the_record(root, calls):
     path = make(root)
     run(root)

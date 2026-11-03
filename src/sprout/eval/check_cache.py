@@ -87,7 +87,7 @@ def code_fingerprint() -> str:
 def data_fingerprint(root: Path) -> str:
     """The files every split is read from: a change to any of them forces a full recheck."""
     paths = sorted((root / "datasets" / "manifests").glob("*.csv"))
-    paths += [root / "datasets/rag/questions.jsonl", root / "datasets/perf/images.txt"]
+    paths += [root / "datasets/rag/questions.jsonl", root / "datasets/perf/images.txt", root / "datasets/label_exclusions.csv"]
     return _digest([p.name.encode() + (p.read_bytes() if p.is_file() else b"<missing>") for p in paths])
 
 

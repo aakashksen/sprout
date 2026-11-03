@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-SPLITS = ("train", "val", "test")
+SPLITS = ("lab_train", "lab_dev", "lab_test")
 MANIFEST_DIR = Path(__file__).resolve().parents[3] / "datasets" / "manifests"
 COLUMNS = ["path", "label", "group", "split", "sha1"]
 

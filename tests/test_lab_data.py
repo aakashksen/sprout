@@ -79,7 +79,7 @@ def test_every_class_in_every_split():
         [(f"t/{i}.png", "t", f"t{i}", "x") for i in range(3)],
         columns=["path", "label", "group", "sha1"],
     )
-    assert set(make_splits(tiny)["split"]) == {"train", "val", "test"}
+    assert set(make_splits(tiny)["split"]) == {"lab_train", "lab_dev", "lab_test"}
 
 
 def test_hash_changes_when_a_label_changes():
@@ -88,3 +88,7 @@ def test_hash_changes_when_a_label_changes():
     changed.loc[0, "label"] = "b"
     assert dataset_hash(m) != dataset_hash(changed)
     assert dataset_hash(m) == dataset_hash(m.copy())
+
+
+def test_split_names_are_lab_train_dev_test():
+    assert set(make_splits(_df())["split"]) == {"lab_train", "lab_dev", "lab_test"}

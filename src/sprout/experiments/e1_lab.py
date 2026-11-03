@@ -1,6 +1,6 @@
 """E1: ConvNeXt-Tiny fine-tuned on the lab data, scored on lab_dev next to the legacy checkpoint.
 
-Run from the repo root:  python -m sprout.experiments.e1_lab [--config configs/e1.json] [--resume PATH]
+Run from the repo root:  python -m sprout.experiments.e1_lab [--config configs/e1.json] [--resume PATH] [--note TEXT]
 """
 from __future__ import annotations
 
@@ -97,7 +97,7 @@ def _log_mlflow(root: Path, cfg: dict, train_cfg: TrainConfig, history: list[dic
         mlflow.log_metrics(final)
 
 
-def run(cfg: dict[str, Any], root: Path = ROOT, resume: Path | None = None) -> Path:
+def run(cfg: dict[str, Any], root: Path = ROOT, resume: Path | None = None, note: str = "") -> Path:
     """Train (or resume), score e1 and the legacy checkpoint on cfg['split'], write the record, return its path."""
     if is_dirty(root):
         raise RuntimeError("working tree has uncommitted changes; commit first")
@@ -169,6 +169,8 @@ def run(cfg: dict[str, Any], root: Path = ROOT, resume: Path | None = None) -> P
     ]
     state = "confirmed" if order_check["established"] else "NOT established"
     notes = f"{LEGACY_LABEL}. Its class order was {state} by its score on {split}. The lab_test split was not read."
+    if note:
+        notes = f"{notes} {note}"
     path = write_run(
         cfg["experiment"],
         split,
@@ -190,10 +192,11 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default="configs/e1.json")
     ap.add_argument("--resume", type=Path, help="checkpoint to continue from (latest.pt of an interrupted run)")
+    ap.add_argument("--note", default="", help="text appended to the record's notes")
     a = ap.parse_args(argv)
     cfg = json.loads((ROOT / a.config).read_text(encoding="utf-8"))
     try:
-        path = run(cfg, ROOT, a.resume)
+        path = run(cfg, ROOT, a.resume, a.note)
     except RuntimeError as exc:
         print(f"refused: {exc}", file=sys.stderr)
         return 1

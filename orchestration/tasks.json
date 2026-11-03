@@ -365,7 +365,14 @@
       "acceptance": [
         "{py} tools/check_candidates_doc.py"
       ],
-      "status": "pending"
+      "status": "done",
+      "started_at": "2026-11-03T16:01:15+00:00",
+      "verified": {
+        "commit": "d9eebb89257b320d3c8c92d7852c3a9b2087c26e",
+        "passed": true,
+        "at": "2026-11-03T16:06:52+00:00"
+      },
+      "done_at": "2026-11-03T16:09:31+00:00"
     },
     {
       "id": "T5.0",

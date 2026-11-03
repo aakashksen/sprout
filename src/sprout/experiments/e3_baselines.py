@@ -219,6 +219,21 @@ def run_encoder(name: str, spec: dict[str, Any], encoder, needs, y_train, y_dev,
     return result
 
 
+def run_e1(cfg, ckpt, sha: str, e1_seconds: list[float], eval_rows, splits, log: Log) -> Result:
+    e1 = Result({"checkpoint_sha256": sha, "trained_by": cfg["e1_run_id"]})
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    with stage(log, "e1_predict"):
+        e1.probs = {s: e1_probs(ckpt, eval_rows[s], cfg["batch_size"], cfg["num_workers"], device) for s in splits}
+    if torch.cuda.is_available():
+        e1.peak_mem = [torch.cuda.max_memory_allocated()]
+    e1.best_dev_accuracy = ckpt["best_metric"]
+    e1.history = f"see {cfg['e1_run_id']}"
+    e1.fit_seconds = e1_seconds
+    e1.train_seconds = sum(e1_seconds)
+    e1.size_bytes = tensor_bytes(ckpt["model"])
+    return e1
+
+
 def _measurements(results: dict[str, Result]) -> dict[str, list[float]]:
     out: dict[str, list[float]] = {}
     for name, r in results.items():
@@ -229,6 +244,18 @@ def _measurements(results: dict[str, Result]) -> dict[str, list[float]]:
             out[f"extract_shard_seconds_{name}"] = r.extract_seconds
         if r.peak_mem:
             out[f"peak_gpu_mem_bytes_{name}"] = [float(m) for m in r.peak_mem]
+    return out
+
+
+def _comparisons(rows: pd.DataFrame, systems: dict[str, Predictions]) -> list[dict[str, Any]]:
+    groups = list(rows["group"])
+    scored = {s: Scored(groups=groups, labels=p.label, probs=p.probs) for s, p in systems.items()}
+    out = []
+    for a, b in itertools.combinations(SYSTEMS, 2):
+        for metric in COMPARED:
+            got = recompute_comparison(scored[a], scored[b], metric)
+            out.append({"a": a, "b": b, "metric": metric, "diff": got["diff"], "ci": got["ci"],
+                        "mcnemar_p": got["mcnemar_p"]})
     return out
 
 
@@ -278,18 +305,7 @@ def run(cfg: dict[str, Any], root: Path = ROOT) -> list[Path]:
         "dinov2_small", cfg["dinov2_small"], load_dino_encoder(), needs, y_train, y_dev, n, dev_mask, splits,
         cfg, cache, log)
 
-    e1 = Result({"checkpoint_sha256": sha, "trained_by": cfg["e1_run_id"]})
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    with stage(log, "e1_predict"):
-        e1.probs = {s: e1_probs(ckpt, eval_rows[s], cfg["batch_size"], cfg["num_workers"], device) for s in splits}
-    if torch.cuda.is_available():
-        e1.peak_mem = [torch.cuda.max_memory_allocated()]
-    e1.best_dev_accuracy = ckpt["best_metric"]
-    e1.history = f"see {cfg['e1_run_id']}"
-    e1.fit_seconds = e1_seconds
-    e1.train_seconds = sum(e1_seconds)
-    e1.size_bytes = tensor_bytes(ckpt["model"])
-    results["e1"] = e1
+    results["e1"] = run_e1(cfg, ckpt, sha, e1_seconds, eval_rows, splits, log)
 
     measurements = _measurements(results)
     labels = {
@@ -305,14 +321,7 @@ def run(cfg: dict[str, Any], root: Path = ROOT) -> list[Path]:
         labels_idx = np.array([class_map[x] for x in rows["label"]], dtype=int)
         systems = {s: Predictions(list(rows["path"]), labels_idx, results[s].probs[split]) for s in SYSTEMS}
         metrics, intervals = score_systems(rows, systems)
-        groups = list(rows["group"])
-        scored = {s: Scored(groups=groups, labels=p.label, probs=p.probs) for s, p in systems.items()}
-        comparisons = []
-        for a, b in itertools.combinations(SYSTEMS, 2):
-            for metric in COMPARED:
-                got = recompute_comparison(scored[a], scored[b], metric)
-                comparisons.append({"a": a, "b": b, "metric": metric, "diff": got["diff"], "ci": got["ci"],
-                                    "mcnemar_p": got["mcnemar_p"]})
+        comparisons = _comparisons(rows, systems)
         config = {
             "class_names": class_names,
             "e3": dict(cfg),

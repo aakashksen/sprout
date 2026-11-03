@@ -113,7 +113,6 @@ No healthy class in the lab data: Orange, Squash.
 ## Cross-source duplicates
 
 - Groups in `field.csv` holding images from both sources: 84 (179 images). Each group sits whole in one split.
-- `field_conflicts.csv`: 219 images with conflicting labels (plantdoc 110, plantseg 109).
 - `field_reviewed_links.csv`: 6 hand-reviewed same-photo links, 1 of them across sources.
 
 Images in cross-source groups, by class:
@@ -137,3 +136,11 @@ Images in cross-source groups, by class:
 | Tomato___Septoria_leaf_spot | 19 |
 | Tomato___Tomato_Yellow_Leaf_Curl_Virus | 12 |
 
+
+## Label-conflict images
+
+These are not cross-source duplicates. Each row in `field_conflicts.csv` is an image whose
+scene or photo also carries a different label, and it is kept out of `field.csv`.
+
+- Images in `field_conflicts.csv`: 219 (plantdoc 110, plantseg 109).
+- Conflict groups: 100. Groups whose images all come from one source: 62. Groups with images from both sources: 38.

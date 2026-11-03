@@ -58,8 +58,20 @@ def thin_reasons(row: pd.Series) -> str:
     return "; ".join(parts)
 
 
-def cross_source(field: pd.DataFrame, conflicts: pd.DataFrame, links: pd.DataFrame) -> dict:
-    """Counts of cross-source duplicates and label conflicts, from manifest rows only."""
+def label_conflicts(conflicts: pd.DataFrame) -> dict:
+    """Images removed for conflicting labels, by group. Not duplicates across sources."""
+    per_group = conflicts.groupby("group")["source"].nunique()
+    return {
+        "images": len(conflicts),
+        "images_by_source": conflicts.groupby("source").size(),
+        "groups": len(per_group),
+        "single_source_groups": int((per_group == 1).sum()),
+        "two_source_groups": int((per_group > 1).sum()),
+    }
+
+
+def cross_source(field: pd.DataFrame, links: pd.DataFrame) -> dict:
+    """Counts of images shared across sources, from manifest rows only."""
     n_sources = field.groupby("group")["source"].nunique()
     spanning = set(n_sources.index[n_sources > 1])
     span_rows = field[field["group"].isin(spanning)]
@@ -72,8 +84,6 @@ def cross_source(field: pd.DataFrame, conflicts: pd.DataFrame, links: pd.DataFra
         "spanning_groups": len(spanning),
         "spanning_images": len(span_rows),
         "spanning_by_label": span_rows.groupby("label").size().sort_index(),
-        "conflicts": len(conflicts),
-        "conflicts_by_source": conflicts.groupby("source").size(),
         "links": len(links),
         "links_cross_source": cross,
     }
@@ -105,7 +115,8 @@ def render_report(
     lab: pd.DataFrame, field: pd.DataFrame, conflicts: pd.DataFrame, links: pd.DataFrame
 ) -> str:
     table = class_table(lab, field)
-    dup = cross_source(field, conflicts, links)
+    dup = cross_source(field, links)
+    conf = label_conflicts(conflicts)
     healthy = healthy_by_crop(table)
     lines = [
         "# Class report",
@@ -147,15 +158,24 @@ def render_report(
         "",
         f"- Groups in `field.csv` holding images from both sources: {dup['spanning_groups']} "
         f"({dup['spanning_images']} images). Each group sits whole in one split.",
-        f"- `field_conflicts.csv`: {dup['conflicts']} images with conflicting labels ("
-        + ", ".join(f"{k} {v}" for k, v in dup["conflicts_by_source"].items())
-        + ").",
         f"- `field_reviewed_links.csv`: {dup['links']} hand-reviewed same-photo links, "
         f"{dup['links_cross_source']} of them across sources.",
         "",
         "Images in cross-source groups, by class:",
         "",
         _md_table(dup["spanning_by_label"].rename("images").reset_index()),
+        "",
+        "## Label-conflict images",
+        "",
+        "These are not cross-source duplicates. Each row in `field_conflicts.csv` is an image whose",
+        "scene or photo also carries a different label, and it is kept out of `field.csv`.",
+        "",
+        f"- Images in `field_conflicts.csv`: {conf['images']} ("
+        + ", ".join(f"{k} {v}" for k, v in conf["images_by_source"].items())
+        + ").",
+        f"- Conflict groups: {conf['groups']}. Groups whose images all come from one source: "
+        f"{conf['single_source_groups']}. Groups with images from both sources: "
+        f"{conf['two_source_groups']}.",
     ]
     return "\n".join(lines)
 

@@ -86,3 +86,32 @@ def test_every_kept_class_has_a_coverage_row():
         assert rows.set_index("label").loc[label, "crop"] == "none"
     for _, r in rows.iterrows():
         assert r["crop"] == (cr.class_crop(r["label"]) or "none")
+
+
+def test_yes_rows_cite_document_and_page_and_no_rows_record_queries():
+    rows = cr.load_coverage()
+    yes = rows[rows["symptoms_described"] == "yes"]
+    no = rows[rows["symptoms_described"] == "no"]
+    assert len(yes) and len(no)
+    for _, r in yes.iterrows():
+        assert r["document"].strip() and r["page"].strip(), r["label"]
+    for _, r in no.iterrows():
+        assert "Queries" in r["evidence"], r["label"]
+    by_label = rows.set_index("label")["symptoms_described"]
+    assert by_label["Tomato___Bacterial_spot"] == "yes"
+    assert by_label["Tomato___Spider_mites Two-spotted_spider_mite"] == "yes"
+    assert by_label["Grape___Leaf_blight_(Isariopsis_Leaf_Spot)"] == "yes"
+
+
+def test_label_conflicts_are_not_reported_as_cross_source_duplicates():
+    conflicts = pd.read_csv(cr.MANIFESTS / "field_conflicts.csv")
+    conf = cr.label_conflicts(conflicts)
+    assert conf["images"] == len(conflicts)
+    assert conf["single_source_groups"] + conf["two_source_groups"] == conf["groups"]
+    assert conf["single_source_groups"] > 0
+    lab, field = _manifests()
+    links = pd.read_csv(cr.MANIFESTS / "field_reviewed_links.csv")
+    text = cr.render_report(lab, field, conflicts, links)
+    dup_section = text.split("## Cross-source duplicates")[1].split("## Label-conflict images")[0]
+    assert "field_conflicts" not in dup_section
+    assert "## Label-conflict images" in text

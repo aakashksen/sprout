@@ -507,3 +507,133 @@ def test_per_class_and_confusion_saved_and_checked(root):
     failing(root, "per_class does not recompute")
     edit(path, lambda r: r.update(per_class={}))
     failing(root, "per_class does not recompute")
+
+
+def commit(root, msg="records"):
+    sh(root, "add", "-A")
+    sh(root, "commit", "-q", "-m", msg)
+
+
+def test_empty_subset_cannot_carry_a_fabricated_metric(root):
+    info = split_info("lab_dev", root)
+    empty = Predictions([], np.array([], dtype=int), np.zeros((0, 2)))
+    make(root, split="lab_dev", subset="first_0", predictions={"a": empty}, comparisons=[], intervals={},
+         config={"class_names": NAMES}, metrics={"a": {"accuracy": 0.999}}, dataset_hash=info.hash)
+    failing(root, "no scored rows")
+
+
+def test_split_with_no_items_cannot_pass(root):
+    info = split_info("not_plant_test", root)
+    assert info.ids == []
+    make(root, split="not_plant_test", predictions={"g": []}, comparisons=[], intervals={}, config={},
+         metrics={"g": {"plant_rejection_rate": 0.0}}, dataset_hash=info.hash)
+    failing(root, "no scored rows")
+
+
+def test_empty_predictions_file_cannot_pass(root):
+    path = make(root, split="lab_dev")
+    for pred in root.glob("results/runs/E1-*.predictions.jsonl"):
+        pred.write_text("")
+    edit(path, lambda r: r.update(n=0, subset="first_0"))
+    failing(root, "no scored rows")
+
+
+def test_mixed_row_shapes_fail_closed(root):
+    make(root, split="lab_dev")
+    pred = next(root.glob("results/runs/E1-*.a.predictions.jsonl"))
+    rows = [json.loads(x) for x in pred.read_text().splitlines()]
+    del rows[1]["probs"]
+    pred.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    failing(root, "same fields")
+
+
+def test_finished_at_must_agree_with_run_id(root):
+    path = make(root)
+    edit(path, lambda r: r.update(finished_at="2099-01-01T00:00:00+00:00"))
+    failing(root, "finished_at")
+
+
+def stems_flagged_by_check(root, experiment, split):
+    out = set()
+    for p in check_run.check(experiment, root=root, split=split):
+        out.add(p.split(":")[0].removesuffix(".json"))
+    return out
+
+
+def stems_flagged_by_claims(root, experiment):
+    runs = sorted(root.glob(f"results/runs/{experiment}-*.json"))
+    flagged = set()
+    for p in runs:
+        if p.name.count(".") > 1:
+            continue
+        claim(root, p.stem, json.loads(p.read_text())["metrics"]["a"]["accuracy"])
+        if any(": run: " in m for m in check_claims(root)):
+            flagged.add(p.stem)
+    return flagged
+
+
+def attack_states(root):
+    """Yield (name, root) after building each situation with two lab_test uses."""
+    first = make(root, experiment="E9")
+    commit(root)
+    second = make(root, experiment="E9")
+    yield "second use", second
+    rec = json.loads(first.read_text())
+    rec["finished_at"] = "2099-01-01T00:00:00+00:00"
+    first.write_text(json.dumps(rec))
+    yield "future finished_at on first", second
+    rec["finished_at"] = "2020-01-01T00:00:00+00:00"
+    copy = second.with_name("E9-20200101T000000000000Z.json")
+    c = json.loads(second.read_text())
+    c.update(run_id=copy.stem, finished_at="2020-01-01T00:00:00+00:00")
+    copy.write_text(json.dumps(c))
+    yield "earlier-stamped copy", copy
+    sh(root, "checkout", "--", str(first.relative_to(root)))
+    copy.unlink()
+    sh(root, "rm", "-q", "-f", str(first.relative_to(root)))
+    commit(root, "delete first")
+    yield "deleted first use", second
+
+
+def test_check_run_and_claims_agree_on_attack_states(root):
+    for name, cited in attack_states(root):
+        by_check = stems_flagged_by_check(root, "E9", "lab_test")
+        by_claims = stems_flagged_by_claims(root, "E9")
+        assert by_check == by_claims, (name, by_check, by_claims)
+        assert cited.stem in by_check or any(cited.stem in x for x in by_check), (name, by_check)
+
+
+def test_deleted_earlier_test_record_still_counts(root):
+    make(root, experiment="E9")
+    commit(root)
+    for f in root.glob("results/runs/E9-*"):
+        f.unlink()
+    commit(root, "delete")
+    second = make(root, experiment="E9")
+    failing(root, "more than one lab_test", experiment="E9")
+    assert second.exists()
+
+
+@pytest.mark.parametrize("note", [" ", True, "", 1])
+def test_override_note_must_be_a_real_string(root, note):
+    make(root, experiment="E9")
+    second = make(root, experiment="E9")
+    edit(second, lambda r: r["config"].update(override_note=note))
+    failing(root, "more than one lab_test", experiment="E9")
+
+
+def test_end_to_end_accuracy_counts_rejected_photos_as_wrong(root):
+    p, info = preds(root, "lab_dev", flip=(0,))
+    accepted = [True, True, False, True, True, True]
+    s = Scored(groups=info.groups, labels=p.label, probs=p.probs, accepted=np.array(accepted))
+    assert recompute_metric("accuracy", s) == pytest.approx(5 / 6)
+    assert recompute_metric("end_to_end_accuracy", s) == pytest.approx(4 / 6)
+    rows = [{**r, "accepted": a} for r, a in zip(
+        [{"path": x, "label": int(y), "probs": [float(v) for v in pr]} for x, y, pr in zip(p.path, p.label, p.probs)],
+        accepted)]
+    path = make(root, split="lab_dev", predictions={"g": rows}, comparisons=[], intervals={},
+                config={"class_names": NAMES}, dataset_hash=info.hash,
+                metrics={"g": {"end_to_end_accuracy": 4 / 6, "plant_rejection_rate": 1 / 6}})
+    assert check("E1", root=root) == []
+    edit(path, lambda r: r["metrics"]["g"].update(end_to_end_accuracy=5 / 6))
+    failing(root, "end_to_end_accuracy does not recompute")

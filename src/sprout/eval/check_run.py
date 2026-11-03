@@ -6,6 +6,7 @@ import json
 import re
 import sys
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -70,6 +71,8 @@ def item_series(name: str, s: Scored) -> np.ndarray | None:
         m = re.fullmatch(r"coverage@([\d.]+)", name)
         if m:
             return (s.probs.max(axis=1) >= float(m.group(1))).astype(float)
+    if name == "end_to_end_accuracy" and s.probs is not None and s.labels is not None and s.accepted is not None:
+        return ((s.probs.argmax(axis=1) == s.labels) & s.accepted).astype(float)
     if s.ranks is not None:
         m = re.fullmatch(r"recall@(\d+)", name)
         if m:
@@ -190,7 +193,10 @@ def _score(
     rows: list[dict[str, Any]], info: SplitInfo, positions: list[int], rec: dict[str, Any], tag: str, out: list[str]
 ) -> Scored | None:
     """Align a system's rows to the split in manifest order; None (with problems added) when they don't fit."""
-    key = "path" if rows and "path" in rows[0] else "id"
+    if len({frozenset(r) for r in rows}) != 1:
+        out.append(tag + "every row must have the same fields")
+        return None
+    key = "path" if "path" in rows[0] else "id"
     ids = [r.get(key) for r in rows]
     wanted = [info.ids[i] for i in positions]
     if len(set(ids)) != len(ids) or set(ids) != set(wanted):
@@ -284,12 +290,24 @@ def _judge_problems(config: Any, models: Any) -> list[str]:
     return out
 
 
+def _stamp_problems(rec: dict[str, Any]) -> list[str]:
+    """finished_at must be the write time that run_id carries."""
+    found = TIMESTAMP.findall(str(rec.get("run_id")))
+    try:
+        stamp = datetime.strptime(found[-1], "%Y%m%dT%H%M%S%fZ").replace(tzinfo=timezone.utc)
+        ok = datetime.fromisoformat(rec["finished_at"]) == stamp
+    except (IndexError, ValueError, TypeError):
+        ok = False
+    return [] if ok else ["finished_at disagrees with the timestamp in run_id"]
+
+
 def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
     problems = [f"missing field {k}" for k in REQUIRED if k not in rec]
     if problems:
         return problems
     if rec["dirty"]:
         problems.append("record was made on a dirty tree")
+    problems += _stamp_problems(rec)
     if any(FAKE.search(s) for s in _strings(rec["models"])):
         problems.append("a model name matches fake or stub")
     if not rec["attempts"]:
@@ -311,6 +329,8 @@ def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
             positions = subset_positions(rec["subset"], rec["split"], info, root)
         except ValueError as exc:
             return problems + [str(exc)]
+    if not positions or rec["n"] == 0:
+        problems.append("no scored rows: the split or subset is empty")
     what = f"subset {rec['subset']}" if rec["subset"] else "split"
     if rec["n"] != len(positions):
         problems.append(f"n={rec['n']} differs from the {what}'s {len(positions)} items")
@@ -342,10 +362,17 @@ def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
             problems.append(tag + f"predictions hold {len(rows)} rows but n={rec['n']}")
         if not metrics[name] and rec["split"] != "perf":
             problems.append(tag + "metrics is empty")
-        scored = _score(rows, info, positions, rec, tag, problems) if rows else None
+        if not rows:
+            problems.append(tag + "no scored rows: the predictions file is empty")
+            continue
+        scored = _score(rows, info, positions, rec, tag, problems)
         if scored is None:
             continue
         usable[name] = scored
+
+    for name in set(paths) - set(usable):
+        if f"system {name}: " not in " ".join(problems):
+            problems.append(f"system {name}: was not scored")
 
     for name, scored in usable.items():
         tag = f"system {name}: "
@@ -413,24 +440,74 @@ def _is_view_of(view: dict[str, Any], full: dict[str, Any], root: Path) -> bool:
     return True
 
 
-def test_once_problems(root: Path) -> list[str]:
-    """A test split is scored once. Every record file on it counts, whatever its name or experiment; a
-    later one needs config.override_note. A declared subset of a full record's own predictions (same
-    commit, models, config) is a view of that use, not another."""
-    found: dict[str, list[tuple[str, dict[str, Any]]]] = {}
-    for p in (root / RUNS_REL).glob("*.json"):
-        if SIDECAR.fullmatch(p.name):
+def _valid_note(rec: dict[str, Any]) -> bool:
+    note = (rec.get("config") or {}).get("override_note")
+    return isinstance(note, str) and bool(note.strip())
+
+
+def _history(root: Path) -> list[tuple[str, str]]:
+    """(commit, path) for every file ever added under results/runs, oldest first. Raises when git can't say."""
+    out = git(root, "log", "--reverse", "--no-renames", "--diff-filter=A", "--name-only",
+              "--format=commit %H", "--", RUNS_REL.as_posix())
+    if out.returncode != 0:
+        raise RuntimeError(f"git log failed: {out.stderr.strip()}")
+    pairs, commit = [], ""
+    for line in out.stdout.splitlines():
+        if line.startswith("commit "):
+            commit = line.split()[1]
+        elif line.strip():
+            pairs.append((commit, line.strip()))
+    return pairs
+
+
+def _uses(root: Path) -> list[tuple[str, dict[str, Any]]]:
+    """Every test-split record that has ever existed (committed history plus working tree), in order of use:
+    committed ones by the commit that added them, then uncommitted ones by the timestamp in their name."""
+    recs: dict[str, tuple[tuple, dict[str, Any]]] = {}
+    for index, (commit, rel) in enumerate(_history(root)):
+        name = rel.rsplit("/", 1)[-1]
+        if not name.endswith(".json") or SIDECAR.fullmatch(name):
             continue
-        rec = json.loads(p.read_text(encoding="utf-8"))
-        if isinstance(rec, dict) and str(rec.get("split", "")).endswith("_test"):
-            found.setdefault(rec["split"], []).append((p.stem, rec))
+        path = root / rel
+        if path.is_file():
+            text = path.read_text(encoding="utf-8")
+        else:
+            shown = git(root, "show", f"{commit}:{rel}")
+            if shown.returncode != 0:
+                raise RuntimeError(f"git show failed for {rel}")
+            text = shown.stdout
+        recs[name[:-5]] = ((0, index, _timestamp(name)), json.loads(text))
+    for p in (root / RUNS_REL).glob("*.json"):
+        if p.stem not in recs and not SIDECAR.fullmatch(p.name):
+            recs[p.stem] = ((1, 0, _timestamp(p.name)), json.loads(p.read_text(encoding="utf-8")))
+    return [(stem, rec) for stem, (_, rec) in sorted(recs.items(), key=lambda kv: (kv[1][0], kv[0]))
+            if isinstance(rec, dict) and str(rec.get("split", "")).endswith("_test")]
+
+
+def test_once_problems(root: Path) -> list[str]:
+    """A test split is scored once. Every record that has ever existed on it counts, whatever its file name or
+    experiment, deleted or not; a later one needs a non-empty string config.override_note. A declared subset
+    of a full record's own predictions (same commit, models, config) is a view of that use, not another."""
+    by_split: dict[str, list[tuple[str, dict[str, Any]]]] = {}
+    for stem, rec in _uses(root):
+        by_split.setdefault(rec["split"], []).append((stem, rec))
     out = []
-    for split, recs in found.items():
+    for split, recs in by_split.items():
         uses = [(s, r) for s, r in recs if not any(_is_view_of(r, f, root) for t, f in recs if t != s)]
-        uses.sort(key=lambda t: (str(t[1].get("finished_at")), not TIMESTAMP.search(t[0]), t[0]))
         out += [f"{stem}: more than one {split} record and no override_note in config"
-                for stem, r in uses[1:] if not (r.get("config") or {}).get("override_note")]
+                for stem, r in uses[1:] if not _valid_note(r)]
     return out
+
+
+def check_file(path: Path, root: Path, min_n: int = 0, once: list[str] | None = None) -> list[str]:
+    """Every problem with one record file. check_run and claims both call this, so they agree."""
+    rec = json.loads(path.read_text(encoding="utf-8"))
+    problems = []
+    if rec.get("run_id") != path.stem or not TIMESTAMP.search(path.stem):
+        problems.append("the record's run_id must equal its file name and end in a write timestamp")
+    problems += check_record(rec, root, min_n)
+    once = test_once_problems(root) if once is None else once
+    return problems + [m.split(": ", 1)[1] for m in once if m.startswith(f"{path.stem}: ")]
 
 
 def check(experiment: str, *, root: Path = ROOT, min_n: int = 0, split: str | None = None) -> list[str]:
@@ -439,14 +516,8 @@ def check(experiment: str, *, root: Path = ROOT, min_n: int = 0, split: str | No
         recs = [(p, r) for p, r in recs if r.get("split") == split]
     if not recs:
         return [f"no run record for {experiment}"]
-    problems = []
-    for path, rec in recs:
-        if rec.get("run_id") != path.stem:
-            problems.append(f"{path.name}: run_id {rec.get('run_id')!r} differs from the file name")
-        problems += [f"{path.name}: {m}" for m in check_record(rec, root, min_n)]
-    stems = {p.stem for p, _ in recs}
-    problems += [m for m in test_once_problems(root) if m.split(":")[0] in stems]
-    return problems
+    once = test_once_problems(root)
+    return [f"{p.name}: {m}" for p, _ in recs for m in check_file(p, root, min_n, once)]
 
 
 def main(argv: list[str] | None = None) -> int:

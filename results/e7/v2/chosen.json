@@ -103,6 +103,42 @@
     "cuda": "12.8",
     "peak_gpu_mib": 479
    }
+  },
+  {
+   "stage": "header",
+   "kept": "base",
+   "record": "E7-20261103T235854416532Z",
+   "comparisons": [
+    {
+     "a": "header",
+     "b": "base",
+     "metric": "recall@5",
+     "diff": 0.06666666666666667,
+     "ci": [
+      0.0,
+      0.15
+     ],
+     "mcnemar_p": 0.21875
+    },
+    {
+     "a": "header",
+     "b": "base",
+     "metric": "mrr",
+     "diff": 0.007089947089947089,
+     "ci": [
+      -0.06952579365079366,
+      0.08293187830687819
+     ],
+     "mcnemar_p": 1.0
+    }
+   ],
+   "device": {
+    "device": "cuda",
+    "torch": "2.11.0+cu128",
+    "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+    "cuda": "12.8",
+    "peak_gpu_mib": 479
+   }
   }
  ]
 }

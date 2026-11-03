@@ -1,0 +1,203 @@
+{
+ "run_id": "E10-20261103T135121438366Z",
+ "experiment": "E10",
+ "git_commit": "50c5f47baae30cd166c9001c23a8e584f19516f9",
+ "dirty": false,
+ "dataset_hash": "7f0d7d5aa757ec19a7f21de306d63660d19c2a43eafbd55a5b7208050927d3b6",
+ "split": "seg_dev",
+ "subset": null,
+ "config": {
+  "experiment": "E10",
+  "manifest": "seg",
+  "out_dir": "models/e10",
+  "min_free_disk_gb": 40,
+  "model": "lraspp_mobilenet_v3_large",
+  "pretrained": true,
+  "size": 320,
+  "batch_size": 16,
+  "num_workers": 4,
+  "epochs": 12,
+  "lr": 0.0003,
+  "weight_decay": 0.01,
+  "seed": 0,
+  "model_source": {
+   "name": "lraspp_mobilenet_v3_large",
+   "weights": "torchvision LRASPP_MobileNet_V3_Large_Weights.COCO_WITH_VOC_LABELS_V1",
+   "url": "https://download.pytorch.org/models/lraspp_mobilenet_v3_large-d234d4ea.pth",
+   "license": "torchvision code is BSD-3-Clause; the weights were trained on a COCO subset (COCO annotations CC BY 4.0, images under their Flickr terms); the 21-class heads are replaced and retrained here"
+  },
+  "labels_reviewed": false
+ },
+ "models": {
+  "e10": "lraspp_mobilenet_v3_large fine-tuned on seg_train",
+  "whole_image": "baseline: every pixel diseased"
+ },
+ "n": 1028,
+ "metrics": {
+  "e10": {
+   "mean_iou": 0.5431828875462013,
+   "median_iou": 0.581131515657263,
+   "iou_ge_0.5": 0.5875486381322957
+  },
+  "whole_image": {
+   "mean_iou": 0.22086404681835595,
+   "median_iou": 0.13774350046943334,
+   "iou_ge_0.5": 0.12159533073929961
+  }
+ },
+ "measurements": {},
+ "judged": {},
+ "intervals": {
+  "e10": {
+   "mean_iou": [
+    0.5249537929969661,
+    0.5611491833460155
+   ],
+   "iou_ge_0.5": [
+    0.5543686705400188,
+    0.6195971187325654
+   ]
+  },
+  "whole_image": {
+   "mean_iou": [
+    0.20577423624611704,
+    0.23708540246324297
+   ],
+   "iou_ge_0.5": [
+    0.0999000999000999,
+    0.14497078145290657
+   ]
+  }
+ },
+ "per_class": {},
+ "confusion": {},
+ "bootstrap": {
+  "n": 10000,
+  "seed": 13
+ },
+ "comparisons": [],
+ "attempts": [
+  {
+   "setting": {
+    "experiment": "E10",
+    "manifest": "seg",
+    "model": "lraspp_mobilenet_v3_large",
+    "pretrained": true,
+    "size": 320,
+    "batch_size": 16,
+    "epochs": 12,
+    "lr": 0.0003,
+    "weight_decay": 0.01,
+    "seed": 0
+   },
+   "best_epoch": 11,
+   "history": [
+    {
+     "epoch": 1,
+     "train_loss": 0.31301729317544413,
+     "dev_iou": 0.4604410231113434,
+     "seconds": 103.20512060000328,
+     "peak_mem_allocated": 1050577408,
+     "peak_mem_reserved": 1495269376
+    },
+    {
+     "epoch": 2,
+     "train_loss": 0.2473154491866635,
+     "dev_iou": 0.48765674233436584,
+     "seconds": 82.20827209999698,
+     "peak_mem_allocated": 1050577408,
+     "peak_mem_reserved": 1495269376
+    },
+    {
+     "epoch": 3,
+     "train_loss": 0.22587975152503018,
+     "dev_iou": 0.5057411193847656,
+     "seconds": 77.3613372999971,
+     "peak_mem_allocated": 1050577408,
+     "peak_mem_reserved": 1495269376
+    },
+    {
+     "epoch": 4,
+     "train_loss": 0.20642372703453862,
+     "dev_iou": 0.5041136145591736,
+     "seconds": 78.80237520000082,
+     "peak_mem_allocated": 1050577408,
+     "peak_mem_reserved": 1495269376
+    },
+    {
+     "epoch": 5,
+     "train_loss": 0.1917206890973297,
+     "dev_iou": 0.5167373418807983,
+     "seconds": 80.93679049999628,
+     "peak_mem_allocated": 1050577408,
+     "peak_mem_reserved": 1495269376
+    },
+    {
+     "epoch": 6,
+     "train_loss": 0.17868445500055075,
+     "dev_iou": 0.5239618420600891,
+     "seconds": 84.2321918000016,
+     "peak_mem_allocated": 1050577408,
+     "peak_mem_reserved": 1495269376
+    },
+    {
+     "epoch": 7,
+     "train_loss": 0.16780946925384962,
+     "dev_iou": 0.5359525680541992,
+     "seconds": 80.80989280000358,
+     "peak_mem_allocated": 1050577408,
+     "peak_mem_reserved": 1495269376
+    },
+    {
+     "epoch": 8,
+     "train_loss": 0.15883025311784207,
+     "dev_iou": 0.5309399366378784,
+     "seconds": 88.15943100000004,
+     "peak_mem_allocated": 1050577408,
+     "peak_mem_reserved": 1495269376
+    },
+    {
+     "epoch": 9,
+     "train_loss": 0.15162049697140717,
+     "dev_iou": 0.5410299897193909,
+     "seconds": 87.3862500000032,
+     "peak_mem_allocated": 1050577408,
+     "peak_mem_reserved": 1495269376
+    },
+    {
+     "epoch": 10,
+     "train_loss": 0.1462616279536789,
+     "dev_iou": 0.5393757820129395,
+     "seconds": 81.75125499999558,
+     "peak_mem_allocated": 1050577408,
+     "peak_mem_reserved": 1495269376
+    },
+    {
+     "epoch": 11,
+     "train_loss": 0.1418176431521425,
+     "dev_iou": 0.5433838367462158,
+     "seconds": 84.74294770000415,
+     "peak_mem_allocated": 1050577408,
+     "peak_mem_reserved": 1495269376
+    },
+    {
+     "epoch": 12,
+     "train_loss": 0.13982451595417242,
+     "dev_iou": 0.5422067046165466,
+     "seconds": 84.57885220000026,
+     "peak_mem_allocated": 1050577408,
+     "peak_mem_reserved": 1495269376
+    }
+   ]
+  }
+ ],
+ "claude_calls": 0,
+ "labels_reviewed": false,
+ "predictions": {
+  "e10": "results/runs/E10-20261103T135121438366Z.e10.predictions.jsonl",
+  "whole_image": "results/runs/E10-20261103T135121438366Z.whole_image.predictions.jsonl"
+ },
+ "started_at": "2026-11-03T13:51:21.438366+00:00",
+ "finished_at": "2026-11-03T13:51:21.438366+00:00",
+ "notes": "PlantSeg masks mark disease on PlantSeg-style web photos; the model may not carry over to PlantDoc or other photos. seg_dev both picks the best epoch and scores it, so its IoU is slightly optimistic; there is no separate seg test split. Masks are PlantSeg's own and were not reviewed."
+}

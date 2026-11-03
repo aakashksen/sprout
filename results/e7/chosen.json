@@ -119,6 +119,53 @@
     "cuda": "12.8",
     "peak_gpu_mib": 137
    }
+  },
+  {
+   "stage": "queries",
+   "kept": "base",
+   "record": "E7-20261103T211620506065Z",
+   "comparisons": [
+    {
+     "a": "history",
+     "b": "base",
+     "metric": "recall@5",
+     "diff": -0.03333333333333333,
+     "ci": [
+      -0.1,
+      0.03333333333333333
+     ],
+     "mcnemar_p": 0.625
+    },
+    {
+     "a": "diseases",
+     "b": "base",
+     "metric": "recall@5",
+     "diff": -0.016666666666666666,
+     "ci": [
+      -0.05,
+      0.0
+     ],
+     "mcnemar_p": 1.0
+    },
+    {
+     "a": "full",
+     "b": "base",
+     "metric": "recall@5",
+     "diff": -0.05,
+     "ci": [
+      -0.13333333333333333,
+      0.016666666666666666
+     ],
+     "mcnemar_p": 0.375
+    }
+   ],
+   "device": {
+    "device": "cuda",
+    "torch": "2.11.0+cu128",
+    "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+    "cuda": "12.8",
+    "peak_gpu_mib": 137
+   }
   }
  ]
 }

@@ -637,3 +637,16 @@ def test_ece_difference_interval_is_paired_and_zero_when_nothing_changed():
     sharper = probs ** 3 / (probs ** 3).sum(axis=1, keepdims=True)
     diff, lo, hi = E.ece_diff(probs, sharper, labels, groups, n=200, seed=1)
     assert diff == pytest.approx(E.M.ece(sharper, labels) - E.M.ece(probs, labels)) and lo <= diff <= hi
+
+
+def test_yes_rates_split_decoys_wrong_candidates_and_the_true_class():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("e11_answer_check", ROOT / "tools" / "e11_answer_check.py")
+    tool = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(tool)
+    plan = [{"path": "p", "needed": ["tl-1", "te-1"], "decoys": ["cr-1"]}]
+    answers = [{"path": "p", "question": q, "answer": a} for q, a in (("tl-1", "yes"), ("te-1", "no"), ("cr-1", "unknown"))]
+    got = tool.yes_rates(answers, plan, {"p": NAMES[0]}, FAKE_BANK)
+    assert got["candidate_true_class"]["yes_rate"] == 1 and got["candidate_wrong_class"]["yes_rate"] == 0
+    assert got["decoy"]["unknown_rate"] == 1 and got["decoy"]["n"] == 1

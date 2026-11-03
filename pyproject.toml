@@ -2,7 +2,7 @@
 name = "sprout"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = ["pypdf", "fastembed", "numpy", "imagehash", "dvc", "pandas", "pillow"]
+dependencies = ["pypdf", "fastembed", "numpy", "imagehash", "dvc", "pandas", "pillow", "torch"]
 
 [project.optional-dependencies]
 dev = ["pytest", "ruff"]

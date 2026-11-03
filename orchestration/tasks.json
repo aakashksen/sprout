@@ -90,13 +90,9 @@
       ],
       "status": "in_progress",
       "started_at": "2026-11-03T03:20:32+00:00",
-      "verified": {
-        "commit": "63692024108aadd5a3a808704b2f830d586f1aa0",
-        "passed": true,
-        "at": "2026-11-03T04:56:02+00:00"
-      },
-      "attempts": 2,
-      "reason": "genuine same-photo pairs remain across field splits above dHash 6 (about 10 pairs at dHash<=8, 6-7 at pHash<=8), incl. one potato photo labelled early blight in train and late blight in dev/test; no independent cross-split similarity test"
+      "attempts": 0,
+      "reason": "one same-photo pair still crosses train/dev with conflicting labels: 2013Corn_GrayLeafSpot_0815_0003.JPG.jpg in Corn Gray leaf spot (dev) and Corn leaf blight (train), pHash 16 dHash 13, outside the 12-bit proposal rule",
+      "note": "user approved one final attempt, relayed by the coordinator: remove bad data only, no re-split, no new thresholds"
     },
     {
       "id": "T2.1",
@@ -156,10 +152,12 @@
       "worktree": "<local path>",
       "started_at": "2026-11-03T05:12:02+00:00",
       "verified": {
-        "commit": "234f7a77240512f4419d6d9ce588efc4e12c6934",
+        "commit": "340b9f50829e3e008355285f48d9fc8e6a3d6db8",
         "passed": true,
-        "at": "2026-11-03T05:27:29+00:00"
-      }
+        "at": "2026-11-03T06:12:04+00:00"
+      },
+      "attempts": 2,
+      "reason": "empty subset (first_0, n=0) skips recomputation so a fabricated 0.999 passes check_run and claims; claims check uses finished_at order and passes cases check_run E9 fails; deleting an earlier test record is not caught"
     },
     {
       "id": "T3.1",
@@ -407,7 +405,14 @@
       "acceptance": [
         "{py} -m pytest tests/test_frontend.py -q"
       ],
-      "status": "pending"
+      "status": "done",
+      "started_at": "2026-11-03T05:36:12+00:00",
+      "verified": {
+        "commit": "10d83880536abc205ea5efb28ef1c0418d971729",
+        "passed": true,
+        "at": "2026-11-03T06:00:30+00:00"
+      },
+      "done_at": "2026-11-03T06:18:10+00:00"
     },
     {
       "id": "T7.3",

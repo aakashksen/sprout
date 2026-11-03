@@ -35,7 +35,7 @@ ContextLens covers agents, LLM fine-tuning, and C++. SPROUT covers **training ri
 |---|---|---|
 | Data | Official 38-class PlantVillage release (CC BY-SA 3.0) for training; PlantDoc and PlantSeg for real-world testing; COCO 2017 validation, without potted-plant images, for `not_plant`. COCO and PlantDoc images stay local and are never redistributed | Measures the real gap with data whose source is known |
 | Splits | Group by the source IDs in the original filenames and by perceptual hashing, including flips and rotations, then split by group; permanent manifests | A source ID isn't proven to identify one physical leaf, and same-leaf photos that look different can still slip through, so reports say "near-duplicate-grouped" |
-| Primary model | ConvNeXt-Tiny fine-tuned from ImageNet weights | The original architecture, retrained cleanly |
+| Primary model | ConvNeXt-Tiny fine-tuned from ImageNet weights, or DINOv2 small if E4 selects it on `field_dev` | The original architecture, retrained cleanly; E3 had DINOv2 ahead on real photos |
 | Comparisons | HOG and color histograms + XGBoost; frozen ConvNeXt head; DINOv2 | Classic ML and a newer model |
 | Fixes for real photos | Train on real photos (PlantDoc and PlantSeg) and lab photos together from the start, with lab capped per class; stronger augmentation and background randomization; a separate arm cropping to the disease area with a segmentation model trained on PlantSeg's masks. All selected on `field_dev`, with `field_test` frozen. The person checks before publishing any weights trained on PlantDoc | Real photos are what the model fell on, and training on lab photos alone fell far short |
 | Understanding | Grad-CAM | Shows what the model looks at |

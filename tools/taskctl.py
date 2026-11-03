@@ -490,11 +490,11 @@ def cmd_gpu_release(args):
     label = f"{ROOT.name}/{args.id}"
     with file_lock(GPU_LOCK.with_suffix(".guard"), wait_s=60, stale_s=120):
         lines = GPU_LOCK.read_text(encoding="utf-8").splitlines() if GPU_LOCK.exists() else []
-        keep = [] if args.force else [l for l in lines if l.split()[:1] != [label]]
+        keep = [] if args.force else [row for row in lines if row.split()[:1] != [label]]
         if not lines:
             print("no GPU share is held")
         elif len(keep) == len(lines):
-            sys.exit(f"refused: {label} holds no share; held by {', '.join(l.split()[0] for l in lines)}")
+            sys.exit(f"refused: {label} holds no share; held by {', '.join(row.split()[0] for row in lines)}")
         elif keep:
             GPU_LOCK.write_text("\n".join(keep) + "\n", encoding="utf-8")
             print(f"released {label}")

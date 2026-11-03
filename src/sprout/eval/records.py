@@ -5,6 +5,7 @@ import hashlib
 import json
 import re
 import subprocess
+import warnings
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -16,6 +17,7 @@ import pandas as pd
 from sprout.atomic import atomic_write_text
 from sprout.data.splits import COLUMNS, dataset_hash
 from sprout.eval import metrics as M
+from sprout.eval.mlflow_log import log_record
 from sprout.eval.predict import Predictions
 from sprout.eval.stats import percentile
 
@@ -35,8 +37,8 @@ def git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
 
 
 def is_dirty(root: Path) -> bool:
-    """Uncommitted changes, ignoring orchestration/ (as taskctl does) and new untracked run files."""
-    out = git(root, "status", "--porcelain", "-uall", "--", ".", ":!orchestration")
+    """Uncommitted changes, ignoring orchestration/ (as taskctl does), mlruns/ (logging output) and new untracked run files."""
+    out = git(root, "status", "--porcelain", "-uall", "--", ".", ":!orchestration", ":!mlruns")
     if out.returncode != 0:
         raise RuntimeError(f"git status failed: {out.stderr.strip()}")
     return any(ln and not ln.startswith(f"?? {RUNS_REL.as_posix()}/") for ln in out.stdout.splitlines())
@@ -244,4 +246,8 @@ def write_run(
     }
     path = runs / f"{run_id}.json"
     atomic_write_text(path, json.dumps(record, indent=1) + "\n")  # last: a record implies its files
+    try:
+        log_record(record, root)
+    except Exception as exc:  # the record is already saved and stays the source of truth
+        warnings.warn(f"{run_id}: the record was saved but not logged to MLflow: {exc!r}", stacklevel=2)
     return path

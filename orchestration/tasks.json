@@ -63,8 +63,8 @@
         "{py} -m pytest tests/test_lab_data.py -q",
         "{py} -m sprout.data.check_splits lab"
       ],
-      "status": "pending",
-      "reason": "Fetching the approved official PlantVillage release was denied by the permission system (git fetch of pinned commit into <local path>). Code and tests are committed; data, manifest, DVC tracking and data-counts remain. Needs the person to allow the fetch.",
+      "status": "blocked",
+      "reason": "Fetch of pinned PlantVillage commit into datasets/raw/_pv_upstream denied by the permission system, for both the implementer and the orchestrator. Needs the person to run it or allow it.",
       "attempts": 0,
       "note": "fetch allowed inside the project",
       "started_at": "2026-11-03T00:19:19+00:00"

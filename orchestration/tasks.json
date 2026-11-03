@@ -91,12 +91,12 @@
       "status": "in_progress",
       "started_at": "2026-11-03T03:20:32+00:00",
       "verified": {
-        "commit": "e11eaff50b0319568e72a282ea4bfb1c879b15f2",
+        "commit": "63692024108aadd5a3a808704b2f830d586f1aa0",
         "passed": true,
-        "at": "2026-11-03T03:39:35+00:00"
+        "at": "2026-11-03T04:56:02+00:00"
       },
-      "attempts": 1,
-      "reason": "pytest needs raw data (test_no_group_in_two_field_splits calls check() which requires datasets/raw); 3 near-duplicate pairs across field splits incl. one tomato photo labelled potato; wrong reasons on 27 shared rows in class_map.csv"
+      "attempts": 2,
+      "reason": "genuine same-photo pairs remain across field splits above dHash 6 (about 10 pairs at dHash<=8, 6-7 at pHash<=8), incl. one potato photo labelled early blight in train and late blight in dev/test; no independent cross-split similarity test"
     },
     {
       "id": "T2.1",
@@ -109,7 +109,14 @@
       "acceptance": [
         "{py} -m pytest tests/test_train.py -q"
       ],
-      "status": "pending"
+      "status": "done",
+      "started_at": "2026-11-03T04:56:12+00:00",
+      "verified": {
+        "commit": "39bb84ad0f29a74b3777e7b09904f84a0aeda446",
+        "passed": true,
+        "at": "2026-11-03T05:01:12+00:00"
+      },
+      "done_at": "2026-11-03T05:06:05+00:00"
     },
     {
       "id": "T2.2",
@@ -224,7 +231,14 @@
       "acceptance": [
         "{py} -m pytest tests/test_identify_types.py -q"
       ],
-      "status": "pending"
+      "status": "done",
+      "started_at": "2026-11-03T04:56:12+00:00",
+      "verified": {
+        "commit": "1d8f5da04bd42f381a71cd990d3c8675f97b6fd4",
+        "passed": true,
+        "at": "2026-11-03T04:58:26+00:00"
+      },
+      "done_at": "2026-11-03T05:05:54+00:00"
     },
     {
       "id": "T5.1",

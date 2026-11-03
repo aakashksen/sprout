@@ -1,6 +1,4 @@
-import json
 import random
-import subprocess
 
 import numpy as np
 import pandas as pd
@@ -141,3 +139,69 @@ def test_crop_arm_uses_full_image_on_tiny_mask(world):
     assert ds.image(1).size == (200, 100)  # a tiny predicted area leaves the whole photo
     with pytest.raises(KeyError):
         JointDataset(rows, make_class_map(manifest), train=False, masks=MaskStore({})).image(0)
+
+
+class FakeEncoder(torch.nn.Module):
+    """Same shape as DINOv2's interface: `blocks`, `norm`, class-token output."""
+
+    def __init__(self):
+        super().__init__()
+        self.stem = torch.nn.Sequential(torch.nn.AdaptiveAvgPool2d(2), torch.nn.Flatten(), torch.nn.Linear(12, 8))
+        self.blocks = torch.nn.ModuleList([torch.nn.Linear(8, 8) for _ in range(4)])
+        self.norm = torch.nn.LayerNorm(8)
+
+    def forward(self, x):
+        x = self.stem(x)
+        for b in self.blocks:
+            x = b(x)
+        return self.norm(x)
+
+
+def test_dino_classifier_freezes_all_but_the_head_and_the_chosen_blocks():
+    from sprout.baselines.dino import DinoClassifier
+
+    head_only = DinoClassifier(FakeEncoder(), 5, 0, feature_dim=8)
+    assert head_only.backbone_parameters() == []
+    assert {n for n, p in head_only.named_parameters() if p.requires_grad} == {"head.weight", "head.bias"}
+    tuned = DinoClassifier(FakeEncoder(), 5, 2, feature_dim=8)
+    names = {n for n, p in tuned.named_parameters() if p.requires_grad}
+    assert {"encoder.blocks.2.weight", "encoder.blocks.3.weight", "encoder.norm.weight", "head.weight"} == {
+        n for n in names if n.endswith(".weight")
+    }
+    assert not any(".blocks.0." in n or ".blocks.1." in n or "stem" in n for n in names)
+    tuned.train()
+    assert not tuned.encoder.training  # the frozen encoder never leaves evaluation mode
+    state = tuned.state_dict()  # one state holds encoder and head, so it can be exported whole
+    assert any(k.startswith("encoder.") for k in state) and "head.weight" in state
+    assert tuned(torch.zeros(2, 3, 8, 8)).shape == (2, 5)
+
+
+def test_optimizer_gives_unfrozen_blocks_their_own_rate():
+    from sprout.baselines.dino import DinoClassifier
+    from sprout.train.loop import _optimizer
+
+    model = DinoClassifier(FakeEncoder(), 5, 1, feature_dim=8)
+    opt = _optimizer(model, TrainConfig(manifest="m", out_dir="o", lr=1e-3, backbone_lr=1e-5))
+    assert sorted(g["lr"] for g in opt.param_groups) == [1e-5, 1e-3]
+    frozen = _optimizer(DinoClassifier(FakeEncoder(), 5, 0, feature_dim=8), TrainConfig(manifest="m", out_dir="o"))
+    assert len(frozen.param_groups) == 1 and len(frozen.param_groups[0]["params"]) == 2
+
+
+def test_mask_store_round_trips(tmp_path):
+    m = np.zeros((320, 320), bool)
+    m[10:50, 20:90] = True
+    MaskStore({"a/b.jpg": m, "c.jpg": ~m}).save(tmp_path / "m.npz")
+    back = MaskStore.load(tmp_path / "m.npz")
+    assert np.array_equal(back.get("a/b.jpg"), m) and np.array_equal(back.get("c.jpg"), ~m)
+
+
+def test_joint_run_trains_on_real_and_lab_selects_on_field_dev(world):
+    from sprout.train.checkpoint import load_checkpoint
+    from sprout.train.loop import train
+
+    cfg = _cfg(world, lab_cap=4, epochs=2, seed=1, lr=0.05)
+    out = train(cfg)
+    assert out.epochs_done == 2 and len(out.history) == 2
+    ckpt = load_checkpoint(out.best_path)
+    assert ckpt["config"].select_split == "field_dev" and ckpt["config"].lab_cap == 4
+    assert sorted(p.name for p in (world / "run").iterdir()) == ["best.pt", "latest.pt"]

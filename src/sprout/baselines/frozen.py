@@ -80,6 +80,7 @@ class Features:
     x: np.ndarray
     seconds: list[float] = field(default_factory=list)  # one per shard, whichever session made it
     peak_mem: list[int] = field(default_factory=list)  # peak GPU bytes per shard; empty without a GPU
+    fingerprint: str = ""  # of the settings and image list these features came from
 
 
 def cached_features(cache_dir: Path, name: str, key: str, rows: pd.DataFrame,
@@ -90,7 +91,7 @@ def cached_features(cache_dir: Path, name: str, key: str, rows: pd.DataFrame,
     folder = Path(cache_dir) / f"{name}-{fingerprint}"
     folder.mkdir(parents=True, exist_ok=True)
     parts: list[np.ndarray] = []
-    out = Features(np.zeros((0, 0), np.float32))
+    out = Features(np.zeros((0, 0), np.float32), fingerprint=fingerprint)
     starts = range(0, len(rows), shard_rows)
     for k, start in enumerate(starts):
         piece = rows.iloc[start:start + shard_rows]

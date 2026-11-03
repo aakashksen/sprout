@@ -1,0 +1,24 @@
+{
+  "experiment": "E3",
+  "checkpoint": "models/e1/best.pt",
+  "e1_run_id": "E1-20261103T092124608963Z",
+  "splits": ["field_dev", "lab_dev"],
+  "cache_dir": "models/e3",
+  "min_free_disk_gb": 40,
+  "batch_size": 64,
+  "num_workers": 8,
+  "shard_rows": 4096,
+  "seed": 0,
+  "classic": {
+    "features": {"size": 128, "orientations": 9, "pixels_per_cell": 16, "cells_per_block": 2, "bins": 32},
+    "xgboost": {"n_estimators": 200, "max_depth": 6, "learning_rate": 0.1, "subsample": 0.8,
+                "colsample_bytree": 0.5, "tree_method": "hist", "device": "cpu", "n_jobs": 8}
+  },
+  "frozen_convnext": {
+    "model": "convnext_tiny",
+    "head": {"lr": 0.001, "weight_decay": 0.01, "epochs": 30, "batch_size": 256}
+  },
+  "dinov2_small": {
+    "head": {"lr": 0.001, "weight_decay": 0.01, "epochs": 30, "batch_size": 256}
+  }
+}

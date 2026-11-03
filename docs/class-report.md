@@ -88,22 +88,24 @@ Classes with no real photo at all: Corn_(maize)___healthy, Grape___Esca_(Black_M
 
 ## Crops and their healthy class
 
-| crop | has_healthy_class | real | real_train | real_dev | real_test |
-|---|---|---|---|---|---|
-| Apple | True | 88 | 44 | 22 | 22 |
-| Blueberry | True | 114 | 57 | 29 | 28 |
-| Cherry_(including_sour) | True | 57 | 29 | 14 | 14 |
-| Corn_(maize) | True | 0 | 0 | 0 | 0 |
-| Grape | True | 69 | 35 | 17 | 17 |
-| Orange | False | 0 | 0 | 0 | 0 |
-| Peach | True | 111 | 55 | 28 | 28 |
-| Pepper,_bell | True | 61 | 31 | 15 | 15 |
-| Potato | True | 0 | 0 | 0 | 0 |
-| Raspberry | True | 119 | 59 | 30 | 30 |
-| Soybean | True | 65 | 33 | 16 | 16 |
-| Squash | False | 0 | 0 | 0 | 0 |
-| Strawberry | True | 95 | 47 | 24 | 24 |
-| Tomato | True | 63 | 31 | 16 | 16 |
+`healthy_real_*` counts the crop's healthy class only; `all_classes_real_photos` counts every class of the crop.
+
+| crop | has_healthy_class | healthy_real_photos | healthy_real_train | healthy_real_dev | healthy_real_test | all_classes_real_photos |
+|---|---|---|---|---|---|---|
+| Apple | True | 88 | 44 | 22 | 22 | 581 |
+| Blueberry | True | 114 | 57 | 29 | 28 | 114 |
+| Cherry_(including_sour) | True | 57 | 29 | 14 | 14 | 82 |
+| Corn_(maize) | True | 0 | 0 | 0 | 0 | 623 |
+| Grape | True | 69 | 35 | 17 | 17 | 215 |
+| Orange | False | 0 | 0 | 0 | 0 | 93 |
+| Peach | True | 111 | 55 | 28 | 28 | 111 |
+| Pepper,_bell | True | 61 | 31 | 15 | 15 | 177 |
+| Potato | True | 0 | 0 | 0 | 0 | 298 |
+| Raspberry | True | 119 | 59 | 30 | 30 | 119 |
+| Soybean | True | 65 | 33 | 16 | 16 | 65 |
+| Squash | False | 0 | 0 | 0 | 0 | 272 |
+| Strawberry | True | 95 | 47 | 24 | 24 | 114 |
+| Tomato | True | 63 | 31 | 16 | 16 | 1280 |
 
 
 Healthy class with real photos: Apple, Blueberry, Cherry_(including_sour), Grape, Peach, Pepper,_bell, Raspberry, Soybean, Strawberry, Tomato.

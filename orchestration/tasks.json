@@ -291,7 +291,9 @@
         "{py} -m pytest tests/test_e10.py -q",
         "{py} -m sprout.eval.check_run E10 --min-n 50 --split seg_dev"
       ],
-      "status": "pending"
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-03T13:04:00+00:00"
     },
     {
       "id": "T4.1",

@@ -115,3 +115,14 @@ def test_label_conflicts_are_not_reported_as_cross_source_duplicates():
     dup_section = text.split("## Cross-source duplicates")[1].split("## Label-conflict images")[0]
     assert "field_conflicts" not in dup_section
     assert "## Label-conflict images" in text
+
+
+def test_crop_table_separates_healthy_photos_from_all_real_photos():
+    lab, field = _manifests()
+    crops = cr.healthy_by_crop(cr.class_table(lab, field)).set_index("crop")
+    assert "real" not in crops.columns
+    assert crops.loc["Squash", "healthy_real_photos"] == 0
+    squash = field[field["label"].str.startswith("Squash___")]
+    assert crops.loc["Squash", "all_classes_real_photos"] == len(squash) > 0
+    assert crops.loc["Orange", "all_classes_real_photos"] > 0
+    assert crops["all_classes_real_photos"].sum() == len(field)

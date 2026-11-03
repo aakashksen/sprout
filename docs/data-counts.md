@@ -83,3 +83,24 @@ Largest groups by image count: g000682 (1290), g004509 (107), g002282 (19), g026
 | Tomato___Tomato_mosaic_virus | 260 | 58 | 55 | 373 |
 | Tomato___healthy | 1114 | 239 | 238 | 1591 |
 | TOTAL | 38016 | 8152 | 8137 | 54305 |
+
+## Old accuracy figures, reconciled with the E1 run
+Source of every number from this run: `results/runs/E1-20261103T074728015380Z.json` (commit `592fa2c0fd4c2cd09d3343c7dddd0b8296363f49`, clean tree, `lab_dev`, n = 8152, dataset hash as above, 10,000-resample group bootstrap, seed 13). All E1 scores are top-1 over the 38 official classes on `lab_dev` only; `lab_test` was not read.
+
+| System | accuracy (95% interval) | macro-F1 (95% interval) | ECE |
+|---|---|---|---|
+| E1: ConvNeXt-Tiny from ImageNet weights, fine-tuned on `lab_train` (10 epochs, lr 0.0001, batch 32) | 0.9979146221786065 (0.9968109702576189 to 0.9988966565624972) | 0.9966107943502964 (0.994622070375535 to 0.9982896717025654) | 0.0011059093317409797 |
+| Legacy: `legacy, may have seen these images; 39-class checkpoint mapped onto 38 shared classes` | 1.0 (1.0 to 1.0) | 1.0 (1.0 to 1.0) | 5.531762164523446e-05 |
+
+The legacy checkpoint's 39 outputs were mapped onto the 38 official classes by name (mapping saved in the record). Its `Background_without_leaves` output was dropped and probabilities were renormalised over the mapped outputs; the share of `lab_dev` images whose top legacy output was an unmapped one is 0.0. The class order from `legacy/PlantProject/application.py` is sorted and gives a score far above chance (1/38 = 0.0263), so the record marks it confirmed.
+
+**Do not read the legacy 1.0 as performance.** That checkpoint's training split is unknown, and its notebook (`model.ipynb`) shows how it was made: a `ConcatDataset` of an un-augmented and an augmented copy of the images, split 80/20 with `random_split` over individual images, with no near-duplicate grouping. Augmented copies of one photo could land on both sides of the split, and `lab_dev` here is drawn from the same PlantVillage images, so the old model very likely trained on many of them. A perfect score on images a model very likely trained on says nothing about its real-world ability. The E1 number is the one that was measured on grouped, held-out `lab_dev` images; the two are not a like-for-like comparison, and the record makes no comparison between them.
+
+Lab scores, both rows, are scores on clean PlantVillage photos (plain background, one leaf). They are not real-world performance; real photos are scored separately on `field_*` splits.
+
+### The three old figures
+- **99.97%**: the best `val_acc` (99.97006884166417 at epoch 11 of 16) in `legacy/PlantProject/ConvNextAIPredictionModel/training_history.json`, matching the notebook's printed log. It was measured on the notebook's random 20% validation split described above, whose membership is unknown and which was not grouped. It is a validation score used to pick the best epoch.
+- **97.5%**: the sentence "Accuracy: 97.5% on validation data" in `legacy/PlantProject/README.md`. The README gives no run, split or file for it, and it does not match the 99.97 in the training history. Its source is not established.
+- **98.5%**: no source found. It is not in `legacy/`, the notebook, the training history, the README or the other docs; the only place the number appears in this repo is the plan task that asks for the reconciliation.
+
+None of the three is reproduced by this run, and none should be quoted as a result. The README also says 38 classes while the checkpoint has 39 outputs.

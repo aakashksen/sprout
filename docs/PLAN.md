@@ -15,7 +15,7 @@
 - `.venv/Scripts/python -m pytest -q` needs no GPU, network, or spending. Real calls use `@pytest.mark.real`.
 - Numbers come only from `results/runs/`.
 - 8 GB VRAM shared with other projects, one GPU job at a time, mixed precision on.
-- Product calls to Claude capped at 1,000, on Haiku, counted in `results/claude_calls.json`. No API keys. DeepSeek is removed.
+- Product calls to Claude use Sonnet, capped at 5,000 as a runaway guard, counted in `results/claude_calls.json`. No API keys. DeepSeek is removed.
 - Evaluation and the app share one preprocessing function. Class order comes from the saved class map, never a hardcoded list.
 - `legacy/` is read-only.
 
@@ -152,7 +152,7 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 ### T4.0: Experiment E10, disease-area segmentation
 **Files:** `src/sprout/segment/data.py`, `src/sprout/segment/model.py`, `src/sprout/segment/crop.py`, `src/sprout/experiments/e10_segment.py`, `configs/e10.json`, `datasets/manifests/seg.csv`, `tests/test_e10.py`.
 **Produces:** `predict_mask(model, image) -> mask`; `crop_to_disease(image, mask, margin) -> image`, which returns the full image when the predicted area is tiny.
-**Do:** Use `num_workers=4` at most in real training, and `num_workers=0` in tests. Train a small segmentation model on PlantSeg's masks, from the `plantseg.zip` already downloaded, with no new download. Use only images not in `field_dev` or `field_test`. Exclude by group as well, and check PlantSeg images outside `field.csv` for near-duplicates of `field_dev` and `field_test` with the rule in `docs/field-dedup.md`, so no held-out photo reaches training. Write `seg.csv` with splits `seg_train` and `seg_dev`, and teach `check_run` the `seg_dev` split, recomputing per-image IoU from saved rows. Keep only best and latest. Report IoU honestly, and that PlantSeg's masks mark disease on PlantSeg-style photos and may not carry over to PlantDoc.
+**Do:** Use `num_workers=8` at most in real training; tests use what they need. Train a small segmentation model on PlantSeg's masks, from the `plantseg.zip` already downloaded, with no new download. Use only images not in `field_dev` or `field_test`. Exclude by group as well, and check PlantSeg images outside `field.csv` for near-duplicates of `field_dev` and `field_test` with the rule in `docs/field-dedup.md`, so no held-out photo reaches training. Write `seg.csv` with splits `seg_train` and `seg_dev`, and teach `check_run` the `seg_dev` split, recomputing per-image IoU from saved rows. Keep only best and latest. Report IoU honestly, and that PlantSeg's masks mark disease on PlantSeg-style photos and may not carry over to PlantDoc.
 **Tests:** `test_no_field_dev_or_field_test_photo_in_seg_manifest`; `test_near_duplicate_of_held_out_photo_is_excluded`; `test_crop_includes_margin`; `test_tiny_mask_falls_back_to_full_image`; `test_saved_iou_is_recomputed`.
 **Accept:** `{py} -m pytest tests/test_e10.py -q`; `{py} -m sprout.eval.check_run E10 --min-n 50 --split seg_dev`.
 
@@ -194,6 +194,12 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 **Agent:** use the `researcher` for lookups. **Files:** `docs/datasets.md`, `src/sprout/data/extra_sources.py`, `datasets/manifests/extra_train.csv`, `datasets/class_map_extra.csv`, `docs/extra-sources.md`, `tests/test_extra_sources.py`.
 **Do:** Gather more real photos, starting with PlantWild, plus Plant Pathology 2021 if it's publicly downloadable without login. Use only data publicly accessible without login, paywall, or getting around a block. Record each source in `docs/datasets.md`. Raw content stays in the git-ignored `datasets/raw/`, and is never committed or published. Stop and tell the coordinator before any download over 40 GB, or under 40 GB free. Map classes to lab classes, with unmappable ones excluded and a reason recorded. Deduplicate against each other, against `lab`, and against every `field.csv` split with the rule in `docs/field-dedup.md`, so no `field_dev` or `field_test` photo or copy reaches training. Cap per class. All of it goes into training only: `field_dev` and `field_test` are frozen and don't change. Report what each source added per class, and which thin classes it helped.
 **Tests:** `test_no_extra_image_duplicates_a_field_dev_or_field_test_photo`; `test_extra_sources_only_add_training_rows`; `test_field_manifest_is_unchanged`; `test_cap_limits_every_class`; `test_unmapped_classes_excluded`.
+**Accept:** `{py} -m pytest tests/test_extra_sources.py -q`.
+
+### T4.8: Plant Pathology 2021 as a further training source
+**Agent:** the T4.5 implementer's pipeline. **Files:** `src/sprout/data/extra_sources.py`, `tools/build_extra_sources.py`, `datasets/manifests/extra_train.csv`, `datasets/class_map_extra.csv`, `docs/extra-sources.md`, `docs/datasets.md`, `tests/test_extra_sources.py`.
+**Do:** The person approved fetching the public mirror `timm/plant-pathology-2021` on Hugging Face (about 16 GB, no login), recorded as third-party in `docs/datasets.md`, with what is known of its terms: the mirror's Apache-2.0 tag is the uploader's, and the Kaggle terms couldn't be confirmed. Raw content stays git-ignored and is never committed or published. Labels are multi-label: use only rows whose single label maps to a lab class (scab, healthy, rust; rust's mapping to `Apple___Cedar_apple_rust` is an inference, so check it by viewing samples), and exclude the rest with a recorded reason. Run the same copy checks as T4.5 against `field_dev` and `field_test`, and the same cap per class. Report what it adds per class after the cap, including if that's little. `field.csv` doesn't change. E12 waits for this because its data must stop changing first.
+**Tests:** `test_no_extra_is_a_near_copy_of_a_field_dev_or_field_test_photo` still holds with the new rows; `test_only_single_label_rows_that_map_are_used`; `test_extra_sources_only_add_training_rows`; `test_cap_limits_every_class`.
 **Accept:** `{py} -m pytest tests/test_extra_sources.py -q`.
 
 ### T4.6: Experiment E12, best configuration with more sources

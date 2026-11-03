@@ -304,6 +304,12 @@ Tooling choices first, then the results of the review.
 
 ## Serving, language model, and workflow
 
+### Limits dropped by the person (2026-11-03)
+- **Chose:** the person, through the coordinator, approved dropping three limits. Claude calls are Sonnet with a cap of 5,000. The cap on real training's DataLoader workers goes from 4 to 8 in E4, E5, and E10, and tests use what they need. Data leaving this machine in a new way no longer means stop and ask (the coordinator committed that `CLAUDE.md` change). Public data is no longer limited to what needs no login, which was the coordinator's wording, not the person's.
+- **Considered:** keeping the limits; the person rejected that. Temporary load limits while the person is on the laptop are separate and sit on top of these caps.
+- **Evidence:** the person's instruction, relayed by the coordinator. `num_workers` is a setting, and no recorded config changes with the cap; E4 and E5's first batches were seed-stable across worker counts in the tests that cover it. The worker crashes on this machine (`WinError 6`) came under load, so a higher count may need `num_workers` 0 again.
+- **Would change if:** crashes or memory alerts return at higher worker counts. Plant Pathology 2021 follows as T4.8.
+
 ### T6.4 - Local model `qwen3.5:4b-q4_K_M`; a different judge (2026-11-02)
 - **Chose:** `qwen3.5:4b-q4_K_M` as the local writer (100% on GPU, 63.5 tokens/s, 5/6 tool choices, 10/10 labels, 6/6 cited answers). `gemma4:e4b-it-qat` is the separate judge; Claude is never the judge.
 - **Considered and lost:** `gemma4:e4b-it-qat` as writer (9/10 labels), `qwen3.5:9b` (85% on GPU, 29.8 tokens/s), `granite4.2:8b` (92% on GPU, 27.7 tokens/s, 5/6 cards). The larger models were about half as fast and left less GPU room.

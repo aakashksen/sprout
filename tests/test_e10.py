@@ -216,12 +216,12 @@ def test_non_finite_loss_stops_training(tmp_path):
         e10.train_seg({**CFG, "lr": 1e30}, df, root, device=torch.device("cpu"))
 
 
-def test_num_workers_above_four_is_refused(tmp_path):
+def test_num_workers_above_eight_is_refused(tmp_path):
     p = tmp_path / "c.json"
-    p.write_text(json.dumps({**CFG, "num_workers": 5}))
-    with pytest.raises(ValueError, match="at most 4"):
+    p.write_text(json.dumps({**CFG, "num_workers": 9}))
+    with pytest.raises(ValueError, match="at most 8"):
         e10.load_config(p)
-    assert e10.load_config(Path("configs/e10.json"))["num_workers"] <= 4
+    assert e10.load_config(Path("configs/e10.json"))["num_workers"] <= 8
 
 
 def test_predict_mask_matches_photo_size():

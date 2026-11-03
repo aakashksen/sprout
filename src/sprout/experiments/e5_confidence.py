@@ -46,7 +46,7 @@ from sprout.serve.gate import (
     normalized_entropy,
 )
 
-MAX_WORKERS = 4
+MAX_WORKERS = 8
 DEV_SPLITS = ("field_dev", "not_plant_dev")
 FLOOR = 1e-12
 

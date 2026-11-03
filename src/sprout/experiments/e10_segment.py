@@ -38,7 +38,7 @@ from sprout.eval.records import ROOT, write_run
 from sprout.segment.data import disease_mask, mask_iou, rle_encode, rle_iou
 from sprout.segment.model import MODEL_SOURCE, build_model, predict_mask, to_tensor
 
-MAX_WORKERS = 4
+MAX_WORKERS = 8
 NOT_SETTINGS = ("num_workers", "out_dir", "min_free_disk_gb")
 CAVEAT = (
     "PlantSeg masks mark disease on PlantSeg-style web photos; the model may not carry over to PlantDoc or other "

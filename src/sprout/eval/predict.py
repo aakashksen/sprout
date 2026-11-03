@@ -2,10 +2,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
-import torch
 from PIL import Image
-
-from sprout.preprocess import preprocess
 
 
 @dataclass
@@ -19,6 +16,10 @@ def predict(
     model, manifest_split: pd.DataFrame, class_map: dict[str, int], batch_size: int = 32
 ) -> Predictions:
     """Softmax outputs for each manifest row, using the shared preprocessing."""
+    import torch
+
+    from sprout.preprocess import preprocess
+
     device = next(model.parameters()).device
     paths = list(manifest_split["path"])
     labels = np.array([class_map[x] for x in manifest_split["label"]], dtype=int)

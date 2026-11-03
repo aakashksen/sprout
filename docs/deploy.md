@@ -9,7 +9,6 @@ person's decision (H3 in `docs/HUMAN-GATES.md`).
 PyTorch. Retrieval embeds with `fastembed` on ONNX Runtime. The image runs as user `sprout` (uid 10001) and has no
 `.env`, datasets, raw documents, `legacy/`, `orchestration/`, or model files (`.dockerignore` and a test check
 this). COCO and PlantDoc images never enter an image. The only knowledge file copied is `knowledge/manifest.csv`.
-Image size was 487MB when built on 2026-11-02 (`results/runs/T7.3-baseline-memory.json`).
 
 ```
 docker compose build app
@@ -71,10 +70,9 @@ The serving import path (`deploy/wsgi.py`, `sprout.web`, `sprout.rag`, `sprout.s
 
 ## Workers
 
-Set `SPROUT_WORKERS` from measured memory. The default is 1 worker with 4 threads, because the only measurement so
-far is for the app without a model, and that cannot size the real service. That measurement
-(`results/runs/T7.3-baseline-memory.json`, one run, no model or index): 1 worker 62.45 MiB idle and 65.37 MiB after
-15 uploads; 2 workers 99.88 MiB idle and 106.6 MiB after 15 uploads.
+Set `SPROUT_WORKERS` from measured memory. The default is 1 worker with 4 threads. No figure for the real service
+exists yet: it needs the real model and index, so it is measured at T7.4 and entered through a run record. Raw notes
+from a check made without a model (not a result, not citable) are in `results/baselines/T7.3-memory.json`.
 
 To size it at T7.4, with the real model and index loaded, start with `SPROUT_WORKERS=1` and read
 `docker stats --no-stream` after warm-up and under 5 and 20 concurrent requests, then again with 2 workers. Each

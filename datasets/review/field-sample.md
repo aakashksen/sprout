@@ -47,7 +47,7 @@ A random sample of 50 labelled images from `datasets/manifests/field.csv` (seed 
 | 40 | [thumb](thumbs/40.jpg) | Squash___Powdery_mildew | plantseg | field_train | `squash_powdery_mildew_google_0050.jpg` |
 | 41 | [thumb](thumbs/41.jpg) | Tomato___Septoria_leaf_spot | plantdoc | field_dev | `tomato-badleaves.jpg` |
 | 42 | [thumb](thumbs/42.jpg) | Corn_(maize)___Common_rust_ | plantdoc | field_train | `0796.47southrust.jpg` |
-| 43 | [thumb](thumbs/43.jpg) | Apple___Cedar_apple_rust | plantseg | field_test | `apple_rust_52.jpg` |
+| 43 | [thumb](thumbs/43.jpg) | Apple___Cedar_apple_rust | plantseg | field_dev | `apple_rust_52.jpg` |
 | 44 | [thumb](thumbs/44.jpg) | Grape___Black_rot | plantdoc | field_test | `Black_Rot_of_Grapes1317.jpg` |
 | 45 | [thumb](thumbs/45.jpg) | Apple___healthy | plantdoc | field_dev | `green-leaf-apple-tree-isolated-white-background-33032695.jpg` |
 | 46 | [thumb](thumbs/46.jpg) | Potato___Late_blight | plantdoc | field_train | `potato-late-blight-symptom-on-leaves-PGB5NJ.jpg` |

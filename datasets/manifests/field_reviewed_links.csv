@@ -1,0 +1,7 @@
+path_a,path_b,reason
+datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_182.jpg,datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0221.jpg,"same tomato photo, one copy carries a search-site overlay"
+datasets/raw/plantdoc/Potato leaf late blight/potato-late-blight-phytophthora-infestans-lesions-on-potato-foliage-X4XJF4.jpg,datasets/raw/plantdoc/Potato leaf late blight/potato-late-blight-phytophthora-infestans-lesions-on-potato-foliage-a1w19k.jpg,"same potato-leaf photo at a different crop, alamy watermark on both"
+datasets/raw/plantseg_field/potato early blight/potato_early_blight_64.jpg,datasets/raw/plantseg_field/potato early blight/potato_early_blight_google_0001.jpg,"same potato-row photo, shifted crop, one copy has a caption stamp"
+datasets/raw/plantdoc/Apple rust leaf/cd6bfd6bfbcac781bd496bf13845fb0f.jpg,datasets/raw/plantseg_field/apple rust/apple_rust_google_0035.jpg,"same rusted-leaf photo, near-identical crop"
+datasets/raw/plantdoc/Peach leaf/peach-leaf-isolated-white-background-43668230.jpg,datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaves-isolated-203326555.jpg,same leaf-sprig stock photo from two stock sites
+datasets/raw/plantdoc/Soyabean leaf/depositphotos_15928367-stock-photo-soy-leaf.jpg,datasets/raw/plantdoc/Soyabean leaf/stock-photo-soy-leaf-isolated-on-white-background-120961801.jpg,same three-leaf stock photo from two stock sites

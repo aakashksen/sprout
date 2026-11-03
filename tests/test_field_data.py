@@ -14,6 +14,7 @@ from sprout.data.field import (
     hash_pairs,
     link_same_scene,
     make_class_map,
+    merge_reviewed_links,
     not_plant_images,
 )
 from sprout.data.inventory import file_sha1
@@ -265,6 +266,44 @@ def test_loose_hash_candidates_cannot_merge_unrelated_images(tmp_path):
     assert len({out[p] for p in paths[:4]}) == 4
     assert len({out[p] for p in paths[4:]}) == 1
     assert out[paths[4]] not in {out[p] for p in paths[:4]}
+
+
+def test_reviewed_links_merge_groups_on_top_of_the_rule(tmp_path):
+    a = _img(tmp_path / "a.png", 20)
+    b = _img(tmp_path / "b.png", 21)
+    c = _img(tmp_path / "c.png", 22)
+    groups = {a: "g0", b: "g1", c: "g2"}
+    links = pd.DataFrame({"path_a": [a], "path_b": [b], "reason": ["same photo"]})
+    out = merge_reviewed_links(groups, links)
+    assert out[a] == out[b] and out[c] != out[a]
+    gone = pd.DataFrame({"path_a": [a], "path_b": ["missing.png"], "reason": ["x"]})
+    assert merge_reviewed_links(groups, gone) == groups
+
+
+def test_reviewed_links_are_applied_to_the_assembled_field(tmp_path):
+    inv, cmap, lab = _fixture(tmp_path)
+    plain, _, _ = assemble_field(inv, cmap, lab)
+    pair = ["x1.png", "y1.png"]  # unrelated images in classes a and b
+    paths = [p for p in inv["path"] if Path(p).name in pair]
+    links = pd.DataFrame({"path_a": [paths[0]], "path_b": [paths[1]], "reason": ["r"]})
+    field, _, conflicts = assemble_field(inv, cmap, lab, reviewed_links=links)
+    # different labels, so the usual conflict removal drops both
+    assert not set(paths) & set(field["path"]) and set(paths) <= set(conflicts["path"])
+    assert set(paths) <= set(plain["path"])
+
+
+def test_reviewed_links_file_and_residual_judgments_are_consistent():
+    links = pd.read_csv(MANIFEST_DIR / "field_reviewed_links.csv")
+    assert len(links) > 0 and (links["reason"].str.len() > 0).all()
+    real = load_manifest("field")
+    split = dict(zip(real["path"], real["split"]))
+    group = dict(zip(real["path"], real["group"]))
+    for a, b in zip(links["path_a"], links["path_b"]):
+        if a in group and b in group:
+            assert group[a] == group[b] and split[a] == split[b]
+    listed = pd.read_csv(MANIFEST_DIR / "field_residual_pairs.csv")
+    assert set(listed["reviewed_same_photo"]) <= {"yes", "no"}
+    assert (listed["reviewed_same_photo"] == "no").all()
 
 
 def test_no_unlisted_cross_split_near_duplicate_in_real_manifest():

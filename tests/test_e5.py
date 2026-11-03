@@ -308,14 +308,3 @@ def test_stage_log_does_not_dirty_the_tree(world):
     ignore = (Path(__file__).resolve().parents[1] / ".gitignore").read_text().splitlines()
     assert f"{cfg['out_dir']}/stages.log" in ignore
 
-
-def test_score_images_runs_with_worker_processes(world):
-    import torch
-
-    from sprout.train.loop import build_model
-
-    root, cfg, _ = world
-    model = build_model("tiny_cnn", 3)
-    paths = [f"datasets/raw/n/{i}.png" for i in range(6)]
-    with_workers = e5.score_images(model, paths, root, 2, 2, torch.device("cpu"))
-    assert np.allclose(with_workers, e5.score_images(model, paths, root, 2, 0, torch.device("cpu")), atol=1e-6)

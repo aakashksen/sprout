@@ -11,7 +11,7 @@
   "hybrid": 0.886041,
   "hybrid+rerank": 0.945975
  },
- "prompt": "v1",
+ "prompt": "base+faithful",
  "decisions": [
   {
    "stage": "baseline",
@@ -201,6 +201,34 @@
     "cuda": "12.8",
     "peak_gpu_mib": 480
    }
+  },
+  {
+   "stage": "prompts",
+   "record": "E7-20261103T231812228057Z",
+   "prompt": "base+faithful",
+   "decisions": [
+    {
+     "addition": "faithful",
+     "target": "faithfulness",
+     "gain": 0.018487628579371695,
+     "answer_drop": 0.0,
+     "kept": true
+    },
+    {
+     "addition": "abstain",
+     "target": "declines_when_unanswerable",
+     "gain": 0.0,
+     "answer_drop": 0.0,
+     "kept": false
+    },
+    {
+     "addition": "ask",
+     "target": "declines_when_ambiguous",
+     "gain": 0.0,
+     "answer_drop": 0.1166666666666667,
+     "kept": false
+    }
+   ]
   }
  ]
 }

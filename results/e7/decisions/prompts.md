@@ -1,0 +1,5 @@
+### T6.4 - Prompt versions, one rule at a time, on qwen3.5:4b-q4_K_M (2026-11-03)
+- **Chose:** `base+faithful`
+- **Considered:** faithful (kept: target +0.018, answers_when_answerable change -0.000); abstain (dropped: target +0.000, answers_when_answerable change -0.000); ask (dropped: target +0.000, answers_when_answerable change -0.117)
+- **Evidence:** record `E7-20261103T231812228057Z` (n=101); judge gemma4:e4b-it-qat; 157 graded answers. Per variant faithfulness / answers_when_answerable / declines_when_unanswerable / declines_when_ambiguous: base: 0.848 / 0.650 / 1.000 / 1.000; faithful: 0.867 / 0.650 / 1.000 / 1.000; abstain: 0.880 / 0.650 / 1.000 / 1.000; ask: 0.844 / 0.533 / 1.000 / 1.000
+- **Would change if:** a second grader (T6.6) disagrees with the local judge on the claims in the blind file.

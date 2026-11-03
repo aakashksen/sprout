@@ -153,7 +153,7 @@ def test_collector_joins_and_refuses_bad_input(tmp_path):
 
 def _joined(field, ids, verdict, code="wrong_plant"):
     f = lr.with_ids(field).set_index("image_id").loc[ids].reset_index()
-    return f.assign(verdict=verdict, reason_code=code, note="n", sheet="c0001", cell=1)
+    return f.assign(verdict=verdict, reason_code=code, note="n", sheet="c0001", cell=1, began_as=verdict)
 
 
 def test_every_exclusion_has_id_source_split_reason(tmp_path):
@@ -219,3 +219,52 @@ def test_wilson_interval_and_report(tmp_path):
     log = lr.log_rows(_joined(field, [ids["image_id"][0], ids["image_id"][1]], "remove"), 1)
     text = lr.write_report(first, log, lr.read_log(tmp_path / "none.csv"), 0, tmp_path / "r.md")
     assert "## By class" in text and "Wilson 95%" in text
+
+
+def test_second_look_also_takes_uncertain_rows_whose_note_matches(tmp_path):
+    field = _mixed(tmp_path)
+    ids = list(lr.with_ids(field)["image_id"][:6])
+    first = pd.concat([
+        _joined(field, ids[:1], "remove"),
+        _joined(field, ids[1:3], "uncertain", "").assign(note=["Framed slide-like image", "leaf looks odd"]),
+        _joined(field, ids[3:], "ok", ""),
+    ])
+    pattern = "slide|poster"
+    assert set(lr.proposed(first, None)["image_id"]) == {ids[0]}
+    assert set(lr.proposed(first, pattern)["image_id"]) == {ids[0], ids[1]}
+    second = pd.concat([_joined(field, ids[:1], "ok", ""), _joined(field, ids[1:2], "remove")])
+    removals, unsure, overturned = lr.decide(first, second, pattern)
+    assert list(removals["image_id"]) == [ids[1]] and list(removals["began_as"]) == ["uncertain"]
+    assert set(unsure["image_id"]) == {ids[2]}  # the confirmed one is no longer uncertain
+    assert list(overturned["image_id"]) == [ids[0]]
+    # not confirmed: the matched uncertain row stays in the uncertain list
+    second = pd.concat([_joined(field, ids[:1], "remove"), _joined(field, ids[1:2], "ok", "")])
+    removals, unsure, _ = lr.decide(first, second, pattern)
+    assert list(removals["began_as"]) == ["remove"] and set(unsure["image_id"]) == {ids[1], ids[2]}
+    log = lr.log_rows(removals, 1)
+    assert "began_as" in log.columns
+    with pytest.raises(ValueError, match="exactly"):
+        lr.decide(first, second.iloc[:1], pattern)
+
+
+def test_report_states_calibration_and_how_removals_began(tmp_path):
+    field = _mixed(tmp_path)
+    ids = lr.with_ids(field)
+    first = _joined(field, list(ids["image_id"]), "ok", "")
+    log = pd.concat([
+        lr.log_rows(_joined(field, [ids["image_id"][1]], "remove"), 1),
+        lr.log_rows(_joined(field, [ids["image_id"][2]], "remove").assign(began_as="uncertain"), 1),
+    ])
+    text = lr.write_report(first, log, lr.read_log(tmp_path / "none.csv"), 0, tmp_path / "r.md")
+    assert "of 4 known-bad photos" in text and "2 were `remove`" in text and "1 was `uncertain`" in text
+    assert "1 was `ok`" in text and "lower bound" in text
+    assert "began as `remove`: 1" in text and "began as `uncertain`: 1" in text
+
+
+def test_default_uncertain_pattern_lives_in_the_config():
+    import json
+    import re
+
+    cfg = json.loads((Path(__file__).resolve().parents[1] / "configs" / "e13.json").read_text())
+    rx = re.compile(cfg["second_look_uncertain_regex"], re.I)
+    assert rx.search("Framed slide-like image") and rx.search("Not tomato") and not rx.search("blurry leaf")

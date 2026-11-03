@@ -9,6 +9,7 @@ results and imports nothing from the evaluation package.
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import sys
 from pathlib import Path
@@ -38,12 +39,18 @@ VERDICTS = ("ok", "remove", "uncertain")
 REASONS = ("not_plant_photo", "wrong_plant", "label_contradicted")
 SIDECAR_COLUMNS = ["sheet", "cell", "image_id", "label", "filename"]
 REVIEW_COLUMNS = ["sheet", "cell", "verdict", "reason_code", "note"]
-LOG_COLUMNS = ["version", "image_id", "path", "source", "split", "label", "reason_code", "note"]
+LOG_COLUMNS = ["version", "image_id", "path", "source", "split", "label", "reason_code", "note", "began_as"]
 FIRST_GRID, FIRST_CELL = (6, 5), 256  # columns, rows; pixels per cell (1536 wide, under the 1568 px reading size)
 SECOND_GRID, SECOND_CELL = (3, 2), 500
 CAPTION = 46
 HEADER = 28
 BAD_RATE = 0.05  # the plan's line for reviewing all of field_train
+CONFIG = ROOT / "configs" / "e13.json"
+CALIBRATION = (
+    "Limit, from a calibration of the first pass: of 4 known-bad photos placed on the sheets, 2 were `remove`, "
+    "1 was `uncertain` (\"framed slide-like image\") and 1 was `ok`. The sheets are conservative, so the removal "
+    "rates below are a lower bound on bad photos."
+)
 
 
 def id_column(field: pd.DataFrame) -> str:
@@ -189,22 +196,36 @@ def collect(reviews: list[Path], sidecars: list[Path], field: pd.DataFrame) -> p
     return out[["sheet", "cell", "image_id", "path", "source", "split", "label", "verdict", "reason_code", "note"]]
 
 
-def decide(first: pd.DataFrame, second: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """(removals, uncertain, overturned) from the first pass and the larger second look at its proposed removals.
+def proposed(first: pd.DataFrame, also_uncertain: str | None) -> pd.DataFrame:
+    """First-pass removals, plus uncertain rows whose note matches the (case-insensitive) pattern."""
+    hit = first["verdict"] == "remove"
+    if also_uncertain:
+        hit |= (first["verdict"] == "uncertain") & first["note"].str.contains(also_uncertain, case=False, regex=True)
+    return first[hit]
 
-    A photo is removed only if both looks say remove (the second look's reason and note are kept). Uncertain in
-    either look is logged, not removed. A first-pass removal the second look calls ok is overturned.
+
+def decide(
+    first: pd.DataFrame, second: pd.DataFrame, also_uncertain: str | None = None
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """(removals, uncertain, overturned) from the first pass and the larger second look at its proposed photos.
+
+    A photo is removed only if the second look says remove (its reason and note are kept; `began_as` says whether
+    the first pass said remove or uncertain). Uncertain photos not confirmed stay in the uncertain list. A
+    first-pass removal the second look calls ok is overturned.
     """
-    proposed = first[first["verdict"] == "remove"]
-    if set(second["image_id"]) != set(proposed["image_id"]):
+    asked = proposed(first, also_uncertain)
+    if set(second["image_id"]) != set(asked["image_id"]):
         raise ValueError("the second look must cover exactly the photos proposed for removal")
-    look = second.set_index("image_id")["verdict"]
-    verdict2 = proposed["image_id"].map(look)
-    removals = second[second["verdict"] == "remove"]
-    uncertain = pd.concat(
+    began = dict(zip(asked["image_id"], asked["verdict"]))
+    removals = second[second["verdict"] == "remove"].assign(began_as=lambda d: d["image_id"].map(began))
+    pool = pd.concat(
         [first[first["verdict"] == "uncertain"], second[second["verdict"] == "uncertain"]], ignore_index=True
     ).drop_duplicates("image_id")
-    overturned = proposed[verdict2.eq("ok").to_numpy()]
+    uncertain = pool[~pool["image_id"].isin(removals["image_id"])].assign(
+        began_as=lambda d: d["image_id"].map(began).fillna("uncertain")
+    )
+    look = second.set_index("image_id")["verdict"]
+    overturned = asked[(asked["verdict"] == "remove") & asked["image_id"].map(look).eq("ok")]
     return removals, uncertain, overturned
 
 
@@ -319,6 +340,7 @@ def write_report(
     dev_test = first[first["split"].isin(REVIEW_SPLITS)]
     sample = first[first["split"] == TRAIN_SPLIT]
     gone = log[log["image_id"].isin(first["image_id"])]
+    began = gone["began_as"].value_counts()
     unsure = uncertain[uncertain["image_id"].isin(first["image_id"])]
     text = [
         "# Label review of the real photos",
@@ -333,6 +355,13 @@ def write_report(
         f"Removed: {int(gone['split'].isin(REVIEW_SPLITS).sum())}. "
         f"Uncertain (kept): {int(unsure['split'].isin(REVIEW_SPLITS).sum())}. "
         f"Proposed for removal and kept after the second look: {overturned}.",
+        "",
+        CALIBRATION,
+        "",
+        "How the removals began (all reviewed photos): "
+        f"began as `remove`: {int(began.get('remove', 0))}; began as `uncertain`: {int(began.get('uncertain', 0))} "
+        "(an uncertain photo went to the larger sheets when its note matched the configured pattern, and was "
+        "removed only if the second look said remove).",
         "",
         "## By split",
         "",
@@ -385,6 +414,13 @@ def _sidecars(prefix: str, sheets_dir: Path) -> list[Path]:
     return found
 
 
+def _pattern(given: str | None) -> str | None:
+    """None when the option is absent, the given regex, or the default in configs/e13.json for a bare flag."""
+    if given == "":
+        return json.loads(CONFIG.read_text(encoding="utf-8"))["second_look_uncertain_regex"]
+    return given
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -396,11 +432,15 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--reviews", nargs="+", type=Path, required=True)
     c.add_argument("--out", type=Path, required=True)
     sl = sub.add_parser("second-look", help="larger sheets (prefix c) of the first pass's proposed removals")
-    sl.add_argument("--first", type=Path, required=True, help="joined first-pass file from collect")
+    sl.add_argument("--first", nargs="+", type=Path, required=True, help="joined first-pass files from collect")
+    sl.add_argument("--also-uncertain", nargs="?", const="", default=None, metavar="REGEX",
+                    help="also send uncertain rows whose note matches; bare flag uses the default in configs/e13.json")
     f = sub.add_parser("finish", help="apply both looks: log removals, write field_clean.csv and the report")
     f.add_argument("--first", nargs="+", type=Path, required=True, help="joined first-pass files (r and s)")
     f.add_argument("--second", type=Path, required=True, help="joined second-look file")
     f.add_argument("--version", type=int, required=True)
+    f.add_argument("--also-uncertain", nargs="?", const="", default=None, metavar="REGEX",
+                   help="the same pattern given to second-look")
     a = ap.parse_args(argv)
     field = pd.read_csv(FIELD_CSV)
     if a.cmd == "sheets":
@@ -415,14 +455,16 @@ def main(argv: list[str] | None = None) -> int:
         atomic_write_text(a.out, joined.to_csv(index=False))
         print(joined["verdict"].value_counts().to_dict())
     elif a.cmd == "second-look":
-        first = _read_csv(a.first)
+        first = pd.concat([_read_csv(p) for p in a.first], ignore_index=True)
+        asked = proposed(first, _pattern(a.also_uncertain))
         ids = with_ids(field).set_index("image_id")
-        rows = ids.loc[first[first["verdict"] == "remove"]["image_id"]].reset_index()
+        rows = ids.loc[asked["image_id"]].reset_index().sample(frac=1, random_state=SEED).reset_index(drop=True)
         side = make_second_look(rows)
-        print(f"{side['sheet'].nunique()} sheets, {len(side)} photos in {SHEETS}")
+        print(f"{asked['verdict'].value_counts().to_dict()}: {side['sheet'].nunique()} sheets, {len(side)} photos "
+              f"in {SHEETS}")
     elif a.cmd == "finish":
         first = pd.concat([_read_csv(p) for p in a.first], ignore_index=True)
-        removals, unsure, overturned = decide(first, _read_csv(a.second))
+        removals, unsure, overturned = decide(first, _read_csv(a.second), _pattern(a.also_uncertain))
         append_log(EXCLUSIONS, log_rows(removals, a.version), field)
         append_log(UNCERTAIN, log_rows(unsure, a.version), field, need_reason=False)
         write_report(first, read_log(EXCLUSIONS), read_log(UNCERTAIN), len(overturned))

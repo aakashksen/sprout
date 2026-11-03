@@ -90,18 +90,30 @@ def cross_source(field: pd.DataFrame, links: pd.DataFrame) -> dict:
 
 
 def healthy_by_crop(table: pd.DataFrame) -> pd.DataFrame:
-    """Per crop: whether a healthy lab class exists and how many real photos it has."""
+    """Per crop: its healthy class's real photos, and the real photos of all its classes."""
+    real_cols = [f"real_{p}" for p in SPLIT_NAMES]
+    crop_of = table.index.str.split("___", n=1).str[0]
     rows = []
-    for crop in sorted({label.split("___", 1)[0] for label in table.index}):
+    for crop in sorted(set(crop_of)):
         healthy = f"{crop}___healthy"
+        total = int(table.loc[crop_of == crop, real_cols].to_numpy().sum())
         if healthy in table.index:
             r = table.loc[healthy]
-            real = int(r["real_train"] + r["real_dev"] + r["real_test"])
-            rows.append((crop, True, real, int(r["real_train"]), int(r["real_dev"]), int(r["real_test"])))
+            h = [int(r[c]) for c in real_cols]
+            rows.append((crop, True, sum(h), *h, total))
         else:
-            rows.append((crop, False, 0, 0, 0, 0))
+            rows.append((crop, False, 0, 0, 0, 0, total))
     return pd.DataFrame(
-        rows, columns=["crop", "has_healthy_class", "real", "real_train", "real_dev", "real_test"]
+        rows,
+        columns=[
+            "crop",
+            "has_healthy_class",
+            "healthy_real_photos",
+            "healthy_real_train",
+            "healthy_real_dev",
+            "healthy_real_test",
+            "all_classes_real_photos",
+        ],
     )
 
 
@@ -144,10 +156,11 @@ def render_report(
     real_cols = [f"real_{p}" for p in SPLIT_NAMES]
     zero = [c for c in table.index if table.loc[c, real_cols].sum() == 0]
     lines += ["Classes with no real photo at all: " + (", ".join(zero) or "none") + ".", ""]
-    lines += ["## Crops and their healthy class", "", _md_table(healthy), ""]
+    lines += ["## Crops and their healthy class", "",
+        "`healthy_real_*` counts the crop's healthy class only; `all_classes_real_photos` counts every class of the crop.", "", _md_table(healthy), ""]
     has = healthy["has_healthy_class"]
-    with_real = healthy[has & (healthy["real"] > 0)]["crop"].tolist()
-    no_real = healthy[has & (healthy["real"] == 0)]["crop"].tolist()
+    with_real = healthy[has & (healthy["healthy_real_photos"] > 0)]["crop"].tolist()
+    no_real = healthy[has & (healthy["healthy_real_photos"] == 0)]["crop"].tolist()
     no_class = healthy[~has]["crop"].tolist()
     lines += [
         "Healthy class with real photos: " + (", ".join(with_real) or "none") + ".",

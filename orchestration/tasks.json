@@ -291,9 +291,14 @@
         "{py} -m pytest tests/test_e10.py -q",
         "{py} -m sprout.eval.check_run E10 --min-n 50 --split seg_dev"
       ],
-      "status": "in_progress",
-      "worktree": "<local path>",
-      "started_at": "2026-11-03T13:04:00+00:00"
+      "status": "done",
+      "started_at": "2026-11-03T13:04:00+00:00",
+      "verified": {
+        "commit": "0079d3f62f197e7d08545fa0ec45f8b610c6baa5",
+        "passed": true,
+        "at": "2026-11-03T13:52:34+00:00"
+      },
+      "done_at": "2026-11-03T14:08:02+00:00"
     },
     {
       "id": "T4.1",

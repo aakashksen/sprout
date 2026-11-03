@@ -271,3 +271,18 @@ def test_nonfinite_validation_loss_stops_before_best_is_saved(manifest, tmp_path
         train(cfg)
     assert load_checkpoint(tmp_path / "run" / "best.pt")["epoch"] == 1
     assert load_checkpoint(tmp_path / "run" / "latest.pt")["epoch"] == 1
+
+
+def test_stale_temp_checkpoint_does_not_break_train_or_resume(manifest, tmp_path, monkeypatch):
+    from sprout.atomic import temp_path
+
+    cfg = _config(tmp_path, epochs=2)
+    out = tmp_path / "run"
+    out.mkdir()
+    for name in ("latest.pt", "best.pt"):
+        temp_path(out / name).write_bytes(b"half a checkpoint")
+    undo = _interrupt_after(monkeypatch, 1)
+    with pytest.raises(KeyboardInterrupt):
+        train(cfg)  # leftover temp files do not count as checkpoints
+    undo()
+    assert train(cfg, resume=out / "latest.pt").epochs_done == 2

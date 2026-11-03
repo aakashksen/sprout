@@ -26,3 +26,4 @@ results/e2-gradcam/field/
 .dvcstore/
 orchestration/.state.lock
 orchestration/.land.lock
+*.tmp

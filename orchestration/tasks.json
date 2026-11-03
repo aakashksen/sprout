@@ -225,6 +225,72 @@
         "{py} -m sprout.eval.check_run E3 --min-n 1000 --split lab_dev",
         "{py} -m sprout.eval.check_run E3 --min-n 200 --split field_dev"
       ],
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-03T09:40:00+00:00",
+      "verified": {
+        "commit": "423678f4ff6642589a09a86d6352a0cfca39d14e",
+        "passed": true,
+        "at": "2026-11-03T12:09:09+00:00"
+      }
+    },
+    {
+      "id": "T3.4",
+      "phase": 3,
+      "title": "Class report and document coverage",
+      "owner": "agent",
+      "deps": [
+        "T1.2"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_class_report.py -q"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T09:57:04+00:00",
+      "verified": {
+        "commit": "35f0022bf248daefd1b67fea8cb50e23990d4c5e",
+        "passed": true,
+        "at": "2026-11-03T10:50:35+00:00"
+      },
+      "attempts": 1,
+      "reason": "document-coverage.csv has three false no rows: Tomato Bacterial_spot and Spider_mites (tomatodoc2.md p1) and Grape Leaf_blight (winegrapes8.pdf p12) do describe symptoms",
+      "done_at": "2026-11-03T11:01:09+00:00"
+    },
+    {
+      "id": "T3.5",
+      "phase": 3,
+      "title": "Top-k and plant-given metrics",
+      "owner": "agent",
+      "deps": [
+        "T2.3"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_topk_metrics.py -q"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T09:57:05+00:00",
+      "verified": {
+        "commit": "ef143575a2320937b14a9ce3fc47365e9aa3c1f0",
+        "passed": true,
+        "at": "2026-11-03T11:11:34+00:00"
+      },
+      "attempts": 1,
+      "reason": "nothing enforces top-k and plant-given metrics on later image records: a record with only accuracy still passes check_run, and no later task names standard_image_metrics",
+      "done_at": "2026-11-03T11:22:08+00:00"
+    },
+    {
+      "id": "T4.0",
+      "phase": 4,
+      "title": "Experiment E10, disease-area segmentation",
+      "owner": "agent",
+      "deps": [
+        "T1.2",
+        "T2.3"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e10.py -q",
+        "{py} -m sprout.eval.check_run E10 --min-n 50 --split seg_dev"
+      ],
       "status": "pending"
     },
     {
@@ -233,7 +299,10 @@
       "title": "Experiment E4, improvements",
       "owner": "agent",
       "deps": [
-        "T3.3"
+        "T3.3",
+        "T3.4",
+        "T3.5",
+        "T4.0"
       ],
       "acceptance": [
         "{py} -m pytest tests/test_e4.py -q",

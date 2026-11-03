@@ -13,6 +13,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from sprout.atomic import atomic_write_text
 from sprout.data.splits import COLUMNS, dataset_hash
 from sprout.eval import metrics as M
 from sprout.eval.predict import Predictions
@@ -85,11 +86,16 @@ def split_info(split: str, root: Path = ROOT) -> SplitInfo:
 
 
 def subset_positions(name: str, split: str, info: SplitInfo, root: Path = ROOT) -> list[int]:
-    """Positions within the split of a declared subset: `first_<N>` rows, or `shared_classes`
-    (labels present in both lab.csv and field.csv)."""
+    """Positions within the split of a declared subset: `first_<N>` rows, `source:<name>` (field rows whose
+    `source` column in field.csv is <name>), or `shared_classes` (labels present in both lab.csv and field.csv)."""
     first = re.fullmatch(r"first_(\d+)", name)
     if first:
         return list(range(min(int(first.group(1)), len(info.ids))))
+    source = re.fullmatch(r"source:(.+)", name)
+    if source and split.startswith("field_"):
+        part = _manifest(root, "field")
+        part = part[part["split"] == split]
+        return [i for i, s in enumerate(part["source"]) if s == source.group(1)]
     if name == "shared_classes" and info.labels is not None:
         shared = set(_manifest(root, "lab")["label"]) & set(_manifest(root, "field")["label"])
         return [i for i, label in enumerate(info.labels) if label in shared]
@@ -105,6 +111,23 @@ def _rows(system_rows: Any) -> list[dict[str, Any]]:
     return list(system_rows)
 
 
+def standard_image_metrics(probs, labels, class_names: list[str]) -> dict[str, float | None]:
+    """The metrics every image evaluation reports, under the names check_run recomputes. Plant-given
+    numbers are None when undefined."""
+    probs = np.asarray(probs, dtype=float)
+    out: dict[str, float | None] = {
+        "accuracy": M.top_k_accuracy(probs, labels, 1),
+        "macro_f1": M.macro_f1(labels, probs.argmax(axis=1)),
+        "ece": M.ece(probs, labels),
+    }
+    for k in (1, 3, 5):
+        out[f"top_{k}_accuracy"] = M.top_k_accuracy(probs, labels, k)
+    for k in (1, 3):
+        v = M.plant_given_top_k(probs, labels, class_names, k)
+        out[f"plant_given_top_{k}"] = None if v != v else v
+    return out
+
+
 def classification_tables(rows: list[dict[str, Any]], class_names: list[str]) -> tuple[dict, list]:
     """Per-class precision, recall, F1 and support, and the confusion matrix, from saved rows."""
     labels = np.array([r["label"] for r in rows], dtype=int)
@@ -114,7 +137,7 @@ def classification_tables(rows: list[dict[str, Any]], class_names: list[str]) ->
 
 def _write_samples(runs: Path, run_id: str, kind: str, samples: dict[str, list]) -> str:
     path = runs / f"{run_id}.{kind}.json"
-    path.write_text(json.dumps(samples, indent=1) + "\n", encoding="utf-8")
+    atomic_write_text(path, json.dumps(samples, indent=1) + "\n")
     return path.relative_to(runs.parents[1]).as_posix()
 
 
@@ -146,6 +169,10 @@ def write_run(
     bad = [name for name in predictions if not SYSTEM_NAME.match(name)]
     if not predictions or bad:
         raise ValueError(f"predictions must map system names (letters, digits, _ and -) to rows: {bad}")
+    if any(m.startswith("plant_given_top_") for v in metrics.values() for m in v) and isinstance(
+        config.get("class_names"), list
+    ):
+        config = {**config, "options_per_plant": M.options_per_plant(config["class_names"])}
     dirty = is_dirty(root)
     if dirty and not allow_dirty:
         raise RuntimeError("working tree has uncommitted changes; commit first")
@@ -164,7 +191,7 @@ def write_run(
     pred_paths = {}
     for name, system_rows in rows.items():
         p = runs / f"{run_id}.{name}.predictions.jsonl"
-        p.write_text("".join(json.dumps(r) + "\n" for r in system_rows), encoding="utf-8")
+        atomic_write_text(p, "".join(json.dumps(r) + "\n" for r in system_rows))
         pred_paths[name] = p.relative_to(root).as_posix()
     measured: dict[str, Any] = {}
     if measurements:
@@ -202,5 +229,5 @@ def write_run(
         "notes": notes,
     }
     path = runs / f"{run_id}.json"
-    path.write_text(json.dumps(record, indent=1) + "\n", encoding="utf-8")
+    atomic_write_text(path, json.dumps(record, indent=1) + "\n")  # last: a record implies its files
     return path

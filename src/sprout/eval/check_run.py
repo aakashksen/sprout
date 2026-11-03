@@ -42,6 +42,12 @@ NOT_PLANT = "not_plant"
 SIDECAR = re.compile(r".+\.(measurements|judged)\.json")
 FAKE = re.compile(r"fake|stub", re.I)
 TIMESTAMP = re.compile(r"\d{8}T\d{12}Z")
+# Every labeled image-classification system must report these. E1, E2 and E3 are exempt by name: their
+# records predate the rule or were running without it, and results/topk-baselines.json covers them.
+REQUIRED_IMAGE_METRICS = (
+    "accuracy macro_f1 ece top_1_accuracy top_3_accuracy top_5_accuracy plant_given_top_1 plant_given_top_3"
+).split()
+EXEMPT_EXPERIMENTS = ("E1", "E2", "E3")
 THRESHOLDED = ("coverage", "selective_accuracy", "confident_error_rate")
 
 
@@ -51,6 +57,7 @@ class Scored:
 
     groups: list[str]
     labels: np.ndarray | None = None
+    class_names: list[str] | None = None
     probs: np.ndarray | None = None
     ranks: list[int | None] | None = None
     accepted: np.ndarray | None = None  # gate decision per image
@@ -115,6 +122,14 @@ def recompute_metric(name: str, s: Scored, others: dict[str, Scored] | None = No
             return M.macro_f1(s.labels, s.probs.argmax(axis=1))
         if name == "ece":
             return M.ece(s.probs, s.labels)
+        m = re.fullmatch(r"top_(\d+)_accuracy", name)
+        if m and int(m.group(1)) >= 1:
+            return M.top_k_accuracy(s.probs, s.labels, int(m.group(1)))
+        m = re.fullmatch(r"plant_given_top_(\d+)", name)
+        if m and int(m.group(1)) >= 1:
+            if s.class_names is None:
+                return None
+            return _num(M.plant_given_top_k(s.probs, s.labels, s.class_names, int(m.group(1))))
         m = re.fullmatch(r"(selective_accuracy|confident_error_rate)@([\d.]+)", name)
         if m:
             return _num(M.selective_metrics(s.probs, s.labels, float(m.group(2)))[m.group(1)])
@@ -231,7 +246,7 @@ def _score(
         if info.labels is not None and [names[x] for x in labels] != [info.labels[i] for i in positions]:
             out.append(tag + "saved labels do not match the manifest's labels")
             return None
-        scored.probs, scored.labels = probs, labels
+        scored.probs, scored.labels, scored.class_names = probs, labels, names
     if "rank" in rows[0]:
         scored.ranks = [r["rank"] for r in ordered]
     return scored
@@ -398,6 +413,21 @@ def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
     for name in set(paths) - set(usable):
         if f"system {name}: " not in " ".join(problems):
             problems.append(f"system {name}: was not scored")
+
+    # Exempt by reason: not_plant splits have no class labels, and systems without probabilities (a gate's
+    # accept/reject rows) are not classifiers. seg_dev, RAG and perf splits are not image classification.
+    if rec["experiment"] not in EXEMPT_EXPERIMENTS and not rec["split"].startswith(NOT_PLANT):
+        for name, scored in usable.items():
+            if scored.probs is not None and scored.labels is not None:
+                missing = [m for m in REQUIRED_IMAGE_METRICS if m not in metrics[name]]
+                if missing:
+                    problems.append(f"system {name}: missing required metric(s) {', '.join(missing)}")
+
+    if any(m.startswith("plant_given_top_") for v in metrics.values() for m in v):
+        names = rec["config"].get("class_names")
+        stated = rec["config"].get("options_per_plant")
+        if not isinstance(names, list) or stated != M.options_per_plant(names):
+            problems.append("a record with plant-given metrics must state config.options_per_plant, matching class_names")
 
     for name, scored in usable.items():
         tag = f"system {name}: "

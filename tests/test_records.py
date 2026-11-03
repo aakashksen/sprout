@@ -16,7 +16,7 @@ from sprout.eval.check_run import (
 )
 from sprout.eval.claims import check_claims
 from sprout.eval.predict import Predictions
-from sprout.eval.records import split_info, write_run
+from sprout.eval.records import split_info, standard_image_metrics, write_run
 from sprout.serve.types import FakeIdentifier, Identification
 
 NAMES = ["A", "B"]
@@ -236,10 +236,16 @@ def test_judged_must_match_saved_file_and_name_judge(root):
     failing(root, "different model from the writer")
 
 
+def full_metrics(root, flip):
+    p, _ = preds(root, "lab_test", flip=flip)
+    return standard_image_metrics(p.probs, p.label, NAMES)
+
+
 def test_second_test_record_needs_override_note(root):
     make(root)
     assert check("E1", root=root) == []
-    second = make(root, experiment="E9")
+    full = {k: full_metrics(root, flip) for k, flip in (("a", (0, 3)), ("b", (0,)))}
+    second = make(root, experiment="E9", metrics=full)  # E9 is not exempt from the required metrics
     failing(root, "more than one lab_test record", experiment="E9")
     edit(second, lambda r: r["config"].update(override_note="redo after a bug"))
     assert check("E9", root=root) == []

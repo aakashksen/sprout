@@ -25,6 +25,8 @@ LIGHT_MODULES = [
     "sprout.eval.stats",
     "sprout.eval.predict",
     "sprout.serve.followup",
+    "sprout.serve.export",
+    "sprout.preprocess_np",
 ]
 
 

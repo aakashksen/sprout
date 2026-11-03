@@ -262,16 +262,16 @@
       "acceptance": [
         "{py} -m pytest tests/test_topk_metrics.py -q"
       ],
-      "status": "in_progress",
-      "worktree": "<local path>",
+      "status": "done",
       "started_at": "2026-11-03T09:57:05+00:00",
       "verified": {
-        "commit": "af92f26c5148029f315a40466e8da6e2c748dbb1",
+        "commit": "ef143575a2320937b14a9ce3fc47365e9aa3c1f0",
         "passed": true,
-        "at": "2026-11-03T10:41:20+00:00"
+        "at": "2026-11-03T11:11:34+00:00"
       },
       "attempts": 1,
-      "reason": "nothing enforces top-k and plant-given metrics on later image records: a record with only accuracy still passes check_run, and no later task names standard_image_metrics"
+      "reason": "nothing enforces top-k and plant-given metrics on later image records: a record with only accuracy still passes check_run, and no later task names standard_image_metrics",
+      "done_at": "2026-11-03T11:22:08+00:00"
     },
     {
       "id": "T4.0",

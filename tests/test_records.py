@@ -4,6 +4,7 @@ import subprocess
 import numpy as np
 import pytest
 
+from sprout.eval import metrics as M
 from sprout.eval.check_run import (
     Scored,
     check,
@@ -307,3 +308,79 @@ def test_claim_on_unreviewed_run_fails(root):
     saved = json.loads(path.read_text())["metrics"]["a"]["accuracy"]
     claim(root, path.stem, saved)
     assert any("labels_reviewed" in p for p in check_claims(root))
+
+
+def macro_make(root, split="lab_dev"):
+    p, info = preds(root, split, flip=(0, 3))
+    q, _ = preds(root, split, flip=(1,))
+    sp, sq = scored(p, info), scored(q, info)
+    return make(
+        root, split=split,
+        metrics={"a": {"macro_f1": recompute_metric("macro_f1", sp)}, "b": {"macro_f1": recompute_metric("macro_f1", sq)}},
+        intervals={"a": {"macro_f1": list(recompute_interval("macro_f1", sp))}},
+        comparisons=[{"a": "a", "b": "b", "metric": "macro_f1", **recompute_comparison(sp, sq, "macro_f1")}],
+    ), sp, sq
+
+
+def test_macro_f1_interval_and_comparison_pass(root):
+    path, sp, sq = macro_make(root)
+    assert check("E1", root=root) == []
+    rec = json.loads(path.read_text())
+    assert rec["bootstrap"] == {"n": 10000, "seed": 13}
+    lo, hi = rec["intervals"]["a"]["macro_f1"]
+    assert lo <= recompute_metric("macro_f1", sp) <= hi
+
+
+def test_macro_f1_bootstrap_resamples_whole_groups(root):
+    from sprout.eval.stats import bootstrap_macro_f1
+
+    labels = np.array([0, 0, 1, 1])
+    pred = np.array([0, 0, 1, 0])
+    one = bootstrap_macro_f1(labels, pred, ["g"] * 4, 2, 500, 13)
+    each = bootstrap_macro_f1(labels, pred, ["a", "b", "c", "d"], 2, 500, 13)
+    assert one.std() < 1e-12 and each.std() > 0
+    assert one[0] == pytest.approx(M.macro_f1(labels, pred))
+
+
+def test_macro_f1_interval_must_recompute(root):
+    path, _, _ = macro_make(root)
+    edit(path, lambda r: r["intervals"]["a"].update(macro_f1=[0.0, 1.0]))
+    failing(root, "interval macro_f1 does not recompute")
+
+
+def test_macro_f1_comparison_must_recompute(root):
+    path, _, _ = macro_make(root)
+    edit(path, lambda r: r["comparisons"][0].update(ci=[-1.0, 1.0]))
+    failing(root, "macro_f1 for a vs b does not recompute")
+
+
+def test_bootstrap_n_must_be_ten_thousand(root):
+    path, _, _ = macro_make(root)
+    edit(path, lambda r: r["bootstrap"].update(n=100))
+    failing(root, "10,000 resamples")
+
+
+def test_systems_scored_on_different_images_fail(root):
+    make(root)
+    pred = next(root.glob("results/runs/E1-*.b.predictions.jsonl"))
+    rows = [json.loads(x) for x in pred.read_text().splitlines()]
+    rows[0]["path"] = "img/other.jpg"
+    pred.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    failing(root, "system b: prediction ids do not match")
+
+
+def test_undefined_metric_saved_as_none_is_fine(root):
+    p, info = preds(root, "lab_dev")
+    s = scored(p, info)
+    assert recompute_metric("selective_accuracy@1.01", s) is None
+    path = make(root, split="lab_dev")
+    edit(path, lambda r: r["metrics"]["a"].update({"selective_accuracy@1.01": None}))
+    assert check("E1", root=root) == []
+    edit(path, lambda r: r["metrics"]["a"].update({"selective_accuracy@1.01": 0.5}))
+    failing(root, "selective_accuracy@1.01 does not recompute")
+
+
+def test_check_needs_manifests_and_predictions_not_images(root):
+    make(root, split="lab_dev")
+    assert not (root / "datasets/raw").exists() and not (root / "img").exists()
+    assert check("E1", root=root) == []

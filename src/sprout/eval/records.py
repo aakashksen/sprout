@@ -22,6 +22,8 @@ RAG_REL = Path("datasets/rag/questions.jsonl")
 PERF_REL = Path("datasets/perf/images.txt")
 SYSTEM_NAME = re.compile(r"^[A-Za-z0-9_-]+$")
 MEASURE_QUANTILES = (50, 95)
+BOOTSTRAP_N = 10000
+BOOTSTRAP_SEED = 13
 IMAGE_MANIFESTS = ("lab", "field", "not_plant")
 
 
@@ -170,6 +172,7 @@ def write_run(
         "measurements": measured,
         "judged": judgments,
         "intervals": {s: {k: list(v) for k, v in d.items()} for s, d in intervals.items()},
+        "bootstrap": {"n": BOOTSTRAP_N, "seed": BOOTSTRAP_SEED},
         "comparisons": comparisons or [],
         "attempts": attempts,
         "claude_calls": config.get("claude_calls", 0),

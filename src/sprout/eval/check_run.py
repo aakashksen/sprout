@@ -13,6 +13,8 @@ import numpy as np
 
 from sprout.eval import metrics as M
 from sprout.eval.records import (
+    BOOTSTRAP_N,
+    BOOTSTRAP_SEED,
     ROOT,
     RUNS_REL,
     SplitInfo,
@@ -22,14 +24,16 @@ from sprout.eval.records import (
 )
 from sprout.eval.stats import (
     bootstrap_ci,
+    macro_f1_ci,
     mcnemar_exact,
     paired_bootstrap_diff,
+    paired_macro_f1_diff,
     percentile,
 )
 
 REQUIRED = (
     "run_id experiment git_commit dirty dataset_hash split subset config models n metrics measurements judged "
-    "intervals comparisons attempts claude_calls labels_reviewed predictions started_at finished_at notes"
+    "intervals bootstrap comparisons attempts claude_calls labels_reviewed predictions started_at finished_at notes"
 ).split()
 TOLERANCE = 1e-9
 FAKE = re.compile(r"fake|stub", re.I)
@@ -85,19 +89,36 @@ def recompute_metric(name: str, s: Scored) -> float | None:
     raise KeyError(name)
 
 
-def recompute_interval(name: str, s: Scored) -> tuple[float, float] | None:
+def recompute_interval(
+    name: str, s: Scored, n: int = BOOTSTRAP_N, seed: int = BOOTSTRAP_SEED
+) -> tuple[float, float] | None:
+    """95% interval resampling whole near-duplicate groups; macro_f1 is recomputed inside each resample."""
+    if name == "macro_f1" and s.probs is not None and s.labels is not None:
+        return macro_f1_ci(s.labels, s.probs.argmax(axis=1), s.groups, s.probs.shape[1], n, seed)
     series = item_series(name, s)
-    return None if series is None else bootstrap_ci(series, s.groups)
+    return None if series is None else bootstrap_ci(series, s.groups, n, seed)
 
 
-def recompute_comparison(a: Scored, b: Scored, metric: str) -> dict[str, Any] | None:
-    """System a minus system b on a per-item metric, as saved in a record's `comparisons`."""
+def recompute_comparison(
+    a: Scored, b: Scored, metric: str, n: int = BOOTSTRAP_N, seed: int = BOOTSTRAP_SEED
+) -> dict[str, Any] | None:
+    """System a minus system b over the same resampled groups, as saved in a record's `comparisons`.
+    McNemar is always on per-image correctness (accuracy, or recall@k for retrieval)."""
+    if a.groups != b.groups:
+        return None
+    if metric == "macro_f1":
+        if a.probs is None or b.probs is None or a.labels is None or not np.array_equal(a.labels, b.labels):
+            return None
+        pa, pb = a.probs.argmax(axis=1), b.probs.argmax(axis=1)
+        diff, lo, hi = paired_macro_f1_diff(a.labels, pa, pb, a.groups, a.probs.shape[1], n, seed)
+        p = mcnemar_exact(pa == a.labels, pb == b.labels)
+        return {"diff": diff, "ci": [lo, hi], "mcnemar_p": p}
     if metric != "accuracy" and not re.fullmatch(r"recall@\d+", metric):
         return None
     sa, sb = item_series(metric, a), item_series(metric, b)
     if sa is None or sb is None or len(sa) != len(sb):
         return None
-    diff, lo, hi = paired_bootstrap_diff(sa, sb, a.groups)
+    diff, lo, hi = paired_bootstrap_diff(sa, sb, a.groups, n, seed)
     return {"diff": diff, "ci": [lo, hi], "mcnemar_p": mcnemar_exact(sa > 0.5, sb > 0.5)}
 
 
@@ -241,6 +262,13 @@ def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
         problems.append(f"intervals name systems not in predictions: {sorted(set(intervals) - set(paths))}")
         intervals = {}
 
+    boot = rec["bootstrap"]
+    if not (isinstance(boot, dict) and isinstance(boot.get("n"), int) and isinstance(boot.get("seed"), int)):
+        return problems + ["bootstrap must record n and seed"]
+    if boot["n"] != BOOTSTRAP_N:
+        problems.append(f"bootstrap n={boot['n']}, but intervals need {BOOTSTRAP_N:,} resamples")
+    n_boot, seed = boot["n"], boot["seed"]
+
     usable: dict[str, Scored] = {}
     for name, rel in paths.items():
         tag = f"system {name}: "
@@ -265,7 +293,7 @@ def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
             if not _same(fresh, saved):
                 problems.append(tag + f"metric {metric} does not recompute from predictions")
         for metric, saved in (intervals.get(name) or {}).items():
-            got = recompute_interval(metric, scored)
+            got = recompute_interval(metric, scored, n_boot, seed)
             if got is None:
                 problems.append(tag + f"interval {metric} cannot be recomputed from predictions")
             elif not _same_pair(got, saved):
@@ -278,7 +306,7 @@ def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
         elif c["a"] == c["b"] or c["a"] not in usable or c["b"] not in usable:
             problems.append(tag + "a and b must be two different systems with usable predictions")
         else:
-            fresh = recompute_comparison(usable[c["a"]], usable[c["b"]], c["metric"])
+            fresh = recompute_comparison(usable[c["a"]], usable[c["b"]], c["metric"], n_boot, seed)
             if fresh is None:
                 problems.append(tag + f"{c['metric']} cannot be recomputed for a comparison")
             elif not (_same(fresh["diff"], c["diff"]) and _same_pair(fresh["ci"], c["ci"])

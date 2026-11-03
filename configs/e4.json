@@ -1,0 +1,59 @@
+{
+  "experiment": "E4",
+  "out_dir": "models/e4",
+  "lab_manifest": "lab",
+  "field_manifest": "field",
+  "split": "field_dev",
+  "subset": "shared_classes",
+  "seed": 0,
+  "num_workers": 4,
+  "min_free_disk_gb": 40,
+  "max_single_download_gb": 15,
+  "lab_cap": 60,
+  "lab_cap_reason": "docs/class-report.md, field_train: 31 classes have real photos, with a median of 59 per class (mean 66.7, max 136, 2069 in all). A cap of 60 lab photos per class gives 2280 lab photos against 2069 real ones (lab is 52% of the rows) and about one lab photo for every real one in a typical class. A cap of 80 (the report's own minimum per class) would make lab 59%, and 100 would make it 65%. The 7 lab classes with no real photo keep 60 lab photos each. Fixed before any E4 result was seen.",
+  "baselines": {
+    "record": "E3-20261103T115245769685Z",
+    "systems": ["e1", "dinov2_small", "frozen_convnext", "xgboost"],
+    "note": "Rows are read from the saved predictions of this E3 field_dev record (E1 included); none of them is rerun."
+  },
+  "e1_checkpoint": "models/e1/best.pt",
+  "e10": {"checkpoint": "models/e10/best.pt", "record": "E10-20261103T135121438366Z", "crop_mask_cache": "models/e4/crop_masks.npz"},
+  "cam_sample": 600,
+  "rules": {
+    "selection": "Every arm picks its best epoch by accuracy on field_dev (for the held-out runs, on the other source's part of field_dev only). lab_dev never selects. field_test and lab_test are never read.",
+    "best_arm": "Among arms 1 to 5 that ran, the one with the highest macro-F1 on field_dev in its own record; a tie goes to the lower arm number. Because field_dev chose the arm, its field_dev numbers are optimistic.",
+    "arm_3": "Runs only if at least min_good_mask_share of the capped lab_train photos have a believable leaf mask (the official segmented copy matched by file name, else the colour threshold, covering between 5% and 98% of the photo). Otherwise it is recorded as not run. GrabCut is not available here (no OpenCV), so only the colour threshold is the fallback.",
+    "min_good_mask_share": 0.9,
+    "arm_5": "Runs only if arm 4 (dinov2_head) has a higher field_dev macro-F1 than arm 1 (convnext_joint). Otherwise it is recorded as not run.",
+    "arm_6": "Trains the best arm's exact settings again with the T4.0 crop on both training and scoring photos, and is compared with the best arm itself (the same settings without the crop). It needs arms 1 to 5 each to have a record or a not-run entry.",
+    "heldout": "The two held-out-source runs use the arm 1 settings, leave one real source out of training and of selection, select on the other source's field_dev part, and are scored on the held-out source's field_dev part. They are development numbers.",
+    "baseline_kept": "If no arm beats E1 on field_dev (paired interval of the difference excludes zero on accuracy and macro-F1), E1 stays the model. If the crop does not beat its uncropped twin the same way, it stays out of serving (#19)."
+  },
+  "arms": [
+    {"number": 1, "name": "convnext_joint", "kind": "train", "model": "convnext_tiny", "lr": 0.0001, "epochs": 10,
+     "batch_size": 32, "transforms": ["random_resized_crop", "hflip", "color_jitter"], "reference": null,
+     "change": "baseline: ConvNeXt-Tiny on field_train plus capped lab_train"},
+    {"number": 2, "name": "convnext_strong_aug", "kind": "train", "model": "convnext_tiny", "lr": 0.0001, "epochs": 10,
+     "batch_size": 32, "transforms": ["random_resized_crop", "hflip", "strong_color", "blur"],
+     "reference": "convnext_joint", "change": "colour jitter replaced by stronger colour changes and random blur"},
+    {"number": 3, "name": "convnext_background", "kind": "train", "model": "convnext_tiny", "lr": 0.0001, "epochs": 10,
+     "batch_size": 32, "transforms": ["random_resized_crop", "hflip", "color_jitter", "background"],
+     "reference": "convnext_joint", "requires": "arm_3",
+     "change": "lab leaves cut out with the official segmented images (matched to lab_train by file name) and pasted on varied backgrounds"},
+    {"number": 4, "name": "dinov2_head", "kind": "train", "model": "dinov2_small", "lr": 0.001, "epochs": 10,
+     "batch_size": 32, "unfreeze_blocks": 0, "transforms": ["random_resized_crop", "hflip", "color_jitter"],
+     "reference": "convnext_joint", "change": "frozen DINOv2 small with a linear head trained on the joint set"},
+    {"number": 5, "name": "dinov2_finetune", "kind": "train", "model": "dinov2_small", "lr": 0.001, "backbone_lr": 0.00001,
+     "epochs": 10, "batch_size": 32, "unfreeze_blocks": 2, "transforms": ["random_resized_crop", "hflip", "color_jitter"],
+     "reference": "dinov2_head", "requires": "arm_5", "change": "arm 4 with the last 2 transformer blocks and final norm also trained"},
+    {"number": 6, "name": "best_with_crop", "kind": "crop_of_best", "reference": "best",
+     "change": "the best of arms 1 to 5 with the T4.0 disease crop on training and scoring"},
+    {"number": 7, "name": "heldout_plantdoc", "kind": "heldout", "same_as": "convnext_joint", "held_out_source": "plantdoc",
+     "reference": "convnext_joint", "change": "arm 1 without PlantDoc in training or selection; scored on field_dev PlantDoc"},
+    {"number": 8, "name": "heldout_plantseg", "kind": "heldout", "same_as": "convnext_joint", "held_out_source": "plantseg",
+     "reference": "convnext_joint", "change": "arm 1 without PlantSeg in training or selection; scored on field_dev PlantSeg"}
+  ],
+  "dropped": [
+    {"name": "convnext_aug_background", "reason": "The combined stronger-augmentation and background-randomization ConvNeXt arm was dropped before running, to make room for DINOv2 within the 6-run limit."}
+  ]
+}

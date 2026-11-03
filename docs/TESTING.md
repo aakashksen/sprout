@@ -41,6 +41,7 @@ Choose settings on dev. Use test once, on the chosen configuration. If test resu
 | **Recall@k, MRR** | RAG: gold document or page within the top k |
 | **Answer faithfulness** | Share of answer claims supported by the cited passage, judged by a rubric prompt on a different model from the writer, with a random sample reviewed by the person |
 | **Abstention accuracy** | RAG: declines when the docs can't answer, answers when they can. Report both sides |
+| **Decline rates** | RAG, from `answered` rows: `answers_when_answerable` (gold `answer`), `declines_when_unanswerable` (`abstain`), `declines_when_crop_mismatch` (`crop_mismatch`), `declines_when_ambiguous` (`clarify`). The subset `answerable` scores retrieval (recall@k, MRR) on the questions that have a gold page |
 
 ## Comparing systems
 Run every system on the same images with the same seed. Report a 95% bootstrap confidence interval (10,000 resamples, by near-duplicate group where groups exist) and an exact McNemar test for paired correct/incorrect outcomes. Don't call anything an improvement if the interval for the difference includes zero. Say "no measurable difference".

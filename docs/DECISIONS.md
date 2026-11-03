@@ -302,6 +302,70 @@ A task with no entry gets a line `<id>: no new decisions` at the end of this fil
 - **Evidence:** `docs/PLAN.md` T6.4 (commit `f150227`).
 - **Would change if:** nothing recorded.
 
+### T6.4 - How E7 is built and scored (built 2026-11-03; stage numbers are added from the records as each stage runs)
+- **Chose:**
+  - Everything is scored on `rag_dev`; `rag_test` is not read by any E7 code. Retrieval is scored on the answerable questions (declared subset `answerable`, 60 questions) with recall@1/3/5/10 and MRR; the deciding metric is recall@5, and a candidate is kept only when the paired bootstrap interval of its gain over the current choice excludes zero (otherwise "no measurable difference" and the simpler setup stays).
+  - Gold matching: a passage is the gold hit when source and page equal the question's gold. A document the index holds as one page (every HTML page and Markdown file is "page 1"; `tomatodoc2.md` is one 177k-character page) would match any of its chunks, so for those the passage must also contain one of the question's answer terms. Citations show document, page and the opening 200 characters of the passage, so a one-page document still points at the place.
+  - The plant for a question comes from the question text (or its stated crop), never from the gold label. The photo diagnosis is simulated: the plant's class that the question names is the top disease (0.9), with two other classes of that plant as alternatives. A plant with no such class has no diagnosis. This is an upper bound on what the top-3 query upgrade can show, since a real identifier is sometimes wrong.
+  - Records: `write_run` (also logs to MLflow). `check_run` gained the subset `answerable` and the metrics `declines_when_crop_mismatch` and `declines_when_ambiguous`; every number in an E7 record recomputes from its saved rows (`tests/test_e7.py` runs `check_file` on each kind).
+  - An answer counts as `answered` only when it is grounded (cites a shown passage). A model outage or search failure is never written as an answer; the stage leaves the question to resume.
+- **Considered:** scoring recall over all 115 dev questions (lost: abstain and ambiguous questions have no gold, so every system's recall would be diluted by the same constant); matching one-page documents by source alone (lost: any chunk of a 177k-character page would count); taking the plant from the gold source (lost: it leaks the answer into retrieval).
+- **Evidence:** `src/sprout/experiments/e7_rag.py`, `tests/test_e7.py`, `tests/test_run_e7.py`.
+- **Would change if:** the set is reviewed (H2) and gold labels move, or a one-page document gets real section anchors.
+
+### T6.4 - Score floor per mode (built 2026-11-03, numbers pending the `floors` stage)
+- **Chose:** `RetrievalConfig.floors` holds a floor per `mode` or `mode+rerank`; a mode without one falls back to `min_score`. The `floors` stage measures the best passage's score for every dev question in dense, hybrid and hybrid+rerank, picks for each the floor that best keeps answerable questions and drops `not_in_documents` and wrong-crop ones (balanced), and records the result next to the old 0.3. Floors are picked on `rag_dev` itself, so the rates are optimistic and stated so in the record.
+- **Considered:** one floor for all modes (lost: the T6.5 verifier showed 0.3 filters almost nothing without reranking, because dense cosine is clipped at 0 and hybrid/BM25 scores are normalised to the top hit, so BM25's best passage always scores 1).
+- **Evidence:** pending record from `tools/run_e7.py floors`.
+- **Would change if:** hybrid/BM25 scores stay uninformative; a raw (not top-normalised) BM25 score would be the next thing to try, and was not built because the plan asks for no extra retrieval features.
+
+### T6.4 - Shared crops: `crops_from_title`, off until measured (2026-11-03)
+- **Chose:** an option that lets a chunk answer for every known crop named in its document's title or disease list, in addition to its manifest crop. A mixed page titled "Bacterial spot of tomato and pepper" then answers pepper questions while its manifest crop stays tomato. Off by default; the `crops` stage measures it.
+- **Considered:** a `crops` list in the manifest (lost: would change the committed manifest and tests that assume one crop per row); tagging a chunk with any crop its text mentions (lost: apple documents mention tomato ringspot virus, which would let a tomato question cite apple). `test_tomato_question_cannot_cite_apple` and `test_crops_from_title_never_adds_a_crop_the_title_lacks` guard this.
+- **Evidence:** pending record from `tools/run_e7.py crops`.
+- **Would change if:** the stage shows no recall@5 gain, in which case the option stays off.
+
+### T6.4 - Structure-aware chunks, context header, OCR (2026-11-03)
+- **Chose:** `build_index(..., chunker="structured")` keeps paragraphs whole, makes each table (HTML tables, Markdown tables, columnar PDF lines in pypdf layout mode) one chunk up to 4,000 characters and splits longer ones by rows repeating the header row. `header=True` stores a context header (document, publisher, crop, diseases, section heading) in a separate `header` field that is embedded, matched and reranked but never shown. Variant indexes are built beside the main one (`knowledge/index-structured`, `index-header`, `index-structured-header`) with `tools/build_index_gpu.py`, which refuses to build over `knowledge/index`. Both are kept only if their stage shows a recall@5 gain.
+- **OCR: not added.** No OCR engine is installed (no `tesseract`, `easyocr` or `rapidocr`), and the 237-document build has 0 failed extractions, so there is nothing for OCR to recover and no way to measure it. The smallest addition would be `rapidocr-onnxruntime` (onnxruntime is already installed; it adds one small package and its model files). It becomes worth adding when a build lists scanned PDFs among its failures.
+- **Considered:** page-aware table detection with a PDF table library (lost: new dependency for an unmeasured gain).
+- **Evidence:** `tests/test_ingest_structured.py`; stage numbers pending.
+- **Would change if:** the `chunking` or `header` stage shows a gain.
+
+### T6.4 - Queries from the top-3 diseases and the conversation (built 2026-11-03)
+- **Chose:** `build_query` modes `question` (default), `history` (the user's last two turns plus the question), `diseases` (top-3 disease names with confidence at least 0.05) and `full` (both). Assistant turns never go into the query, so a model's own words are not searched. The `queries` stage measures `history`, `diseases` and `full` each against the base.
+- **Considered:** adding assistant turns (lost: echoes the model's earlier claims back into retrieval).
+- **Evidence:** `tests/test_answer.py::test_query_modes_add_history_and_top3_diseases_but_not_assistant_text`; stage numbers pending.
+- **Would change if:** a stage shows no gain; the default stays `question`.
+
+### T6.4 - Prompts: a base plus one rule at a time (built 2026-11-03)
+- **Chose:** `prompts/base.txt` plus three single-rule additions (`faithful`: every fact sentence ends with its passage number; `abstain`: reply `NO_SUPPORT` when no passage answers; `ask`: reply `NEED: ...` when plant or symptoms are missing). Each addition is generated and judged alone against the base on the one local writer (`qwen3.5:4b-q4_K_M`, judge `gemma4:e4b-it-qat`), then the kept ones are combined and re-checked. An addition is kept when its target metric rises and `answers_when_answerable` does not fall by more than 0.05. With about 80 graded answers per variant there is no interval, so the rule is direction only, and the record says so.
+- **Considered:** a fixed chain v1 to v4 (lost: a dropped change would stay inside every later version, so changes would not be measured one at a time).
+- **Evidence:** `tests/test_e7.py::test_prompt_additions_are_kept_only_when_they_help_without_costing_answers`; stage numbers pending.
+- **Would change if:** T6.6's second grader disagrees with the local judge on the saved claims.
+
+### T6.4 - Answers carry sources, uncertainty and labels in code, not only in the prompt (2026-11-03)
+- **Chose:** `answer()` cites only passages that were shown (other `[n]` markers are removed), labels an answer with no citation as general advice without a supporting document, says "possible match, not certain" when the diagnosis is under 0.8 or `unsure`, appends "check the product label and your local rules" to any chemical or disposal advice that lacks it, returns a visible "search failed" or "unavailable" text instead of inventing one, and bounds history (4 turns, 500 characters each). A citation whose manifest source is `unknown: inherited from the legacy project, source not confirmed` shows that note and an empty link, never a blank. Text from the user or documents cannot close the data tags the prompt uses.
+- **Considered:** leaving these to the prompt (lost: a prompt rule can fail silently on a small model, and these are the safety rules).
+- **Evidence:** `tests/test_answer.py` (22 tests).
+- **Would change if:** a stage shows the label or the prefix hurts faithfulness judgments; they are not part of the judged claims (`split_claims` skips them).
+
+### T6.4 - Models on the GPU, or an error (2026-11-03)
+- **Chose:** `sprout.rag.gpu_models.TorchEmbedder` and `TorchReranker` run on CUDA, fail with an error when CUDA is missing (never the CPU), and record device, GPU, torch and CUDA versions in the run record. Torch is imported only inside their constructors; `sprout.rag` and `sprout.llm` stay torch-free at import (`tests/test_no_torch_imports.py` now covers `llm`). The reranker uses the HF weights `cross-encoder/ms-marco-MiniLM-L6-v2`, the model behind the ONNX one serving uses. A smoke run on the RTX 4070 Laptop GPU gave a minimum cosine of 0.99999988 against the saved index vectors and peaked at 224 MiB allocated.
+- **Considered:** fastembed on the GPU (lost: the installed onnxruntime has no CUDA provider, as T6.5 found).
+- **Evidence:** smoke run on 2026-11-03 under `gpu-acquire T6.4`; `tests/test_retrieve_upgrades.py::test_cuda_is_required_not_replaced_by_cpu`.
+- **Would change if:** serving should use the same reranker weights through ONNX; the two should then be compared.
+
+### T6.4 - Graded answers are saved for a second grader (2026-11-03)
+- **Chose:** each judged answer is saved with question ID, the passages shown, the answer text, every claim with its cited passage numbers, the judge's verdict and raw reply per claim, the rubric text and the judge model (`results/runs/E7-<stage>-<date>.judgments.jsonl`). A second file with the verdicts, replies and judge name removed (`...blind.jsonl`) is what another grader gets. Unparseable judge replies count as not supported. The prompts stage prints the number of graded answers and exits with code 3 if it is under 200.
+- **Considered:** one file with a flag (lost: easy to leak the verdict to the second grader).
+- **Evidence:** `tests/test_e7.py::test_judged_rows_keep_everything_a_second_grader_needs`, `tests/test_run_e7.py`.
+- **Would change if:** T6.6 needs another field.
+
+### T6.4 - Not changed: navigation text in documents 241, 203, 239
+- **Chose:** left as they are. They are measured only through the stages (a navigation chunk that ranks high shows up as a lower recall); no cleaner was built, since the plan asks for none and the structured chunker's heading and table handling is the intended fix to test first.
+- **Would change if:** the answer reads show navigation text cited as evidence.
+
 ### T0.1 - Run-plan stop rules (2026-11-02 to 2026-11-03)
 These are workflow changes with no plan task of their own, filed under T0.1.
 - **GPU lacks memory:** first, stop the whole run (`d5c0030`). Replaced on 2026-11-03 (`3493a8c`): tasks always start, CPU work never waits, GPU jobs share the GPU while reserved memory fits, and latency runs and fine-tuning run alone. The person's rule; further reason not recorded.

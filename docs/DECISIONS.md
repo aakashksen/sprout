@@ -111,9 +111,9 @@ A task with no entry gets a line `<id>: no new decisions` at the end of this fil
 - **Would change if:** the coordinator overrules it, or the person decides a third-party mirror's license is enough.
 
 ### T4.5 - Build ran on CPU, not the GPU (2026-11-03)
-- **Chose:** run `sprout.data.extra_sources` on CPU and hold no GPU share. The slow step is hashing images with PIL and imagehash (pHash over flips and rotations for about 70,000 lab, field and extra images); the scene check is correlations on 64x64 arrays for a few thousand pairs.
+- **Chose:** run `sprout.data.extra_sources` on CPU and hold no GPU share. The slow step is hashing images with PIL and imagehash (pHash over flips and rotations for the lab, field and extra images); the scene check is correlations on 64x64 arrays for a few thousand pairs.
 - **Considered:** moving the scene correlation to the GPU. It would be the only step that could move, and it is small, so the gain is tiny. Moving it risks small float differences that could flip a pair at the 0.88 / 0.80 / 0.75 thresholds, and the person's instruction was to keep the field-dedup rule unchanged and move a step only if results stay identical. A GPU gain for the hashing would need a different hash implementation, which would change the rule.
-- **Evidence:** the build took about 25 minutes on CPU with one process, inside the memory limits. `docs/extra-sources.md` records the device.
+- **Evidence:** the build ran on CPU with one process, inside the memory limits; its duration was not measured. `docs/extra-sources.md` records the device.
 - **Would change if:** a rebuild is needed often or the extra set grows by an order of magnitude; the correlation could then move, checked to give identical kept sets.
 
 ---

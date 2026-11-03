@@ -208,7 +208,7 @@ def test_production_container_refuses_fake_and_missing_secret(image):
         flags = sum((["-e", f"{k}={v}"] for k, v in env.items()), [])
         assert _docker("run", "--rm", *flags, image, check=False).returncode != 0
     name, port = f"sprout-prod-{uuid.uuid4().hex[:8]}", _free_port()
-    _run(image, name, port, SPROUT_SECRET_KEY="x")
+    _run(image, name, port, SPROUT_SECRET_KEY="x" * 32)
     try:
         assert _wait(f"http://127.0.0.1:{port}") == 200
         assert _wait(f"http://127.0.0.1:{port}", "/readyz") == 503  # no model: reported, not faked

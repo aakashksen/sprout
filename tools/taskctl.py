@@ -27,6 +27,10 @@ GPU_LOCK = Path(os.environ.get("CL_GPU_LOCK", ROOT.parent / ".gpu.lock"))
 # Git-ignored data a worktree needs. Directories are linked, never copied, so large data exists once.
 SHARED = ("datasets/raw", "knowledge/raw", "models", "mlruns", ".dvc/cache", ".dvcstore")
 SHARED_FILES = (".env",)
+# Outputs every worktree must write to the main folder, so they outlive the worktree.
+SHARED_OUTPUTS = ("models", "mlruns")
+# Ignored files that are safe to lose when a worktree goes away.
+DISPOSABLE = ("__pycache__", ".pytest_cache", ".ruff_cache", ".venv", "node_modules", ".egg-info", ".pyc", "dist", "build")
 MAX_ATTEMPTS = 3
 TIMEOUT_S = int(os.environ.get("CL_VERIFY_TIMEOUT_S", "1800"))
 
@@ -149,6 +153,8 @@ def cmd_next(args):
 
 
 def link_shared(worktree):
+    for rel in SHARED_OUTPUTS:
+        (ROOT / rel).mkdir(parents=True, exist_ok=True)
     for rel in SHARED:
         target, link = ROOT / rel, worktree / rel
         if not target.is_dir():
@@ -190,11 +196,37 @@ def unlink_shared(worktree):
                     os.rmdir(child) if os.path.isjunction(child) else child.unlink()
 
 
+def rescue_ignored(worktree):
+    """Moves git-ignored work out of a worktree before it's removed. Raises rather than overwrite anything."""
+    listed = git("status", "--porcelain", "--ignored", "--untracked-files=all", cwd=worktree)
+    paths = [line[3:].strip().strip('"').rstrip("/") for line in listed.splitlines() if line.startswith("!! ")]
+    keep = [rel for rel in paths if not any(part in DISPOSABLE or part.endswith(DISPOSABLE) for part in Path(rel).parts)]
+    moves, conflicts = [], []
+    for rel in keep:
+        source = worktree / rel
+        files = [source] if source.is_file() else [f for f in source.rglob("*") if f.is_file()]
+        for file in files:
+            target = ROOT / file.relative_to(worktree)
+            if target.exists() and target.read_bytes() != file.read_bytes():
+                conflicts.append(str(file.relative_to(worktree)))
+            elif not target.exists():
+                moves.append((file, target))
+    if conflicts:
+        raise FileExistsError("; ".join(conflicts[:5]))
+    for file, target in moves:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(file), str(target))
+    return len(moves)
+
+
 def remove_worktree(task):
     path = task.get("worktree")
     if not path:
         return
     unlink_shared(Path(path))
+    rescued = rescue_ignored(Path(path))
+    if rescued:
+        print(f"moved {rescued} git-ignored files from the worktree to the main folder")
     git_ok("worktree", "remove", "--force", path)
     git_ok("worktree", "prune")
     git_ok("branch", "-D", f"task/{task['id']}")
@@ -329,6 +361,14 @@ def cmd_land(args):
             if not passed:
                 print(f"MERGED CODE FAILED: {args.id} no longer passes after merging {branch}. Nothing landed. See {log_path.relative_to(ROOT)}")
                 sys.exit(5)
+        unlink_shared(Path(worktree))
+        try:
+            rescued = rescue_ignored(Path(worktree))
+        except FileExistsError as err:
+            link_shared(Path(worktree))
+            sys.exit(f"refused: nothing landed, because these ignored files differ from the main folder's copies: {err}")
+        if rescued:
+            print(f"moved {rescued} git-ignored files from the worktree to the main folder")
         forward = git_ok("merge", "--ff-only", "-q", f"task/{args.id}")
         if forward.returncode:
             sys.exit(f"refused: could not move {branch} forward: {forward.stderr.strip()}")

@@ -180,13 +180,24 @@ class GpuGuard(Sandbox):
         self.assertEqual(self.run_ctl("unused", "gpu-release", "T1").returncode, 0)
         self.assertFalse(self.lock.exists())
 
-    def test_only_one_project_holds_the_gpu_turn(self):
-        self.lock.write_text("OtherProject/T9\nsometime\n")
-        out = self.run_ctl(self.smi("print('7000, 1188, 8188')"), "gpu-acquire", "T1")
-        self.assertEqual(out.returncode, 3)
-        self.assertIn("OtherProject/T9", out.stdout)
-        self.assertNotEqual(self.run_ctl("unused", "gpu-release", "T1").returncode, 0)
-        self.assertTrue(self.lock.exists())
+    def test_jobs_share_the_gpu_while_reserved_memory_fits(self):
+        (self.root / "orchestration" / "gpu_needs.json").write_text(json.dumps({"T1": 3000, "T2": 3000, "T3": 3000, "T4": 100, "_exclusive": ["T4"]}))
+        smi = self.smi("print('7000, 1188, 8188')")
+        self.assertEqual(self.run_ctl(smi, "gpu-acquire", "T1").returncode, 0)
+        self.assertEqual(self.run_ctl(smi, "gpu-acquire", "T2").returncode, 0)
+        full = self.run_ctl(smi, "gpu-acquire", "T3")
+        self.assertEqual(full.returncode, 3)
+        self.assertIn("reserved", full.stdout)
+        self.assertEqual(self.run_ctl(smi, "gpu-acquire", "T4").returncode, 3)
+        self.assertEqual(self.run_ctl("unused", "gpu-release", "T1").returncode, 0)
+        self.assertEqual(self.run_ctl(smi, "gpu-acquire", "T3").returncode, 0)
+        self.assertNotEqual(self.run_ctl("unused", "gpu-release", "T9").returncode, 0)
+
+    def test_an_exclusive_job_runs_alone(self):
+        (self.root / "orchestration" / "gpu_needs.json").write_text(json.dumps({"T1": 100, "T2": 100, "_exclusive": ["T1"]}))
+        smi = self.smi("print('7000, 1188, 8188')")
+        self.assertEqual(self.run_ctl(smi, "gpu-acquire", "T1").returncode, 0)
+        self.assertEqual(self.run_ctl(smi, "gpu-acquire", "T2").returncode, 3)
 
     def test_unreadable_gpu_refuses(self):
         out = self.run_ctl(self.smi("raise SystemExit(1)"), "gpu-acquire", "T1")
@@ -198,13 +209,13 @@ class GpuGuard(Sandbox):
         self.write([task("T1"), task("T9")])
         self.assertEqual(self.run_ctl("no-such-nvidia-smi-tool", "gpu-acquire", "T9").returncode, 0)
 
-    def test_second_gpu_task_is_not_offered_but_other_work_is(self):
+    def test_gpu_tasks_always_start_so_their_cpu_work_can_run(self):
         (self.root / "orchestration" / "gpu_needs.json").write_text(json.dumps({"T1": 5000, "T2": 5000}))
         self.write([task("T1"), task("T2"), task("T3")])
-        self.run_ctl("unused", "start", "T1")
+        self.assertEqual(self.run_ctl("unused", "start", "T1").returncode, 0)
         state = json.loads(self.run_ctl("unused", "next").stdout)
-        self.assertEqual([t["id"] for t in state["ready"]], ["T3"])
-        self.assertNotEqual(self.run_ctl("unused", "start", "T2").returncode, 0)
+        self.assertEqual([t["id"] for t in state["ready"]], ["T2", "T3"])
+        self.assertEqual(self.run_ctl("unused", "start", "T2").returncode, 0)
 
 
 class Tracks(Sandbox):
@@ -437,8 +448,10 @@ class PlanMatchesState(unittest.TestCase):
     def test_gpu_needs_name_real_agent_tasks(self):
         needs = json.loads((REPO / "orchestration" / "gpu_needs.json").read_text(encoding="utf-8"))
         agent_tasks = {t["id"] for t in self.tasks if t["owner"] == "agent"}
+        exclusive = needs.pop("_exclusive", [])
         self.assertTrue(needs)
         self.assertTrue(set(needs) <= agent_tasks, set(needs) - agent_tasks)
+        self.assertTrue(set(exclusive) <= agent_tasks)
 
     def test_every_agent_declares_a_model(self):
         for path in (REPO / ".claude" / "agents").glob("*.md"):

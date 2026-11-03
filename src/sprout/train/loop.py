@@ -78,6 +78,8 @@ def train(config: TrainConfig, *, resume: Path | None = None) -> RunOutput:
         ckpt = load_checkpoint(Path(resume))
         if ckpt["config"].manifest_hash != config.manifest_hash:
             raise ValueError("checkpoint was trained on a different manifest")
+        if dataclasses.replace(ckpt["config"], out_dir=config.out_dir) != config:
+            raise ValueError("training settings differ from the checkpoint's; resume with the same settings")
         if ckpt["class_map"] != class_map:
             raise ValueError("checkpoint class map differs from the manifest")
         model.load_state_dict(ckpt["model"])

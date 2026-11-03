@@ -79,15 +79,60 @@ def test_val_dataset_has_no_random_augmentation(manifest, tmp_path):
     assert torch.equal(a, b)
 
 
-def test_resume_requires_explicit_path(manifest, tmp_path):
-    cfg = _config(tmp_path, epochs=1)
-    train(cfg)
+def _interrupt_after(monkeypatch, epoch):
+    """Make train() stop (as a killed job would) once the checkpoint for `epoch` is on disk."""
+    import sprout.train.loop as loop
+
+    real = loop.save_checkpoint
+
+    def save(path, **state):
+        real(path, **state)
+        if state["epoch"] == epoch and path.name == "latest.pt":
+            raise KeyboardInterrupt
+
+    monkeypatch.setattr(loop, "save_checkpoint", save)
+    return lambda: monkeypatch.setattr(loop, "save_checkpoint", real)
+
+
+def test_resume_requires_explicit_path(manifest, tmp_path, monkeypatch):
+    cfg = _config(tmp_path, epochs=2)
+    undo = _interrupt_after(monkeypatch, 1)
+    with pytest.raises(KeyboardInterrupt):
+        train(cfg)
+    undo()
     with pytest.raises(FileExistsError):
         train(cfg)  # checkpoints exist, but resume was not asked for
     with pytest.raises(FileNotFoundError):
         train(_config(tmp_path, out_dir=str(tmp_path / "other")), resume=tmp_path / "nope.pt")
-    out = train(dataclasses.replace(cfg, epochs=2), resume=tmp_path / "run" / "latest.pt")
+    out = train(cfg, resume=tmp_path / "run" / "latest.pt")
     assert out.epochs_done == 2 and len(out.history) == 1
+
+
+@pytest.mark.parametrize("change", [dict(lr=0.001), dict(batch_size=8), dict(epochs=4), dict(seed=9), dict(transforms=())])
+def test_resume_refuses_changed_training_settings(manifest, tmp_path, monkeypatch, change):
+    cfg = _config(tmp_path, epochs=2)
+    undo = _interrupt_after(monkeypatch, 1)
+    with pytest.raises(KeyboardInterrupt):
+        train(cfg)
+    undo()
+    with pytest.raises(ValueError, match="settings"):
+        train(dataclasses.replace(cfg, **change), resume=tmp_path / "run" / "latest.pt")
+
+
+def test_resume_restores_optimizer_and_scheduler(manifest, tmp_path, monkeypatch):
+    straight = train(_config(tmp_path, out_dir=str(tmp_path / "straight"), transforms=()))
+    cfg = _config(tmp_path, transforms=())
+    undo = _interrupt_after(monkeypatch, 1)
+    with pytest.raises(KeyboardInterrupt):
+        train(cfg)
+    undo()
+    resumed = train(cfg, resume=tmp_path / "run" / "latest.pt")
+    a, b = load_checkpoint(straight.latest_path), load_checkpoint(resumed.latest_path)
+    assert b["scheduler"] == a["scheduler"]
+    assert b["optimizer"]["param_groups"] == a["optimizer"]["param_groups"]
+    assert b["optimizer"]["state"][0]["step"] == a["optimizer"]["state"][0]["step"]
+    for x, y in zip(a["model"].values(), b["model"].values()):
+        assert torch.allclose(x, y, atol=1e-5)
 
 
 def test_checkpoint_round_trip_includes_class_map_and_optimizer(tmp_path):

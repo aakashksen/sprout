@@ -12,6 +12,7 @@ class TrainConfig:
     epochs: int = 10
     transforms: tuple[str, ...] = ("random_resized_crop", "hflip", "color_jitter")
     manifest_hash: str = ""
+    num_workers: int = 0
 
     def to_dict(self) -> dict:
         return asdict(self)

@@ -1,4 +1,5 @@
 import dataclasses
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -78,7 +79,7 @@ def train(config: TrainConfig, *, resume: Path | None = None) -> RunOutput:
         ckpt = load_checkpoint(Path(resume))
         if ckpt["config"].manifest_hash != config.manifest_hash:
             raise ValueError("checkpoint was trained on a different manifest")
-        if dataclasses.replace(ckpt["config"], out_dir=config.out_dir) != config:
+        if dataclasses.replace(ckpt["config"], out_dir=config.out_dir, num_workers=config.num_workers) != config:
             raise ValueError("training settings differ from the checkpoint's; resume with the same settings")
         if ckpt["class_map"] != class_map:
             raise ValueError("checkpoint class map differs from the manifest")
@@ -90,6 +91,9 @@ def train(config: TrainConfig, *, resume: Path | None = None) -> RunOutput:
 
     history: list[dict] = []
     for epoch in range(start, config.epochs):
+        began = time.perf_counter()
+        if device.type == "cuda":
+            torch.cuda.reset_peak_memory_stats()
         model.train()
         loss_sum, n = 0.0, 0
         for x, y in train_dl:
@@ -110,8 +114,12 @@ def train(config: TrainConfig, *, resume: Path | None = None) -> RunOutput:
                 "train_loss": loss_sum / max(n, 1),
                 "val_loss": val_loss,
                 "val_acc": val_acc,
+                "seconds": time.perf_counter() - began,
+                "peak_mem_allocated": torch.cuda.max_memory_allocated() if device.type == "cuda" else None,
+                "peak_mem_reserved": torch.cuda.max_memory_reserved() if device.type == "cuda" else None,
             }
         )
+        print(f"epoch {epoch + 1}/{config.epochs} {history[-1]}", flush=True)
         improved = val_acc > best_metric
         if improved:
             best_metric = val_acc

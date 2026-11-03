@@ -1,4 +1,5 @@
 import random
+from functools import partial
 
 import pandas as pd
 import torch
@@ -56,7 +57,7 @@ def build_datasets(manifest: pd.DataFrame, config: TrainConfig, class_map: dict[
     """Separate train and validation datasets; only the train one augments."""
     tfs = config.transforms
     train = ManifestDataset(
-        manifest[manifest["split"] == "lab_train"], class_map, lambda im: train_transform(im, tfs)
+        manifest[manifest["split"] == "lab_train"], class_map, partial(train_transform, transforms=tfs)
     )
     val = ManifestDataset(manifest[manifest["split"] == "lab_dev"], class_map, val_transform)
     return train, val
@@ -67,6 +68,13 @@ def build_loaders(manifest: pd.DataFrame, config: TrainConfig, class_map: dict[s
     torch.manual_seed(config.seed)
     train, val = build_datasets(manifest, config, class_map)
     gen = torch.Generator().manual_seed(config.seed)
-    train_dl = DataLoader(train, batch_size=config.batch_size, shuffle=True, generator=gen)
-    val_dl = DataLoader(val, batch_size=config.batch_size, shuffle=False)
+    # Workers are seeded by torch from `gen`, so batches repeat for a given seed and worker count.
+    opts = dict(
+        batch_size=config.batch_size,
+        num_workers=config.num_workers,
+        persistent_workers=config.num_workers > 0,
+        pin_memory=torch.cuda.is_available(),
+    )
+    train_dl = DataLoader(train, shuffle=True, generator=gen, **opts)
+    val_dl = DataLoader(val, shuffle=False, **opts)
     return train_dl, val_dl

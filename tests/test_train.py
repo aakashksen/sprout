@@ -213,3 +213,28 @@ def test_class_map_comes_from_manifest(manifest, tmp_path):
     assert make_class_map(manifest) == {"blue": 0, "red": 1}
     out = train(_config(tmp_path, epochs=1))
     assert load_checkpoint(out.latest_path)["class_map"] == {"blue": 0, "red": 1}
+
+
+def test_workers_keep_first_batch_seed_stable_and_a_run_works(manifest, tmp_path):
+    cfg = _config(tmp_path, num_workers=2)
+    cm = make_class_map(manifest)
+    first = []
+    for _ in range(2):
+        tr, _val = build_loaders(manifest, cfg, cm)
+        first.append(next(iter(tr)))
+    assert torch.equal(first[0][0], first[1][0]) and torch.equal(first[0][1], first[1][1])
+    out = train(cfg)
+    assert out.epochs_done == 2
+    assert all(row["seconds"] > 0 for row in out.history)
+    assert {"peak_mem_allocated", "peak_mem_reserved"} <= set(out.history[0])
+
+
+def test_worker_count_does_not_block_a_resume(manifest, tmp_path, monkeypatch):
+    cfg = _config(tmp_path, epochs=2)
+    undo = _interrupt_after(monkeypatch, 1)
+    with pytest.raises(KeyboardInterrupt):
+        train(cfg)
+    undo()
+    out = train(dataclasses.replace(cfg, num_workers=2), resume=tmp_path / "run" / "latest.pt")
+    assert out.epochs_done == 2
+    assert load_checkpoint(out.latest_path)["config"].num_workers == 2

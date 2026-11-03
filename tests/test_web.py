@@ -270,6 +270,12 @@ def test_chat_with_retriever_returns_cited_passages_and_label_warning(tmp_path):
     seen = {}
 
     class FakeRetriever:
+        crops = {"tomato"}
+        warmed = True
+
+        def warm(self, *, rerank=False):
+            pass
+
         def search(self, query, *, crop=None, disease=None, k=8, mode="hybrid", rerank=True):
             seen.update(query=query, crop=crop, rerank=rerank)
             return [Passage("Remove infected leaves.", "tomato.pdf", 3, "tomato", 0.9)]
@@ -282,7 +288,121 @@ def test_chat_with_retriever_returns_cited_passages_and_label_warning(tmp_path):
     c = app.test_client()
     signup(c)
     aid = analysis_id(upload(c))
+    assert _wait(lambda: app.extensions["sprout_chat"]["state"] == "ready")
     body = c.post(f"/analyses/{aid}/chat", json={"message": "treatment?"}, headers={"X-CSRF-Token": token(c)}).get_json()
     assert body["passages"][0]["source"] == "tomato.pdf" and body["passages"][0]["page"] == 3
     assert "product label" in body["note"]
     assert seen == {"query": "treatment?", "crop": "tomato", "rerank": True}
+
+
+def test_lab_class_names_map_to_knowledge_crops():
+    import csv
+    from pathlib import Path
+
+    from sprout.web.crops import crop_for_label
+
+    root = Path(__file__).resolve().parents[1]
+    with (root / "knowledge" / "manifest.csv").open(encoding="utf-8") as f:
+        known = {r["crop"].strip().lower() for r in csv.DictReader(f)} - {"general"}
+    with (root / "datasets" / "manifests" / "lab.csv").open(encoding="utf-8") as f:
+        labels = sorted({r["label"] for r in csv.DictReader(f)})
+    assert len(labels) == 38
+    got = {label: crop_for_label(label, known) for label in labels}
+    assert got["Pepper,_bell___Bacterial_spot"] == "pepper"
+    assert got["Cherry_(including_sour)___healthy"] == "cherry"
+    assert got["Corn_(maize)___Common_rust_"] == "corn"
+    assert got["Orange___Haunglongbing_(Citrus_greening)"] == "orange"
+    assert got["Tomato___Tomato_mosaic_virus"] == "tomato"
+    # these plants have no knowledge documents, so they get no plant-specific crop
+    assert {label.split("___")[0] for label, crop in got.items() if crop is None} == {"Raspberry", "Soybean", "Squash"}
+    assert {c for c in got.values() if c} <= known
+
+
+def test_unknown_plant_gets_general_documents_only(tmp_path):
+    from sprout.rag.retrieve import Passage
+
+    seen = {}
+
+    class FakeRetriever:
+        crops = {"tomato"}
+        warmed = True
+
+        def warm(self, *, rerank=False):
+            pass
+
+        def search(self, query, *, crop=None, disease=None, k=8, mode="hybrid", rerank=True):
+            seen["crop"] = crop
+            return [Passage("Clean your tools.", "general.pdf", 1, "general", 0.9)]
+
+    soy = Identification("answered", Candidate("Soybean___healthy", 0.9), [], "")
+    app = create_app(
+        Config(ENV="testing", SECRET_KEY="s", DATA_DIR=str(tmp_path), RATE_LIMITS=LIMITS),
+        identifier=Counting([soy]),
+        retriever=FakeRetriever(),
+    )
+    c = app.test_client()
+    signup(c)
+    aid = analysis_id(upload(c))
+    assert _wait(lambda: app.extensions["sprout_chat"]["state"] == "ready")
+    body = c.post(f"/analyses/{aid}/chat", json={"message": "care?"}, headers={"X-CSRF-Token": token(c)}).get_json()
+    assert seen["crop"] == "general"
+    assert "no document covers this plant" in body["note"].lower()
+
+
+def _wait(pred, seconds=3.0):
+    end = time.time() + seconds
+    while time.time() < end and not pred():
+        time.sleep(0.01)
+    return pred()
+
+
+def test_readiness_tells_the_truth_about_chat(tmp_path):
+    import threading
+
+    gate = threading.Event()
+
+    class SlowRetriever:
+        crops = {"tomato"}
+
+        def __init__(self):
+            self.warmed = False
+
+        def warm(self, *, rerank=False):
+            gate.wait(5)
+            self.warmed = True
+
+        def search(self, query, **kw):
+            return []
+
+    app = create_app(
+        Config(ENV="testing", SECRET_KEY="s", DATA_DIR=str(tmp_path), RATE_LIMITS=LIMITS),
+        identifier=Counting([ANSWER]),
+        retriever=SlowRetriever(),
+    )
+    c = app.test_client()
+    signup(c)
+    aid = analysis_id(upload(c))
+    assert c.get("/readyz").get_json()["chat"] == "warming"
+    r = c.post(f"/analyses/{aid}/chat", json={"message": "hi"}, headers={"X-CSRF-Token": token(c)})
+    assert r.status_code == 503  # not a timeout, and no second embed started
+    gate.set()
+    assert _wait(lambda: c.get("/readyz").get_json()["chat"] == "ready")
+    assert c.post(f"/analyses/{aid}/chat", json={"message": "hi"}, headers={"X-CSRF-Token": token(c)}).status_code == 200
+
+
+def test_readiness_reports_failed_warmup_and_missing_retriever(tmp_path):
+    class Broken:
+        crops = set()
+        warmed = False
+
+        def warm(self, *, rerank=False):
+            raise RuntimeError("index unreadable")
+
+    app = create_app(
+        Config(ENV="testing", SECRET_KEY="s", DATA_DIR=str(tmp_path), RATE_LIMITS=LIMITS),
+        identifier=Counting([ANSWER]),
+        retriever=Broken(),
+    )
+    c = app.test_client()
+    assert _wait(lambda: c.get("/readyz").get_json()["chat"] == "failed")
+    assert make_app(tmp_path / "none").test_client().get("/readyz").get_json()["chat"] == "unavailable"

@@ -30,5 +30,5 @@ def readyz():
         problems.append("database unavailable")
     if current_app.extensions["sprout_identifier"] is None:
         problems.append("model missing")
-    body = {"ready": not problems, "problems": problems, "chat": current_app.extensions["sprout_retriever"] is not None}
+    body = {"ready": not problems, "problems": problems, "chat": current_app.extensions["sprout_chat"]["state"]}
     return jsonify(body), (200 if not problems else 503)

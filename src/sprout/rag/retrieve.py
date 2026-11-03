@@ -5,7 +5,9 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 import re
+import threading
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
@@ -100,40 +102,72 @@ class Retriever:
         self._df = Counter(t for toks in self._toks for t in set(toks))
         self._avg_len = (sum(map(len, self._toks)) / len(self._toks)) if self._toks else 0.0
         self._vectors: np.ndarray | None = None
+        self._lock = threading.RLock()
 
     def _get_embedder(self) -> Embedder:
-        if self._embedder is None:
-            self._embedder = FastEmbedder(self.config.embedding_model)
-        return self._embedder
+        with self._lock:
+            if self._embedder is None:
+                self._embedder = FastEmbedder(self.config.embedding_model)
+            return self._embedder
 
     def _get_reranker(self) -> Reranker:
-        if self._reranker is None:
-            self._reranker = FastReranker(self.config.reranker_model)
-        return self._reranker
+        with self._lock:
+            if self._reranker is None:
+                self._reranker = FastReranker(self.config.reranker_model)
+            return self._reranker
 
     def _load_vectors(self) -> np.ndarray:
         """Embed every chunk once. With the default embedder the result is saved in the index
-        folder, keyed by model and chunk text, so a new Retriever starts without re-embedding."""
+        folder, keyed by model and chunk text, so a new Retriever starts without re-embedding.
+        An unreadable or wrong-sized cache file is ignored and rewritten."""
         texts = [c["text"] for c in self._chunks]
         cache = None
         if self._embedder is None:
-            key = hashlib.sha1("\x00".join([self.config.embedding_model, *texts]).encode()).hexdigest()[:16]
+            key = hashlib.sha1(chr(0).join([self.config.embedding_model, *texts]).encode()).hexdigest()[:16]
             cache = self._index_dir / f"vectors-{key}.npy"
-            if cache.exists():
-                return np.load(cache)
+            try:
+                saved = np.load(cache)
+                if saved.ndim == 2 and saved.shape[0] == len(texts):
+                    return saved
+            except (OSError, ValueError, EOFError):
+                pass
         vectors = _unit(np.asarray(self._get_embedder().embed_passages(texts)))
         if cache is not None:
+            tmp = cache.with_name(f"{cache.name}.{os.getpid()}.{threading.get_ident()}.tmp")
             try:
-                np.save(cache, vectors)
+                with tmp.open("wb") as f:
+                    np.save(f, vectors)
+                os.replace(tmp, cache)  # readers never see a half-written file
             except OSError:
-                pass  # a read-only index folder only costs the re-embedding
+                tmp.unlink(missing_ok=True)  # a read-only index folder only costs the re-embedding
         return vectors
 
+    @property
+    def crops(self) -> set[str]:
+        """Plants that have documents of their own (general guidance is not a plant)."""
+        return {c["crop"] for c in self._chunks} - {GENERAL_CROP}
+
+    @property
+    def warmed(self) -> bool:
+        return self._vectors is not None
+
+    def warm(self, *, rerank: bool = False) -> None:
+        """Do the slow first-use work now: embed (or load) the index, and optionally load the reranker."""
+        if self._chunks:
+            self._ensure_vectors()
+        if rerank:
+            self._get_reranker()
+
+    def _ensure_vectors(self) -> np.ndarray:
+        with self._lock:  # one embed at a time; later callers reuse its result
+            if self._vectors is None:
+                self._vectors = self._load_vectors()
+            return self._vectors
+
     def _dense(self, query: str, idx: list[int]) -> dict[int, float]:
-        if self._vectors is None:
-            self._vectors = self._load_vectors()
+        vectors = self._vectors if self._vectors is not None else self._ensure_vectors()
         q = _unit(np.asarray(self._get_embedder().embed_query(query)))
-        sims = self._vectors[idx] @ q
+        sims = vectors[idx] @ q
         return {i: float(max(s, 0.0)) for i, s in zip(idx, sims)}
 
     def _bm25(self, query: str, idx: list[int]) -> dict[int, float]:

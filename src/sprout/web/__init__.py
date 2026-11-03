@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import threading
 from concurrent.futures import ThreadPoolExecutor
 
 from flask import Flask, g, jsonify, render_template, request, session
@@ -42,7 +43,11 @@ def create_app(config: Config | None = None, *, identifier: IdentifierProtocol |
     cfg.upload_dir.mkdir(parents=True, exist_ok=True)
     app.extensions["sprout_identifier"] = identifier
     app.extensions["sprout_retriever"] = retriever
+    app.extensions["sprout_chat"] = {"state": "unavailable" if retriever is None else "warming"}
     app.extensions["sprout_pool"] = ThreadPoolExecutor(max_workers=4, thread_name_prefix="sprout")
+
+    if retriever is not None:
+        threading.Thread(target=_warm, args=(app.extensions["sprout_chat"], retriever), daemon=True).start()
 
     app.teardown_appcontext(close_db)
     app.context_processor(lambda: {"csrf_token": csrf_token})
@@ -73,3 +78,12 @@ def create_app(config: Config | None = None, *, identifier: IdentifierProtocol |
     app.register_blueprint(auth.bp)
     app.register_blueprint(analyses.bp)
     return app
+
+
+def _warm(status: dict, retriever) -> None:
+    """Embed the index and load the reranker in the background; chat opens when this finishes."""
+    try:
+        retriever.warm(rerank=True)
+        status["state"] = "ready"
+    except Exception:
+        status["state"] = "failed"

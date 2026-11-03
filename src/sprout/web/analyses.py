@@ -21,14 +21,17 @@ from flask import (
     url_for,
 )
 
+from sprout.rag.retrieve import GENERAL_CROP
 from sprout.serve.types import Identification
 
+from .crops import crop_for_label
 from .security import call_with_timeout, get_db, login_required, rate_limit
 from .uploads import BadImage, check_image, save_private
 
 bp = Blueprint("analyses", __name__)
 MAX_MESSAGE = 1000
 NO_SOURCE = "No supporting document was found for this question, so no advice is given."
+GENERAL_ONLY = "No document covers this plant, so only general guidance is shown, which may not apply to it."
 LABEL_NOTE = "Check the product label and local rules before using any chemical or disposal advice."
 
 
@@ -163,14 +166,21 @@ def chat(analysis_id: int):
     )
     db.commit()
     passages = []
+    general_only = False
     retriever = current_app.extensions["sprout_retriever"]
+    if retriever is not None and current_app.extensions["sprout_chat"]["state"] != "ready":
+        abort(503, "chat is not ready yet")
     top = Identification.from_json(row["prediction_json"]).top
     label = row["selected_label"] or (top.label if top else None)
     if retriever is not None and label:
-        crop = label.split("_", 1)[0]
+        crop = crop_for_label(label, retriever.crops)
+        general_only = crop is None
+        crop = crop or GENERAL_CROP
         # the score floor only works on reranked scores, so reranking stays on here
         found = call_with_timeout(lambda: retriever.search(message, crop=crop, rerank=True))
         passages = [dict(text=p.text, source=p.source, page=p.page, score=p.score) for p in found]
     # generated answers arrive with sprout.rag.answer; until then the reply is the cited passages
     note = LABEL_NOTE if passages else NO_SOURCE
+    if passages and general_only:
+        note = f"{GENERAL_ONLY} {LABEL_NOTE}"
     return jsonify(passages=passages, note=note)

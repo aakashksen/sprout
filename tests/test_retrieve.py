@@ -112,3 +112,74 @@ def test_default_embedder_vectors_are_saved_and_reused(tmp_path, monkeypatch):
         assert r.search("early blight", mode="dense", rerank=False)[0].source == "tomato.pdf"
     assert calls.count(len(CHUNKS)) == 1  # second Retriever read the saved vectors
     assert list(tmp_path.glob("vectors-*.npy"))
+
+
+def _index_with_default_embedder(tmp_path, monkeypatch, counter):
+    import sprout.rag.retrieve as mod
+
+    class Counting(FakeEmbedder):
+        def __init__(self, model):
+            super().__init__(TABLE)
+
+        def embed_passages(self, texts):
+            counter.append(len(texts))
+            return super().embed_passages(texts)
+
+    monkeypatch.setattr(mod, "FastEmbedder", Counting)
+    r = make(tmp_path, embedder=None, min_score=0.0)
+    r._embedder = None
+    return r
+
+
+def test_corrupt_or_wrong_shape_cache_is_recovered(tmp_path, monkeypatch):
+    calls: list[int] = []
+    _index_with_default_embedder(tmp_path, monkeypatch, calls).search("early blight", mode="dense", rerank=False)
+    cache = next(tmp_path.glob("vectors-*.npy"))
+    cache.write_bytes(cache.read_bytes()[:20])  # half-written file
+    r = _index_with_default_embedder(tmp_path, monkeypatch, calls)
+    assert r.search("early blight", mode="dense", rerank=False)[0].source == "tomato.pdf"
+    assert len(calls) == 2
+    np.save(cache, np.zeros((2, 4)))  # readable but wrong number of rows
+    r = _index_with_default_embedder(tmp_path, monkeypatch, calls)
+    assert r.search("early blight", mode="dense", rerank=False)
+    assert len(calls) == 3
+    assert not list(tmp_path.glob("*.tmp*"))  # no leftovers from the atomic write
+
+
+def test_concurrent_first_searches_embed_once(tmp_path, monkeypatch):
+    import threading
+    import time
+
+    import sprout.rag.retrieve as mod
+
+    calls: list[int] = []
+
+    class Slow(FakeEmbedder):
+        def __init__(self, model):
+            super().__init__(TABLE)
+
+        def embed_passages(self, texts):
+            calls.append(len(texts))
+            time.sleep(0.2)
+            return super().embed_passages(texts)
+
+    monkeypatch.setattr(mod, "FastEmbedder", Slow)
+    r = make(tmp_path, embedder=None, min_score=0.0)
+    r._embedder = None
+    threads = [
+        threading.Thread(target=r.search, args=("early blight",), kwargs=dict(mode="dense", rerank=False))
+        for _ in range(4)
+    ]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert len(calls) == 1
+
+
+def test_warm_loads_vectors_and_reports_ready(tmp_path):
+    r = make(tmp_path, min_score=0.0)
+    assert r.crops == {"tomato", "potato"}  # general is not a plant
+    assert not r.warmed
+    r.warm()
+    assert r.warmed

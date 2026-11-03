@@ -25,8 +25,12 @@ MAP_COLUMNS = [
     "n_field_test",
 ]
 RATIOS = (0.5, 0.25, 0.25)
-# Measured on the 4,324 field images: dHash pairs thin out by 6 bits and the noise floor starts near 9.
-DHASH_DISTANCE = 6
+# Chosen from viewing candidate pairs (see docs/field-dedup.md): hashes propose, correlation decides.
+HASH_CANDIDATES = 12
+SCENE_MATCH = 0.88
+SCENE_MATCH_CLOSE = 0.80
+CLOSE_DHASH = 10
+RESIDUAL_DISTANCE = 8
 RAW = Path("datasets") / "raw"
 REVIEW = Path("datasets") / "review"
 CLASS_MAP_PATH = MANIFEST_DIR.parent / "class_map.csv"
@@ -117,23 +121,94 @@ def build_not_plant(instances_json, image_dir, name: str = "not_plant") -> pd.Da
     return out
 
 
-def _dhash_variants(path: str) -> list[int]:
+def _gray64(path: str) -> np.ndarray:
     with Image.open(path) as img:
-        small = img.convert("L").resize((64, 64))
-    out = []
+        return np.asarray(
+            img.convert("L").resize((64, 64), Image.BILINEAR), dtype=np.uint8
+        )
+
+
+def _hash_variants(path: str) -> tuple[list[int], list[int]]:
+    """pHash and dHash of the image under all 8 flips and 90-degree rotations."""
+    small = Image.fromarray(_gray64(path))
+    ph, dh = [], []
     for flip in (False, True):
         base = small.transpose(Image.FLIP_LEFT_RIGHT) if flip else small
         for k in range(4):
-            bits = imagehash.dhash(base.rotate(90 * k)).hash.flatten()
-            out.append(int("".join("1" if b else "0" for b in bits), 2))
-    return out
+            turned = base.rotate(90 * k)
+            for hasher, out in ((imagehash.phash, ph), (imagehash.dhash, dh)):
+                bits = hasher(turned).hash.flatten()
+                out.append(int("".join("1" if b else "0" for b in bits), 2))
+    return ph, dh
+
+
+def hash_pairs(paths: list[str], max_distance: int) -> pd.DataFrame:
+    """Pairs of images within max_distance bits by pHash or dHash, over all 8 symmetries."""
+    both = [_hash_variants(p) for p in paths]
+    ph = np.array([b[0] for b in both], dtype=np.uint64)
+    dh = np.array([b[1] for b in both], dtype=np.uint64)
+    rows = []
+    for i in range(len(paths) - 1):
+        dp = np.bitwise_count(ph[i, 0] ^ ph[i + 1 :]).min(axis=1)
+        dd = np.bitwise_count(dh[i, 0] ^ dh[i + 1 :]).min(axis=1)
+        for j in np.flatnonzero((dp <= max_distance) | (dd <= max_distance)):
+            rows.append((paths[i], paths[i + 1 + j], int(dp[j]), int(dd[j])))
+    return pd.DataFrame(rows, columns=["path_a", "path_b", "phash", "dhash"])
+
+
+def _small(a: np.ndarray) -> np.ndarray:
+    return np.asarray(
+        Image.fromarray(a).resize((32, 32), Image.BILINEAR), dtype=np.float32
+    )
+
+
+def _crops(a: np.ndarray):
+    yield _small(a)
+    for frac in (0.85, 0.7):
+        w = int(64 * frac)
+        for y in (0, (64 - w) // 2, 64 - w):
+            for x in (0, (64 - w) // 2, 64 - w):
+                yield _small(a[y : y + w, x : x + w])
+
+
+def _foreground_ncc(a: np.ndarray, b: np.ndarray) -> float:
+    """Correlation over pixels that are not white in both images, so blank backgrounds don't match."""
+    keep = np.maximum(a, b) < 235
+    if keep.sum() < 150:
+        return 0.0
+    x, y = a[keep] - a[keep].mean(), b[keep] - b[keep].mean()
+    norm = np.sqrt((x * x).sum() * (y * y).sum())
+    return float((x * y).sum() / norm) if norm > 0 else 0.0
+
+
+def same_scene_score(a: np.ndarray, b: np.ndarray) -> float:
+    """Best foreground correlation of two 64x64 gray images over flips, rotations and crops."""
+    whole_a = _small(a)
+    best = 0.0
+    for flip in (b, b[:, ::-1]):
+        for k in range(4):
+            turned = np.ascontiguousarray(np.rot90(flip, k))
+            whole_b = _small(turned)
+            best = max(best, _foreground_ncc(whole_a, whole_b))
+            for crop in _crops(turned):
+                best = max(best, _foreground_ncc(whole_a, crop))
+            for crop in _crops(a):
+                best = max(best, _foreground_ncc(crop, whole_b))
+    return best
+
+
+def is_same_scene(score: float, dhash: int) -> bool:
+    return score >= SCENE_MATCH or (score >= SCENE_MATCH_CLOSE and dhash <= CLOSE_DHASH)
 
 
 def link_same_scene(
-    paths: list[str], groups: dict[str, str], max_distance: int = DHASH_DISTANCE
+    paths: list[str], groups: dict[str, str], hash_distance: int = HASH_CANDIDATES
 ) -> dict[str, str]:
-    """Merge groups holding crops or flips of one scene (dHash survives crops, pHash does not)."""
-    hashes = np.array([_dhash_variants(p) for p in paths], dtype=np.uint64)
+    """Merge groups of images that verify as one scene (same photo, crop or flip).
+
+    Hashes only propose pairs. A pair links only when same_scene_score confirms it,
+    so a chain of loose hash matches cannot join unrelated images.
+    """
     parent = {g: g for g in set(groups.values())}
 
     def find(g: str) -> str:
@@ -142,13 +217,38 @@ def link_same_scene(
             g = parent[g]
         return g
 
-    for i in range(len(paths) - 1):
-        diff = np.bitwise_count(hashes[i, 0] ^ hashes[i + 1 :]).min(axis=1)
-        for j in np.flatnonzero(diff <= max_distance):
-            a, b = find(groups[paths[i]]), find(groups[paths[i + 1 + j]])
-            if a != b:
-                parent[max(a, b)] = min(a, b)
+    gray: dict[str, np.ndarray] = {}
+    for r in hash_pairs(paths, hash_distance).itertuples():
+        a, b = find(groups[r.path_a]), find(groups[r.path_b])
+        if a == b:
+            continue
+        for p in (r.path_a, r.path_b):
+            gray.setdefault(p, _gray64(p))
+        if is_same_scene(same_scene_score(gray[r.path_a], gray[r.path_b]), r.dhash):
+            parent[max(a, b)] = min(a, b)
     return {p: find(g) for p, g in groups.items()}
+
+
+def residual_pairs(
+    field: pd.DataFrame, max_distance: int = RESIDUAL_DISTANCE
+) -> pd.DataFrame:
+    """Hash-close image pairs the pipeline left in different splits, with their scene score."""
+    split = dict(zip(field["path"], field["split"]))
+    label = dict(zip(field["path"], field["label"]))
+    pairs = hash_pairs(list(field["path"]), max_distance)
+    pairs = pairs[
+        [split[a] != split[b] for a, b in zip(pairs["path_a"], pairs["path_b"])]
+    ]
+    pairs = pairs.reset_index(drop=True)
+    pairs["split_a"] = pairs["path_a"].map(split)
+    pairs["split_b"] = pairs["path_b"].map(split)
+    pairs["label_a"] = pairs["path_a"].map(label)
+    pairs["label_b"] = pairs["path_b"].map(label)
+    pairs["scene_score"] = [
+        round(same_scene_score(_gray64(a), _gray64(b)), 3)
+        for a, b in zip(pairs["path_a"], pairs["path_b"])
+    ]
+    return pairs
 
 
 def assemble_field(
@@ -322,6 +422,7 @@ def build_field(sources: dict[str, Path], class_map: pd.DataFrame) -> pd.DataFra
     )
     field.to_csv(MANIFEST_DIR / "field.csv", index=False)
     conflicts.to_csv(MANIFEST_DIR / "field_conflicts.csv", index=False)
+    residual_pairs(field).to_csv(MANIFEST_DIR / "field_residual_pairs.csv", index=False)
     cmap.to_csv(CLASS_MAP_PATH, index=False)
     write_review(field)
     return field

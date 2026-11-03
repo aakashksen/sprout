@@ -1,0 +1,28 @@
+{
+  "task": "T2.2",
+  "commit": "0eb2258b96efeaeb08ff9711b4269137e81bbef8",
+  "verdict": "PASS",
+  "checks": [
+    {"item": "HEAD equals commit; worktree clean", "result": "pass", "evidence": "git rev-parse HEAD = 0eb2258...; git status --short empty in worktree"},
+    {"item": "Evidence log shows acceptance ran at this commit and passed", "result": "pass", "evidence": "orchestration/evidence/T2.2.log: commit 0eb2258, 15 passed, exit 0, RESULT PASS"},
+    {"item": "All Produces functions exist", "result": "pass", "evidence": "metrics.py: macro_f1, per_class_report, confusion, ece, selective_metrics, recall_at_k, mrr; stats.py: percentile, bootstrap_ci, paired_bootstrap_diff, mcnemar_exact; predict.py: predict/Predictions(path,label,probs)"},
+    {"item": "Each plan test is present and meaningful", "result": "pass", "evidence": "tests/test_metrics.py covers mcnemar b=1,c=9 (0.0215), sklearn macro_f1, ece 0 and 0.5, bootstrap whole-group (0.0,1.0 on two groups, unreachable by item-level resampling), selective 1.01 -> coverage 0, recall@k rank 3, mrr 0.75"},
+    {"item": "mcnemar_exact vs scipy binomtest, independent", "result": "pass", "evidence": "Compared all (b,c) in 0..14 x 0..14 including b=c ties, c=0 and b=c=0 (all agree -> 1.0): 0 mismatches at 1e-9"},
+    {"item": "bootstrap_ci / paired_bootstrap_diff", "result": "pass", "evidence": "Seed determinism holds, different seed accepted, string vs int group labels give same result, single group degenerates to point estimate, bounds are 2.5/97.5 percentiles, paired point estimate equals mean(a-b) (0.1667) and pairing is by differencing before group resampling. Group resampling uses pooled sums/counts per group (ratio of sums), which suits unequal group sizes."},
+    {"item": "ece edge handling", "result": "pass", "evidence": "conf 1.0 lands in the last bin (ece 1.0 for confident-wrong), conf 0.5 case and uniform 1/3 case give 0, calibrated 0.8 with 4/5 right gives 0; searchsorted+clip handles 0 and 1 edges"},
+    {"item": "macro_f1 when a class appears only in predictions", "result": "pass", "evidence": "y=[0,0,1,1], p=[0,2,1,1]: returns 0.8333 = sklearn restricted to labels present in y_true; sklearn default would give 0.5556. This matches docs/TESTING.md line 32 (mean over classes present in the evaluation set). No repo test covers it (see notes)."},
+    {"item": "percentile on small lists", "result": "pass", "evidence": "[5]@90 = 5.0, [1,2]@50 = 1.5, [3,1,2]@100 = 3.0, [1,2,3,4]@25 = 1.75 (numpy linear interpolation)"},
+    {"item": "predict: preprocess, eval mode, no_grad, alignment", "result": "pass", "evidence": "Uses sprout.preprocess.preprocess, model.eval(), torch.no_grad(). A probe model started in train mode with Dropout(0.9) was called with (training=False, grad_enabled=False); batched output (batch_size=3, 8 rows) matched single-batch preprocess+softmax; o.path == manifest order; labels come from class_map[row label] in the same row order; empty manifest gives (0,N) probs; corrupt image raises UnidentifiedImageError rather than being silently skipped; CMYK image handled."},
+    {"item": "Signature deviation: predict takes class_map", "result": "pass", "evidence": "Plan signature is predict(model, manifest_split); implementation adds a required class_map dict and batch_size. Justified by the global constraint that class order comes from the saved class map: it keeps the labels from being derived by sorting or from a hardcoded list, and the labels stay aligned with probability columns. Later tasks can use it by passing the checkpoint's class map. The cost is that every caller must pass the map; flagged in notes."},
+    {"item": "Diff hygiene", "result": "pass", "evidence": "No legacy/ changes in the task diff, no secrets found in src/sprout/eval, no earlier tests modified (new files only: eval/*.py, tests/test_metrics.py, pyproject.toml and docs/PLAN.md edits)"}
+  ],
+  "own_tests": [
+    {"input": "mcnemar_exact vs scipy.stats.binomtest for 225 tables (b,c in 0..14), including ties and all-agree", "result": "0 mismatches"},
+    {"input": "bootstrap_ci / paired_bootstrap_diff: determinism, seed variation, str vs int groups, single group, paired pairing", "result": "All as expected; paired result (0.1667, -0.5, 0.5) with point estimate equal to mean(a-b)"},
+    {"input": "ece at confidence 0, 0.5 and 1.0 bin edges and calibrated fractional confidences", "result": "Correct values (0, 0, 1.0, 0)"},
+    {"input": "macro_f1 with a prediction-only class vs sklearn", "result": "Equals sklearn over present classes (0.8333); differs from sklearn default (0.5556) as documented"},
+    {"input": "predict with a train-mode Dropout model, batch_size=3, 8 rows incl. a CMYK jpg, an empty frame, and a corrupt jpg", "result": "Eval and no-grad confirmed inside forward; outputs aligned and match unbatched; empty gives shape (0,3); corrupt raises"}
+  ],
+  "failures": [],
+  "notes": "(1) predict leaves the model in eval mode and does not restore the previous mode; callers that keep training afterwards must call model.train() themselves. (2) macro_f1 on empty input raises (max of empty array), and selective_metrics returns nan rates when nothing is answered; later tasks must handle that. (3) No repo test covers macro_f1 with a prediction-only class, and the implementation differs from sklearn's default there; it follows docs/TESTING.md, so later reports should say so. (4) preprocess does not apply EXIF rotation; that is pre-existing and outside T2.2, but predict inherits it. (5) mcnemar_exact is a hand-rolled binomial; verified against scipy. I did not break code and re-run tests, since the independent recomputation covered the statistics instead."
+}

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 import sys
 from dataclasses import dataclass
@@ -290,6 +291,29 @@ def _judge_problems(config: Any, models: Any) -> list[str]:
     return out
 
 
+def _nonfinite(x: Any, path: str = "", loss_only: bool = False) -> list[str]:
+    """Paths of NaN or infinite numbers inside nested JSON values (json.load accepts NaN and Infinity)."""
+    if isinstance(x, float):
+        return [] if math.isfinite(x) or (loss_only and "loss" not in path.rsplit(".", 1)[-1]) else [path]
+    if isinstance(x, dict):
+        return [p for k, v in x.items() for p in _nonfinite(v, f"{path}.{k}" if path else str(k), loss_only)]
+    if isinstance(x, list):
+        return [p for i, v in enumerate(x) for p in _nonfinite(v, f"{path}[{i}]" if path else f"[{i}]", loss_only)]
+    return []
+
+
+def _finite_problems(rec: dict[str, Any]) -> list[str]:
+    out = []
+    for key in ("metrics", "intervals", "comparisons"):
+        bad = _nonfinite(rec.get(key), key)
+        if bad:
+            out.append(f"non-finite value in {key}: {', '.join(bad[:3])}")
+    bad = _nonfinite(rec.get("attempts"), "attempts", loss_only=True)
+    if bad:
+        out.append(f"attempts history holds a non-finite loss: {', '.join(bad[:3])}")
+    return out
+
+
 def _stamp_problems(rec: dict[str, Any]) -> list[str]:
     """finished_at must be the write time that run_id carries."""
     found = TIMESTAMP.findall(str(rec.get("run_id")))
@@ -308,6 +332,7 @@ def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
     if rec["dirty"]:
         problems.append("record was made on a dirty tree")
     problems += _stamp_problems(rec)
+    problems += _finite_problems(rec)
     if any(FAKE.search(s) for s in _strings(rec["models"])):
         problems.append("a model name matches fake or stub")
     if not rec["attempts"]:

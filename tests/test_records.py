@@ -1,4 +1,5 @@
 import json
+import re
 import subprocess
 
 import numpy as np
@@ -673,3 +674,35 @@ def test_moving_the_first_record_away_and_back_does_not_make_it_newer(root):
     commit(root, "move back")
     flagged = flagged_stems(root)
     assert second.stem in flagged and first.stem not in flagged
+
+
+def test_nan_loss_in_attempt_history_fails(root):
+    edit(make(root), lambda r: r.update(attempts=[{"setting": "s", "history": [{"epoch": 1, "val_loss": 0.4},
+                                                                              {"epoch": 2, "train_loss": 1e999}]}]))
+    failing(root, "non-finite loss")
+
+
+def test_nan_literal_in_a_metric_fails(root):
+    path = make(root)
+    path.write_text(path.read_text().replace('"ece": ', '"ece": NaN, "x_old": ', 1))
+    failing(root, "non-finite value in metrics")
+
+
+def test_infinity_literal_in_an_interval_fails(root):
+    path = make(root)
+    rec = json.loads(path.read_text())
+    text = path.read_text().replace(json.dumps(rec["intervals"]["a"]["accuracy"][1]), "Infinity", 1)
+    assert "Infinity" in text
+    path.write_text(text)
+    failing(root, "non-finite value in intervals")
+
+
+def test_nan_literal_in_a_comparison_fails_and_claims_inherit_it(root):
+    path = make(root)
+    rec = json.loads(path.read_text())
+    path.write_text(re.sub(r'"mcnemar_p": [^,}\s]+', '"mcnemar_p": NaN', path.read_text()))
+    failing(root, "non-finite value in comparisons")
+    (root / "results").mkdir(exist_ok=True)
+    (root / "results/claims.json").write_text(json.dumps({"claims": [
+        {"id": "c1", "run_id": rec["run_id"], "system": "a", "metric": "accuracy", "value": rec["metrics"]["a"]["accuracy"]}]}))
+    assert any("non-finite" in p for p in check_claims(root))

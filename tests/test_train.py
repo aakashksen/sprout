@@ -238,3 +238,36 @@ def test_worker_count_does_not_block_a_resume(manifest, tmp_path, monkeypatch):
     out = train(dataclasses.replace(cfg, num_workers=2), resume=tmp_path / "run" / "latest.pt")
     assert out.epochs_done == 2
     assert load_checkpoint(out.latest_path)["config"].num_workers == 2
+
+
+def test_nonfinite_train_loss_stops_the_run_without_checkpoints(manifest, tmp_path, monkeypatch):
+    import sprout.train.loop as loop
+
+    def broken(name, num_classes, pretrained=True):
+        model = build_model(name, num_classes, pretrained=False)
+        with torch.no_grad():
+            model[-1].weight.fill_(float("nan"))
+        return model
+
+    monkeypatch.setattr(loop, "build_model", broken)
+    cfg = _config(tmp_path)
+    with pytest.raises(RuntimeError, match=r"epoch 1.*train loss.*not finite"):
+        train(cfg)
+    assert not (tmp_path / "run" / "best.pt").exists() and not (tmp_path / "run" / "latest.pt").exists()
+
+
+def test_nonfinite_validation_loss_stops_before_best_is_saved(manifest, tmp_path, monkeypatch):
+    import sprout.train.loop as loop
+
+    calls = []
+
+    def evaluate(model, loader, loss_fn, device):
+        calls.append(1)
+        return (float("nan"), 0.9) if len(calls) == 2 else (0.5, 0.5)
+
+    monkeypatch.setattr(loop, "_evaluate", evaluate)
+    cfg = _config(tmp_path)
+    with pytest.raises(RuntimeError, match=r"epoch 2.*validation loss.*not finite"):
+        train(cfg)
+    assert load_checkpoint(tmp_path / "run" / "best.pt")["epoch"] == 1
+    assert load_checkpoint(tmp_path / "run" / "latest.pt")["epoch"] == 1

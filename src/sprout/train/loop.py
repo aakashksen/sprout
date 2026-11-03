@@ -1,4 +1,5 @@
 import dataclasses
+import math
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -101,6 +102,8 @@ def train(config: TrainConfig, *, resume: Path | None = None) -> RunOutput:
             optimizer.zero_grad()
             with torch.autocast(device.type, enabled=device.type == "cuda"):
                 loss = loss_fn(model(x), y)
+            if not math.isfinite(loss.item()):
+                raise RuntimeError(f"epoch {epoch + 1}: train loss is {loss.item()}, not finite; run stopped")
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
@@ -108,6 +111,8 @@ def train(config: TrainConfig, *, resume: Path | None = None) -> RunOutput:
             n += len(y)
         scheduler.step()
         val_loss, val_acc = _evaluate(model, val_dl, loss_fn, device)
+        if not math.isfinite(val_loss):
+            raise RuntimeError(f"epoch {epoch + 1}: validation loss is {val_loss}, not finite; run stopped")
         history.append(
             {
                 "epoch": epoch + 1,

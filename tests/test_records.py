@@ -637,3 +637,39 @@ def test_end_to_end_accuracy_counts_rejected_photos_as_wrong(root):
     assert check("E1", root=root) == []
     edit(path, lambda r: r["metrics"]["g"].update(end_to_end_accuracy=5 / 6))
     failing(root, "end_to_end_accuracy does not recompute")
+
+
+def flagged_stems(root):
+    return {m.split(":")[0] for m in check_run.test_once_problems(root)}
+
+
+def two_committed_uses(root):
+    first = make(root, experiment="E9")
+    commit(root)
+    second = make(root, experiment="E9")
+    commit(root)
+    return first, second
+
+
+def test_readding_the_first_record_does_not_make_it_newer(root):
+    first, second = two_committed_uses(root)
+    siblings = [f for f in root.glob(f"results/runs/{first.stem}*")]
+    saved = {f: f.read_bytes() for f in siblings}
+    for f in siblings:
+        f.unlink()
+    commit(root, "delete first")
+    for f, data in saved.items():
+        f.write_bytes(data)
+    commit(root, "re-add first")
+    assert flagged_stems(root) == {second.stem}
+
+
+def test_moving_the_first_record_away_and_back_does_not_make_it_newer(root):
+    first, second = two_committed_uses(root)
+    away = first.with_name("away.json")
+    sh(root, "mv", str(first), str(away))
+    commit(root, "move away")
+    sh(root, "mv", str(away), str(first))
+    commit(root, "move back")
+    flagged = flagged_stems(root)
+    assert second.stem in flagged and first.stem not in flagged

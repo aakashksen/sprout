@@ -468,6 +468,8 @@ def _uses(root: Path) -> list[tuple[str, dict[str, Any]]]:
         name = rel.rsplit("/", 1)[-1]
         if not name.endswith(".json") or SIDECAR.fullmatch(name):
             continue
+        if name[:-5] in recs:
+            continue  # the first add decides the order
         path = root / rel
         if path.is_file():
             text = path.read_text(encoding="utf-8")

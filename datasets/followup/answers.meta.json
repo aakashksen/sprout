@@ -1,0 +1,11 @@
+{
+ "answerer": "three blind Sonnet vision agents, reading photos and not growers; same instructions on all sheets",
+ "kind": "a vision agent reading the photo, not a grower",
+ "sheets": 104,
+ "photos": 619,
+ "rows": 6190,
+ "yes": 480,
+ "no": 4420,
+ "unknown": 1290,
+ "collected_at": "2026-11-03T22:44:51.524901+00:00"
+}

@@ -367,7 +367,7 @@
       "verified": {
         "commit": "c4eb707c46f0d4b8db487f1dc15c2f741962b9af",
         "passed": true,
-        "at": "2026-11-03T20:18:27+00:00"
+        "at": "2026-11-03T20:49:32+00:00"
       }
     },
     {
@@ -424,8 +424,8 @@
         "passed": true,
         "at": "2026-11-03T20:23:06+00:00"
       },
-      "attempts": 1,
-      "reason": "leakage: at least 6 extra_train rows are watermark or crop copies of field_dev or field_test photos, missed by the 0.88 rule and the 0.75 guard; real-manifest tests compare only exact sha1"
+      "attempts": 2,
+      "reason": "at least 7 kept extras are cropped or zoomed copies of field_dev or field_test photos; the full-frame check cannot see crops"
     },
     {
       "id": "T4.6",

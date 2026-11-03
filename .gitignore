@@ -28,3 +28,5 @@ orchestration/.state.lock
 orchestration/.land.lock
 *.tmp
 results/e5/stages.log
+datasets/review/label_sheets/
+datasets/review/label_joined/

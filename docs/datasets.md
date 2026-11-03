@@ -40,14 +40,15 @@ License: LICENSE.txt was read directly and begins "Attribution 4.0 International
 Size: 2,598 data points in total (README: "Our dataset contains 2,598 data points in total across 13 plant species and up to 17 classes of diseases"). A Roboflow mirror lists 2,569 images and 30 classes (https://universe.roboflow.com/sherif/plantdoc-cbl3c-wvbns); that is secondary and conflicts, so it was not used.
 Classes: "up to 17 classes of diseases across 13 plant species" (repo README). Per-class counts not given on the page read.
 Access: Browse or clone https://github.com/pratikkayal/PlantDoc-Dataset (not run). Top-level folders: `train/` and `test/`.
+Downloaded 2026-11-02 by `git clone --depth 1` into `datasets/raw/plantdoc_src`. 94 files have names too long for a Windows path, so they were written under a 12-character hash name; 2,572 images in 28 class folders (2,336 in train and 236 in test), staged flat per class in `datasets/raw/plantdoc`.
 Approved: yes, by the person on 2026-11-02, for local evaluation and T4.1 fine-tuning, with no redistribution. The images are never committed, and the person checks before publishing any weights trained on them
 
 ## PlantSeg (second real-photo source, in-the-wild)
 
 URL: https://github.com/tqwei05/PlantSeg ; Zenodo record https://zenodo.org/records/16665770 ; DOI https://doi.org/10.5281/zenodo.17719108 ; paper https://arxiv.org/abs/2409.04038
 License: Use record 17719108, the newest version (the DOI above resolves to it; confirmed via https://zenodo.org/api/records/16665770/versions/latest, `metadata.license` = `cc-by-nc-4.0`). That is CC BY-NC 4.0 (non-commercial). The older record 16665770 (v6, July 31, 2025) showed CC BY 4.0. The non-commercial term covers this project's research use, but it would need rechecking for any commercial use. The record's creators are the paper authors (Tianqi Wei et al.), so this is the authors' own publication. The GitHub repo has no License section or LICENSE file (https://github.com/tqwei05/PlantSeg).
-Size: One file, `plantseg.zip`, 1.7 GB (older record 16665770; size not rechecked on 17719108). Image count conflicts: GitHub README says "more than 7,774 images" (https://github.com/tqwei05/PlantSeg); the arXiv abstract says "11,400 images with disease segmentation masks and an additional 8,000 healthy plant images" (https://arxiv.org/abs/2409.04038). Not reconciled; T1.2 must count classes and images after download.
-Classes: couldn't confirm. A search snippet cited "115 different plant diseases"; the README page read did not list a class count, and the arXiv abstract gives no class count.
+Size: One file, `plantseg.zip`, 1.7 GB (older record 16665770; size not rechecked on 17719108). Image count conflicts: GitHub README says "more than 7,774 images" (https://github.com/tqwei05/PlantSeg); the arXiv abstract says "11,400 images with disease segmentation masks and an additional 8,000 healthy plant images" (https://arxiv.org/abs/2409.04038). Not reconciled; counted after download in T1.2 (below).
+Counted 2026-11-02 after download (md5 matched the Zenodo record; `plantseg.zip` is 1,057,281,724 bytes, not 1.7 GB): 7,774 images (all diseased, no healthy set in this file), 34 plants, 115 plant-disease classes, per-image licenses 7,741 CC-BY-NC and 33 CC0 in `Metadata.csv`. The 11,400 and 8,000-healthy figures in the arXiv abstract are not in this file. T1.2 maps 21 of the 115 classes to lab classes (`datasets/class_map.csv`).
 Access: Download `plantseg.zip` from Zenodo record 17719108 (https://zenodo.org/records/17719108), then place it under the `data` folder as the repo README says (not done). Each image has a segmentation mask of the diseased part.
 Approved: yes
 
@@ -55,7 +56,7 @@ Approved: yes
 
 URL: https://cocodataset.org ; images http://images.cocodataset.org/zips/val2017.zip ; annotations http://images.cocodataset.org/annotations/annotations_trainval2017.zip
 License: Couldn't confirm from a primary source: https://cocodataset.org/termsofuse returned HTTP 404 and the homepage has no license text. Used because the person approved it directly on 2026-11-02 for local non-commercial evaluation; this approval is the person's decision and not a license finding.
-Size: Annotations zip is 252,907,541 bytes (HTTP Content-Length). T1.2 records the image count after excluding potted plants.
+Size: Annotations zip is 252,907,541 bytes (HTTP Content-Length). Counted 2026-11-02: 5,000 validation images, 4,828 left after excluding every image with a `potted plant` annotation (172 excluded).
 Classes: Not used as classes. All images are treated as `not_plant`, after excluding every image annotated with the `potted plant` category.
 Access: Download the two zips above into the git-ignored `datasets/raw/`. Never commit or redistribute the images or anything derived from them.
 Approved: yes, by the person on 2026-11-02, for local non-commercial evaluation only

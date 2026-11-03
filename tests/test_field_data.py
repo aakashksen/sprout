@@ -1,0 +1,173 @@
+import json
+import subprocess
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+from PIL import Image
+
+from sprout.data.check_splits import check
+from sprout.data.field import (
+    FIELD_SPLITS,
+    PLANTDOC_MAP,
+    assemble_field,
+    not_plant_images,
+)
+from sprout.data.inventory import file_sha1
+from sprout.data.splits import MANIFEST_DIR, load_manifest
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def _img(path: Path, seed: int) -> str:
+    rng = np.random.default_rng(seed)
+    small = (rng.random((8, 8, 3)) * 255).astype("uint8")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    Image.fromarray(small).resize((64, 64), Image.BICUBIC).save(path)
+    return path.as_posix()
+
+
+def _inventory(paths_by_class: dict[str, list[str]], source: str) -> pd.DataFrame:
+    rows = [
+        (p, c, file_sha1(Path(p)), source)
+        for c, ps in paths_by_class.items()
+        for p in ps
+    ]
+    return pd.DataFrame(rows, columns=["path", "label", "sha1", "source"])
+
+
+def _fixture(tmp_path):
+    seed = iter(range(1000))
+    lab_paths = [
+        _img(tmp_path / "lab" / "A" / f"l{i}.png", next(seed)) for i in range(2)
+    ]
+    lab = pd.DataFrame(
+        {"path": lab_paths, "sha1": [file_sha1(Path(p)) for p in lab_paths]}
+    )
+    exact = tmp_path / "f" / "a" / "copy_exact.png"
+    exact.parent.mkdir(parents=True)
+    exact.write_bytes(Path(lab_paths[0]).read_bytes())
+    near = tmp_path / "f" / "a" / "copy_near.png"
+    Image.open(lab_paths[1]).resize((48, 48)).save(near)
+    fresh = {
+        "a": [str(exact), str(near)]
+        + [_img(tmp_path / "f" / "a" / f"x{i}.png", next(seed)) for i in range(12)],
+        "b": [_img(tmp_path / "f" / "b" / f"y{i}.png", next(seed)) for i in range(12)],
+        "weird": [
+            _img(tmp_path / "f" / "weird" / f"z{i}.png", next(seed)) for i in range(5)
+        ],
+        "tiny": [
+            _img(tmp_path / "f" / "tiny" / f"t{i}.png", next(seed)) for i in range(2)
+        ],
+    }
+    inv = _inventory(
+        {k: [Path(p).as_posix() for p in v] for k, v in fresh.items()}, "s"
+    )
+    cmap = pd.DataFrame(
+        {
+            "source": ["s"] * 4,
+            "source_class": ["a", "b", "weird", "tiny"],
+            "lab_class": ["A", "B", "", "T"],
+            "reason": ["", "", "no lab counterpart", ""],
+        }
+    )
+    return inv, cmap, lab
+
+
+def test_not_plant_excludes_potted_plant_images(tmp_path):
+    ann = {
+        "categories": [{"id": 1, "name": "person"}, {"id": 64, "name": "potted plant"}],
+        "images": [{"id": i, "file_name": f"{i:012d}.jpg"} for i in (1, 2, 3)],
+        "annotations": [
+            {"image_id": 1, "category_id": 1},
+            {"image_id": 2, "category_id": 1},
+            {"image_id": 2, "category_id": 64},
+        ],
+    }
+    f = tmp_path / "instances.json"
+    f.write_text(json.dumps(ann))
+    names = [p.name for p in not_plant_images(f, tmp_path)]
+    assert names == ["000000000001.jpg", "000000000003.jpg"]
+
+
+def test_no_coco_or_plantdoc_image_is_tracked_by_git():
+    tracked = subprocess.run(
+        ["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True
+    ).stdout.splitlines()
+    images = {".jpg", ".jpeg", ".png"}
+    bad = [
+        t
+        for t in tracked
+        if Path(t).suffix.lower() in images
+        and (
+            t.startswith("datasets/raw/")
+            or "coco" in t.lower()
+            or "plantdoc" in t.lower()
+        )
+    ]
+    assert bad == []
+
+
+def test_unmapped_classes_excluded(tmp_path):
+    inv, cmap, lab = _fixture(tmp_path)
+    field, out = assemble_field(inv, cmap, lab)
+    row = out[out["source_class"] == "weird"].iloc[0]
+    assert row["status"] == "excluded" and row["reason"] == "no lab counterpart"
+    assert "weird" not in set(field["label"]) and len(field) > 0
+    real = pd.read_csv(MANIFEST_DIR.parent / "class_map.csv", keep_default_na=False)
+    excluded = real[real["status"] == "excluded"]
+    assert len(excluded) > 0 and (excluded["lab_class"] == "").all()
+    assert (excluded["reason"] != "").all()
+
+
+def test_no_field_image_duplicates_a_lab_image(tmp_path):
+    inv, cmap, lab = _fixture(tmp_path)
+    field, _ = assemble_field(inv, cmap, lab)
+    assert not field["path"].str.contains("copy_").any()
+    assert set(field["sha1"]).isdisjoint(set(lab["sha1"]))
+    real = load_manifest("field")
+    assert set(real["sha1"]).isdisjoint(set(load_manifest("lab")["sha1"]))
+
+
+def test_no_group_in_two_field_splits(tmp_path):
+    inv, cmap, lab = _fixture(tmp_path)
+    field, _ = assemble_field(inv, cmap, lab)
+    assert field.groupby("group")["split"].nunique().max() == 1
+    assert set(field["split"]) <= set(FIELD_SPLITS)
+    real = load_manifest("field")
+    assert real.groupby("group")["split"].nunique().max() == 1
+    assert check("field") == []
+
+
+def test_field_test_has_at_least_200_images():
+    m = load_manifest("field")
+    assert (m["split"] == "field_test").sum() >= 200
+
+
+def test_every_shared_class_is_in_field_test(tmp_path):
+    inv, cmap, lab = _fixture(tmp_path)
+    field, out = assemble_field(inv, cmap, lab)
+    shared = set(out.loc[out["status"] == "shared", "lab_class"])
+    assert shared == {"A", "B"}
+    assert shared <= set(field[field["split"] == "field_test"]["label"])
+    tiny = out[out["source_class"] == "tiny"].iloc[0]
+    assert tiny["status"] == "dropped" and tiny["reason"]
+
+    real = load_manifest("field")
+    real_map = pd.read_csv(MANIFEST_DIR.parent / "class_map.csv", keep_default_na=False)
+    real_shared = set(real_map.loc[real_map["status"] == "shared", "lab_class"])
+    assert real_shared <= set(real[real["split"] == "field_test"]["label"])
+
+
+def test_shared_class_list_is_recorded():
+    real_map = pd.read_csv(MANIFEST_DIR.parent / "class_map.csv", keep_default_na=False)
+    lab_classes = set(load_manifest("lab")["label"])
+    assert set(real_map["status"]) <= {"shared", "dropped", "excluded"}
+    shared = set(real_map.loc[real_map["status"] == "shared", "lab_class"])
+    assert shared and shared <= lab_classes
+    assert shared == set(load_manifest("field")["label"])
+    dropped = real_map[real_map["status"] == "dropped"]
+    assert (dropped["reason"] != "").all()
+    assert set(PLANTDOC_MAP) <= set(
+        real_map.loc[real_map["source"] == "plantdoc", "source_class"]
+    )

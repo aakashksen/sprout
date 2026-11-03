@@ -4,7 +4,10 @@ import json
 import shutil
 from pathlib import Path
 
+import imagehash
+import numpy as np
 import pandas as pd
+from PIL import Image
 
 from sprout.data.grouping import group_near_duplicates
 from sprout.data.inventory import IMAGE_SUFFIXES, file_sha1, inventory
@@ -22,6 +25,8 @@ MAP_COLUMNS = [
     "n_field_test",
 ]
 RATIOS = (0.5, 0.25, 0.25)
+# Measured on the 4,324 field images: dHash pairs thin out by 6 bits and the noise floor starts near 9.
+DHASH_DISTANCE = 6
 RAW = Path("datasets") / "raw"
 REVIEW = Path("datasets") / "review"
 CLASS_MAP_PATH = MANIFEST_DIR.parent / "class_map.csv"
@@ -112,6 +117,40 @@ def build_not_plant(instances_json, image_dir, name: str = "not_plant") -> pd.Da
     return out
 
 
+def _dhash_variants(path: str) -> list[int]:
+    with Image.open(path) as img:
+        small = img.convert("L").resize((64, 64))
+    out = []
+    for flip in (False, True):
+        base = small.transpose(Image.FLIP_LEFT_RIGHT) if flip else small
+        for k in range(4):
+            bits = imagehash.dhash(base.rotate(90 * k)).hash.flatten()
+            out.append(int("".join("1" if b else "0" for b in bits), 2))
+    return out
+
+
+def link_same_scene(
+    paths: list[str], groups: dict[str, str], max_distance: int = DHASH_DISTANCE
+) -> dict[str, str]:
+    """Merge groups holding crops or flips of one scene (dHash survives crops, pHash does not)."""
+    hashes = np.array([_dhash_variants(p) for p in paths], dtype=np.uint64)
+    parent = {g: g for g in set(groups.values())}
+
+    def find(g: str) -> str:
+        while parent[g] != g:
+            parent[g] = parent[parent[g]]
+            g = parent[g]
+        return g
+
+    for i in range(len(paths) - 1):
+        diff = np.bitwise_count(hashes[i, 0] ^ hashes[i + 1 :]).min(axis=1)
+        for j in np.flatnonzero(diff <= max_distance):
+            a, b = find(groups[paths[i]]), find(groups[paths[i + 1 + j]])
+            if a != b:
+                parent[max(a, b)] = min(a, b)
+    return {p: find(g) for p, g in groups.items()}
+
+
 def assemble_field(
     inv: pd.DataFrame, class_map: pd.DataFrame, lab: pd.DataFrame, seed: int = 13
 ):
@@ -119,7 +158,8 @@ def assemble_field(
 
     inv has path, label (the source class), sha1, source. class_map has source,
     source_class, lab_class (blank when unmappable) and reason. lab has path and sha1.
-    Returns (field manifest, class map with status, n_images and n_field_test filled in).
+    Returns (field manifest, class map with status, n_images and n_field_test filled in,
+    conflicting duplicates that were removed).
     """
     cmap = class_map.copy()
     cmap["lab_class"] = cmap["lab_class"].fillna("")
@@ -127,14 +167,23 @@ def assemble_field(
     key = cmap.set_index(["source", "source_class"])["lab_class"]
     df = inv.copy()
     df["lab_class"] = [key.get((s, c), "") for s, c in zip(df["source"], df["label"])]
-    df = df[df["lab_class"] != ""]
-    df = df[~df["sha1"].isin(set(lab["sha1"]))]
-    df = df.sort_values("path").drop_duplicates("sha1")
+    df = df[df["lab_class"] != ""].sort_values("path")
 
     groups = group_near_duplicates(list(df["path"]) + list(lab["path"]))
     lab_groups = {groups[p] for p in lab["path"]}
     df["group"] = df["path"].map(groups)
     df = df[~df["group"].isin(lab_groups)]
+    df["group"] = df["path"].map(
+        link_same_scene(list(df["path"]), dict(zip(df["path"], df["group"])))
+    )
+
+    labels_per_group = df.groupby("group")["lab_class"].nunique()
+    clash = df["group"].map(labels_per_group) > 1
+    conflicts = df[clash][["path", "lab_class", "source", "group"]].rename(
+        columns={"lab_class": "label"}
+    )
+    conflicts["reason"] = "same image or scene carries conflicting labels"
+    df = df[~clash].drop_duplicates("sha1")
 
     df = df.assign(label=df["lab_class"])
     split_map = dict(zip(SPLITS, FIELD_SPLITS))
@@ -178,7 +227,7 @@ def assemble_field(
             reason.append(f"lab class cannot appear in all three field splits ({have})")
     cmap["status"], cmap["reason"] = status, reason
     cmap["n_images"], cmap["n_field_test"] = n_images, n_test
-    return kept, cmap[MAP_COLUMNS]
+    return kept, cmap[MAP_COLUMNS], conflicts.reset_index(drop=True)
 
 
 def stage_plantdoc(src: Path, dest: Path) -> None:
@@ -212,7 +261,12 @@ def stage_plantseg(src: Path, dest: Path) -> pd.DataFrame:
 
 def make_class_map(plantdoc_classes, plantseg_meta: pd.DataFrame) -> pd.DataFrame:
     rows = [
-        ("plantdoc", c, PLANTDOC_MAP.get(c, ""), "no matching lab class")
+        (
+            "plantdoc",
+            c,
+            PLANTDOC_MAP.get(c, ""),
+            "" if c in PLANTDOC_MAP else "no matching lab class",
+        )
         for c in plantdoc_classes
     ]
     plants = plantseg_meta.drop_duplicates("Disease").set_index("Disease")["Plant"]
@@ -263,8 +317,11 @@ def build_field(sources: dict[str, Path], class_map: pd.DataFrame) -> pd.DataFra
         inv["source"] = name
         parts.append(inv)
     lab = pd.read_csv(MANIFEST_DIR / "lab.csv")
-    field, cmap = assemble_field(pd.concat(parts, ignore_index=True), class_map, lab)
+    field, cmap, conflicts = assemble_field(
+        pd.concat(parts, ignore_index=True), class_map, lab
+    )
     field.to_csv(MANIFEST_DIR / "field.csv", index=False)
+    conflicts.to_csv(MANIFEST_DIR / "field_conflicts.csv", index=False)
     cmap.to_csv(CLASS_MAP_PATH, index=False)
     write_review(field)
     return field

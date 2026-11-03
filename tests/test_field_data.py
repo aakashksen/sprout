@@ -6,11 +6,11 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 
-from sprout.data.check_splits import check
 from sprout.data.field import (
     FIELD_SPLITS,
     PLANTDOC_MAP,
     assemble_field,
+    make_class_map,
     not_plant_images,
 )
 from sprout.data.inventory import file_sha1
@@ -25,6 +25,13 @@ def _img(path: Path, seed: int) -> str:
     path.parent.mkdir(parents=True, exist_ok=True)
     Image.fromarray(small).resize((64, 64), Image.BICUBIC).save(path)
     return path.as_posix()
+
+
+def _smooth(seed: int, box=None) -> Image.Image:
+    rng = np.random.default_rng(seed)
+    img = Image.fromarray((rng.random((6, 6, 3)) * 255).astype("uint8"))
+    img = img.resize((128, 128), Image.BICUBIC)
+    return img.crop(box).resize((128, 128), Image.BICUBIC) if box else img
 
 
 def _inventory(paths_by_class: dict[str, list[str]], source: str) -> pd.DataFrame:
@@ -49,10 +56,29 @@ def _fixture(tmp_path):
     exact.write_bytes(Path(lab_paths[0]).read_bytes())
     near = tmp_path / "f" / "a" / "copy_near.png"
     Image.open(lab_paths[1]).resize((48, 48)).save(near)
+    a_images = [_img(tmp_path / "f" / "a" / f"x{i}.png", next(seed)) for i in range(12)]
+    dup = tmp_path / "f" / "a" / "x0_dup.png"
+    dup.write_bytes(Path(a_images[0]).read_bytes())
+    # same scene at a different crop: dHash close, pHash far, so only the field pass links them
+    same = [tmp_path / "f" / "a" / "p1.png", tmp_path / "f" / "a" / "p1_crop.png"]
+    _smooth(2).save(same[0])
+    _smooth(2, (0, 0, 124, 124)).save(same[1])
+    clash = [tmp_path / "f" / "a" / "q.png", tmp_path / "f" / "b" / "q_crop.png"]
+    _smooth(4).save(clash[0])
+    clash[1].parent.mkdir(parents=True, exist_ok=True)
+    _smooth(4, (4, 4, 124, 124)).save(clash[1])
     fresh = {
-        "a": [str(exact), str(near)]
-        + [_img(tmp_path / "f" / "a" / f"x{i}.png", next(seed)) for i in range(12)],
-        "b": [_img(tmp_path / "f" / "b" / f"y{i}.png", next(seed)) for i in range(12)],
+        "a": [
+            str(exact),
+            str(near),
+            str(dup),
+            str(same[0]),
+            str(same[1]),
+            str(clash[0]),
+        ]
+        + a_images,
+        "b": [str(clash[1])]
+        + [_img(tmp_path / "f" / "b" / f"y{i}.png", next(seed)) for i in range(12)],
         "weird": [
             _img(tmp_path / "f" / "weird" / f"z{i}.png", next(seed)) for i in range(5)
         ],
@@ -110,10 +136,11 @@ def test_no_coco_or_plantdoc_image_is_tracked_by_git():
 
 def test_unmapped_classes_excluded(tmp_path):
     inv, cmap, lab = _fixture(tmp_path)
-    field, out = assemble_field(inv, cmap, lab)
+    field, out, _ = assemble_field(inv, cmap, lab)
     row = out[out["source_class"] == "weird"].iloc[0]
     assert row["status"] == "excluded" and row["reason"] == "no lab counterpart"
-    assert "weird" not in set(field["label"]) and len(field) > 0
+    assert set(field["label"]) == {"A", "B"}
+    assert not field["path"].str.contains("/weird/|/tiny/").any()
     real = pd.read_csv(MANIFEST_DIR.parent / "class_map.csv", keep_default_na=False)
     excluded = real[real["status"] == "excluded"]
     assert len(excluded) > 0 and (excluded["lab_class"] == "").all()
@@ -122,8 +149,9 @@ def test_unmapped_classes_excluded(tmp_path):
 
 def test_no_field_image_duplicates_a_lab_image(tmp_path):
     inv, cmap, lab = _fixture(tmp_path)
-    field, _ = assemble_field(inv, cmap, lab)
+    field, _, _ = assemble_field(inv, cmap, lab)
     assert not field["path"].str.contains("copy_").any()
+    assert field["sha1"].is_unique
     assert set(field["sha1"]).isdisjoint(set(lab["sha1"]))
     real = load_manifest("field")
     assert set(real["sha1"]).isdisjoint(set(load_manifest("lab")["sha1"]))
@@ -131,12 +159,15 @@ def test_no_field_image_duplicates_a_lab_image(tmp_path):
 
 def test_no_group_in_two_field_splits(tmp_path):
     inv, cmap, lab = _fixture(tmp_path)
-    field, _ = assemble_field(inv, cmap, lab)
+    field, _, _ = assemble_field(inv, cmap, lab)
     assert field.groupby("group")["split"].nunique().max() == 1
     assert set(field["split"]) <= set(FIELD_SPLITS)
     real = load_manifest("field")
     assert real.groupby("group")["split"].nunique().max() == 1
-    assert check("field") == []
+    assert real.groupby("sha1")["split"].nunique().max() == 1
+    assert real.groupby("label")["split"].nunique().eq(len(FIELD_SPLITS)).all()
+    by_name = field.set_index(field["path"].str.rsplit("/", n=1).str[-1])
+    assert by_name.loc["p1.png", "group"] == by_name.loc["p1_crop.png", "group"]
 
 
 def test_field_test_has_at_least_200_images():
@@ -146,7 +177,7 @@ def test_field_test_has_at_least_200_images():
 
 def test_every_shared_class_is_in_field_test(tmp_path):
     inv, cmap, lab = _fixture(tmp_path)
-    field, out = assemble_field(inv, cmap, lab)
+    field, out, _ = assemble_field(inv, cmap, lab)
     shared = set(out.loc[out["status"] == "shared", "lab_class"])
     assert shared == {"A", "B"}
     assert shared <= set(field[field["split"] == "field_test"]["label"])
@@ -171,3 +202,32 @@ def test_shared_class_list_is_recorded():
     assert set(PLANTDOC_MAP) <= set(
         real_map.loc[real_map["source"] == "plantdoc", "source_class"]
     )
+
+
+def test_conflicting_near_duplicates_are_removed_and_listed(tmp_path):
+    inv, cmap, lab = _fixture(tmp_path)
+    field, _, conflicts = assemble_field(inv, cmap, lab)
+    names = set(field["path"].str.rsplit("/", n=1).str[-1])
+    assert not names & {"q.png", "q_crop.png"}
+    assert sorted(conflicts["path"].str.rsplit("/", n=1).str[-1]) == [
+        "q.png",
+        "q_crop.png",
+    ]
+    assert (conflicts["reason"] != "").all()
+
+    real = load_manifest("field")
+    listed = pd.read_csv(MANIFEST_DIR / "field_conflicts.csv", keep_default_na=False)
+    assert len(listed) > 0 and (listed["reason"] != "").all()
+    assert set(listed["path"]).isdisjoint(set(real["path"]))
+
+
+def test_class_map_reasons_match_status():
+    sources = pd.DataFrame(
+        {"Plant": ["Apple", "Rice"], "Disease": ["apple scab", "rice blast"]}
+    )
+    out = make_class_map(["Apple Scab Leaf", "Mystery"], sources)
+    mapped = out[out["lab_class"] != ""]
+    assert (mapped["reason"] == "").all()
+    assert (out[out["lab_class"] == ""]["reason"] != "").all()
+    real = pd.read_csv(MANIFEST_DIR.parent / "class_map.csv", keep_default_na=False)
+    assert (real[real["status"] == "shared"]["reason"] == "").all()

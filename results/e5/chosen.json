@@ -1,0 +1,49 @@
+{
+ "seed": 0,
+ "fit_percent": 50,
+ "fit_rows": {
+  "field_dev": 523,
+  "not_plant_dev": 604
+ },
+ "temperature": 1.1926994533819275,
+ "min_coverage": 0.5,
+ "abstain_threshold": 0.885377,
+ "gates": {
+  "green_rule": {
+   "settings": {
+    "kind": "green_rule",
+    "green_threshold": 0.05
+   },
+   "fit_plant_rejection": 0.0248565965583174,
+   "fit_not_plant_rejection": 0.6688741721854304,
+   "eligible": true
+  },
+  "confidence": {
+   "settings": {
+    "kind": "confidence",
+    "confidence_threshold": 0.3037049661113271
+   },
+   "fit_plant_rejection": 0.0497131931166348,
+   "fit_not_plant_rejection": 0.9552980132450332,
+   "eligible": true
+  },
+  "confidence_ood": {
+   "settings": {
+    "kind": "confidence_ood",
+    "confidence_threshold": 0.09125950059111163,
+    "ood_threshold": 0.6714892312404642
+   },
+   "fit_plant_rejection": 0.04588910133843216,
+   "fit_not_plant_rejection": 0.9784768211920529,
+   "eligible": true
+  }
+ },
+ "gate": {
+  "chosen": "confidence_ood",
+  "settings": {
+   "kind": "confidence_ood",
+   "confidence_threshold": 0.09125950059111163,
+   "ood_threshold": 0.6714892312404642
+  }
+ }
+}

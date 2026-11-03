@@ -53,10 +53,10 @@ from sprout.baselines.frozen import (
 from sprout.data.splits import dataset_hash, load_manifest
 from sprout.eval.check_run import Scored, recompute_comparison
 from sprout.eval.predict import Predictions
-from sprout.eval.records import ROOT, RUNS_REL, is_dirty, write_run
-from sprout.experiments.e2_field import KINDS, _system_scores, load_rows, shared_classes
+from sprout.eval.records import ROOT, is_dirty, write_run
+from sprout.experiments.common import load_e1, score_systems
+from sprout.experiments.e2_field import KINDS, load_rows, shared_classes
 from sprout.preprocess import preprocess
-from sprout.train.checkpoint import load_checkpoint
 from sprout.train.dataset import ManifestDataset, make_class_map, val_transform
 from sprout.train.loop import build_model
 
@@ -100,34 +100,12 @@ def load_split(split: str) -> pd.DataFrame:
     return df[df["split"] == split].reset_index(drop=True)
 
 
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def _digest(*parts: Any) -> str:
     return hashlib.sha256(json.dumps(parts, sort_keys=True, default=str).encode()).hexdigest()
 
 
 def tensor_bytes(state: dict[str, torch.Tensor]) -> int:
     return sum(v.numel() * v.element_size() for v in state.values())
-
-
-def load_e1(cfg: dict[str, Any], root: Path):
-    """The E1 model, after checking the checkpoint is the one the named E1 record produced."""
-    ckpt_path = root / cfg["checkpoint"]
-    if not ckpt_path.is_file():
-        raise RuntimeError(f"E1 checkpoint not found at {ckpt_path}; E3 cannot run without it")
-    e1_path = root / RUNS_REL / f"{cfg['e1_run_id']}.json"
-    if not e1_path.is_file():
-        raise RuntimeError(f"E1 record {cfg['e1_run_id']} not found at {e1_path}")
-    ckpt = load_checkpoint(ckpt_path)
-    attempt = json.loads(e1_path.read_text(encoding="utf-8"))["attempts"][0]
-    if abs(ckpt["best_metric"] - attempt["best_dev_accuracy"]) > 1e-9:
-        raise RuntimeError(
-            f"checkpoint best lab_dev accuracy {ckpt['best_metric']} differs from E1 record's "
-            f"{attempt['best_dev_accuracy']}; it was not produced by that run"
-        )
-    return ckpt, [h["seconds"] for h in attempt["history"]], _sha256(ckpt_path)
 
 
 def e1_probs(ckpt: dict, rows: pd.DataFrame, batch_size: int, num_workers: int, device: torch.device) -> np.ndarray:
@@ -241,6 +219,21 @@ def run_encoder(name: str, spec: dict[str, Any], encoder, needs, y_train, y_dev,
     return result
 
 
+def run_e1(cfg, ckpt, sha: str, e1_seconds: list[float], eval_rows, splits, log: Log) -> Result:
+    e1 = Result({"checkpoint_sha256": sha, "trained_by": cfg["e1_run_id"]})
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    with stage(log, "e1_predict"):
+        e1.probs = {s: e1_probs(ckpt, eval_rows[s], cfg["batch_size"], cfg["num_workers"], device) for s in splits}
+    if torch.cuda.is_available():
+        e1.peak_mem = [torch.cuda.max_memory_allocated()]
+    e1.best_dev_accuracy = ckpt["best_metric"]
+    e1.history = f"see {cfg['e1_run_id']}"
+    e1.fit_seconds = e1_seconds
+    e1.train_seconds = sum(e1_seconds)
+    e1.size_bytes = tensor_bytes(ckpt["model"])
+    return e1
+
+
 def _measurements(results: dict[str, Result]) -> dict[str, list[float]]:
     out: dict[str, list[float]] = {}
     for name, r in results.items():
@@ -251,6 +244,18 @@ def _measurements(results: dict[str, Result]) -> dict[str, list[float]]:
             out[f"extract_shard_seconds_{name}"] = r.extract_seconds
         if r.peak_mem:
             out[f"peak_gpu_mem_bytes_{name}"] = [float(m) for m in r.peak_mem]
+    return out
+
+
+def _comparisons(rows: pd.DataFrame, systems: dict[str, Predictions]) -> list[dict[str, Any]]:
+    groups = list(rows["group"])
+    scored = {s: Scored(groups=groups, labels=p.label, probs=p.probs) for s, p in systems.items()}
+    out = []
+    for a, b in itertools.combinations(SYSTEMS, 2):
+        for metric in COMPARED:
+            got = recompute_comparison(scored[a], scored[b], metric)
+            out.append({"a": a, "b": b, "metric": metric, "diff": got["diff"], "ci": got["ci"],
+                        "mcnemar_p": got["mcnemar_p"]})
     return out
 
 
@@ -270,7 +275,8 @@ def run(cfg: dict[str, Any], root: Path = ROOT) -> list[Path]:
         if split not in KINDS:
             raise ValueError(f"E3 scores only {sorted(KINDS)}; refusing {split!r}")
     log = Log(cache / "stages.log")
-    ckpt, e1_seconds, sha = load_e1(cfg, root)
+    ckpt, e1_attempt, sha = load_e1(cfg, root, "E3")
+    e1_seconds = [h["seconds"] for h in e1_attempt["history"]]
     class_map: dict[str, int] = ckpt["class_map"]
     class_names = sorted(class_map, key=class_map.get)
     if class_map != make_class_map(load_manifest("lab")):
@@ -299,18 +305,7 @@ def run(cfg: dict[str, Any], root: Path = ROOT) -> list[Path]:
         "dinov2_small", cfg["dinov2_small"], load_dino_encoder(), needs, y_train, y_dev, n, dev_mask, splits,
         cfg, cache, log)
 
-    e1 = Result({"checkpoint_sha256": sha, "trained_by": cfg["e1_run_id"]})
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    with stage(log, "e1_predict"):
-        e1.probs = {s: e1_probs(ckpt, eval_rows[s], cfg["batch_size"], cfg["num_workers"], device) for s in splits}
-    if torch.cuda.is_available():
-        e1.peak_mem = [torch.cuda.max_memory_allocated()]
-    e1.best_dev_accuracy = ckpt["best_metric"]
-    e1.history = f"see {cfg['e1_run_id']}"
-    e1.fit_seconds = e1_seconds
-    e1.train_seconds = sum(e1_seconds)
-    e1.size_bytes = tensor_bytes(ckpt["model"])
-    results["e1"] = e1
+    results["e1"] = run_e1(cfg, ckpt, sha, e1_seconds, eval_rows, splits, log)
 
     measurements = _measurements(results)
     labels = {
@@ -325,15 +320,8 @@ def run(cfg: dict[str, Any], root: Path = ROOT) -> list[Path]:
         rows = eval_rows[split]
         labels_idx = np.array([class_map[x] for x in rows["label"]], dtype=int)
         systems = {s: Predictions(list(rows["path"]), labels_idx, results[s].probs[split]) for s in SYSTEMS}
-        metrics, intervals = _system_scores(rows, systems)
-        groups = list(rows["group"])
-        scored = {s: Scored(groups=groups, labels=p.label, probs=p.probs) for s, p in systems.items()}
-        comparisons = []
-        for a, b in itertools.combinations(SYSTEMS, 2):
-            for metric in COMPARED:
-                got = recompute_comparison(scored[a], scored[b], metric)
-                comparisons.append({"a": a, "b": b, "metric": metric, "diff": got["diff"], "ci": got["ci"],
-                                    "mcnemar_p": got["mcnemar_p"]})
+        metrics, intervals = score_systems(rows, systems)
+        comparisons = _comparisons(rows, systems)
         config = {
             "class_names": class_names,
             "e3": dict(cfg),

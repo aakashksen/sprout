@@ -6,9 +6,7 @@ from __future__ import annotations
 
 import argparse
 import ast
-import hashlib
 import json
-import os
 import re
 import sys
 from datetime import datetime, timezone
@@ -19,9 +17,9 @@ import numpy as np
 import torch
 
 from sprout.data.splits import dataset_hash, load_manifest
-from sprout.eval.check_run import Scored, recompute_interval, recompute_metric
 from sprout.eval.predict import Predictions, predict
 from sprout.eval.records import ROOT, is_dirty, write_run
+from sprout.experiments.common import score_systems, sha256_file
 from sprout.train.checkpoint import load_checkpoint
 from sprout.train.config import TrainConfig
 from sprout.train.dataset import make_class_map
@@ -29,8 +27,6 @@ from sprout.train.loop import build_model, train
 
 BACKGROUND = "Background_without_leaves"
 LEGACY_LABEL = "legacy, may have seen these images; 39-class checkpoint mapped onto 38 shared classes"
-METRICS = ("accuracy", "macro_f1", "ece")
-INTERVALS = ("accuracy", "macro_f1")
 
 
 def legacy_class_names(application: Path) -> list[str]:
@@ -79,24 +75,6 @@ def legacy_to_shared(
     return Predictions(preds.path, preds.label, kept / kept.sum(axis=1, keepdims=True)), top_unmapped
 
 
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _log_mlflow(root: Path, cfg: dict, train_cfg: TrainConfig, history: list[dict], final: dict[str, float]) -> None:
-    os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")  # mlflow-skinny has no database backend
-    import mlflow
-
-    mlflow.set_tracking_uri((root / "mlruns").as_uri())
-    mlflow.set_experiment(cfg["experiment"])
-    with mlflow.start_run():
-        mlflow.log_params({k: str(v) for k, v in train_cfg.to_dict().items()})
-        for row in history:
-            for k in ("train_loss", "val_loss", "val_acc"):
-                mlflow.log_metric(k, row[k], step=row["epoch"])
-        mlflow.log_metrics(final)
-
-
 def run(cfg: dict[str, Any], root: Path = ROOT, resume: Path | None = None, note: str = "") -> Path:
     """Train (or resume), score e1 and the legacy checkpoint on cfg['split'], write the record, return its path."""
     if is_dirty(root):
@@ -128,10 +106,7 @@ def run(cfg: dict[str, Any], root: Path = ROOT, resume: Path | None = None, note
 
     # float32 outputs score differently from their saved float64 copies, so score what is saved
     e1, legacy = (Predictions(p.path, p.label, p.probs.astype(np.float64)) for p in (e1, legacy))
-    groups = list(part["group"])
-    scored = {n: Scored(groups=groups, labels=p.label, probs=p.probs) for n, p in (("e1", e1), ("legacy", legacy))}
-    metrics = {n: {m: recompute_metric(m, s) for m in METRICS} for n, s in scored.items()}
-    intervals = {n: {m: recompute_interval(m, s) for m in INTERVALS} for n, s in scored.items()}
+    metrics, intervals = score_systems(part, {"e1": e1, "legacy": legacy})
 
     legacy_acc = metrics["legacy"]["accuracy"]
     order_check = {
@@ -144,7 +119,7 @@ def run(cfg: dict[str, Any], root: Path = ROOT, resume: Path | None = None, note
     legacy_info = {
         "label": LEGACY_LABEL,
         "checkpoint": leg_path.name,
-        "checkpoint_sha256": _sha256(leg_path),
+        "checkpoint_sha256": sha256_file(leg_path),
         "class_order_source": leg["application"],
         "class_order": names39,
         "mapping": mapping,
@@ -184,7 +159,6 @@ def run(cfg: dict[str, Any], root: Path = ROOT, resume: Path | None = None, note
         root=root,
         notes=notes,
     )
-    _log_mlflow(root, cfg, train_cfg, out.history, {f"{split}_{m}": v for m, v in metrics["e1"].items()})
     return path
 
 

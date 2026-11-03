@@ -10,7 +10,6 @@ in the record (`peak_gpu_mem_bytes`) when a GPU is used. Only field_dev and lab_
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import random
 import sys
@@ -28,18 +27,15 @@ from torch.utils.data import DataLoader, Dataset
 
 from sprout.data.masks import energy_outside, hsv_mask, iou, segmented_mask
 from sprout.data.splits import dataset_hash, load_manifest
-from sprout.eval.check_run import Scored, recompute_interval, recompute_metric
 from sprout.eval.predict import Predictions
-from sprout.eval.records import ROOT, RUNS_REL, is_dirty, write_run
+from sprout.eval.records import ROOT, is_dirty, write_run
 from sprout.experiments import e2_review as review
+from sprout.experiments.common import load_e1, score_systems
 from sprout.explain.gradcam import grad_cam, overlay, target_layer
 from sprout.preprocess import IMAGE_SIZE, preprocess
-from sprout.train.checkpoint import load_checkpoint
 from sprout.train.loop import build_model
 
 KINDS = {"field_dev": "field", "lab_dev": "lab"}  # the only splits this experiment may read
-METRICS = ("accuracy", "macro_f1", "ece")
-INTERVALS = ("accuracy", "macro_f1")
 MASKED_LABEL = "E1 with its outputs for classes outside the shared list masked (secondary number)"
 
 
@@ -109,17 +105,13 @@ def score_split(model, layer, rows: pd.DataFrame, class_map: dict[str, int], kin
         out.seconds.append(time.perf_counter() - began)
         probs.append(torch.softmax(logits.float(), dim=1).cpu().numpy())
         labels.append(y.numpy())
-        for cam, a, b in zip(cams, leaf.numpy(), rough.numpy()):
+        for cam, a, b in zip(cams, leaf.numpy(), rough.numpy(), strict=True):
             out.energy.append(energy_outside(cam, a))
             out.leaf_fraction.append(float(a.mean()))
             if kind == "lab":
                 out.hsv_iou.append(iou(a, b))
     out.preds = Predictions(list(rows["path"]), np.concatenate(labels).astype(int), np.concatenate(probs))
     return out
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _compose(left: Image.Image, right: Image.Image) -> Image.Image:
@@ -150,14 +142,6 @@ def write_overlays(model, layer, split: str, rows: pd.DataFrame, scoring: Scorin
     return written
 
 
-def _system_scores(split_rows: pd.DataFrame, systems: dict[str, Predictions]):
-    groups = list(split_rows["group"])
-    scored = {n: Scored(groups=groups, labels=p.label, probs=p.probs) for n, p in systems.items()}
-    metrics = {n: {m: recompute_metric(m, s) for m in METRICS} for n, s in scored.items()}
-    intervals = {n: {m: recompute_interval(m, s) for m in INTERVALS} for n, s in scored.items()}
-    return metrics, intervals
-
-
 def _measurements(sc: Scoring, report_energy: bool) -> dict[str, list[float]]:
     out: dict[str, list[float]] = {"batch_seconds": sc.seconds}
     if sc.peak_mem:
@@ -185,24 +169,32 @@ def _write_sheets(cfg: dict[str, Any], root: Path, field_rows: pd.DataFrame, fie
         review.write_mask_images(sheet, root / cfg["out_dir"] / "field" / "mask-check")
 
 
+def _energy_note(is_field: bool, report_energy: bool) -> str:
+    if not is_field:
+        return "Grad-CAM energy outside the leaf uses the official segmented images as masks."
+    if report_energy:
+        return "Grad-CAM energy outside the leaf is reported: field masks were judged reliable."
+    return (
+        "Grad-CAM energy outside the leaf is not reported for real photos: their masks are not "
+        "judged reliable (see results/e2-mask-check.csv)."
+    )
+
+
+def _split_notes(split: str, sha: str, cfg: dict[str, Any], n_shared: int, n_classes: int, energy_note: str) -> str:
+    return (
+        f"E1 checkpoint {sha[:12]} from {cfg['e1_run_id']}, scored on {split} over the {n_shared} shared "
+        f"classes. The model keeps all {n_classes} outputs, so a prediction outside the shared list is "
+        f"wrong; e1_masked is the secondary number with those outputs masked. {energy_note} "
+        "field_test and lab_test were not read."
+    )
+
+
 def run(cfg: dict[str, Any], root: Path = ROOT) -> list[Path]:
     """Score E1 on each split in cfg['splits'], write one record per split, then the overlays and sheets."""
     if is_dirty(root):
         raise RuntimeError("working tree has uncommitted changes; commit first")
     started = datetime.now(timezone.utc).isoformat()
-    ckpt_path = root / cfg["checkpoint"]
-    if not ckpt_path.is_file():
-        raise RuntimeError(f"E1 checkpoint not found at {ckpt_path}; E2 cannot run without it")
-    e1_path = root / RUNS_REL / f"{cfg['e1_run_id']}.json"
-    if not e1_path.is_file():
-        raise RuntimeError(f"E1 record {cfg['e1_run_id']} not found at {e1_path}")
-    ckpt = load_checkpoint(ckpt_path)
-    e1_best = json.loads(e1_path.read_text(encoding="utf-8"))["attempts"][0]["best_dev_accuracy"]
-    if abs(ckpt["best_metric"] - e1_best) > 1e-9:
-        raise RuntimeError(
-            f"checkpoint best lab_dev accuracy {ckpt['best_metric']} differs from E1 record's {e1_best}; "
-            "it was not produced by that run"
-        )
+    ckpt, _, sha = load_e1(cfg, root, "E2")
     class_map: dict[str, int] = ckpt["class_map"]
     class_names = sorted(class_map, key=class_map.get)
     train_cfg = ckpt["config"]
@@ -213,7 +205,6 @@ def run(cfg: dict[str, Any], root: Path = ROOT) -> list[Path]:
     layer = target_layer(model, train_cfg.model)
 
     shared = shared_classes()
-    sha = _sha256(ckpt_path)
     done: dict[str, tuple[pd.DataFrame, Scoring]] = {}
     paths = []
     for split in cfg["splits"]:
@@ -224,18 +215,10 @@ def run(cfg: dict[str, Any], root: Path = ROOT) -> list[Path]:
         sc.preds = Predictions(sc.preds.path, sc.preds.label, sc.preds.probs.astype(np.float64))
         masked = Predictions(sc.preds.path, sc.preds.label, mask_shared_outputs(sc.preds.probs, class_names, shared))
         systems = {"e1": sc.preds, "e1_masked": masked}
-        metrics, intervals = _system_scores(rows, systems)
+        metrics, intervals = score_systems(rows, systems)
         is_field = KINDS[split] == "field"
         report_energy = not is_field or bool(cfg["field_masks_reliable"])
-        if not is_field:
-            energy_note = "Grad-CAM energy outside the leaf uses the official segmented images as masks."
-        elif report_energy:
-            energy_note = "Grad-CAM energy outside the leaf is reported: field masks were judged reliable."
-        else:
-            energy_note = (
-                "Grad-CAM energy outside the leaf is not reported for real photos: their masks are not "
-                "judged reliable (see results/e2-mask-check.csv)."
-            )
+        energy_note = _energy_note(is_field, report_energy)
         config = {
             "class_names": class_names,
             "e2": dict(cfg),
@@ -249,12 +232,7 @@ def run(cfg: dict[str, Any], root: Path = ROOT) -> list[Path]:
             "started_at": started,
         }
         attempts = [{"setting": {"checkpoint_sha256": sha, "split": split, "subset": "shared_classes"}}]
-        notes = (
-            f"E1 checkpoint {sha[:12]} from {cfg['e1_run_id']}, scored on {split} over the {len(shared)} shared "
-            f"classes. The model keeps all {len(class_map)} outputs, so a prediction outside the shared list is "
-            f"wrong; e1_masked is the secondary number with those outputs masked. {energy_note} "
-            "field_test and lab_test were not read."
-        )
+        notes = _split_notes(split, sha, cfg, len(shared), len(class_map), energy_note)
         paths.append(write_run(
             cfg["experiment"], split, config,
             {"e1": f"{train_cfg.model} fine-tuned on lab data, checkpoint {sha[:12]}", "e1_masked": MASKED_LABEL},

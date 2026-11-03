@@ -5,6 +5,7 @@ import hashlib
 import json
 import re
 import subprocess
+import warnings
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -17,6 +18,7 @@ from sprout.atomic import atomic_write_text
 from sprout.data.label_review import exclusion_paths, read_log
 from sprout.data.splits import COLUMNS, dataset_hash
 from sprout.eval import metrics as M
+from sprout.eval.mlflow_log import log_record
 from sprout.eval.predict import Predictions
 from sprout.eval.stats import percentile
 
@@ -36,8 +38,8 @@ def git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
 
 
 def is_dirty(root: Path) -> bool:
-    """Uncommitted changes, ignoring orchestration/ (as taskctl does) and new untracked run files."""
-    out = git(root, "status", "--porcelain", "-uall", "--", ".", ":!orchestration")
+    """Uncommitted changes, ignoring orchestration/ (as taskctl does), mlruns/ (logging output) and new untracked run files."""
+    out = git(root, "--no-optional-locks", "status", "--porcelain", "-uall", "--", ".", ":!orchestration", ":!mlruns")
     if out.returncode != 0:
         raise RuntimeError(f"git status failed: {out.stderr.strip()}")
     return any(ln and not ln.startswith(f"?? {RUNS_REL.as_posix()}/") for ln in out.stdout.splitlines())
@@ -86,11 +88,22 @@ def split_info(split: str, root: Path = ROOT) -> SplitInfo:
     return SplitInfo(dataset_hash(df[COLUMNS]), list(part["path"]), list(part["group"]), list(part["label"]))
 
 
+def scoring_part(groups: list[str], seed: int, fit_percent: int) -> np.ndarray:
+    """True for rows in the scoring part of a group-wise split: the sorted distinct groups are shuffled with
+    `seed`, the first `fit_percent` percent of them form the fitting part, and the rest are scored. Every
+    group lands wholly on one side."""
+    distinct = sorted(set(groups))
+    order = np.random.default_rng(seed).permutation(len(distinct))
+    fit = {distinct[i] for i in order[: round(len(distinct) * fit_percent / 100)]}
+    return np.array([g not in fit for g in groups], dtype=bool)
+
+
 def subset_positions(name: str, split: str, info: SplitInfo, root: Path = ROOT) -> list[int]:
     """Positions within the split of a declared subset: `first_<N>` rows, `source:<name>` (field rows whose
     `source` column in field.csv is <name>), `shared_classes` (labels present in both lab.csv and field.csv),
-    or `clean:<N>` (field rows not in datasets/label_exclusions.csv up to version N). Parts joined with `+`
-    must all hold."""
+    `clean:<N>` (field rows not in datasets/label_exclusions.csv up to version N), or
+    `group_part:<seed>:<fit_percent>` (the scoring part of `scoring_part`, for settings fitted on the rest).
+    Parts joined with `+` must all hold."""
     if "+" in name:
         keep = None
         for part in name.split("+"):
@@ -105,6 +118,9 @@ def subset_positions(name: str, split: str, info: SplitInfo, root: Path = ROOT) 
             raise ValueError(f"exclusion version {version} is not in label_exclusions.csv")
         gone = exclusion_paths(log, version)
         return [i for i, path in enumerate(info.ids) if path not in gone]
+    part = re.fullmatch(r"group_part:(\d+):(\d+)", name)
+    if part:
+        return [int(i) for i in np.flatnonzero(scoring_part(info.groups, int(part.group(1)), int(part.group(2))))]
     first = re.fullmatch(r"first_(\d+)", name)
     if first:
         return list(range(min(int(first.group(1)), len(info.ids))))
@@ -123,7 +139,7 @@ def _rows(system_rows: Any) -> list[dict[str, Any]]:
     if isinstance(system_rows, Predictions):
         return [
             {"path": p, "label": int(y), "probs": [float(v) for v in pr]}
-            for p, y, pr in zip(system_rows.path, system_rows.label, system_rows.probs)
+            for p, y, pr in zip(system_rows.path, system_rows.label, system_rows.probs, strict=True)
         ]
     return list(system_rows)
 
@@ -247,4 +263,8 @@ def write_run(
     }
     path = runs / f"{run_id}.json"
     atomic_write_text(path, json.dumps(record, indent=1) + "\n")  # last: a record implies its files
+    try:
+        log_record(record, root)
+    except Exception as exc:  # the record is already saved and stays the source of truth
+        warnings.warn(f"{run_id}: the record was saved but not logged to MLflow: {exc!r}", stacklevel=2)
     return path

@@ -104,6 +104,29 @@ def test_head_stops_on_a_non_finite_loss_and_keeps_only_best_and_latest(tmp_path
         train_head(bad, y, x, y, 2, settings, tmp_path / "bad", seed=0)
 
 
+def test_a_head_checkpoint_write_that_fails_keeps_the_previous_one(tmp_path, monkeypatch):
+    import sprout.baselines.frozen as frozen
+
+    x = np.random.default_rng(0).normal(size=(12, 4)).astype(np.float32)
+    y = np.array([0, 1] * 6)
+    settings = {"lr": 0.05, "weight_decay": 0.0, "epochs": 2, "batch_size": 4}
+    real, calls = torch.save, []
+
+    def dies_on_epoch_two(obj, f):
+        calls.append(1)
+        if len(calls) <= 2:  # epoch 1: latest.pt, then best.pt
+            return real(obj, f)
+        handle = open(f, "wb") if hasattr(f, "__fspath__") else f
+        handle.write(b"half a checkpoint")
+        handle.flush()
+        raise OSError("disk full")
+
+    monkeypatch.setattr(frozen.torch, "save", dies_on_epoch_two)
+    with pytest.raises(OSError):
+        train_head(x, y, x, y, 2, settings, tmp_path, seed=0)
+    assert torch.load(tmp_path / "latest.pt", weights_only=True)["epoch"] == 1
+
+
 def test_head_resumes_and_refuses_changed_settings(tmp_path):
     x = np.random.default_rng(0).normal(size=(12, 4)).astype(np.float32)
     y = np.array([0, 1] * 6)

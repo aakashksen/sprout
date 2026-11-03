@@ -22,6 +22,7 @@ from PIL import Image
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
+from sprout.atomic import atomic_write
 from sprout.train.loop import build_model
 
 
@@ -185,9 +186,8 @@ def train_head(x: np.ndarray, y: np.ndarray, dev_x: np.ndarray, dev_y: np.ndarra
         best_acc = max(best_acc, val_acc)
         state = {"model": model.state_dict(), "optimizer": optimizer.state_dict(), "epoch": epoch + 1,
                  "best_metric": best_acc, "history": history, "tag": tag}
-        torch.save(state, latest)
-        if improved:
-            torch.save(state, best)
+        for target in (latest, best) if improved else (latest,):
+            atomic_write(target, lambda f: torch.save(state, f))  # noqa: B023 (runs at once)
     model.load_state_dict(torch.load(best, map_location="cpu", weights_only=True)["model"])
     return HeadFit(model.eval(), best_acc, history)
 

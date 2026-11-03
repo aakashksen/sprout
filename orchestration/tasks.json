@@ -338,8 +338,7 @@
         "{py} -m pytest tests/test_e5.py -q",
         "{py} -m sprout.eval.check_run E5 --min-n 200 --split field_dev"
       ],
-      "status": "in_progress",
-      "worktree": "<local path>",
+      "status": "done",
       "started_at": "2026-11-03T15:59:32+00:00",
       "verified": {
         "commit": "c0b1ae1bee164b65b8710e5b19e15d1631fdb241",
@@ -347,7 +346,29 @@
         "at": "2026-11-03T17:16:58+00:00"
       },
       "attempts": 1,
-      "reason": "tests/test_e5.py::test_probs_stage_scores_not_plant_photos_from_a_checkpoint fails when a GPU is visible: np.allclose on probabilities, because the stage scores on cuda while the test compares with CPU"
+      "reason": "tests/test_e5.py::test_probs_stage_scores_not_plant_photos_from_a_checkpoint fails when a GPU is visible: np.allclose on probabilities, because the stage scores on cuda while the test compares with CPU",
+      "done_at": "2026-11-03T17:27:17+00:00"
+    },
+    {
+      "id": "T4.7",
+      "phase": 4,
+      "title": "Experiment E13, clean the real-photo labels",
+      "owner": "agent",
+      "deps": [
+        "T4.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_label_review.py tests/test_e13.py -q",
+        "{py} -m sprout.eval.check_run E13 --min-n 200 --split field_dev"
+      ],
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-03T17:22:31+00:00",
+      "verified": {
+        "commit": "b470dbe0f4a170816d8d1178d88a090a361a8b09",
+        "passed": true,
+        "at": "2026-11-03T19:29:30+00:00"
+      }
     },
     {
       "id": "T4.3",
@@ -397,7 +418,14 @@
       ],
       "status": "in_progress",
       "worktree": "<local path>",
-      "started_at": "2026-11-03T16:45:43+00:00"
+      "started_at": "2026-11-03T16:45:43+00:00",
+      "verified": {
+        "commit": "a4502a46a5d7ce7dd5a4ec398d11f232caf583b9",
+        "passed": true,
+        "at": "2026-11-03T18:14:31+00:00"
+      },
+      "attempts": 1,
+      "reason": "leakage: at least 6 extra_train rows are watermark or crop copies of field_dev or field_test photos, missed by the 0.88 rule and the 0.75 guard; real-manifest tests compare only exact sha1"
     },
     {
       "id": "T4.6",
@@ -411,20 +439,6 @@
       "acceptance": [
         "{py} -m pytest tests/test_e12.py -q",
         "{py} -m sprout.eval.check_run E12 --min-n 200 --split field_dev"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "T4.7",
-      "phase": 4,
-      "title": "Experiment E13, clean the real-photo labels",
-      "owner": "agent",
-      "deps": [
-        "T4.1"
-      ],
-      "acceptance": [
-        "{py} -m pytest tests/test_label_review.py tests/test_e13.py -q",
-        "{py} -m sprout.eval.check_run E13 --min-n 200 --split field_dev"
       ],
       "status": "pending"
     },
@@ -566,7 +580,14 @@
       ],
       "status": "in_progress",
       "worktree": "<local path>",
-      "started_at": "2026-11-03T16:45:52+00:00"
+      "started_at": "2026-11-03T16:45:52+00:00",
+      "verified": {
+        "commit": "fb3c483baba81b1a2f91f33ac125810458ee1b90",
+        "passed": true,
+        "at": "2026-11-03T19:20:56+00:00"
+      },
+      "attempts": 2,
+      "reason": "not_in_documents-012, watermelon fusarium wilt, is answered by a general cucurbit page; the abstain check needs family terms"
     },
     {
       "id": "T6.4",

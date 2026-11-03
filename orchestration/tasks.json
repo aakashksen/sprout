@@ -63,10 +63,11 @@
         "{py} -m pytest tests/test_lab_data.py -q",
         "{py} -m sprout.data.check_splits lab"
       ],
-      "status": "pending",
-      "reason": "PlantVillage local 39-class copy is 'Approved: no, needs the person' in docs/datasets.md: origin of Background_without_leaves untraced, license unconfirmed for this copy. Standing rule forbids using it until the person rules.",
+      "status": "blocked",
+      "reason": "Fetching the approved official PlantVillage release was denied by the permission system (git fetch of pinned commit into <local path>). Code and tests are committed; data, manifest, DVC tracking and data-counts remain. Needs the person to allow the fetch.",
       "attempts": 0,
-      "note": "official release approved"
+      "note": "official release approved",
+      "started_at": "2026-11-03T00:19:19+00:00"
     },
     {
       "id": "T1.2",

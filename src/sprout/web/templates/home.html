@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Identify a plant problem from a photo</h1>
+{% if g.user %}
+<form method="post" action="{{ url_for('analyses.create') }}" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="file">Photo (JPEG or PNG)</label>
+  <input id="file" type="file" name="file" accept="image/jpeg,image/png" capture="environment" required>
+  <button type="submit">Analyse</button>
+</form>
+{% else %}
+<p><a href="{{ url_for('auth.login') }}">Log in</a> or <a href="{{ url_for('auth.signup') }}">sign up</a> to upload a photo.</p>
+{% endif %}
+{% endblock %}

@@ -89,3 +89,26 @@ def test_empty_result_is_empty_not_error(tmp_path):
     assert r.search("zzz unknown", mode="hybrid", rerank=False) == []
     assert Retriever(tmp_path / "missing").search("anything") == []
     assert r.search("   ") == []
+
+
+def test_default_embedder_vectors_are_saved_and_reused(tmp_path, monkeypatch):
+    import sprout.rag.retrieve as mod
+
+    calls = []
+
+    class Counting(FakeEmbedder):
+        def __init__(self, model):
+            super().__init__(TABLE)
+            calls.append(model)
+
+        def embed_passages(self, texts):
+            calls.append(len(texts))
+            return super().embed_passages(texts)
+
+    monkeypatch.setattr(mod, "FastEmbedder", Counting)
+    for _ in range(2):
+        r = make(tmp_path, embedder=None, min_score=0.0)
+        r._embedder = None
+        assert r.search("early blight", mode="dense", rerank=False)[0].source == "tomato.pdf"
+    assert calls.count(len(CHUNKS)) == 1  # second Retriever read the saved vectors
+    assert list(tmp_path.glob("vectors-*.npy"))

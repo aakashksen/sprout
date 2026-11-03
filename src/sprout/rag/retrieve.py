@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import re
@@ -89,7 +90,8 @@ class Retriever:
         self.config = config or RetrievalConfig()
         self._embedder = embedder
         self._reranker = reranker
-        path = Path(index_dir) / "chunks.jsonl"
+        self._index_dir = Path(index_dir)
+        path = self._index_dir / "chunks.jsonl"
         self._chunks: list[dict] = []
         if path.exists():
             with path.open(encoding="utf-8") as f:
@@ -109,10 +111,27 @@ class Retriever:
             self._reranker = FastReranker(self.config.reranker_model)
         return self._reranker
 
+    def _load_vectors(self) -> np.ndarray:
+        """Embed every chunk once. With the default embedder the result is saved in the index
+        folder, keyed by model and chunk text, so a new Retriever starts without re-embedding."""
+        texts = [c["text"] for c in self._chunks]
+        cache = None
+        if self._embedder is None:
+            key = hashlib.sha1("\x00".join([self.config.embedding_model, *texts]).encode()).hexdigest()[:16]
+            cache = self._index_dir / f"vectors-{key}.npy"
+            if cache.exists():
+                return np.load(cache)
+        vectors = _unit(np.asarray(self._get_embedder().embed_passages(texts)))
+        if cache is not None:
+            try:
+                np.save(cache, vectors)
+            except OSError:
+                pass  # a read-only index folder only costs the re-embedding
+        return vectors
+
     def _dense(self, query: str, idx: list[int]) -> dict[int, float]:
         if self._vectors is None:
-            texts = [c["text"] for c in self._chunks]
-            self._vectors = _unit(np.asarray(self._get_embedder().embed_passages(texts)))
+            self._vectors = self._load_vectors()
         q = _unit(np.asarray(self._get_embedder().embed_query(query)))
         sims = self._vectors[idx] @ q
         return {i: float(max(s, 0.0)) for i, s in zip(idx, sims)}

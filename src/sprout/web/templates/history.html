@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Your history</h1>
+{% for item in items %}
+<p>
+  <a href="{{ url_for('analyses.show', analysis_id=item.id) }}">{{ item.created_at }}</a>:
+  {% if item.ident.top %}model said {{ pretty(item.ident.top.label) }}{% else %}{{ item.ident.status }}{% endif %}
+  {% if item.selected %}, you chose {{ pretty(item.selected) }}{% endif %}
+  <form method="post" action="{{ url_for('analyses.delete', analysis_id=item.id) }}" style="display:inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit">Delete</button>
+  </form>
+</p>
+{% else %}
+<p>No analyses yet.</p>
+{% endfor %}
+{% endblock %}

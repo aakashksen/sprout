@@ -77,7 +77,7 @@ def cross_source(field: pd.DataFrame, links: pd.DataFrame) -> dict:
     span_rows = field[field["group"].isin(spanning)]
     cross = sum(
         1
-        for a, b in zip(links["path_a"], links["path_b"])
+        for a, b in zip(links["path_a"], links["path_b"], strict=True)
         if source_of_path(a) != source_of_path(b)
     )
     return {

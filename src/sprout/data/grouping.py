@@ -6,13 +6,17 @@ import imagehash
 import numpy as np
 from PIL import Image
 
-# Suffixes the dataset adds to copies of one source photo, and the segmented copy marker.
-_COPY_SUFFIX = re.compile(r"(_final_masked|_flip(LR|TB)|_(90|180|270)deg|_new\w*)+$", re.I)
+# Surveyed in the official release: copies end in " copy", " copy 2" or " copy 3", and the
+# segmented file adds "_final_masked". The leading uuid differs per file, and the code after
+# "___" (for example "JR_HL 9885") repeats across classes for unrelated photos, so the
+# source ID is the class folder plus that code.
+_COPY_SUFFIX = re.compile(r"( copy( \d+)?)$")
 
 
 def source_id(path) -> str:
-    """Filename stem with copy, flip and segmentation suffixes removed."""
-    return _COPY_SUFFIX.sub("", Path(path).stem)
+    p = Path(path)
+    stem = re.sub(r"_final_masked$", "", p.stem).split("___", 1)[-1]
+    return f"{p.parent.name}/{_COPY_SUFFIX.sub('', stem)}"
 
 
 def _variants(img: Image.Image) -> list[int]:

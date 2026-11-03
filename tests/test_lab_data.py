@@ -33,14 +33,23 @@ def test_duplicate_images_share_a_group(tmp_path):
 
 def test_same_source_id_shares_a_group(tmp_path):
     paths = [
-        _save(_pattern(3), tmp_path / "0007___FREC_Scab 3335.JPG"),
-        _save(_pattern(4), tmp_path / "0007___FREC_Scab 3335_flipLR.JPG"),
-        _save(_pattern(5), tmp_path / "0008___FREC_Scab 3336.JPG"),
+        _save(_pattern(3), tmp_path / "0007___JR_HL 9885.JPG"),
+        _save(_pattern(4), tmp_path / "0009___JR_HL 9885 copy.JPG"),
+        _save(_pattern(5), tmp_path / "0008___JR_HL 9886.JPG"),
     ]
     groups = group_near_duplicates(paths)
     assert groups[paths[0]] == groups[paths[1]]
     assert groups[paths[2]] != groups[paths[0]]
-    assert source_id("0007___A 1_final_masked.jpg") == source_id("0007___A 1.JPG")
+
+
+def test_source_id_strips_the_suffixes_the_data_contains():
+    base = source_id("c/0007___JR_HL 9885.JPG")
+    assert source_id("c/0009___JR_HL 9885 copy.JPG") == base
+    assert source_id("c/0009___JR_HL 9885 copy 2.jpg") == base
+    assert source_id("c/0009___JR_HL 9885 copy 3.jpg") == base
+    assert source_id("c/0007___JR_HL 9885_final_masked.jpg") == base
+    assert source_id("c/RS_Rust 1563.JPG") == source_id("c/0007___RS_Rust 1563_final_masked.jpg")
+    assert source_id("d/0007___JR_HL 9885.JPG") != base
 
 
 def _df() -> pd.DataFrame:

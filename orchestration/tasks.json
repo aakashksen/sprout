@@ -383,14 +383,14 @@
         "{py} -m pytest tests/test_e11.py -q",
         "{py} -m sprout.eval.check_run E11 --min-n 50 --split field_dev"
       ],
-      "status": "in_progress",
-      "worktree": "<local path>",
+      "status": "done",
       "started_at": "2026-11-03T21:04:36+00:00",
       "verified": {
         "commit": "40b0e85309b8757bbb2e95d122472f3c51af2743",
         "passed": true,
         "at": "2026-11-03T22:52:24+00:00"
-      }
+      },
+      "done_at": "2026-11-03T23:04:47+00:00"
     },
     {
       "id": "T4.4",

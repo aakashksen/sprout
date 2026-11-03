@@ -89,7 +89,7 @@ class MaskStore:
         with np.load(path) as z:
             paths, bits = z["paths"], z["bits"]
         n = MASK_SIZE * MASK_SIZE
-        return cls({str(p): np.unpackbits(b)[:n].reshape(MASK_SIZE, MASK_SIZE).astype(bool) for p, b in zip(paths, bits)})
+        return cls({str(p): np.unpackbits(b)[:n].reshape(MASK_SIZE, MASK_SIZE).astype(bool) for p, b in zip(paths, bits, strict=True)})
 
 
 def crop_image(image: Image.Image, mask: np.ndarray) -> Image.Image:

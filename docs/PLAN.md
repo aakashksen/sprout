@@ -263,6 +263,12 @@ Uses `Identification` from T5.0 and a fake identifier, so it doesn't wait for tr
 **Tests:** `test_answer_cites_real_passages_only`; `test_no_passages_says_no_supporting_document`; `test_retrieval_failure_is_visible`; `test_llm_outage_returns_unavailable_not_invented_text`; `test_tomato_question_cannot_cite_apple`; `test_followup_gets_bounded_history`; `test_uncertain_diagnosis_is_not_stated_as_fact`; `test_chemical_advice_says_check_the_label`; `test_call_cap_refuses_and_makes_no_call`; `test_claude_command_has_no_tools` (stubbed process); `test_ollama_client_uses_loopback_ip_not_localhost`.
 **Accept:** `{py} -m pytest tests/test_answer.py -q`; `{py} -m sprout.eval.check_run E7 --min-n 50 --split rag_dev`.
 
+### T6.6: Experiment E14, is the local judge reliable?
+**Files:** `src/sprout/experiments/e14_judge_check.py`, `configs/e14.json`, `tests/test_e14.py`.
+**Do:** Have Sonnet, through the existing `ClaudeCodeClient(model="sonnet")`, grade a seeded random sample of at least 200 chatbot answers the local `gemma4` judge already graded in T6.4, from `rag_dev` only, never `rag_test`. Sonnet grades per claim on the same question, passages, and rubric, without seeing the local judge's grade. This check is what the rule that Claude is never the judge in T6.4 leaves open: Sonnet's grades here measure the judge and set no E7 number. Save rows as they arrive, inside the call cap, so a crash resumes. Report agreement, Cohen's kappa with an interval, and which direction disagreements lean, including whether the local judge flatters results. Add a `T6.6` entry to `docs/DECISIONS.md`. If agreement is poor, say so and propose using Sonnet as the judge for final numbers; that choice goes to the coordinator.
+**Tests:** `test_only_rag_dev_answers_are_sampled`; `test_sonnet_prompt_omits_the_local_grade`; `test_rows_are_saved_as_they_arrive_and_a_rerun_resumes`; `test_call_cap_refuses_and_makes_no_call`; `test_kappa_matches_a_worked_example`; `test_direction_counts_each_disagreement_once`.
+**Accept:** `{py} -m pytest tests/test_e14.py -q`; `{py} -m sprout.eval.check_run E14 --min-n 200 --split rag_dev`.
+
 ---
 
 ## Phase 7: The application
@@ -306,7 +312,7 @@ Optional for the build. See `docs/HUMAN-GATES.md`.
 **Do:** Freeze configurations chosen on dev, and commit them before touching test. Run once on `lab_test`, `field_test`, and `rag_test`, one record each: clean baseline, improved model, XGBoost, DINOv2, with and without abstention, and the quantized final model. Report lab and real-photo results separately, with `lab_test` also scored on shared classes, with top-1, top-3, top-5, macro-F1, calibration, and plant-given top-1 and top-3, stating the options per plant. RAG uses the local model; any Claude comparison stays within the call cap.
 `field_test` means its cleaned rows from T4.7, and the report states how many were removed and why. The record's `labels_reviewed` comes from H2's signed state in `orchestration/tasks.json`, never a hardcoded value, because `claims check` refuses a claim on a record without it.
 **Tests:** `test_refuses_when_config_not_committed`; `test_refuses_second_test_run_without_override_note`; `test_labels_reviewed_is_false_before_h2_and_true_after`.
-**Accept:** `{py} -m pytest tests/test_e9.py -q`; `{py} -m sprout.eval.check_run E9 --min-n 200 --split field_test`.
+**Accept:** `{py} -m pytest tests/test_e9.py -q`; `{py} -m sprout.eval.check_run E9 --min-n 200 --split field_test --all`; `{py} -m sprout.eval.check_run E9 --min-n 1000 --split lab_test --all`; `{py} -m sprout.eval.check_run E9 --min-n 50 --split rag_test --all`.
 
 ### T8.2: Report, README, and bullets
 **Files:** `docs/REPORT.md`, `README.md`, `results/claims.json`, `docs/RESUME-TARGETS.md`, `docs/interview-notes.md`, `tools/check_report_numbers.py`.

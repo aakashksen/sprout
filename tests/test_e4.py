@@ -1,4 +1,7 @@
+import json
 import random
+import subprocess
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -7,6 +10,8 @@ import torch
 from PIL import Image
 
 import sprout.data.splits as splits
+from sprout.eval.check_run import check
+from sprout.experiments import e4_improve as e4
 from sprout.train.augment import paste_background
 from sprout.train.config import TrainConfig
 from sprout.train.dataset import build_datasets, make_class_map
@@ -30,8 +35,8 @@ def _save(path, color, size=64):
 @pytest.fixture
 def world(tmp_path, monkeypatch):
     """lab.csv (12 train, 2 dev, 2 test per class) and field.csv (two sources). Test images do not exist."""
-    mdir = tmp_path / "manifests"
-    mdir.mkdir()
+    mdir = tmp_path / "repo" / "datasets" / "manifests"
+    mdir.mkdir(parents=True)
     lab, field = [], []
     for c, label in enumerate(CLASSES):
         color = (200, 30, 30) if c == 0 else (30, 30, 200)
@@ -205,3 +210,196 @@ def test_joint_run_trains_on_real_and_lab_selects_on_field_dev(world):
     ckpt = load_checkpoint(out.best_path)
     assert ckpt["config"].select_split == "field_dev" and ckpt["config"].lab_cap == 4
     assert sorted(p.name for p in (world / "run").iterdir()) == ["best.pt", "latest.pt"]
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# the runner
+
+BASELINE_ID = "E3-20261103T000000000000Z"
+BASELINES = ("e1", "dinov2_small", "frozen_convnext", "xgboost")
+CONFIG = Path(__file__).resolve().parents[1] / "configs" / "e4.json"
+
+
+def sh(root, *args):
+    subprocess.run(["git", *args], cwd=root, check=True, capture_output=True)
+
+
+@pytest.fixture
+def repo(world, monkeypatch):
+    """A git repo holding the manifests, a stand-in for the saved E3 field_dev rows, and a tiny E1 checkpoint."""
+    from sprout.train.loop import train
+
+    root = world / "repo"
+    (root / ".gitignore").write_text("models/\n")
+    field = pd.read_csv(root / "datasets" / "manifests" / "field.csv")
+    dev = field[field["split"] == "field_dev"]
+    rng = np.random.default_rng(0)
+    runs = root / "results" / "runs"
+    runs.mkdir(parents=True)
+    predictions = {}
+    for system in BASELINES:
+        p = runs / f"{BASELINE_ID}.{system}.predictions.jsonl"
+        rows = []
+        for path, label in zip(dev["path"], dev["label"]):
+            probs = rng.dirichlet(np.ones(2))
+            rows.append({"path": path, "label": CLASSES.index(label), "probs": list(map(float, probs))})
+        p.write_text("".join(json.dumps(r) + "\n" for r in rows))
+        predictions[system] = p.relative_to(root).as_posix()
+    (runs / f"{BASELINE_ID}.json").write_text(
+        json.dumps({"predictions": predictions, "config": {"class_names": CLASSES}}))
+    train(TrainConfig(manifest="lab", out_dir=str(root / "models" / "e1"), model="tiny_cnn", epochs=1, batch_size=4))
+    sh(root, "init", "-q")
+    sh(root, "config", "user.email", "t@t")
+    sh(root, "config", "user.name", "t")
+    sh(root, "add", "-A")
+    sh(root, "commit", "-q", "-m", "init")
+    # the stand-in lab photos have no official segmented copy: call the centre the leaf for the Grad-CAM energy
+    import sprout.experiments.e2_field as e2
+
+    monkeypatch.setattr(e2, "segmented_mask", lambda path, size: np.pad(np.ones((size // 2, size // 2), bool), size // 4))
+    return root
+
+
+@pytest.fixture
+def e4cfg():
+    cfg = e4.load_config(CONFIG)
+    cfg.update(num_workers=0, min_free_disk_gb=0, lab_cap=5, cam_sample=4)
+    cfg["baselines"] = {**cfg["baselines"], "record": BASELINE_ID}
+    for arm in cfg["arms"]:
+        if arm["kind"] == "train":
+            arm.update(model="tiny_cnn", lr=0.05, epochs=2, batch_size=4)
+            arm.pop("unfreeze_blocks", None)
+            arm.pop("backbone_lr", None)
+    return cfg
+
+
+def _record(path):
+    return json.loads(Path(path).read_text())
+
+
+def test_config_fixes_the_arms_and_the_rules_before_any_run():
+    cfg = e4.load_config(CONFIG)
+    assert [a["name"] for a in cfg["arms"] if a["kind"] != "heldout"] == [
+        "convnext_joint", "convnext_strong_aug", "convnext_background", "dinov2_head", "dinov2_finetune",
+        "best_with_crop"]
+    assert [a["held_out_source"] for a in cfg["arms"] if a["kind"] == "heldout"] == ["plantdoc", "plantseg"]
+    assert cfg["lab_cap"] == 60 and cfg["lab_cap_reason"] and cfg["num_workers"] <= 4
+    assert cfg["dropped"][0]["name"] == "convnext_aug_background"
+    assert "macro-F1" in cfg["rules"]["best_arm"] and "optimistic" in cfg["rules"]["best_arm"]
+
+
+def test_attempts_lists_each_run(repo, e4cfg, monkeypatch):
+    # the stand-in photos are plain red and blue, so the colour threshold finds no leaf and arm 3 must be refused
+    for name in ("convnext_joint", "convnext_strong_aug", "convnext_background", "dinov2_head"):
+        path = e4.run_arm(e4cfg, name, repo)
+        assert (path is None) == (name == "convnext_background")
+    notrun = json.loads((repo / "models" / "e4" / "not_run" / "convnext_background.json").read_text())
+    assert "believable leaf mask" in notrun["reason"]
+
+    first = _record(sorted((repo / "results" / "runs").glob("E4-*[0-9]Z.json"))[0])
+    assert first["config"]["arm"] == "convnext_joint" and first["subset"] == "shared_classes"
+    assert first["config"]["trained_on_plantdoc"] is True
+    assert set(first["predictions"]) == {*BASELINES, "convnext_joint"}
+    assert {e["arm"]: e["status"] for e in first["attempts"]}["convnext_joint"] == "run"
+    assert {e["arm"]: e["status"] for e in first["attempts"]}["convnext_background"] == "pending"
+
+    # arm 5 follows the stated rule, read from the two records
+    results = e4.arm_results(e4cfg, repo)
+    expect_run = results["dinov2_head"]["macro_f1"] > results["convnext_joint"]["macro_f1"]
+    path = e4.run_arm(e4cfg, "dinov2_finetune", repo)
+    assert (path is not None) == expect_run
+    if not expect_run:
+        assert "not above" in json.loads((repo / "models/e4/not_run/dinov2_finetune.json").read_text())["reason"]
+
+    for name in ("heldout_plantdoc", "heldout_plantseg"):
+        rec = _record(e4.run_arm(e4cfg, name, repo))
+        held = name.removeprefix("heldout_")
+        assert rec["subset"] == f"source:{held}" and rec["n"] == 4
+        assert rec["config"]["trained_on_plantdoc"] is (held != "plantdoc")
+        assert rec["config"]["train"]["held_out_source"] == held
+
+    monkeypatch.setattr(e4, "load_segmenter", lambda path, device: object())
+    box = np.zeros((64, 64), bool)
+    box[10:50, 5:40] = True
+    monkeypatch.setattr(e4, "predict_mask", lambda model, image: box)
+    (repo / "models" / "e10").mkdir(parents=True)
+    (repo / "models" / "e10" / "best.pt").write_bytes(b"x")
+    final = _record(e4.run_arm(e4cfg, "best_with_crop", repo))
+    assert final["config"]["crop"]["e10_record"] and final["config"]["train"]["crop_masks"]
+    assert final["config"]["base_arm"] in ("convnext_joint", "convnext_strong_aug", "dinov2_head", "dinov2_finetune")
+    by_arm = {e["arm"]: e for e in final["attempts"]}
+    assert set(by_arm) == {a["name"] for a in e4cfg["arms"]} | {"convnext_aug_background"}
+    assert by_arm["convnext_aug_background"]["status"] == "dropped"
+    assert by_arm["convnext_background"]["status"] == "not_run" and by_arm["convnext_background"]["reason"]
+    assert by_arm["best_with_crop"]["status"] == "run" and by_arm["best_with_crop"]["setting"]["crop"] is True
+    assert by_arm["heldout_plantseg"]["status"] == "run" and by_arm["dinov2_head"]["status"] == "run"
+    assert by_arm["dinov2_finetune"]["status"] == ("run" if expect_run else "not_run")
+    assert not [e for e in final["attempts"] if e["status"] == "pending"]
+    assert check("E4", root=repo, split="field_dev") == []
+
+
+def test_standard_metrics_and_measurements_are_recorded(repo, e4cfg):
+    rec = _record(e4.run_arm(e4cfg, "convnext_joint", repo))
+    for system, m in rec["metrics"].items():
+        assert {"accuracy", "macro_f1", "ece", "top_1_accuracy", "top_3_accuracy", "top_5_accuracy",
+                "plant_given_top_1", "plant_given_top_3"} <= set(m), system
+    values = rec["measurements"]["values"]
+    assert "epoch_seconds_convnext_joint_p50" in values
+    assert "energy_outside_leaf_convnext_joint_p50" in values and "energy_outside_leaf_e1_p50" in values
+    assert {(c["a"], c["b"], c["metric"]) for c in rec["comparisons"]} == {
+        ("convnext_joint", b, m) for b in BASELINES for m in ("accuracy", "macro_f1")}
+    assert "optimistic" in rec["notes"] and "development number" in rec["notes"] and "PlantDoc" in rec["notes"]
+    assert (repo / "models/e4/convnext_joint/epochs.log").read_text().count("epoch ") == 2
+    assert sorted(p.name for p in (repo / "models/e4/convnext_joint").glob("*.pt")) == ["best.pt", "latest.pt"]
+
+
+def test_interrupted_run_writes_no_record_and_resume_lists_both_attempts(repo, e4cfg, monkeypatch):
+    import sprout.train.loop as loop
+
+    real, calls = loop._evaluate, []
+
+    def flaky(*a, **k):
+        calls.append(1)
+        if len(calls) == 2:
+            raise KeyboardInterrupt  # stands for a killed process
+        return real(*a, **k)
+
+    monkeypatch.setattr(loop, "_evaluate", flaky)
+    with pytest.raises(KeyboardInterrupt):
+        e4.run_arm(e4cfg, "convnext_joint", repo)
+    assert not list((repo / "results" / "runs").glob("E4-*"))  # a partial run is no result
+    with pytest.raises(FileExistsError):  # without --resume the checkpoints are protected
+        e4.run_arm(e4cfg, "convnext_joint", repo)
+    rec = _record(e4.run_arm(e4cfg, "convnext_joint", repo, resume=True))
+    entry = {e["arm"]: e for e in rec["attempts"]}["convnext_joint"]
+    assert [a["status"] for a in entry["attempts"]] == ["interrupted", "complete"]
+    assert entry["attempts"][0]["epochs_in_latest_checkpoint"] == 1
+    assert entry["attempts"][1]["resumed_from_latest"] is True
+    assert len(entry["history"]) == 1 and entry["epochs_done"] == 2
+    assert check("E4", root=repo, split="field_dev") == []
+
+
+def test_arms_that_read_earlier_results_refuse_to_guess(repo, e4cfg):
+    with pytest.raises(e4.Blocked):
+        e4.run_arm(e4cfg, "dinov2_finetune", repo)
+    with pytest.raises(e4.Blocked):
+        e4.run_arm(e4cfg, "best_with_crop", repo)
+    with pytest.raises(e4.Blocked):
+        e4.run_arm(e4cfg, "convnext_strong_aug", repo)  # its reference arm has no record
+    assert not (repo / "models" / "e4" / "not_run").exists()
+
+
+def test_best_arm_is_the_highest_macro_f1_and_ties_go_to_the_lower_number(e4cfg):
+    res = {"convnext_joint": {"macro_f1": 0.3}, "convnext_strong_aug": {"macro_f1": 0.4},
+           "dinov2_head": {"macro_f1": 0.4}, "heldout_plantdoc": {"macro_f1": 0.9}}
+    assert e4.pick_best(e4cfg, res) == "convnext_strong_aug"
+    ok, why = e4.arm5_rule({"dinov2_head": {"macro_f1": 0.4}, "convnext_joint": {"macro_f1": 0.4}})
+    assert ok is False and "not above" in why
+
+
+def test_worker_limit_and_disk_guard(tmp_path, e4cfg):
+    (tmp_path / "c.json").write_text(json.dumps({**e4cfg, "num_workers": 5}))
+    with pytest.raises(ValueError, match="at most 4"):
+        e4.load_config(tmp_path / "c.json")
+    with pytest.raises(RuntimeError, match="free"):
+        e4.check_disk(tmp_path, 10**9)

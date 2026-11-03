@@ -20,11 +20,13 @@
 - `legacy/` is read-only.
 
 ## Source locations (read only; copy, never modify)
-- PlantVillage without augmentation: `<local path> Project\pytorchConvNextMulticlassClassification\9layerplantdatacnn\data\noaug\noaug data` (39 folders, files named `image (N).JPG`).
-- Augmented version: the sibling `data\aug\aug data`. Not used for training, since its copies would break the split.
+- PlantVillage: the official 38-class release, https://github.com/spMohanty/PlantVillage-Dataset, approved by the person under CC BY-SA 3.0 (2026-11-02). Use `raw/color` and `raw/segmented` at commit `7f7ecc7e1eaca78107e3affe7cb5abd9427e139a`. Original filenames carry a source ID, such as `00075aa8-...___FREC_Scab 3335.JPG`; the segmented copy of that file is `00075aa8-...___FREC_Scab 3335_final_masked.jpg`.
+- The local 39-class copy (`...\9layerplantdatacnn\data\noaug\noaug data`, files renamed `image (N).JPG`) is not used: its 39th class, `Background_without_leaves`, can't be traced to a source.
+- Augmented local version: the sibling `data\aug\aug data`. Not used.
 - Old checkpoint: `...\pytorchConvNextMulticlassClassification\plant_disease_convnext_best.pth`.
 - Knowledge documents: `<local path> Project Showcase\PlantProject\PlantRagChatbot\data`.
-- `<local path>` looked empty from the top level; T0.2 checks it and looks for segmented PlantVillage images.
+- `<local path>` is empty (checked in T0.2).
+- Dataset terms set by the person (2026-11-02, recorded in `docs/datasets.md`): COCO and PlantDoc images are local only. Never commit or redistribute them or copies derived from them, including thumbnails and Grad-CAM overlays.
 
 ## Review focus
 Likely real-world failures. Each has a test in the task that owns it.
@@ -64,14 +66,14 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 ### T1.1: Lab data, grouping, and manifests
 **Files:** `src/sprout/data/inventory.py`, `src/sprout/data/grouping.py`, `src/sprout/data/splits.py`, `src/sprout/data/check_splits.py`, `datasets/manifests/lab.csv`, `.dvc` setup, `tests/test_lab_data.py`.
 **Produces:** `inventory(root) -> DataFrame`; `group_near_duplicates(paths, max_distance=4) -> dict[path, group_id]` with perceptual hashes (imagehash) compared across flips and 90° rotations; `make_splits(df, seed=13, ratios=(.7,.15,.15)) -> DataFrame` stratified by class and split by group; `load_manifest(name) -> DataFrame` with `path, label, group, split, sha1`; `dataset_hash(manifest) -> str`.
-**Do:** Copy data into `datasets/raw/lab/` with `run_in_background` or a long timeout, and track it with `.venv/Scripts/python -m dvc` (local remote). The `.dvc` pointer file is committed. Resolves #2, #3, #4, #14. Write counts by class and split to `docs/data-counts.md`, noting that the 39 classes include healthy classes and a background class, so they aren't "38 diseases".
-**Tests:** `test_duplicate_images_share_a_group` (an image with a resized, a flipped, and a rotated copy); `test_no_group_in_two_splits`; `test_split_is_deterministic`; `test_every_class_in_every_split`; `test_hash_changes_when_a_label_changes`.
+**Do:** Get the official release at the pinned commit (see Source locations), and copy `raw/color` into `datasets/raw/lab/` and `raw/segmented` into `datasets/raw/lab_segmented/` with `run_in_background` or a long timeout. Track both with `.venv/Scripts/python -m dvc` (local remote). The `.dvc` pointer files are committed. Grouping uses the source IDs in the original filenames together with perceptual hashes: images share a group if either says so. Normalize the filename to its source ID, including any copy or flip suffixes the data actually contains, and record what you found. A source ID isn't proven to identify one physical leaf, so reports still say "near-duplicate-grouped". Resolves #2, #3, #4, #14. Write counts by class and split to `docs/data-counts.md`, noting that the 38 classes include healthy classes, so they aren't "38 diseases".
+**Tests:** `test_duplicate_images_share_a_group` (an image with a resized, a flipped, and a rotated copy); `test_same_source_id_shares_a_group`; `test_no_group_in_two_splits`; `test_split_is_deterministic`; `test_every_class_in_every_split`; `test_hash_changes_when_a_label_changes`.
 **Accept:** `{py} -m pytest tests/test_lab_data.py -q`; `{py} -m sprout.data.check_splits lab`.
 
 ### T1.2: Real-photo and not-plant sets
 **Files:** `src/sprout/data/field.py`, `datasets/manifests/field.csv`, `datasets/manifests/not_plant.csv`, `datasets/class_map.csv`, `datasets/review/field-sample.md`, `tests/test_field_data.py`.
-**Do:** Download only sets marked `Approved: yes`. If PlantDoc isn't approved, block this task with the reason. Write `class_map.csv`, mapping real-photo classes to lab classes, and marking unmappable ones excluded with a reason. Deduplicate against each other and against lab. Split by group, stratified by class, into `field_train`, `field_dev`, `field_test` (.5,.25,.25), which must not be re-split later. Every shared class must appear in `field_test`, and those that can't are dropped from the shared list with a recorded reason. Write a random sample of 50 with labels and thumbnails to the review file.
-**Tests:** `test_unmapped_classes_excluded`; `test_no_field_image_duplicates_a_lab_image`; `test_no_group_in_two_field_splits`; `test_field_test_has_at_least_200_images`; `test_every_shared_class_is_in_field_test`; `test_shared_class_list_is_recorded`.
+**Do:** Download only sets marked `Approved: yes`, and keep the images under the git-ignored `datasets/raw/`. If PlantDoc isn't approved, block this task with the reason. `not_plant` is COCO 2017 validation, with every image annotated `potted plant` excluded using the official instance annotations. Add a `source` column to `field.csv`, so T4.1 can tell PlantDoc images from other real-photo sets. Write `class_map.csv`, mapping real-photo classes to lab classes, and marking unmappable ones excluded with a reason. Deduplicate against each other and against lab. Split by group, stratified by class, into `field_train`, `field_dev`, `field_test` (.5,.25,.25), which must not be re-split later. Every shared class must appear in `field_test`, and those that can't are dropped from the shared list with a recorded reason. Write a random sample of 50 with labels to the review file. Thumbnails go in the git-ignored `datasets/review/thumbs/`, and the committed review file only links to them.
+**Tests:** `test_not_plant_excludes_potted_plant_images`; `test_no_coco_or_plantdoc_image_is_tracked_by_git`; `test_unmapped_classes_excluded`; `test_no_field_image_duplicates_a_lab_image`; `test_no_group_in_two_field_splits`; `test_field_test_has_at_least_200_images`; `test_every_shared_class_is_in_field_test`; `test_shared_class_list_is_recorded`.
 **Accept:** `{py} -m pytest tests/test_field_data.py -q`; `{py} -m sprout.data.check_splits field`.
 
 ### H2: Review labels
@@ -102,6 +104,7 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 **Accept:** `{py} -m pytest tests/test_metrics.py -q`.
 
 ### T2.3: Run records and claims
+**Before starting:** read how ContextLensV2 solved this, read only, and never change that folder: `<local path>` (`records.py`, `check_run.py`, `claims.py`, `stats.py`, `series.py`) and `<local path>`. Use the same design, so its defects aren't repeated: one record maps each system to its predictions, and `check_run` recomputes the intervals and comparisons.
 **Files:** `src/sprout/eval/records.py`, `src/sprout/eval/check_run.py`, `src/sprout/eval/claims.py`, `results/claims.json`, `tests/test_records.py`.
 **Produces:** `write_run(experiment, split, config, models, metrics, intervals, attempts, predictions, dataset_hash, *, root=ROOT, allow_dirty=False, notes="") -> Path`, with the fields in `docs/TESTING.md`; `allow_dirty` exists for tests only. `python -m sprout.eval.check_run <E#> [--min-n N] [--split S]`, enforcing all rules in `docs/TESTING.md`. The dirty check ignores `orchestration/`, as `taskctl` does. Image splits read their manifests; `rag_dev` and `rag_test` read `datasets/rag/questions.jsonl`; `perf` hashes its fixed image list and uses that list's size. `python -m sprout.eval.claims check`.
 **Tests:** one failing case for each `check_run` rule, plus `test_write_run_refuses_dirty_tree`; `test_claim_without_matching_run_fails`; `test_claim_value_must_equal_metric_in_run`.
@@ -113,13 +116,13 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 
 ### T3.1: Experiment E1, clean lab baseline
 **Files:** `src/sprout/experiments/e1_lab.py`, `configs/e1.json`, `tests/test_e1.py`.
-**Do:** Train ConvNeXt-Tiny from ImageNet weights with the fixed pipeline, logging to MLflow. Evaluate on `lab_dev`. Also evaluate the old checkpoint on `lab_dev`, labeled `legacy, may have seen these images`, because its split history is unknown (#5). Its class order comes from the hardcoded list in `legacy/PlantProject/application.py`; confirm the order gives a sensible score, or record that it couldn't be established. Save a per-class report and confusion matrix. Reconcile the old 99.97%, 98.5%, and 97.5% figures in `docs/data-counts.md` (#15).
-**Tests:** runner on a tiny fixture and tiny model writes a valid record; `test_legacy_result_is_labeled`.
+**Do:** Train ConvNeXt-Tiny from ImageNet weights with the fixed pipeline, logging to MLflow. Evaluate on `lab_dev`. Also evaluate the old checkpoint on `lab_dev`, labeled `legacy, may have seen these images; 39-class checkpoint mapped onto 38 shared classes`, because its split history is unknown (#5) and it has an extra output. Its class order comes from the hardcoded list in `legacy/PlantProject/application.py`; confirm the order gives a sensible score, or record that it couldn't be established. Map its 39 classes onto the 38 official classes by name, and record the mapping and how the `Background_without_leaves` output is handled. Save a per-class report and confusion matrix. Reconcile the old 99.97%, 98.5%, and 97.5% figures in `docs/data-counts.md` (#15).
+**Tests:** runner on a tiny fixture and tiny model writes a valid record; `test_legacy_result_is_labeled`; `test_legacy_classes_map_onto_38_shared_classes`.
 **Accept:** `{py} -m pytest tests/test_e1.py -q`; `{py} -m sprout.eval.check_run E1 --min-n 1000 --split lab_dev`.
 
 ### T3.2: Experiment E2, domain shift
 **Files:** `src/sprout/data/masks.py`, `src/sprout/explain/gradcam.py`, `src/sprout/experiments/e2_field.py`, `results/e2-gradcam/`, `results/error-analysis-e2.md`, `tests/test_e2.py`.
-**Do:** Run the E1 model on `field_dev`, over shared classes. Save Grad-CAM images for correct and wrong predictions on lab and real photos, and measure what share of Grad-CAM energy falls outside the leaf, using masks from `sprout.data.masks`. Check mask quality on a sample, and if masks are unreliable for real photos, report the metric only for lab images and record why. Hand-categorize 50 mistakes: blur, background, similar symptoms, wrong label, unsupported condition (#20, #21).
+**Do:** Run the E1 model on `field_dev`, over shared classes. Save Grad-CAM images for correct and wrong predictions on lab and real photos, with real-photo overlays in the git-ignored `results/e2-gradcam/field/`, and measure what share of Grad-CAM energy falls outside the leaf, using masks from `sprout.data.masks`. Check mask quality on a sample, and if masks are unreliable for real photos, report the metric only for lab images and record why. Hand-categorize 50 mistakes: blur, background, similar symptoms, wrong label, unsupported condition (#20, #21).
 **Tests:** `test_gradcam_output_matches_image_size`; `test_gradcam_highlights_the_only_signal` (a tiny model on a synthetic image); `test_only_shared_classes_are_scored`.
 **Accept:** `{py} -m pytest tests/test_e2.py -q`; `{py} -m sprout.eval.check_run E2 --min-n 200 --split field_dev`.
 
@@ -135,14 +138,14 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 
 ### T4.1: Experiment E4, improvements
 **Files:** `src/sprout/train/augment.py`, `src/sprout/experiments/e4_improve.py`, `tests/test_e4.py`.
-**Do:** One change at a time, selected on `field_dev`: stronger color and blur augmentation; background randomization, with leaves cut out by masks from `sprout.data.masks` (HSV and GrabCut on `lab_train` images only, so nothing leaks) and pasted on varied backgrounds; official segmented images are used only if they can be hash-matched to `lab_train`; if good masks can't be made, record this arm as not run, drop it from the bullet, and continue; both; then targeted fine-tuning with `field_train` on the best one. Include at most 6 training runs, all in `attempts`. Report before and after with paired statistics, plus Grad-CAM energy outside the leaf. If nothing beats the baseline, record that, and keep the baseline (#19).
+**Do:** One change at a time, selected on `field_dev`: stronger color and blur augmentation; background randomization, with leaves cut out using the official segmented images, matched to `lab_train` by filename so nothing leaks, and pasted on varied backgrounds; where an image has no usable segmented copy, fall back to masks from `sprout.data.masks` (HSV and GrabCut on `lab_train` images only); if good masks can't be made, record this arm as not run, drop it from the bullet, and continue; both; then targeted fine-tuning with `field_train` on the best one. PlantDoc is approved for local evaluation only, so this stage excludes PlantDoc images from `field_train` unless the person clears them for training; record which sources it used. Include at most 6 training runs, all in `attempts`. Report before and after with paired statistics, plus Grad-CAM energy outside the leaf. If nothing beats the baseline, record that, and keep the baseline (#19).
 **Tests:** `test_background_paste_keeps_leaf_pixels_and_changes_background`; `test_field_test_is_never_read` (the loader raises if asked); `test_field_train_only_in_fine_tuning_stage`; `test_attempts_lists_each_run`.
 **Accept:** `{py} -m pytest tests/test_e4.py -q`; `{py} -m sprout.eval.check_run E4 --min-n 200 --split field_dev`.
 
 ### T4.2: Experiment E5, calibration, abstention, and input checks
 **Files:** `src/sprout/serve/calibrate.py`, `src/sprout/serve/gate.py`, `src/sprout/experiments/e5_confidence.py`, `tests/test_e5.py`.
 **Produces:** `fit_temperature(logits, labels) -> float`; `choose_threshold(probs, labels, min_coverage=0.5) -> float`, on `field_dev`; `decide(probs, threshold) -> Decision` with `status: answered|unsure`, top-k alternatives (k≤3, each above 10%); `is_plant_image(image, probs) -> bool`.
-**Do:** Compare input checks: the old 5% green-pixel rule, the background class alone, and the background class plus an out-of-distribution score. Measure both rejection rates on `field_dev` and `not_plant` (#22–#24, #26).
+**Do:** The official release has no background class, so compare these input checks: the old 5% green-pixel rule, model confidence alone, and model confidence plus an out-of-distribution score. Measure both rejection rates on `field_dev` and `not_plant` (#22–#24, #26).
 **Tests:** `test_temperature_reduces_ece_on_overconfident_fixture`; `test_threshold_is_chosen_without_test_data`; `test_unsure_below_threshold`; `test_top_k_is_limited`; `test_yellow_brown_leaf_fixture_is_not_rejected_by_chosen_gate`; `test_green_non_plant_fixture_is_measured_not_silently_passed`.
 **Accept:** `{py} -m pytest tests/test_e5.py -q`; `{py} -m sprout.eval.check_run E5 --min-n 200 --split field_dev`.
 
@@ -199,6 +202,7 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 
 ### T7.1: Backend rebuild
 **Files:** `src/sprout/web/` (split from `legacy/PlantProject/application.py`), `tests/test_web.py`.
+**Known issues from T6.2, to fix when serving wires in the retriever:** passage vectors aren't saved, so each new `Retriever` re-embeds all 2,258 chunks on CPU, which takes minutes; and `min_score` 0.3 filters nothing with reranking off, because an off-topic query scored about 0.78 with real `bge-small` cosines, so it only works with reranking on.
 **Do:** Move to an app factory with routes in modules, and one explicit database setup. Review the hardcoded care recommendations against sources, keeping those with sources and labeling or removing the rest (#52). Replace process-local state with database records scoped to the user and analysis. Config comes from the environment, with no default secret in production mode. Add CSRF, secure cookies when on HTTPS, safe redirects, upload checks, private uploads per user, payload validation, rate limits, API timeouts, and separate liveness and readiness. Store the model prediction and the user's selection separately. Resolves #27–#29, #52, #58, #61, #63–#71, #76–#79.
 **Tests:** `test_prediction_and_user_selection_are_stored_separately`; `test_refresh_does_not_overwrite_selection`; `test_user_cannot_see_another_users_upload_or_history`; `test_open_redirect_is_refused`; `test_csrf_required_on_post`; `test_non_image_upload_rejected`; `test_rate_limit_applies`; `test_ready_false_when_model_missing`; `test_two_app_instances_share_state`; `test_delete_removes_row_and_file`.
 **Accept:** `{py} -m pytest tests/test_web.py -q`.
@@ -236,7 +240,7 @@ Optional for the build. See `docs/HUMAN-GATES.md`.
 
 ### T8.2: Report, README, and bullets
 **Files:** `docs/REPORT.md`, `README.md`, `results/claims.json`, `docs/RESUME-TARGETS.md`, `docs/interview-notes.md`, `tools/check_report_numbers.py`.
-**Do:** Write a model and evaluation report: data, splits, baselines, every experiment including failures, limits, and failure examples. Fill `results/claims.json` from run records, then fill the bullets, rewording any that results don't support. Correct the README's claims (#90–#93). `docs/interview-notes.md` explains each decision, tradeoff, and failure, so the person can defend them.
+**Do:** Write a model and evaluation report: data, splits, baselines, every experiment including failures, limits, and failure examples, with no COCO or PlantDoc images embedded. Fill `results/claims.json` from run records, then fill the bullets, rewording any that results don't support. Correct the README's claims (#90–#93). `docs/interview-notes.md` explains each decision, tradeoff, and failure, so the person can defend them.
 **Tests:** `tools/check_report_numbers.py` fails if a number in `docs/REPORT.md` or the bullets isn't in a run record, if any `[placeholder]` remains, or if `results/claims.json` is empty.
 **Accept:** `{py} -m sprout.eval.claims check`; `{py} tools/check_report_numbers.py`; `{py} -m pytest -q`.
 

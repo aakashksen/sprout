@@ -12,7 +12,7 @@ ContextLens covers agents, LLM fine-tuning, and C++. SPROUT covers **training ri
 ## What the user sees
 - Upload or take a photo, and get the top condition with up to 2 plausible alternatives, each with a calibrated confidence.
 - **Unsure** is a real answer: "I'm not sure, try a closer photo in daylight", with specific guidance. It's better than a confident wrong answer.
-- **Not a plant** is handled, with real rejection rates measured.
+- **Not a plant** is handled using model confidence and an out-of-distribution score, since the official data has no background class, with real rejection rates measured.
 - Choosing a different condition is stored as the user's choice, separate from the model's prediction.
 - The chatbot's advice has clickable sources (document and page). When no document supports an answer, it says so.
 
@@ -33,11 +33,11 @@ ContextLens covers agents, LLM fine-tuning, and C++. SPROUT covers **training ri
 
 | Area | Decision | Reason |
 |---|---|---|
-| Data | PlantVillage, as already on this machine, for training; PlantDoc and similar for real-world testing, licenses permitting | Measures the real gap |
-| Splits | Group near-duplicates with perceptual hashing, including flips and rotations, then split by group; permanent manifests | Files were renamed `image (N).JPG`, so source leaf IDs aren't available. Same-leaf photos that look different can still slip through, so reports say "near-duplicate-grouped" |
+| Data | Official 38-class PlantVillage release (CC BY-SA 3.0) for training; PlantDoc and PlantSeg for real-world testing; COCO 2017 validation, without potted-plant images, for `not_plant`. COCO and PlantDoc images stay local and are never redistributed | Measures the real gap with data whose source is known |
+| Splits | Group by the source IDs in the original filenames and by perceptual hashing, including flips and rotations, then split by group; permanent manifests | A source ID isn't proven to identify one physical leaf, and same-leaf photos that look different can still slip through, so reports say "near-duplicate-grouped" |
 | Primary model | ConvNeXt-Tiny fine-tuned from ImageNet weights | The original architecture, retrained cleanly |
 | Comparisons | HOG and color histograms + XGBoost; frozen ConvNeXt head; DINOv2 | Classic ML and a newer model |
-| Fixes for real photos | Background randomization using masks made from `lab_train` images, stronger augmentation, then targeted fine-tuning on a real-photo training split | Tests the likely cause of the fall |
+| Fixes for real photos | Background randomization using official segmented images matched to `lab_train` by filename, with generated masks as the fallback; stronger augmentation; then targeted fine-tuning on a real-photo training split, excluding PlantDoc unless the person clears it for training | Tests the likely cause of the fall |
 | Understanding | Grad-CAM | Shows what the model looks at |
 | Statistics | Bootstrap confidence intervals, McNemar's test, ECE calibration | Uses the stats major |
 | Tracking | MLflow for runs, DVC for data, run records for claims | Reproducibility |

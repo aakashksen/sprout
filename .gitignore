@@ -23,3 +23,5 @@ orchestration/evidence/
 orchestration/run_loop.log
 results/claude_calls.json
 knowledge/index*/
+datasets/review/thumbs/
+results/e2-gradcam/field/

@@ -63,8 +63,10 @@
         "{py} -m pytest tests/test_lab_data.py -q",
         "{py} -m sprout.data.check_splits lab"
       ],
-      "status": "blocked",
-      "reason": "PlantVillage local 39-class copy is 'Approved: no, needs the person' in docs/datasets.md: origin of Background_without_leaves untraced, license unconfirmed for this copy. Standing rule forbids using it until the person rules."
+      "status": "pending",
+      "reason": "PlantVillage local 39-class copy is 'Approved: no, needs the person' in docs/datasets.md: origin of Background_without_leaves untraced, license unconfirmed for this copy. Standing rule forbids using it until the person rules.",
+      "attempts": 0,
+      "note": "official release approved"
     },
     {
       "id": "T1.2",

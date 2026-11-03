@@ -95,3 +95,26 @@ def test_hash_changes_when_a_label_changes():
 
 def test_split_names_are_lab_train_dev_test():
     assert set(make_splits(_df())["split"]) == {"lab_train", "lab_dev", "lab_test"}
+
+
+def test_raw_data_is_git_ignored_but_pointers_are_not():
+    import subprocess
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+
+    def ignored(p: str) -> bool:
+        return subprocess.run(
+            ["git", "check-ignore", "-q", p], cwd=root, capture_output=True
+        ).returncode == 0
+
+    for p in [
+        "datasets/raw/lab/x.jpg",
+        "datasets/raw/coco/x.jpg",
+        "datasets/raw/plantdoc/x.jpg",
+        "datasets/raw/plantseg/x.jpg",
+        "datasets/raw/foo.zip",
+    ]:
+        assert ignored(p), p
+    assert not ignored("datasets/raw/lab.dvc")
+    assert not ignored("datasets/raw/.gitignore")

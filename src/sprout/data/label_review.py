@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import re
 import sys
 from pathlib import Path
 from urllib.parse import unquote
@@ -200,7 +201,7 @@ def proposed(first: pd.DataFrame, also_uncertain: str | None) -> pd.DataFrame:
     """First-pass removals, plus uncertain rows whose note matches the (case-insensitive) pattern."""
     hit = first["verdict"] == "remove"
     if also_uncertain:
-        hit |= (first["verdict"] == "uncertain") & first["note"].str.contains(also_uncertain, case=False, regex=True)
+        hit |= (first["verdict"] == "uncertain") & first["note"].map(lambda n: re.search(also_uncertain, n, re.I) is not None)
     return first[hit]
 
 

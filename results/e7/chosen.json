@@ -44,6 +44,31 @@
     "cuda": "12.8",
     "peak_gpu_mib": 480
    }
+  },
+  {
+   "stage": "chunking",
+   "kept": "base",
+   "record": "E7-20261103T211358771284Z",
+   "comparisons": [
+    {
+     "a": "structured",
+     "b": "base",
+     "metric": "recall@5",
+     "diff": -0.03333333333333333,
+     "ci": [
+      -0.15,
+      0.08333333333333333
+     ],
+     "mcnemar_p": 0.7744140625
+    }
+   ],
+   "device": {
+    "device": "cuda",
+    "torch": "2.11.0+cu128",
+    "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+    "cuda": "12.8",
+    "peak_gpu_mib": 137
+   }
   }
  ]
 }

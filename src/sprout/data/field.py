@@ -148,6 +148,11 @@ def hash_pairs(paths: list[str], max_distance: int) -> pd.DataFrame:
     both = [_hash_variants(p) for p in paths]
     ph = np.array([b[0] for b in both], dtype=np.uint64)
     dh = np.array([b[1] for b in both], dtype=np.uint64)
+    return pairs_from_hashes(paths, ph, dh, max_distance)
+
+
+def pairs_from_hashes(paths: list[str], ph: np.ndarray, dh: np.ndarray, max_distance: int) -> pd.DataFrame:
+    """hash_pairs from precomputed (n, 8) pHash and dHash arrays, one row of 8 symmetries per path."""
     rows = []
     for i in range(len(paths) - 1):
         dp = np.bitwise_count(ph[i, 0] ^ ph[i + 1 :]).min(axis=1)
@@ -233,7 +238,7 @@ def link_same_scene(
 def merge_reviewed_links(groups: dict[str, str], links: pd.DataFrame) -> dict[str, str]:
     """Merge the groups of hand-reviewed same-photo pairs. Pairs not in groups are skipped."""
     out = dict(groups)
-    for a, b in zip(links["path_a"], links["path_b"]):
+    for a, b in zip(links["path_a"], links["path_b"], strict=True):
         if a in out and b in out and out[a] != out[b]:
             keep, drop = sorted((out[a], out[b]))
             out = {p: (keep if g == drop else g) for p, g in out.items()}
@@ -272,8 +277,8 @@ def residual_pairs(
     max_distance: int = RESIDUAL_DISTANCE,
 ) -> pd.DataFrame:
     """Hash-close image pairs the pipeline left in different splits, with their scene score."""
-    split = dict(zip(field["path"], field["split"]))
-    label = dict(zip(field["path"], field["label"]))
+    split = dict(zip(field["path"], field["split"], strict=True))
+    label = dict(zip(field["path"], field["label"], strict=True))
     pairs = hash_pairs(list(field["path"]), max_distance)
     across = [split[a] != split[b] for a, b in zip(pairs["path_a"], pairs["path_b"], strict=True)]
     pairs = pairs[pd.Series(across, index=pairs.index, dtype=bool)]
@@ -284,14 +289,14 @@ def residual_pairs(
     pairs["label_b"] = pairs["path_b"].map(label)
     linked = set()
     if links is not None:
-        linked = {(a, b) for a, b in zip(links["path_a"], links["path_b"])}
+        linked = set(zip(links["path_a"], links["path_b"], strict=True))
     pairs["reviewed_same_photo"] = [
         "yes" if (a, b) in linked or (b, a) in linked else "no"
-        for a, b in zip(pairs["path_a"], pairs["path_b"])
+        for a, b in zip(pairs["path_a"], pairs["path_b"], strict=True)
     ]
     pairs["scene_score"] = [
         round(same_scene_score(_gray64(a), _gray64(b)), 3)
-        for a, b in zip(pairs["path_a"], pairs["path_b"])
+        for a, b in zip(pairs["path_a"], pairs["path_b"], strict=True)
     ]
     return pairs
 
@@ -316,14 +321,14 @@ def assemble_field(
     cmap["reason"] = cmap["reason"].fillna("")
     key = cmap.set_index(["source", "source_class"])["lab_class"]
     df = inv.copy()
-    df["lab_class"] = [key.get((s, c), "") for s, c in zip(df["source"], df["label"])]
+    df["lab_class"] = [key.get((s, c), "") for s, c in zip(df["source"], df["label"], strict=True)]
     df = df[df["lab_class"] != ""].sort_values("path")
 
     groups = group_near_duplicates(list(df["path"]) + list(lab["path"]))
     lab_groups = {groups[p] for p in lab["path"]}
     df["group"] = df["path"].map(groups)
     df = df[~df["group"].isin(lab_groups)]
-    linked = link_same_scene(list(df["path"]), dict(zip(df["path"], df["group"])))
+    linked = link_same_scene(list(df["path"]), dict(zip(df["path"], df["group"], strict=True)))
     if reviewed_links is not None:
         linked = merge_reviewed_links(linked, reviewed_links)
     df["group"] = df["path"].map(linked)
@@ -337,7 +342,7 @@ def assemble_field(
     df = df[~clash].drop_duplicates("sha1")
 
     df = df.assign(label=df["lab_class"])
-    split_map = dict(zip(SPLITS, FIELD_SPLITS))
+    split_map = dict(zip(SPLITS, FIELD_SPLITS, strict=True))
     out = make_splits(
         df[["path", "label", "group", "sha1", "source"]], seed=seed, ratios=RATIOS
     )
@@ -354,6 +359,18 @@ def assemble_field(
     kept = out[out["label"].isin(complete[complete].index)]
     kept = kept.sort_values("path")[FIELD_COLUMNS].reset_index(drop=True)
 
+    return kept, _with_status(cmap, inv, out, kept, complete), conflicts.reset_index(drop=True)
+
+
+def _with_status(
+    cmap: pd.DataFrame,
+    inv: pd.DataFrame,
+    out: pd.DataFrame,
+    kept: pd.DataFrame,
+    complete: pd.Series,
+) -> pd.DataFrame:
+    """The class map with status (excluded, shared or dropped), reason, n_images and n_field_test filled in."""
+    cmap = cmap.copy()
     stats = out.groupby("label").agg(
         images=("path", "size"), groups=("group", "nunique")
     )
@@ -386,7 +403,7 @@ def assemble_field(
             reason.append(f"lab class cannot appear in all three field splits ({have})")
     cmap["status"], cmap["reason"] = status, reason
     cmap["n_images"], cmap["n_field_test"] = n_images, n_test
-    return kept, cmap[MAP_COLUMNS], conflicts.reset_index(drop=True)
+    return cmap[MAP_COLUMNS]
 
 
 def stage_plantdoc(src: Path, dest: Path) -> None:

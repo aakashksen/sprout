@@ -307,18 +307,94 @@ def test_reviewed_links_file_and_residual_judgments_are_consistent():
     assert (listed["reviewed_same_photo"] == "no").all()
 
 
-def test_no_unlisted_cross_split_near_duplicate_in_real_manifest():
+def _code_fingerprint() -> str:
+    """Changes whenever the hashing code or the libraries behind it change, so a stored result is dropped."""
+    import hashlib
+    import inspect
+
+    import imagehash
+    import PIL
+
+    import sprout.data.field as field_module
+
+    source = inspect.getsource(field_module._gray64) + inspect.getsource(field_module._hash_variants)
+    return hashlib.sha256(f"{source}{imagehash.__version__}{PIL.__version__}".encode()).hexdigest()
+
+
+def _stamp(path: str) -> str:
+    st = Path(path).stat()
+    return f"{st.st_size}:{st.st_mtime_ns}"
+
+
+def hash_variants_cached(paths: list[str], sha1s: list[str], store: Path | None):
+    """(pHash, dHash) arrays for paths, as hash_pairs computes them. Results are kept in `store` per image,
+    keyed by the manifest's sha1 plus the file's size and modified time and by a fingerprint of the hashing
+    code, so an edited image or edited hashing code is recomputed rather than read back."""
+    from sprout.data.field import _hash_variants
+
+    fingerprint = _code_fingerprint()
+    kept: dict[str, tuple[list[int], list[int]]] = {}
+    if store is not None and store.is_file():
+        with np.load(store, allow_pickle=False) as z:
+            if str(z["fingerprint"]) == fingerprint:
+                kept = {str(k): (ph, dh) for k, ph, dh in zip(z["keys"], z["ph"], z["dh"], strict=True)}
+    keys = [f"{s}:{_stamp(p)}" for p, s in zip(paths, sha1s, strict=True)]
+    fresh = False
+    for p, k in zip(paths, keys, strict=True):
+        if k not in kept:
+            kept[k] = _hash_variants(p)
+            fresh = True
+    if store is not None and fresh:
+        store.parent.mkdir(parents=True, exist_ok=True)
+        used = sorted(set(keys))
+        np.savez(
+            store,
+            fingerprint=fingerprint,
+            keys=np.array(used),
+            ph=np.array([kept[k][0] for k in used], dtype=np.uint64),
+            dh=np.array([kept[k][1] for k in used], dtype=np.uint64),
+        )
+    return (
+        np.array([kept[k][0] for k in keys], dtype=np.uint64),
+        np.array([kept[k][1] for k in keys], dtype=np.uint64),
+    )
+
+
+def test_cached_hash_variants_match_hash_pairs_and_ignore_stale_entries(tmp_path):
+    from sprout.data.field import pairs_from_hashes
+
+    paths = [_img(tmp_path / f"{i}.png", i % 3) for i in range(5)]  # 0, 3 and 1, 4 are the same picture
+    sha1s = [file_sha1(Path(p)) for p in paths]
+    store = tmp_path / "cache" / "v.npz"
+    ph, dh = hash_variants_cached(paths, sha1s, store)
+    want = hash_pairs(paths, 8)
+    assert pairs_from_hashes(paths, ph, dh, 8).equals(want) and len(want) > 0
+    ph2, dh2 = hash_variants_cached(paths, sha1s, store)  # served from the store
+    assert (ph2 == ph).all() and (dh2 == dh).all()
+    _img(tmp_path / "0.png", 99)  # a different picture under the same name and manifest sha1
+    ph3, _ = hash_variants_cached(paths, sha1s, store)
+    assert (ph3[0] != ph[0]).any()
+    ph4, _ = hash_variants_cached(paths, sha1s, None)
+    assert (ph4 == ph3).all()
+
+
+def test_no_unlisted_cross_split_near_duplicate_in_real_manifest(pytestconfig):
+    from sprout.data.field import pairs_from_hashes
+
     real = load_manifest("field")
     if not Path(real["path"].iloc[0]).exists():
         pytest.skip("raw images are not on this machine")
     split = dict(zip(real["path"], real["split"]))
-    found = hash_pairs(list(real["path"]), 8)
-    found = found[
-        [split[a] != split[b] for a, b in zip(found["path_a"], found["path_b"])]
-    ]
+    cache = getattr(pytestconfig, "cache", None)
+    store = Path(cache.mkdir("sprout")) / "field-hash-variants.npz" if cache else None
+    paths = list(real["path"])
+    ph, dh = hash_variants_cached(paths, list(real["sha1"]), store)
+    found = pairs_from_hashes(paths, ph, dh, 8)
+    across = [split[a] != split[b] for a, b in zip(found["path_a"], found["path_b"], strict=True)]
+    found = found[pd.Series(across, index=found.index, dtype=bool)]
     listed = pd.read_csv(MANIFEST_DIR / "field_residual_pairs.csv")
-    assert set(zip(found["path_a"], found["path_b"])) <= set(
-        zip(listed["path_a"], listed["path_b"])
+    assert set(zip(found["path_a"], found["path_b"], strict=True)) <= set(
+        zip(listed["path_a"], listed["path_b"], strict=True)
     )
 
 

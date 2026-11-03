@@ -131,37 +131,39 @@ def test_every_class_has_a_coverage_row():
     assert set(rows[rows["symptoms_described"] == "no"]["label"]) == set()
 
 
-# What a document would have to say to answer each out-of-scope question: the plant (with family
-# terms where a family document would cover it) and the problem, in the same chunk.
+# What a document would have to say to answer each out-of-scope question: the plant or its family
+# (a section on cucurbit diseases can answer a watermelon question without the word watermelon)
+# and the problem, in the same chunk. Patterns that match only generic words were narrowed after
+# reading their hits.
 ABSTAIN_SPEC = {
-    "not_in_documents-001": (["magnolia"], "leaf spot"),
-    "not_in_documents-002": (["orchid"], "rot|mushy|brown"),
+    "not_in_documents-001": (["magnolia", "ornamental tree", "shade tree"], "leaf spot"),
+    "not_in_documents-002": (["orchid", "epiphyte"], "rot|mushy"),
     "not_in_documents-003": (["cannabis", "hemp", "marijuana"], "powdery mildew"),
-    "not_in_documents-004": (["mango"], "anthracnose"),
-    "not_in_documents-005": (["banana"], "panama|fusarium"),
-    "not_in_documents-006": (["peony"], "botrytis|blight"),
-    "not_in_documents-007": (["lettuce"], r"tip ?burn|slimy|soft rot"),
-    "not_in_documents-008": (["lavender"], "root|wet soil|dying back"),
-    "not_in_documents-009": (["avocado"], r"tip ?burn|brown(ing)? (leaf )?tips"),
-    "not_in_documents-010": (["pineapple"], "heart rot|rot"),
-    "not_in_documents-011": (["hibiscus"], "bud drop|buds"),
-    "not_in_documents-012": (["watermelon"], "fusarium"),
-    "not_in_documents-013": (["broccoli"], r"head rot|brown(ing)? head|rotting"),
-    "not_in_documents-014": (["tulip"], "bulb|rot"),
-    "not_in_documents-015": (["celery"], "late blight"),
-    "not_in_documents-016": (["boxwood"], "blight"),
-    "not_in_documents-017": (["pomegranate"], "crack|rot"),
-    "not_in_documents-018": (["persimmon"], r"blacken|black spot|fruit rot"),
-    "not_in_documents-019": (["cranberr"], r"fruit rot|bbogs?b"),
-    "not_in_documents-020": (["hops"], "downy mildew"),
-    "not_in_documents-021": (["papaya"], r"sunken|dark spots"),
-    "not_in_documents-022": (["sugarcane"], "red rot|rot"),
-    "not_in_documents-023": (["sunflower"], r"head rot|brown(ed)? heads?|heads? (turn|rot)"),
-    "not_in_documents-024": (["basil"], "downy mildew"),
-    "not_in_documents-025": (["cabbage"], "clubroot|club root"),
-    "not_in_documents-026": (["parsley"], "yellow|spot"),
-    "not_in_documents-027": (["bamboo"], "rust"),
-    "not_in_documents-028": (["cacao", "cocoa"], "pod rot|rot"),
+    "not_in_documents-004": (["mango", "tropical fruit", "tropical tree"], "anthracnose"),
+    "not_in_documents-005": (["banana", "plantain", "tropical fruit"], "panama|fusarium"),
+    "not_in_documents-006": (["peony", "paeonia"], "botrytis|blight"),
+    "not_in_documents-007": (["lettuce", "leafy green", "salad green", "leafy vegetable"], r"tip ?burn|slimy|soft rot"),
+    "not_in_documents-008": (["lavender", "aromatic herb", "mediterranean herb"], "root rot|dying back|wet soil"),
+    "not_in_documents-009": (["avocado", "subtropical", "evergreen fruit tree"], r"tip ?burn|brown(ing)? (leaf )?tips|leaf tip"),
+    "not_in_documents-010": (["pineapple", "bromeliad", "tropical fruit"], "heart rot"),
+    "not_in_documents-011": (["hibiscus", "mallow", "okra", "flowering shrub"], r"bud drop|buds? (drop|fall)"),
+    "not_in_documents-012": (["hosta", "asparagus", "agave", "yucca"], "crown rot"),
+    "not_in_documents-013": (["broccoli", "brassica", "cole crop", "crucifer", "cauliflower"], r"(head|curd) (rot|browning)|brown(ing)? (head|curd)"),
+    "not_in_documents-014": (["tulip", "tulipa", "flowering bulb"], r"bulb rot|storage rot|rot in storage"),
+    "not_in_documents-015": (["celery", "apiaceae", "umbellifer"], "late blight|septoria"),
+    "not_in_documents-016": (["boxwood", "buxus", "evergreen shrub", "hedge"], "blight"),
+    "not_in_documents-017": (["pomegranate", "punica"], "crack|rot"),
+    "not_in_documents-018": (["persimmon", "diospyros"], r"blacken|black spot|black fruit|fruit rot"),
+    "not_in_documents-019": (["daylily", "hemerocallis", "lily"], r"bud|rot|mush"),
+    "not_in_documents-020": (["hops", "humulus"], "downy mildew"),
+    "not_in_documents-021": (["papaya", "tropical fruit", "tropical tree", "subtropical"], r"sunken|dark spots|anthracnose"),
+    "not_in_documents-022": (["sugarcane", "sugar cane", "cane crop"], "red rot"),
+    "not_in_documents-023": (["sunflower", "helianthus"], r"head rot|brown(ed)? heads?|heads? (turn|rot)"),
+    "not_in_documents-024": (["basil", "mint family", "lamiaceae"], "downy mildew"),
+    "not_in_documents-025": (["cabbage", "brassica", "cole crop", "crucifer", "broccoli", "cauliflower"], r"clubroot|club root|plasmodiophora"),
+    "not_in_documents-026": (["parsley", "apiaceae", "umbellifer"], r"leaf spot|yellowing"),
+    "not_in_documents-027": (["bamboo", "ornamental grass"], r"\brust\b"),
+    "not_in_documents-028": (["cacao", "cocoa", "theobroma"], r"pod rot|black pod"),
 }
 
 

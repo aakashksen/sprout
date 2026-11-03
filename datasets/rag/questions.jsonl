@@ -143,14 +143,14 @@
 {"id": "not_in_documents-009", "category": "not_in_documents", "split": "dev", "question": "Why are my avocado leaves turning brown at the tips?", "expected": "abstain", "absent_terms": ["avocado"]}
 {"id": "not_in_documents-010", "category": "not_in_documents", "split": "test", "question": "How do I save a pineapple with heart rot?", "expected": "abstain", "absent_terms": ["pineapple"]}
 {"id": "not_in_documents-011", "category": "not_in_documents", "split": "dev", "question": "Why is my hibiscus dropping its buds before they open?", "expected": "abstain", "absent_terms": ["hibiscus"]}
-{"id": "not_in_documents-012", "category": "not_in_documents", "split": "test", "question": "How do I stop fusarium wilt in watermelon?", "expected": "abstain", "absent_terms": ["watermelon"]}
+{"id": "not_in_documents-012", "category": "not_in_documents", "split": "test", "question": "How do I treat crown rot on my hosta plants?", "expected": "abstain", "absent_terms": ["hosta"]}
 {"id": "not_in_documents-013", "category": "not_in_documents", "split": "dev", "question": "My broccoli heads have brown rotting spots. What is it?", "expected": "abstain", "absent_terms": ["broccoli"]}
 {"id": "not_in_documents-014", "category": "not_in_documents", "split": "test", "question": "What fungus makes tulip bulbs rot in storage?", "expected": "abstain", "absent_terms": ["tulip"]}
 {"id": "not_in_documents-015", "category": "not_in_documents", "split": "dev", "question": "How do I treat celery late blight?", "expected": "abstain", "absent_terms": ["celery"]}
 {"id": "not_in_documents-016", "category": "not_in_documents", "split": "test", "question": "What causes boxwood blight and how do I fight it?", "expected": "abstain", "absent_terms": ["boxwood"]}
 {"id": "not_in_documents-017", "category": "not_in_documents", "split": "dev", "question": "Why is my pomegranate fruit cracking and rotting?", "expected": "abstain", "absent_terms": ["pomegranate"]}
 {"id": "not_in_documents-018", "category": "not_in_documents", "split": "test", "question": "What disease blackens my persimmon fruit?", "expected": "abstain", "absent_terms": ["persimmon"]}
-{"id": "not_in_documents-019", "category": "not_in_documents", "split": "dev", "question": "How do I treat fruit rot in cranberry bogs?", "expected": "abstain", "absent_terms": ["cranberry"]}
+{"id": "not_in_documents-019", "category": "not_in_documents", "split": "dev", "question": "Why are my daylily flower buds turning to mush before they open?", "expected": "abstain", "absent_terms": ["daylily"]}
 {"id": "not_in_documents-020", "category": "not_in_documents", "split": "test", "question": "How do I manage downy mildew on hops?", "expected": "abstain", "absent_terms": ["hops"]}
 {"id": "not_in_documents-021", "category": "not_in_documents", "split": "dev", "question": "My papaya fruit has sunken dark spots. What is it?", "expected": "abstain", "absent_terms": ["papaya"]}
 {"id": "not_in_documents-022", "category": "not_in_documents", "split": "test", "question": "How do I manage red rot in sugarcane?", "expected": "abstain", "absent_terms": ["sugarcane"]}

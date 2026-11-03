@@ -1,0 +1,72 @@
+{
+ "retrieval": {
+  "index": "index",
+  "mode": "hybrid",
+  "rerank": true,
+  "query_mode": "question",
+  "crops_from_title": false
+ },
+ "floors": {},
+ "prompt": "base",
+ "combined": "",
+ "decisions": [
+  {
+   "stage": "baseline",
+   "kept": "hybrid_rerank",
+   "record": "E7-20261103T234741564452Z",
+   "comparisons": [
+    {
+     "a": "hybrid",
+     "b": "dense",
+     "metric": "recall@5",
+     "diff": 0.0,
+     "ci": [
+      -0.15,
+      0.15
+     ],
+     "mcnemar_p": 1.0
+    },
+    {
+     "a": "hybrid",
+     "b": "dense",
+     "metric": "mrr",
+     "diff": -0.035925925925925924,
+     "ci": [
+      -0.15390013227513227,
+      0.07836160714285711
+     ],
+     "mcnemar_p": 0.6476058959960938
+    },
+    {
+     "a": "hybrid_rerank",
+     "b": "dense",
+     "metric": "recall@5",
+     "diff": 0.11666666666666667,
+     "ci": [
+      0.0,
+      0.23333333333333334
+     ],
+     "mcnemar_p": 0.09228515625
+    },
+    {
+     "a": "hybrid_rerank",
+     "b": "dense",
+     "metric": "mrr",
+     "diff": 0.16953703703703704,
+     "ci": [
+      0.08389517195767197,
+      0.2617194113756613
+     ],
+     "mcnemar_p": 0.00738525390625
+    }
+   ],
+   "device": {
+    "device": "cuda",
+    "torch": "2.11.0+cu128",
+    "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+    "cuda": "12.8",
+    "peak_gpu_mib": 480
+   }
+  }
+ ]
+}

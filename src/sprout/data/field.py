@@ -34,6 +34,7 @@ CLOSE_DHASH = 10
 RESIDUAL_DISTANCE = 8
 RAW = Path("datasets") / "raw"
 REVIEW = Path("datasets") / "review"
+THUMB_NAME = re.compile(r"\d\d(-[0-9a-f]+)?\.jpg")
 CLASS_MAP_PATH = MANIFEST_DIR.parent / "class_map.csv"
 
 PLANTDOC_MAP = {
@@ -441,8 +442,12 @@ def make_class_map(plantdoc_classes, plantseg_meta: pd.DataFrame) -> pd.DataFram
 
 
 def write_review(field: pd.DataFrame, n: int = 50, seed: int = 13) -> None:
-    from PIL import Image
+    """Write a seeded sample as thumbnails and a table that name each other.
 
+    A thumbnail's name carries the row's image ID (its sha1) and the table lists the same ID, so a
+    thumbnail and a table row from different runs cannot be mistaken for each other. Thumbnails left by
+    an earlier run are removed.
+    """
     sample = field.sample(n=min(n, len(field)), random_state=seed).reset_index(
         drop=True
     )
@@ -452,21 +457,30 @@ def write_review(field: pd.DataFrame, n: int = 50, seed: int = 13) -> None:
         "# Field sample",
         "",
         f"A random sample of {len(sample)} labelled images from `datasets/manifests/field.csv` "
-        f"(seed {seed}). Thumbnails live in the git-ignored `datasets/review/thumbs/`.",
+        f"(seed {seed}). Thumbnails live in the git-ignored `datasets/review/thumbs/`; "
+        "each is named `<#>-<first 10 characters of the image ID>.jpg`, and the last column is the full ID (sha1).",
         "",
-        "| # | thumbnail | label | source | split | file |",
-        "|---|---|---|---|---|---|",
+        "| # | thumbnail | label | source | split | file | image ID |",
+        "|---|---|---|---|---|---|---|",
     ]
+    written = set()
     for i, r in sample.iterrows():
+        name = f"{i:02d}-{r['sha1'][:10]}.jpg"
         with Image.open(r["path"]) as img:
             img = img.convert("RGB")
             img.thumbnail((256, 256))
-            img.save(thumbs / f"{i:02d}.jpg")
+            img.save(thumbs / name)
+        written.add(name)
         lines.append(
-            f"| {i} | [thumb](thumbs/{i:02d}.jpg) | {r['label']} | {r['source']} | "
-            f"{r['split']} | `{Path(r['path']).name}` |"
+            f"| {i} | [thumb](thumbs/{name}) | {r['label']} | {r['source']} | "
+            f"{r['split']} | `{Path(r['path']).name}` | `{r['sha1']}` |"
         )
-    (REVIEW / "field-sample.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    for old in thumbs.iterdir():
+        if THUMB_NAME.fullmatch(old.name) and old.name not in written:
+            old.unlink()
+    (REVIEW / "field-sample.md").write_text(
+        "\n".join(lines) + "\n", encoding="utf-8"
+    )
 
 
 def build_field(sources: dict[str, Path], class_map: pd.DataFrame) -> pd.DataFrame:

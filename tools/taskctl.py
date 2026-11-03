@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """The plan's state machine. A task reaches "done" only through this tool, which reruns the
 acceptance commands itself and requires a PASS from the independent verifier at the same commit.
+Tasks can run side by side in their own git worktrees and land one at a time.
 Standard library only, so it works before the venv exists."""
 import argparse
+import contextlib
 import datetime as dt
 import json
 import os
@@ -10,6 +12,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 ROOT = Path(os.environ.get("CL_ROOT", Path(__file__).resolve().parent.parent))
@@ -17,6 +20,13 @@ TASKS = ROOT / "orchestration" / "tasks.json"
 EVIDENCE = ROOT / "orchestration" / "evidence"
 VERDICTS = ROOT / "orchestration" / "verdicts"
 GPU_NEEDS = ROOT / "orchestration" / "gpu_needs.json"
+STATE_LOCK = ROOT / "orchestration" / ".state.lock"
+LAND_LOCK = ROOT / "orchestration" / ".land.lock"
+WT_ROOT = Path(os.environ.get("CL_WT_ROOT", ROOT.parent / "_worktrees" / ROOT.name))
+GPU_LOCK = Path(os.environ.get("CL_GPU_LOCK", ROOT.parent / ".gpu.lock"))
+# Git-ignored data a worktree needs. Directories are linked, never copied, so large data exists once.
+SHARED = ("datasets/raw", "knowledge/raw", "models", "mlruns", ".dvc/cache", ".dvcstore")
+SHARED_FILES = (".env",)
 MAX_ATTEMPTS = 3
 TIMEOUT_S = int(os.environ.get("CL_VERIFY_TIMEOUT_S", "1800"))
 
@@ -26,7 +36,42 @@ def load():
 
 
 def save(plan):
-    TASKS.write_text(json.dumps(plan, indent=2) + "\n", encoding="utf-8")
+    temp = TASKS.with_suffix(".tmp")
+    temp.write_text(json.dumps(plan, indent=2) + "\n", encoding="utf-8")
+    os.replace(temp, TASKS)
+
+
+@contextlib.contextmanager
+def file_lock(path, wait_s=900, stale_s=3600):
+    """A lock file, since two tracks can call this tool at once."""
+    deadline = time.time() + wait_s
+    path.parent.mkdir(parents=True, exist_ok=True)
+    while True:
+        try:
+            handle = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            break
+        except FileExistsError:
+            with contextlib.suppress(OSError):
+                if time.time() - path.stat().st_mtime > stale_s:
+                    path.unlink()
+                    continue
+            if time.time() > deadline:
+                sys.exit(f"timed out waiting for {path.name}")
+            time.sleep(0.2)
+    try:
+        yield
+    finally:
+        os.close(handle)
+        with contextlib.suppress(OSError):
+            path.unlink()
+
+
+@contextlib.contextmanager
+def editing():
+    with file_lock(STATE_LOCK, wait_s=60, stale_s=120):
+        plan = load()
+        yield plan
+        save(plan)
 
 
 def find(plan, task_id):
@@ -40,17 +85,21 @@ def now():
     return dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
 
 
-def git(*args):
-    return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+def git(*args, cwd=None):
+    return subprocess.run(["git", *args], cwd=cwd or ROOT, capture_output=True, text=True).stdout.strip()
 
 
-def head():
-    return git("rev-parse", "HEAD")
+def git_ok(*args, cwd=None):
+    return subprocess.run(["git", *args], cwd=cwd or ROOT, capture_output=True, text=True)
 
 
-def dirty():
+def head(cwd=None):
+    return git("rev-parse", "HEAD", cwd=cwd)
+
+
+def dirty(cwd=None):
     # The state files change as work proceeds; everything else must be committed.
-    return git("status", "--porcelain", "--", ".", ":!orchestration")
+    return git("status", "--porcelain", "--", ".", ":!orchestration", cwd=cwd)
 
 
 def python():
@@ -58,17 +107,281 @@ def python():
     return str(venv) if venv.exists() else sys.executable
 
 
+def gpu_need(task_id):
+    return json.loads(GPU_NEEDS.read_text(encoding="utf-8")).get(task_id) if GPU_NEEDS.exists() else None
+
+
 def ready(plan, owner="agent"):
     done = {t["id"] for t in plan["tasks"] if t["status"] == "done"}
-    return [
+    tasks = [
         t for t in plan["tasks"]
         if t["status"] == "pending" and t["owner"] == owner and set(t["deps"]) <= done
     ]
+    if owner == "agent" and any(t["status"] == "in_progress" and gpu_need(t["id"]) for t in plan["tasks"]):
+        tasks = [t for t in tasks if not gpu_need(t["id"])]  # one GPU task per project at a time
+    return tasks
+
+
+def brief(task):
+    return {key: task.get(key) for key in ("id", "title", "status", "worktree", "attempts", "reason") if task.get(key) is not None}
+
+
+def cmd_next(args):
+    plan = load()
+    active = [t for t in plan["tasks"] if t["status"] == "in_progress"]
+    tasks = ready(plan)
+    if tasks:
+        print(json.dumps({"state": "ready", "task": tasks[0], "ready": [brief(t) for t in tasks], "active": [brief(t) for t in active]}, indent=2))
+        return
+    if active:
+        print(json.dumps({"state": "active", "active": [brief(t) for t in active],
+                          "human": [brief(t) for t in ready(plan, "human")]}, indent=2))
+        return
+    open_tasks = [t for t in plan["tasks"] if t["status"] != "done"]
+    if not open_tasks:
+        print(json.dumps({"state": "complete"}))
+        return
+    print(json.dumps({
+        "state": "waiting",
+        "human": [{"id": t["id"], "title": t["title"]} for t in ready(plan, "human")],
+        "blocked": [{"id": t["id"], "reason": t.get("reason")} for t in open_tasks if t["status"] == "blocked"],
+    }, indent=2))
+
+
+def link_shared(worktree):
+    for rel in SHARED:
+        target, link = ROOT / rel, worktree / rel
+        if not target.is_dir():
+            continue
+        if not link.exists():
+            make_link(link, target)
+            continue
+        for child in target.iterdir():
+            if not (link / child.name).exists():
+                make_link(link / child.name, child)
+    for rel in SHARED_FILES:
+        if (ROOT / rel).exists() and not (worktree / rel).exists():
+            shutil.copy2(ROOT / rel, worktree / rel)
+
+
+def make_link(link, target):
+    link.parent.mkdir(parents=True, exist_ok=True)
+    if target.is_file():
+        os.link(target, link)
+    elif os.name == "nt":
+        subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(target)], capture_output=True, check=True)
+    else:
+        link.symlink_to(target, target_is_directory=True)
+
+
+def is_link(path):
+    return os.path.isjunction(path) or path.is_symlink()
+
+
+def unlink_shared(worktree):
+    """Removes only the links, so removing the worktree can't reach the shared data."""
+    for rel in SHARED:
+        link = worktree / rel
+        if is_link(link):
+            os.rmdir(link) if os.path.isjunction(link) else link.unlink()
+        elif link.is_dir():
+            for child in link.iterdir():
+                if is_link(child):
+                    os.rmdir(child) if os.path.isjunction(child) else child.unlink()
+
+
+def remove_worktree(task):
+    path = task.get("worktree")
+    if not path:
+        return
+    unlink_shared(Path(path))
+    git_ok("worktree", "remove", "--force", path)
+    git_ok("worktree", "prune")
+    git_ok("branch", "-D", f"task/{task['id']}")
+    task.pop("worktree", None)
+
+
+def cmd_start(args):
+    with editing() as plan:
+        task = find(plan, args.id)
+        if task["owner"] != "agent":
+            sys.exit(f"{args.id} belongs to the person; use human-done after they finish")
+        done = {t["id"] for t in plan["tasks"] if t["status"] == "done"}
+        missing = set(task["deps"]) - done
+        if missing:
+            sys.exit(f"{args.id} is waiting on: {sorted(missing)}")
+        if task["status"] not in ("pending", "in_progress"):
+            sys.exit(f"{args.id} is {task['status']}")
+        if gpu_need(args.id) and any(t["status"] == "in_progress" and t["id"] != args.id and gpu_need(t["id"]) for t in plan["tasks"]):
+            sys.exit(f"{args.id} is a GPU task, and another GPU task in this project is in progress")
+        if args.worktree and not task.get("worktree"):
+            path = WT_ROOT / args.id
+            path.parent.mkdir(parents=True, exist_ok=True)
+            added = git_ok("worktree", "add", "-q", "-b", f"task/{args.id}", str(path), git("branch", "--show-current"))
+            if added.returncode:
+                sys.exit(f"could not create a worktree: {added.stderr.strip()}")
+            link_shared(path)
+            task["worktree"] = str(path)
+        task["status"] = "in_progress"
+        task["started_at"] = task.get("started_at") or now()
+        where = task.get("worktree") or str(ROOT)
+    print(f"started {args.id} in {where}")
+
+
+def run_acceptance(task, cwd, log_name):
+    commit = head(cwd)
+    EVIDENCE.mkdir(parents=True, exist_ok=True)
+    log_path = EVIDENCE / log_name
+    env = {**os.environ, "PYTHONPATH": str(Path(cwd) / "src")}
+    passed = bool(task["acceptance"])
+    lines = [f"task {task['id']} commit {commit} at {now()} in {cwd}"]
+    changes = dirty(cwd)
+    if changes:
+        passed = False
+        lines.append("FAILED: uncommitted changes:\n" + changes)
+    for command in task["acceptance"]:
+        if not passed:
+            lines.append(f"SKIPPED: {command}")
+            continue
+        argv = [python() if part == "{py}" else part for part in shlex.split(command)]
+        argv[0] = shutil.which(argv[0]) or argv[0]  # npm is npm.cmd on Windows
+        lines.append(f"$ {command}")
+        try:
+            run = subprocess.run(argv, cwd=cwd, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=TIMEOUT_S)
+            lines += [run.stdout[-6000:], run.stderr[-3000:], f"exit {run.returncode}"]
+            passed = run.returncode == 0
+        except (OSError, subprocess.TimeoutExpired) as err:
+            lines.append(f"could not finish: {err}")
+            passed = False
+    lines.append("RESULT " + ("PASS" if passed else "FAIL"))
+    log_path.write_text("\n".join(lines), encoding="utf-8")
+    return commit, passed, log_path
+
+
+def cmd_verify(args):
+    """Runs the acceptance commands from the plan. Output goes to a log the verifier can read."""
+    task = find(load(), args.id)
+    cwd = task.get("worktree") or ROOT
+    commit, passed, log_path = run_acceptance(task, cwd, f"{args.id}.log")
+    with editing() as plan:
+        find(plan, args.id)["verified"] = {"commit": commit, "passed": passed, "at": now()}
+    print(f"{args.id}: {'PASS' if passed else 'FAIL'} (log: {log_path.relative_to(ROOT)})")
+    sys.exit(0 if passed else 1)
+
+
+def verdict_commit(task_id):
+    path = VERDICTS / f"{task_id}.json"
+    if not path.exists():
+        sys.exit(f"refused: no verifier verdict at {path.relative_to(ROOT)}")
+    verdict = json.loads(path.read_text(encoding="utf-8"))
+    if verdict.get("verdict") != "PASS":
+        sys.exit("refused: the verifier has not passed this exact commit")
+    return verdict.get("commit")
+
+
+def cmd_done(args):
+    plan = load()
+    task = find(plan, args.id)
+    if task["owner"] != "agent":
+        sys.exit(f"{args.id} belongs to the person; use human-done")
+    if task.get("worktree"):
+        sys.exit(f"refused: {args.id} is in a worktree; use land")
+    commit = head()
+    if dirty():
+        sys.exit("refused: uncommitted changes")
+    verified = task.get("verified") or {}
+    if not verified.get("passed") or verified.get("commit") != commit:
+        sys.exit("refused: acceptance commands have not passed at this commit; run verify")
+    if verdict_commit(args.id) != commit:
+        sys.exit("refused: the verifier has not passed this exact commit")
+    with editing() as plan:
+        task = find(plan, args.id)
+        task["status"] = "done"
+        task["done_at"] = now()
+    print(f"done {args.id}")
+
+
+def cmd_land(args):
+    """Merges a verified worktree task into the build branch. The build branch only ever moves forward
+    to a commit that passed this task's acceptance commands after merging everything else that landed."""
+    task = find(load(), args.id)
+    worktree = task.get("worktree")
+    if not worktree:
+        sys.exit(f"refused: {args.id} has no worktree; use done")
+    if dirty(worktree):
+        sys.exit("refused: uncommitted changes in the worktree")
+    verified = task.get("verified") or {}
+    if not verified.get("passed") or verified.get("commit") != head(worktree):
+        sys.exit("refused: acceptance commands have not passed at this commit; run verify")
+    if verdict_commit(args.id) != verified["commit"]:
+        sys.exit("refused: the verifier has not passed this exact commit")
+    with file_lock(LAND_LOCK, wait_s=3600, stale_s=7200):
+        if dirty():
+            sys.exit("refused: the build branch has uncommitted changes")
+        branch = git("branch", "--show-current")
+        if git_ok("merge-base", "--is-ancestor", branch, "HEAD", cwd=worktree).returncode:
+            merged = git_ok("merge", "--no-edit", "-q", branch, cwd=worktree)
+            if merged.returncode:
+                git_ok("merge", "--abort", cwd=worktree)
+                print(f"MERGE CONFLICT: {args.id} conflicts with {branch}. Nothing landed; send it back to the implementer.\n{merged.stdout[-1500:]}")
+                sys.exit(4)
+            _, passed, log_path = run_acceptance(task, worktree, f"{args.id}.merged.log")
+            if not passed:
+                print(f"MERGED CODE FAILED: {args.id} no longer passes after merging {branch}. Nothing landed. See {log_path.relative_to(ROOT)}")
+                sys.exit(5)
+        forward = git_ok("merge", "--ff-only", "-q", f"task/{args.id}")
+        if forward.returncode:
+            sys.exit(f"refused: could not move {branch} forward: {forward.stderr.strip()}")
+        with editing() as plan:
+            task = find(plan, args.id)
+            remove_worktree(task)
+            task["status"] = "done"
+            task["done_at"] = now()
+    print(f"landed {args.id} at {head()}")
+
+
+def cmd_fail(args):
+    with editing() as plan:
+        task = find(plan, args.id)
+        task["attempts"] = task.get("attempts", 0) + 1
+        task["reason"] = args.reason
+        task["status"] = "blocked" if task["attempts"] >= MAX_ATTEMPTS else "in_progress"
+    print(f"{args.id}: attempt {task['attempts']}/{MAX_ATTEMPTS}, now {task['status']}")
+
+
+def cmd_block(args):
+    with editing() as plan:
+        task = find(plan, args.id)
+        task["status"] = "blocked"
+        task["reason"] = args.reason
+    print(f"blocked {args.id}")
+
+
+def cmd_unblock(args):
+    with editing() as plan:
+        task = find(plan, args.id)
+        if task["status"] != "blocked":
+            sys.exit(f"{args.id} is {task['status']}")
+        task["status"] = "pending"
+        task["attempts"] = 0
+        task.pop("verified", None)
+        task["note"] = args.note
+    print(f"unblocked {args.id}")
+
+
+def cmd_reopen(args):
+    with editing() as plan:
+        task = find(plan, args.id)
+        task["status"] = "pending"
+        task["attempts"] = 0
+        task["reason"] = args.reason
+        task.pop("verified", None)
+    print(f"reopened {args.id}")
 
 
 def gpu_problem(task_id):
     """Why this task's GPU job must not start, or None. Fails closed if the GPU can't be read."""
-    need = json.loads(GPU_NEEDS.read_text(encoding="utf-8")).get(task_id) if GPU_NEEDS.exists() else None
+    need = gpu_need(task_id)
     if need is None:
         return None
     argv = shlex.split(os.environ.get("CL_NVIDIA_SMI", "nvidia-smi"))
@@ -82,7 +395,7 @@ def gpu_problem(task_id):
     if free >= need:
         return None
     return (f"GPU BUSY: {task_id} needs about {need} MB of free GPU memory, and only {free} MB is free "
-            f"({used} of {total} MB in use). Not started. Free up {need - free} MB or more, then run /run-plan again.")
+            f"({used} of {total} MB in use). Not started. Free up {need - free} MB or more.")
 
 
 def cmd_gpu(args):
@@ -93,162 +406,52 @@ def cmd_gpu(args):
     print(f"{args.id}: GPU ok")
 
 
-def cmd_next(args):
-    plan = load()
-    active = [t for t in plan["tasks"] if t["status"] == "in_progress"]
-    if active:
-        print(json.dumps({"state": "resume", "task": active[0]}, indent=2))
-        return
-    tasks = ready(plan)
-    if tasks:
-        print(json.dumps({"state": "ready", "task": tasks[0]}, indent=2))
-        return
-    open_tasks = [t for t in plan["tasks"] if t["status"] != "done"]
-    if not open_tasks:
-        print(json.dumps({"state": "complete"}))
-        return
-    print(json.dumps({
-        "state": "waiting",
-        "human": [{"id": t["id"], "title": t["title"]} for t in ready(plan, "human")],
-        "blocked": [{"id": t["id"], "reason": t.get("reason")} for t in open_tasks if t["status"] == "blocked"],
-    }, indent=2))
-
-
-def cmd_start(args):
-    plan = load()
-    task = find(plan, args.id)
-    if task["owner"] != "agent":
-        sys.exit(f"{args.id} belongs to the person; use human-done after they finish")
+def cmd_gpu_acquire(args):
+    """Takes the one GPU turn shared by every project on this machine, just before a GPU job starts."""
+    label = f"{ROOT.name}/{args.id}"
+    try:
+        handle = os.open(GPU_LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        holder = GPU_LOCK.read_text(encoding="utf-8") if GPU_LOCK.exists() else "unknown"
+        if holder.split("\n")[0] == label:
+            print(f"{args.id}: already holds the GPU turn")
+            return
+        print(f"GPU BUSY: {args.id} is waiting for its GPU turn, held by {holder.strip()}. Not started.")
+        sys.exit(3)
+    os.write(handle, f"{label}\n{now()}\n".encode())
+    os.close(handle)
     problem = gpu_problem(args.id)
     if problem:
+        GPU_LOCK.unlink()
         print(problem)
         sys.exit(3)
-    done = {t["id"] for t in plan["tasks"] if t["status"] == "done"}
-    missing = set(task["deps"]) - done
-    if missing:
-        sys.exit(f"{args.id} is waiting on: {sorted(missing)}")
-    if task["status"] not in ("pending", "in_progress"):
-        sys.exit(f"{args.id} is {task['status']}")
-    task["status"] = "in_progress"
-    task["started_at"] = task.get("started_at") or now()
-    save(plan)
-    print(f"started {args.id}")
+    print(f"{args.id}: has the GPU turn")
 
 
-def cmd_verify(args):
-    """Runs the acceptance commands from the plan. Output goes to a log the verifier can read."""
-    plan = load()
-    task = find(plan, args.id)
-    commit = head()
-    EVIDENCE.mkdir(parents=True, exist_ok=True)
-    log_path = EVIDENCE / f"{args.id}.log"
-    env = {**os.environ, "PYTHONPATH": str(ROOT / "src")}
-    passed = bool(task["acceptance"])
-    lines = [f"task {args.id} commit {commit} at {now()}"]
-    if dirty():
-        passed = False
-        lines.append("FAILED: uncommitted changes:\n" + dirty())
-    for command in task["acceptance"]:
-        if not passed:
-            lines.append(f"SKIPPED: {command}")
-            continue
-        argv = [python() if part == "{py}" else part for part in shlex.split(command)]
-        argv[0] = shutil.which(argv[0]) or argv[0]  # npm is npm.cmd on Windows
-        lines.append(f"$ {command}")
-        try:
-            run = subprocess.run(argv, cwd=ROOT, env=env, capture_output=True, text=True, timeout=TIMEOUT_S)
-            lines += [run.stdout[-6000:], run.stderr[-3000:], f"exit {run.returncode}"]
-            passed = run.returncode == 0
-        except (OSError, subprocess.TimeoutExpired) as err:
-            lines.append(f"could not finish: {err}")
-            passed = False
-    lines.append("RESULT " + ("PASS" if passed else "FAIL"))
-    log_path.write_text("\n".join(lines), encoding="utf-8")
-    task["verified"] = {"commit": commit, "passed": passed, "at": now()}
-    save(plan)
-    print(f"{args.id}: {'PASS' if passed else 'FAIL'} (log: {log_path.relative_to(ROOT)})")
-    sys.exit(0 if passed else 1)
-
-
-def cmd_done(args):
-    plan = load()
-    task = find(plan, args.id)
-    if task["owner"] != "agent":
-        sys.exit(f"{args.id} belongs to the person; use human-done")
-    commit = head()
-    if dirty():
-        sys.exit("refused: uncommitted changes")
-    verified = task.get("verified") or {}
-    if not verified.get("passed") or verified.get("commit") != commit:
-        sys.exit("refused: acceptance commands have not passed at this commit; run verify")
-    path = VERDICTS / f"{args.id}.json"
-    if not path.exists():
-        sys.exit(f"refused: no verifier verdict at {path.relative_to(ROOT)}")
-    verdict = json.loads(path.read_text(encoding="utf-8"))
-    if verdict.get("verdict") != "PASS" or verdict.get("commit") != commit:
-        sys.exit("refused: the verifier has not passed this exact commit")
-    task["status"] = "done"
-    task["done_at"] = now()
-    save(plan)
-    print(f"done {args.id}")
-
-
-def cmd_fail(args):
-    plan = load()
-    task = find(plan, args.id)
-    task["attempts"] = task.get("attempts", 0) + 1
-    task["reason"] = args.reason
-    task["status"] = "blocked" if task["attempts"] >= MAX_ATTEMPTS else "in_progress"
-    save(plan)
-    print(f"{args.id}: attempt {task['attempts']}/{MAX_ATTEMPTS}, now {task['status']}")
-
-
-def cmd_block(args):
-    plan = load()
-    task = find(plan, args.id)
-    task["status"] = "blocked"
-    task["reason"] = args.reason
-    save(plan)
-    print(f"blocked {args.id}")
-
-
-def cmd_unblock(args):
-    plan = load()
-    task = find(plan, args.id)
-    if task["status"] != "blocked":
-        sys.exit(f"{args.id} is {task['status']}")
-    task["status"] = "pending"
-    task["attempts"] = 0
-    task.pop("verified", None)
-    task["note"] = args.note
-    save(plan)
-    print(f"unblocked {args.id}")
-
-
-def cmd_reopen(args):
-    plan = load()
-    task = find(plan, args.id)
-    task["status"] = "pending"
-    task["attempts"] = 0
-    task["reason"] = args.reason
-    task.pop("verified", None)
-    save(plan)
-    print(f"reopened {args.id}")
+def cmd_gpu_release(args):
+    label = f"{ROOT.name}/{args.id}"
+    holder = GPU_LOCK.read_text(encoding="utf-8").split("\n")[0] if GPU_LOCK.exists() else None
+    if holder is None:
+        print("no GPU turn is held")
+    elif holder != label and not args.force:
+        sys.exit(f"refused: the GPU turn is held by {holder}")
+    else:
+        GPU_LOCK.unlink()
+        print(f"released the GPU turn held by {holder}")
 
 
 def cmd_human_done(args):
-    plan = load()
-    task = find(plan, args.id)
-    if task["owner"] != "human":
-        sys.exit(f"{args.id} is an agent task")
-    done = {t["id"] for t in plan["tasks"] if t["status"] == "done"}
-    missing = set(task["deps"]) - done
-    if missing:
-        sys.exit(f"{args.id} is waiting on: {sorted(missing)}")
-    task["status"] = "done"
-    task["note"] = args.note
-    task["done_at"] = now()
-    save(plan)
+    with editing() as plan:
+        task = find(plan, args.id)
+        if task["owner"] != "human":
+            sys.exit(f"{args.id} is an agent task")
+        done = {t["id"] for t in plan["tasks"] if t["status"] == "done"}
+        missing = set(task["deps"]) - done
+        if missing:
+            sys.exit(f"{args.id} is waiting on: {sorted(missing)}")
+        task["status"] = "done"
+        task["note"] = args.note
+        task["done_at"] = now()
     print(f"done {args.id}")
 
 
@@ -272,10 +475,18 @@ def main():
     status = sub.add_parser("status")
     status.add_argument("--all", action="store_true")
     status.set_defaults(run=cmd_status)
-    for name, run in (("start", cmd_start), ("verify", cmd_verify), ("done", cmd_done), ("gpu", cmd_gpu)):
+    start = sub.add_parser("start")
+    start.add_argument("id")
+    start.add_argument("--worktree", action="store_true", help="work in a separate git worktree, so tasks can run side by side")
+    start.set_defaults(run=cmd_start)
+    for name, run in (("verify", cmd_verify), ("done", cmd_done), ("land", cmd_land), ("gpu", cmd_gpu), ("gpu-acquire", cmd_gpu_acquire)):
         item = sub.add_parser(name)
         item.add_argument("id")
         item.set_defaults(run=run)
+    release = sub.add_parser("gpu-release")
+    release.add_argument("id")
+    release.add_argument("--force", action="store_true")
+    release.set_defaults(run=cmd_gpu_release)
     for name, run, field in (("fail", cmd_fail, "--reason"), ("block", cmd_block, "--reason"),
                              ("unblock", cmd_unblock, "--note"), ("human-done", cmd_human_done, "--note"),
                              ("reopen", cmd_reopen, "--reason")):

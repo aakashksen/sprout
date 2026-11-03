@@ -88,7 +88,15 @@
         "{py} -m pytest tests/test_field_data.py -q",
         "{py} -m sprout.data.check_splits field"
       ],
-      "status": "pending"
+      "status": "in_progress",
+      "started_at": "2026-11-03T03:20:32+00:00",
+      "verified": {
+        "commit": "e11eaff50b0319568e72a282ea4bfb1c879b15f2",
+        "passed": true,
+        "at": "2026-11-03T03:39:35+00:00"
+      },
+      "attempts": 1,
+      "reason": "pytest needs raw data (test_no_group_in_two_field_splits calls check() which requires datasets/raw); 3 near-duplicate pairs across field splits incl. one tomato photo labelled potato; wrong reasons on 27 shared rows in class_map.csv"
     },
     {
       "id": "T2.1",
@@ -206,6 +214,19 @@
       "status": "pending"
     },
     {
+      "id": "T5.0",
+      "phase": 5,
+      "title": "Identification contract and fake identifier",
+      "owner": "agent",
+      "deps": [
+        "T0.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_identify_types.py -q"
+      ],
+      "status": "pending"
+    },
+    {
       "id": "T5.1",
       "phase": 5,
       "title": "Experiment E6, ONNX and quantization",
@@ -225,6 +246,7 @@
       "title": "Inference service",
       "owner": "agent",
       "deps": [
+        "T5.0",
         "T5.1"
       ],
       "acceptance": [
@@ -315,7 +337,7 @@
         "T6.2",
         "T6.3",
         "T2.3",
-        "T5.2"
+        "T5.0"
       ],
       "acceptance": [
         "{py} -m pytest tests/test_answer.py -q",
@@ -329,8 +351,8 @@
       "title": "Backend rebuild",
       "owner": "agent",
       "deps": [
-        "T5.2",
-        "T6.4"
+        "T5.0",
+        "T6.2"
       ],
       "acceptance": [
         "{py} -m pytest tests/test_web.py -q"
@@ -370,7 +392,9 @@
       "title": "Experiment E8, end-to-end performance",
       "owner": "agent",
       "deps": [
-        "T7.3"
+        "T7.3",
+        "T5.2",
+        "T6.4"
       ],
       "acceptance": [
         "{py} -m pytest tests/test_e8.py -q",

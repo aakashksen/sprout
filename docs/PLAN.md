@@ -153,6 +153,12 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 
 ## Phase 5: Efficient serving
 
+### T5.0: Identification contract and fake identifier
+**Files:** `src/sprout/serve/types.py`, `tests/test_identify_types.py`.
+**Produces:** `Identification` with `status: answered|unsure|not_plant|invalid`, `top`, `alternatives`, `guidance`; `class IdentifierProtocol`; `FakeIdentifier(results)`. This lets the chatbot and the app be built while training runs. T5.2 implements the real one, and T7.4 and T8.1 use only the real one.
+**Tests:** `test_fake_returns_each_status`; `test_identification_round_trips_as_json`; `test_real_runs_cannot_use_the_fake` (`check_run` rejects a record whose models name it).
+**Accept:** `{py} -m pytest tests/test_identify_types.py -q`.
+
 ### T5.1: Experiment E6, ONNX and quantization
 **Files:** `src/sprout/serve/export.py`, `src/sprout/experiments/e6_onnx.py`, `tests/test_e6.py`.
 **Produces:** `export_onnx(checkpoint, path)`; `quantize(path, mode, calibration_images=None) -> Path`, with calibration images from `lab_dev` for static mode; `OnnxModel(path).predict(image) -> probs`.
@@ -161,6 +167,7 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 **Accept:** `{py} -m pytest tests/test_e6.py -q`; `{py} -m sprout.eval.check_run E6 --min-n 200 --split field_dev`.
 
 ### T5.2: Inference service
+**Consumes:** `Identification` from T5.0.
 **Files:** `src/sprout/serve/identify.py`, `tests/test_identify.py`.
 **Produces:** `Identifier(model_path, calibration_path).identify(image_bytes) -> Identification` with `status: answered|unsure|not_plant|invalid`, `top`, `alternatives`, `guidance`. Uses the shared `preprocess`, fixes EXIF orientation, and bounds dimensions (#25, #30, #31, #63).
 **Tests:** `test_exif_rotation_gives_same_result_as_upright`; `test_preprocess_matches_evaluation_exactly`; `test_invalid_bytes_returns_invalid`; `test_oversize_image_is_rejected_before_decode_fully`; `test_unsure_includes_specific_photo_guidance`.
@@ -190,6 +197,7 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 **Accept:** `{py} -m pytest tests/test_evalset.py -q`.
 
 ### T6.4: Experiment E7, answers
+Uses `Identification` from T5.0 and a fake identifier, so it doesn't wait for training. Confirm against the real `Identifier` in T7.4.
 **Files:** `src/sprout/llm/client.py`, `src/sprout/rag/answer.py`, `src/sprout/rag/prompts/`, `src/sprout/experiments/e7_rag.py`, `tests/test_answer.py`.
 **Produces:** `LLMClient.complete(messages, *, max_tokens, timeout_s) -> LLMResult`; `FakeLLM`, `OllamaClient`, `ClaudeCodeClient(model="haiku")`; `class LLMError`; `answer(question, *, identification, history, retriever, llm) -> Answer` with `text, citations, grounded: bool, asks_for: list[str]`.
 **Do:** `OllamaClient` uses `http://127.0.0.1:11434`, never `localhost`, which adds about 2 seconds to every call on this machine. `ClaudeCodeClient` runs `claude -p` through `shutil.which`, sends the prompt on stdin, and uses `--output-format json --tools "" --setting-sources "" --strict-mcp-config --disable-slash-commands --no-session-persistence --max-turns 1`, from a temp folder. It treats usage limits or a nonzero exit as `LLMError`, and refuses past the cap. Answers separate instructions, evidence, and user text, carry the diagnosis's uncertainty, use bounded history, and ask for missing details that matter. On dev: compare dense, hybrid, and hybrid + rerank for retrieval, then prompt versions for faithfulness and abstention, one change at a time, on one local model. Run the best on `ClaudeCodeClient` over at most 100 questions as a comparison. Writer: `qwen3.5:4b-q4_K_M`. Judge: `gemma4:e4b-it-qat`. Claude is never the judge. Writes per-claim judgments to a file. Both are installed; don't pull others. Resolves #37, #46–#51, #54, #55, #57.
@@ -201,6 +209,7 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 ## Phase 7: The application
 
 ### T7.1: Backend rebuild
+Built against `IdentifierProtocol` and `FakeIdentifier`, so it doesn't wait for training. The app takes any identifier by injection.
 **Files:** `src/sprout/web/` (split from `legacy/PlantProject/application.py`), `tests/test_web.py`.
 **Known issues from T6.2, to fix when serving wires in the retriever:** passage vectors aren't saved, so each new `Retriever` re-embeds all 2,258 chunks on CPU, which takes minutes; and `min_score` 0.3 filters nothing with reranking off, because an off-topic query scored about 0.78 with real `bge-small` cosines, so it only works with reranking on.
 **Do:** Move to an app factory with routes in modules, and one explicit database setup. Review the hardcoded care recommendations against sources, keeping those with sources and labeling or removing the rest (#52). Replace process-local state with database records scoped to the user and analysis. Config comes from the environment, with no default secret in production mode. Add CSRF, secure cookies when on HTTPS, safe redirects, upload checks, private uploads per user, payload validation, rate limits, API timeouts, and separate liveness and readiness. Store the model prediction and the user's selection separately. Resolves #27–#29, #52, #58, #61, #63–#71, #76–#79.
@@ -220,6 +229,7 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 **Accept:** `docker compose build app`; `{py} -m pytest tests/test_container.py -q -m "real or not real"`.
 
 ### T7.4: Experiment E8, end-to-end performance
+This is the integration point: it runs the real `Identifier` from T5.2 and the real answers from T6.4 in the container, and fixes any mismatch. No fakes.
 **Files:** `src/sprout/experiments/e8_perf.py`, `tests/test_e8.py`.
 **Do:** In the container, on CPU, measure cold start, preprocessing, inference, retrieval, generation, end-to-end p50 and p95, and memory, under 1, 5, and 20 concurrent requests. State the machine. Fix the top bottleneck if there's a clear one, then rerun, and report before and after (#82).
 **Tests:** tiny fixture writes a valid record; `test_percentiles_by_stage_are_recorded`.

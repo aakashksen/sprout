@@ -4,12 +4,15 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from PIL import Image
+import pytest
+from PIL import Image, ImageDraw
 
 from sprout.data.field import (
     FIELD_SPLITS,
     PLANTDOC_MAP,
     assemble_field,
+    hash_pairs,
+    link_same_scene,
     make_class_map,
     not_plant_images,
 )
@@ -59,7 +62,7 @@ def _fixture(tmp_path):
     a_images = [_img(tmp_path / "f" / "a" / f"x{i}.png", next(seed)) for i in range(12)]
     dup = tmp_path / "f" / "a" / "x0_dup.png"
     dup.write_bytes(Path(a_images[0]).read_bytes())
-    # same scene at a different crop: dHash close, pHash far, so only the field pass links them
+    # same scene at a different crop: pHash far, so only the field pass links them
     same = [tmp_path / "f" / "a" / "p1.png", tmp_path / "f" / "a" / "p1_crop.png"]
     _smooth(2).save(same[0])
     _smooth(2, (0, 0, 124, 124)).save(same[1])
@@ -231,3 +234,58 @@ def test_class_map_reasons_match_status():
     assert (out[out["lab_class"] == ""]["reason"] != "").all()
     real = pd.read_csv(MANIFEST_DIR.parent / "class_map.csv", keep_default_na=False)
     assert (real[real["status"] == "shared"]["reason"] == "").all()
+
+
+def _shape(kind: str, path: Path) -> str:
+    img = Image.new("RGB", (128, 128), "white")
+    draw = ImageDraw.Draw(img)
+    if kind == "ellipse":
+        draw.ellipse((14, 44, 114, 84), fill=(40, 140, 50))
+    else:
+        draw.polygon([(20, 110), (64, 14), (108, 110), (64, 80)], fill=(30, 100, 40))
+    img.save(path)
+    return path.as_posix()
+
+
+def test_loose_hash_candidates_cannot_merge_unrelated_images(tmp_path):
+    paths = [
+        _img(tmp_path / "a.png", 0),
+        _img(tmp_path / "b.png", 1),
+        _shape("ellipse", tmp_path / "e.png"),
+        _shape("kite", tmp_path / "k.png"),
+    ]
+    _smooth(10).save(tmp_path / "s.png")
+    _smooth(10, (4, 4, 124, 124)).save(tmp_path / "s_crop.png")
+    _smooth(10, (0, 0, 120, 120)).save(tmp_path / "s_crop2.png")
+    paths += [(tmp_path / n).as_posix() for n in ("s.png", "s_crop.png", "s_crop2.png")]
+    # hash_distance 64 proposes every pair, so only the verification can keep them apart
+    out = link_same_scene(
+        paths, {p: f"g{i}" for i, p in enumerate(paths)}, hash_distance=64
+    )
+    assert len({out[p] for p in paths[:4]}) == 4
+    assert len({out[p] for p in paths[4:]}) == 1
+    assert out[paths[4]] not in {out[p] for p in paths[:4]}
+
+
+def test_no_unlisted_cross_split_near_duplicate_in_real_manifest():
+    real = load_manifest("field")
+    if not Path(real["path"].iloc[0]).exists():
+        pytest.skip("raw images are not on this machine")
+    split = dict(zip(real["path"], real["split"]))
+    found = hash_pairs(list(real["path"]), 8)
+    found = found[
+        [split[a] != split[b] for a, b in zip(found["path_a"], found["path_b"])]
+    ]
+    listed = pd.read_csv(MANIFEST_DIR / "field_residual_pairs.csv")
+    assert set(zip(found["path_a"], found["path_b"])) <= set(
+        zip(listed["path_a"], listed["path_b"])
+    )
+
+
+def test_residual_pairs_are_recorded_with_scores():
+    real = load_manifest("field")
+    split = dict(zip(real["path"], real["split"]))
+    listed = pd.read_csv(MANIFEST_DIR / "field_residual_pairs.csv")
+    assert len(listed) > 0 and listed["scene_score"].between(0, 1).all()
+    assert all(split[a] != split[b] for a, b in zip(listed["path_a"], listed["path_b"]))
+    assert (listed["scene_score"] < 0.88).all()

@@ -27,3 +27,5 @@ results/e2-gradcam/field/
 orchestration/.state.lock
 orchestration/.land.lock
 *.tmp
+datasets/review/label_sheets/
+datasets/review/label_joined/

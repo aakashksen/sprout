@@ -2,7 +2,7 @@
 name = "sprout"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = ["pypdf", "fastembed", "numpy", "imagehash", "dvc", "pandas", "pillow", "torch", "torchvision", "flask", "markdown-it-py"]
+dependencies = ["pypdf", "fastembed", "numpy", "imagehash", "dvc", "pandas", "pillow", "torch", "torchvision", "mlflow-skinny", "flask", "markdown-it-py"]
 
 [project.optional-dependencies]
 dev = ["pytest", "ruff", "scikit-learn", "playwright"]

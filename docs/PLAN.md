@@ -132,14 +132,35 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 **Tests:** `test_features_are_stable`; `test_xgboost_learns_a_separable_fixture`; `test_frozen_backbone_has_no_grad`; `test_record_includes_all_four_systems`.
 **Accept:** `{py} -m pytest tests/test_e3.py -q`; `{py} -m sprout.eval.check_run E3 --min-n 200 --split field_dev`.
 
+### T3.4: Class report and document coverage
+**Files:** `src/sprout/data/class_report.py`, `docs/class-report.md`, `docs/document-coverage.md`, `tests/test_class_report.py`.
+**Do:** Written before any joint training, for the person. Photos per class, by source and split, from the manifests only, with no `field_test` image or score read. Cross-source duplicates, from `field_conflicts.csv`, `field_reviewed_links.csv`, and groups spanning sources. Classes under the minimum of about 80 train, 20 dev, and 20 test real photos. No class is dropped from the frozen `field_test`: thin classes are reported as thin. Show which crops have a healthy class with real photos. Add `docs/document-coverage.md`: per kept class, whether a document in `knowledge/manifest.csv` describes its symptoms, checked by reading the passages rather than the manifest's disease list alone. Raspberry, soybean, and squash have no documents today. The counts come from code, so they can be regenerated.
+**Tests:** `test_counts_match_the_manifests`; `test_thin_classes_are_reported_not_dropped`; `test_report_reads_no_field_test_image`; `test_every_kept_class_has_a_coverage_row`.
+**Accept:** `{py} -m pytest tests/test_class_report.py -q`.
+
+### T3.5: Top-k and plant-given metrics
+**Files:** `src/sprout/eval/metrics.py`, `src/sprout/eval/check_run.py`, `src/sprout/eval/records.py`, `docs/TESTING.md`, `tests/test_topk_metrics.py`.
+**Produces:** `top_k_accuracy(probs, labels, k)`; `plant_given_top_k(probs, labels, class_names, k)`, which restricts outputs to the true plant's classes; `options_per_plant(class_names)`; a declared subset `source:<name>` read from `field.csv`'s `source` column.
+**Do:** Score top-1, top-3, and top-5 alongside macro-F1 and calibration in every image evaluation from here on, plus plant-given top-1 and top-3. Plant comes from the part of the class name before `___`. `check_run` recomputes all of them from saved predictions, and a record with plant-given numbers must also state the options per plant. Plants average 2.7 diseases, so plant-given top-3 is easy: every report that shows it says so and states the options per plant. A plant with three or fewer classes scores 1.0 by construction, and the report must make that plain. Recompute these for the E1, E2, and E3 records from their saved predictions, and save them in a new file rather than editing a record.
+**Tests:** `test_top_k_on_a_fixed_case`; `test_plant_given_restricts_to_the_true_plant`; `test_plant_with_three_classes_scores_one_at_top_3`; `test_saved_top_k_is_recomputed_and_tampering_fails`; `test_source_subset_rebuilds_from_the_manifest`.
+**Accept:** `{py} -m pytest tests/test_topk_metrics.py -q`.
+
 ---
 
 ## Phase 4: Making it better on real photos
 
+### T4.0: Experiment E10, disease-area segmentation
+**Files:** `src/sprout/segment/data.py`, `src/sprout/segment/model.py`, `src/sprout/segment/crop.py`, `src/sprout/experiments/e10_segment.py`, `configs/e10.json`, `datasets/manifests/seg.csv`, `tests/test_e10.py`.
+**Produces:** `predict_mask(model, image) -> mask`; `crop_to_disease(image, mask, margin) -> image`, which returns the full image when the predicted area is tiny.
+**Do:** Train a small segmentation model on PlantSeg's masks, from the `plantseg.zip` already downloaded, with no new download. Use only images not in `field_dev` or `field_test`. Exclude by group as well, and check PlantSeg images outside `field.csv` for near-duplicates of `field_dev` and `field_test` with the rule in `docs/field-dedup.md`, so no held-out photo reaches training. Write `seg.csv` with splits `seg_train` and `seg_dev`, and teach `check_run` the `seg_dev` split, recomputing per-image IoU from saved rows. Keep only best and latest. Report IoU honestly, and that PlantSeg's masks mark disease on PlantSeg-style photos and may not carry over to PlantDoc.
+**Tests:** `test_no_field_dev_or_field_test_photo_in_seg_manifest`; `test_near_duplicate_of_held_out_photo_is_excluded`; `test_crop_includes_margin`; `test_tiny_mask_falls_back_to_full_image`; `test_saved_iou_is_recomputed`.
+**Accept:** `{py} -m pytest tests/test_e10.py -q`; `{py} -m sprout.eval.check_run E10 --min-n 50 --split seg_dev`.
+
 ### T4.1: Experiment E4, improvements
-**Files:** `src/sprout/train/augment.py`, `src/sprout/experiments/e4_improve.py`, `tests/test_e4.py`.
-**Do:** One change at a time, selected on `field_dev`: stronger color and blur augmentation; background randomization, with leaves cut out using the official segmented images, matched to `lab_train` by filename so nothing leaks, and pasted on varied backgrounds; where an image has no usable segmented copy, fall back to masks from `sprout.data.masks` (HSV and GrabCut on `lab_train` images only); if good masks can't be made, record this arm as not run, drop it from the bullet, and continue; both; then targeted fine-tuning with `field_train` on the best one. The person cleared PlantDoc images in `field_train` for this fine-tuning, for local use: don't republish those images. Record which sources this stage used, and whether the resulting weights were trained on PlantDoc images. Include at most 6 training runs, all in `attempts`. Report before and after with paired statistics, plus Grad-CAM energy outside the leaf. If nothing beats the baseline, record that, and keep the baseline (#19).
-**Tests:** `test_background_paste_keeps_leaf_pixels_and_changes_background`; `test_field_test_is_never_read` (the loader raises if asked); `test_field_train_only_in_fine_tuning_stage`; `test_attempts_lists_each_run`.
+**Consumes:** `docs/class-report.md` from T3.4, metrics from T3.5, `crop_to_disease` from T4.0.
+**Files:** `src/sprout/train/joint.py`, `src/sprout/train/augment.py`, `src/sprout/experiments/e4_improve.py`, `configs/e4.json`, `tests/test_e4.py`.
+**Do:** Train on real and lab photos together from the start: `field_train` (PlantDoc and PlantSeg) plus `lab_train` capped per class, so lab can't dominate. Fix the cap in `configs/e4.json` from the class report, before any E4 result is seen. PlantDoc images are cleared for this for local use: don't republish them, and record whether the resulting weights were trained on them. One change at a time, all listed in `attempts`, selected on `field_dev`: the joint baseline; stronger color and blur augmentation; background randomization of lab photos, with leaves cut out using the official segmented images, matched to `lab_train` by filename so nothing leaks, and pasted on varied backgrounds, falling back to masks from `sprout.data.masks` (HSV and GrabCut on `lab_train` images only) and recording this arm as not run if good masks can't be made; both; and, as a separate arm, with and without the T4.0 crop. Include at most 6 training runs for these arms. Also score a held-out-source run as a secondary number: train with one real source left out, and test on that source's part of `field_dev`, once for each source, so 2 more runs, each in `attempts`. Report before and after against E1 and the E3 baselines with paired statistics, top-1, top-3, top-5, macro-F1, calibration, plant-given top-1 and top-3, and Grad-CAM energy outside the leaf on lab images. If nothing beats the baseline, record that, and keep the baseline. If the crop doesn't help, say so and leave it out of serving (#19).
+**Tests:** `test_background_paste_keeps_leaf_pixels_and_changes_background`; `test_field_test_is_never_read` (the loader raises if asked); `test_lab_cap_limits_every_class`; `test_field_dev_is_never_trained_on`; `test_held_out_source_is_absent_from_training`; `test_crop_arm_uses_full_image_on_tiny_mask`; `test_attempts_lists_each_run`.
 **Accept:** `{py} -m pytest tests/test_e4.py -q`; `{py} -m sprout.eval.check_run E4 --min-n 200 --split field_dev`.
 
 ### T4.2: Experiment E5, calibration, abstention, and input checks
@@ -162,7 +183,7 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 ### T5.1: Experiment E6, ONNX and quantization
 **Files:** `src/sprout/serve/export.py`, `src/sprout/experiments/e6_onnx.py`, `tests/test_e6.py`.
 **Produces:** `export_onnx(checkpoint, path)`; `quantize(path, mode, calibration_images=None) -> Path`, with calibration images from `lab_dev` for static mode; `OnnxModel(path).predict(image) -> probs`.
-**Do:** Compare PyTorch CPU, ONNX, and quantized ONNX: size, p50 and p95 latency on CPU, macro-F1 on `field_dev`, and share of predictions that changed. State the CPU in the record. If quantization costs a measurable loss, report it, and choose by the numbers.
+**Do:** If E4 kept the T4.0 crop, export the segmentation model too and include it in every latency number. Compare PyTorch CPU, ONNX, and quantized ONNX: size, p50 and p95 latency on CPU, macro-F1 on `field_dev`, and share of predictions that changed. State the CPU in the record. If quantization costs a measurable loss, report it, and choose by the numbers.
 **Tests:** `test_onnx_matches_torch_within_tolerance` (tiny model); `test_quantized_runs_and_is_smaller`; `test_class_map_travels_with_the_model`.
 **Accept:** `{py} -m pytest tests/test_e6.py -q`; `{py} -m sprout.eval.check_run E6 --min-n 200 --split field_dev`.
 
@@ -244,15 +265,23 @@ Optional for the build. See `docs/HUMAN-GATES.md`.
 
 ### T8.1: Experiment E9, final test
 **Files:** `src/sprout/experiments/e9_final.py`, `tests/test_e9.py`.
-**Do:** Freeze configurations chosen on dev, and commit them before touching test. Run once on `lab_test`, `field_test`, and `rag_test`, one record each: clean baseline, improved model, XGBoost, DINOv2, with and without abstention, and the quantized final model. Report lab and real-photo results separately, with `lab_test` also scored on shared classes. RAG uses the local model; any Claude comparison stays within the call cap.
+**Do:** Freeze configurations chosen on dev, and commit them before touching test. Run once on `lab_test`, `field_test`, and `rag_test`, one record each: clean baseline, improved model, XGBoost, DINOv2, with and without abstention, and the quantized final model. Report lab and real-photo results separately, with `lab_test` also scored on shared classes, with top-1, top-3, top-5, macro-F1, calibration, and plant-given top-1 and top-3, stating the options per plant. RAG uses the local model; any Claude comparison stays within the call cap.
 **Tests:** `test_refuses_when_config_not_committed`; `test_refuses_second_test_run_without_override_note`.
 **Accept:** `{py} -m pytest tests/test_e9.py -q`; `{py} -m sprout.eval.check_run E9 --min-n 200 --split field_test`.
 
 ### T8.2: Report, README, and bullets
 **Files:** `docs/REPORT.md`, `README.md`, `results/claims.json`, `docs/RESUME-TARGETS.md`, `docs/interview-notes.md`, `tools/check_report_numbers.py`.
-**Do:** Write a model and evaluation report: data, splits, baselines, every experiment including failures, limits, and failure examples, with no COCO or PlantDoc images embedded. Report PlantDoc and PlantSeg separately as secondary numbers, with the headline on all of each split, and state E2's sample finding on fruit photos and doubtful labels; `docs/field-dedup.md` records why there's no leaf-only subset. State that the run-record checker guards against mistakes and casual tampering, not someone determined to rewrite git history. If any weights were trained on PlantDoc images, the report flags plainly that the person must check before publishing those weights. Fill `results/claims.json` from run records, then fill the bullets, rewording any that results don't support. Correct the README's claims (#90–#93). `docs/interview-notes.md` explains each decision, tradeoff, and failure, so the person can defend them. The duplicate search on the field set was the last one; a few same-scene images could remain across splits, as a known limit of web-scraped data.
+**Do:** Write a model and evaluation report: data, splits, baselines, every experiment including failures, limits, and failure examples, with no COCO or PlantDoc images embedded. Plant-given top-3 is easy, since plants average 2.7 diseases: state that and the options per plant wherever it appears. Report thin classes as thin. Include `docs/document-coverage.md`'s gaps. Report PlantDoc and PlantSeg separately as secondary numbers, with the headline on all of each split, and state E2's sample finding on fruit photos and doubtful labels; `docs/field-dedup.md` records why there's no leaf-only subset. State that the run-record checker guards against mistakes and casual tampering, not someone determined to rewrite git history. If any weights were trained on PlantDoc images, the report flags plainly that the person must check before publishing those weights. Fill `results/claims.json` from run records, then fill the bullets, rewording any that results don't support. Correct the README's claims (#90–#93). `docs/interview-notes.md` explains each decision, tradeoff, and failure, so the person can defend them. The duplicate search on the field set was the last one; a few same-scene images could remain across splits, as a known limit of web-scraped data.
 **Tests:** `tools/check_report_numbers.py` fails if a number in `docs/REPORT.md` or the bullets isn't in a run record, if any `[placeholder]` remains, or if `results/claims.json` is empty.
 **Accept:** `{py} -m sprout.eval.claims check`; `{py} tools/check_report_numbers.py`; `{py} -m pytest -q`.
 
 ### H4: Final sign-off
 See `docs/HUMAN-GATES.md`.
+
+---
+
+## Later stages, not started
+
+Set by the person on 2026-11-03. Don't start these without the person's word, and download nothing new for them.
+- **Stage 2:** fill the document gaps from `docs/document-coverage.md`, and build a follow-up question bot on top of top-3.
+- **Stage 3:** only if stage 1 clearly beats the baseline: more photo sources for thin classes, with licenses checked by the person first.

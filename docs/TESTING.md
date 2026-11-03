@@ -16,7 +16,7 @@
 | Name | Source | Use |
 |---|---|---|
 | `lab_train`, `lab_dev`, `lab_test` | PlantVillage, grouped by near-duplicate | Training, choosing, final lab score |
-| `field_train` | Real photos | Only for targeted fine-tuning |
+| `field_train` | Real photos | Training together with capped lab photos, in E4 only |
 | `field_dev` | Real photos | Choosing, including abstention thresholds |
 | `field_test` | Real photos | Final real-world score, once |
 | `not_plant` | Public non-plant images | Rejection rate |
@@ -60,7 +60,8 @@ Dev experiments may run before the person reviews labels (H2), with `labels_revi
 | E1 | With leakage fixed and augmentation actually on, what's the honest lab score? How does the old checkpoint do? | T3.1 |
 | E2 | How far does it fall on real photos, and what is Grad-CAM showing? | T3.2 |
 | E3 | How do XGBoost, a frozen head, and DINOv2 compare? | T3.3 |
-| E4 | What actually raises real-photo performance? | T4.1 |
+| E10 | How well does a segmentation model trained on PlantSeg's masks find the disease area? | T4.0 |
+| E4 | What actually raises real-photo performance: joint training, augmentation, background, or a disease crop? | T4.1 |
 | E5 | Does calibration plus abstention cut confident errors, and at what coverage? Which input gate works best? | T4.2 |
 | E6 | Does ONNX quantization keep accuracy while speeding up CPU? | T5.1 |
 | E7 | Which retrieval setup and prompts give faithful, cited answers? | T6.4 |

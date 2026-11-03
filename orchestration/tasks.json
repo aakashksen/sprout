@@ -225,6 +225,49 @@
         "{py} -m sprout.eval.check_run E3 --min-n 1000 --split lab_dev",
         "{py} -m sprout.eval.check_run E3 --min-n 200 --split field_dev"
       ],
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-03T09:40:00+00:00"
+    },
+    {
+      "id": "T3.4",
+      "phase": 3,
+      "title": "Class report and document coverage",
+      "owner": "agent",
+      "deps": [
+        "T1.2"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_class_report.py -q"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T3.5",
+      "phase": 3,
+      "title": "Top-k and plant-given metrics",
+      "owner": "agent",
+      "deps": [
+        "T2.3"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_topk_metrics.py -q"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "T4.0",
+      "phase": 4,
+      "title": "Experiment E10, disease-area segmentation",
+      "owner": "agent",
+      "deps": [
+        "T1.2",
+        "T2.3"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e10.py -q",
+        "{py} -m sprout.eval.check_run E10 --min-n 50 --split seg_dev"
+      ],
       "status": "pending"
     },
     {
@@ -233,7 +276,10 @@
       "title": "Experiment E4, improvements",
       "owner": "agent",
       "deps": [
-        "T3.3"
+        "T3.3",
+        "T3.4",
+        "T3.5",
+        "T4.0"
       ],
       "acceptance": [
         "{py} -m pytest tests/test_e4.py -q",

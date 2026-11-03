@@ -37,9 +37,9 @@ ContextLens covers agents, LLM fine-tuning, and C++. SPROUT covers **training ri
 | Splits | Group by the source IDs in the original filenames and by perceptual hashing, including flips and rotations, then split by group; permanent manifests | A source ID isn't proven to identify one physical leaf, and same-leaf photos that look different can still slip through, so reports say "near-duplicate-grouped" |
 | Primary model | ConvNeXt-Tiny fine-tuned from ImageNet weights | The original architecture, retrained cleanly |
 | Comparisons | HOG and color histograms + XGBoost; frozen ConvNeXt head; DINOv2 | Classic ML and a newer model |
-| Fixes for real photos | Background randomization using official segmented images matched to `lab_train` by filename, with generated masks as the fallback; stronger augmentation; then targeted fine-tuning on a real-photo training split, which may include PlantDoc for local use; the person checks before publishing any weights trained on it | Tests the likely cause of the fall |
+| Fixes for real photos | Train on real photos (PlantDoc and PlantSeg) and lab photos together from the start, with lab capped per class; stronger augmentation and background randomization; a separate arm cropping to the disease area with a segmentation model trained on PlantSeg's masks. All selected on `field_dev`, with `field_test` frozen. The person checks before publishing any weights trained on PlantDoc | Real photos are what the model fell on, and training on lab photos alone fell far short |
 | Understanding | Grad-CAM | Shows what the model looks at |
-| Statistics | Bootstrap confidence intervals, McNemar's test, ECE calibration | Uses the stats major |
+| Statistics | Bootstrap confidence intervals, McNemar's test, ECE calibration; top-1, top-3, top-5, and plant-given top-1 and top-3, stating options per plant | Uses the stats major; plant-given top-3 is easy, since plants average 2.7 diseases, so it's never shown alone |
 | Tracking | MLflow for runs, DVC for data, run records for claims | Reproducibility |
 | Serving | ONNX with dynamic or static quantization, CPU | Cheap hosting and a real optimization result |
 | RAG | ChromaDB + BM25, fastembed (ONNX) embeddings and cross-encoder rerank, metadata filters | The original claimed hybrid and rerank without having them; now it's built, and claimed only if measured to help |

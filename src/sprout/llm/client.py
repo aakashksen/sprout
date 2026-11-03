@@ -87,6 +87,18 @@ class OllamaClient:
         return LLMResult(text.strip(), self.model, round(time.time() - start, 3),
                          data.get("prompt_eval_count"), data.get("eval_count"))
 
+    def placement(self) -> dict | None:
+        """Where the loaded model sits, from Ollama's process list: bytes in total and in GPU memory. None if not loaded."""
+        try:
+            with urllib.request.urlopen(self._url + "/api/ps", timeout=30) as resp:
+                loaded = json.loads(resp.read()).get("models", [])
+        except (OSError, ValueError) as exc:
+            raise LLMError(f"Ollama call failed: {exc}") from exc
+        for m in loaded:
+            if m.get("name") == self.model or m.get("model") == self.model:
+                return {"size": m.get("size", 0), "size_vram": m.get("size_vram", 0)}
+        return None
+
     def unload(self) -> None:
         """Free the GPU memory this model holds."""
         self._post("/api/generate", {"model": self.model, "keep_alive": 0}, 30)

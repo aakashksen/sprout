@@ -278,3 +278,17 @@ def test_query_modes_add_history_and_top3_diseases_but_not_assistant_text():
     assert "tomato leaves have rings" in full and "early blight" in full and "late blight" in full
     assert "leaf mold" not in build_query("q", Identification("answered", Candidate("T___Leaf_Mold", 0.02)), [], "diseases")
     assert "SECRET" not in full and top_diseases(UNSURE) == ["early blight", "late blight", "leaf mold"]
+
+
+def test_ollama_placement_reports_gpu_share(monkeypatch):
+    seen = {}
+
+    def fake_urlopen(req, timeout=None):
+        seen["url"] = req if isinstance(req, str) else req.full_url
+        body = {"models": [{"name": "m", "size": 100, "size_vram": 80}, {"name": "other", "size": 5, "size_vram": 5}]}
+        return io.BytesIO(json.dumps(body).encode())
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    assert OllamaClient("m").placement() == {"size": 100, "size_vram": 80}
+    assert OllamaClient("absent").placement() is None
+    assert seen["url"] == "http://127.0.0.1:11434/api/ps"

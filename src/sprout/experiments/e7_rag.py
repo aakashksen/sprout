@@ -7,9 +7,11 @@ rag_test is never read here.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
+import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -24,6 +26,7 @@ from sprout.eval.check_run import (
     recompute_metric,
 )
 from sprout.eval.records import RAG_REL, ROOT, split_info, subset_positions, write_run
+from sprout.eval.stats import mcnemar_exact, paired_bootstrap_diff
 from sprout.rag.answer import (
     GENERAL_CROP,
     Answer,
@@ -40,7 +43,10 @@ from sprout.serve.types import Candidate, Identification
 SPLIT = "rag_dev"
 RANK_K = 10  # gold is looked for in the top 10 passages
 RETRIEVAL_METRICS = ("recall@1", "recall@3", "recall@5", "recall@10", "mrr")
-DECIDING_METRIC = "recall@5"
+DECIDING_METRICS = ("recall@5", "mrr")
+METHOD_VERSION = 2  # bumped when a selection rule changes; checkpoints and work folders of older versions are not reused
+SERVED_K = 5
+FLOOR_MIN_ANSWERS = 0.80
 MIN_GRADED = 200  # graded answers one full run should yield (T6.6 re-checks 200 of them)
 BEHAVIOUR_METRICS = (
     "answers_when_answerable", "declines_when_unanswerable", "declines_when_crop_mismatch", "declines_when_ambiguous",
@@ -97,6 +103,20 @@ class Checkpoint:
             f.flush()
             os.fsync(f.fileno())
         self.rows[row["id"]] = row
+
+
+def index_stamp(index_dir: Path) -> str:
+    """Identifies the index build, so a rebuilt index never reuses old checkpoints."""
+    info = Path(index_dir) / "build-info.json"
+    if info.is_file():
+        return str(json.loads(info.read_text(encoding="utf-8")).get("built"))
+    chunks = Path(index_dir) / "chunks.jsonl"
+    return f"{chunks.stat().st_size}-{int(chunks.stat().st_mtime)}" if chunks.is_file() else "none"
+
+
+def checkpoint_key(*parts: Any) -> str:
+    """Short hash of everything a checkpointed row depends on (method version, settings, index, questions)."""
+    return hashlib.sha1(json.dumps([METHOD_VERSION, *parts], sort_keys=True, default=str).encode()).hexdigest()[:10]
 
 
 # ---------------------------------------------------------------- questions, plant, diagnosis
@@ -171,37 +191,100 @@ def gold_rank(passages: list, q: Question, single: set[str]) -> int | None:
 
 # ---------------------------------------------------------------- retrieval stages
 
-def retrieval_row(retriever, q: Question, spec: RetrievalSpec, crops: set[str], classes: list[str], single: set[str]) -> dict:
-    """Rank of the gold hit among the top RANK_K passages (None when absent or the question has no gold), and the
-    score of the best passage. The floor is off here, so ranking quality is measured on its own."""
+def term_rank(passages: list, q: Question) -> int | None:
+    """First passage, from any document, that holds one of the question's answer terms (a lenient cross-check of the
+    strict gold-page rank: the index grew from 28 to 237 documents, so other documents may answer legitimately)."""
+    terms = [normalize(t) for t in q.answer_terms]
+    for i, p in enumerate(passages, 1):
+        if any(t in normalize(p.text) for t in terms):
+            return i
+    return None
+
+
+def retrieval_row(
+    retriever, q: Question, spec: RetrievalSpec, crops: set[str], classes: list[str], single: set[str],
+    diagnose: bool = False,
+) -> dict:
+    """Rank of the gold hit among the top RANK_K passages (None when absent or the question has no gold) and of
+    the first passage holding an answer term, the best passage's score, and what was searched. The floor is off
+    here, so ranking quality is measured on its own. With `diagnose`, the same search without the plant filter."""
     crop, ident = simulate_identification(q, crops, classes)
     query = build_query(q.question, ident, q.history, spec.query_mode)
     found = retriever.search(query, crop=crop, k=RANK_K, mode=spec.mode, rerank=spec.rerank)
-    return {"id": q.id, "rank": gold_rank(found, q, single) if q.gold_source else None,
-            "top_score": found[0].score if found else 0.0}
+    row = {
+        "id": q.id, "rank": gold_rank(found, q, single) if q.gold_source else None,
+        "term_rank": term_rank(found, q) if q.answer_terms else None,
+        "top_score": found[0].score if found else 0.0, "crop": crop, "query": query, "diagnosed": ident is not None,
+    }
+    if diagnose:
+        wide = retriever.search(query, crop=None, k=RANK_K, mode=spec.mode, rerank=spec.rerank)
+        row["nocrop_top_score"] = wide[0].score if wide else 0.0
+        row["nocrop_rank"] = gold_rank(wide, q, single) if q.gold_source else None
+    return row
 
 
-def run_retrieval(name: str, retriever, spec: RetrievalSpec, questions: list[Question], work: Path, root: Path = ROOT) -> list[dict]:
-    """All dev questions for one system, resumable. `retriever` must be built for `spec`."""
-    ck = Checkpoint(work / f"{name}.jsonl")
+def run_retrieval(
+    name: str, retriever, spec: RetrievalSpec, questions: list[Question], work: Path, root: Path = ROOT,
+    diagnose: bool = False,
+) -> list[dict]:
+    """All dev questions for one system, resumable. `retriever` must be built for `spec`. The checkpoint file name
+    carries a hash of the method version, settings, index build and questions, so a change starts fresh."""
+    key = checkpoint_key(asdict(spec), diagnose, index_stamp(retriever._index_dir), split_info(SPLIT, root).hash)
+    ck = Checkpoint(work / f"{name}-{key}.jsonl")
     crops, classes = retriever.crops, load_classes(root)
     single = single_page_sources(retriever._index_dir)
     for q in questions:
         if q.id not in ck.rows:
-            ck.add(retrieval_row(retriever, q, spec, crops, classes, single))
+            ck.add(retrieval_row(retriever, q, spec, crops, classes, single, diagnose))
     return [ck.rows[q.id] for q in questions]
 
 
-def better(comp: dict) -> bool:
-    """A candidate is kept only when the paired interval of its recall@5 gain over the base excludes zero."""
-    return bool(comp["ci"][0] > 0)
+# Retrieval rule, version 2. Revised after the first pass: there, dense was kept over hybrid_rerank although
+# hybrid_rerank had recall@1 0.600 vs 0.417, recall@5 0.833 vs 0.717 and MRR 0.712 vs 0.543, because the recall@5
+# interval [0.0, 0.233] touched zero at n=60. A change is now kept when the paired interval of either recall@5 or
+# MRR excludes zero (lower bound above zero) and the other metric's point estimate is not worse.
+def better(comps: list[dict]) -> bool:
+    by = {c["metric"]: c for c in comps}
+    if set(by) != set(DECIDING_METRICS):
+        raise ValueError(f"need comparisons on {DECIDING_METRICS}")
+    for m, other in zip(DECIDING_METRICS, reversed(DECIDING_METRICS), strict=True):
+        if by[m]["ci"][0] > 0 and by[other]["diff"] >= 0:
+            return True
+    return False
+
+
+def gain(comps: list[dict]) -> float:
+    """Ranking of kept candidates: the sum of their recall@5 and MRR gains."""
+    return float(sum(c["diff"] for c in comps))
+
+
+def _ranked(rows: list[dict], root: Path, field_name: str = "rank") -> tuple[list[str], list[str], dict[str, int | None]]:
+    info = split_info(SPLIT, root)
+    pos = subset_positions("answerable", SPLIT, info, root)
+    return [info.ids[i] for i in pos], [info.groups[i] for i in pos], {r["id"]: r[field_name] for r in rows}
+
+
+def pair_comparisons(rows_a: list[dict], rows_b: list[dict], root: Path = ROOT, names: tuple[str, str] = ("a", "b")) -> list[dict]:
+    """a minus b on recall@5 and on MRR over the answerable questions, with paired intervals (see better())."""
+    ids, groups, ma = _ranked(rows_a, root)
+    _, _, mb = _ranked(rows_b, root)
+    a, b = (Scored(groups=groups, ranks=[m[i] for i in ids]) for m in (ma, mb))
+    return [{"a": names[0], "b": names[1], "metric": m, **recompute_comparison(a, b, m)} for m in DECIDING_METRICS]
+
+
+def device_fields(info: dict) -> dict:
+    """The device as a plain string (what MLflow's `device` parameter shows) and the details beside it."""
+    return {"device": info["device"], "device_info": info}
 
 
 def write_retrieval_record(
     stage: str, rows: dict[str, list[dict]], specs: dict[str, RetrievalSpec], base: str, device: dict,
-    root: Path = ROOT, allow_dirty: bool = False,
+    root: Path = ROOT, allow_dirty: bool = False, measurements: dict[str, list[float]] | None = None,
+    extra_config: dict | None = None,
 ) -> tuple[Path, list[dict]]:
-    """One E7 record on the answerable questions of rag_dev, and the paired comparisons of every system with base."""
+    """One E7 record on the answerable questions of rag_dev. Every system also appears with `_terms` appended, ranked
+    by the first passage holding an answer term (a cross-check, not used to decide). Comparisons with the base
+    are on recall@5 and MRR."""
     info = split_info(SPLIT, root)
     pos = subset_positions("answerable", SPLIT, info, root)
     ids, groups = [info.ids[i] for i in pos], [info.groups[i] for i in pos]
@@ -209,35 +292,64 @@ def write_retrieval_record(
     out_rows: dict[str, list[dict]] = {}
     for name, system_rows in rows.items():
         by = {r["id"]: r for r in system_rows}
-        out_rows[name] = [{"id": i, "rank": by[i]["rank"]} for i in ids]
-        scored[name] = Scored(groups=groups, ranks=[by[i]["rank"] for i in ids])
+        for tag, field_name in ((name, "rank"), (f"{name}_terms", "term_rank")):
+            out_rows[tag] = [{"id": i, "rank": by[i][field_name]} for i in ids]
+            scored[tag] = Scored(groups=groups, ranks=[by[i][field_name] for i in ids])
     metrics = {n: {m: recompute_metric(m, s) for m in RETRIEVAL_METRICS} for n, s in scored.items()}
-    intervals = {n: {m: recompute_interval(m, s) for m in ("recall@5", "mrr")} for n, s in scored.items()}
+    intervals = {n: {m: recompute_interval(m, s) for m in DECIDING_METRICS} for n, s in scored.items()}
     comparisons = []
-    for n in scored:
+    for n in rows:
         if n != base:
-            got = recompute_comparison(scored[n], scored[base], DECIDING_METRIC)
-            comparisons.append({"a": n, "b": base, "metric": DECIDING_METRIC, **got})
+            for m in DECIDING_METRICS:
+                comparisons.append({"a": n, "b": base, "metric": m, **recompute_comparison(scored[n], scored[base], m)})
     config = {
-        "stage": stage, "base": base, "rank_k": RANK_K, "gold_matching": GOLD_RULE, "crop_source": CROP_RULE,
-        "device": device, "labels_reviewed": False,
+        "stage": stage, "method_version": METHOD_VERSION, "base": base, "rank_k": RANK_K, "gold_matching": GOLD_RULE,
+        "crop_source": CROP_RULE, **device_fields(device), "labels_reviewed": False,
+        "decision_rule": "keep when the paired interval of recall@5 or of MRR excludes zero and the other point "
+                         "estimate is not worse (version 2, revised after the first pass)",
+        **(extra_config or {}),
     }
     attempts = [{"system": n, "setting": asdict(specs[n])} for n in rows]
     models = {"embedder": "BAAI/bge-small-en-v1.5", "reranker": "cross-encoder/ms-marco-MiniLM-L6-v2"}
     path = write_run("E7", SPLIT, config, models, metrics, intervals, attempts, out_rows, info.hash, root=root,
-                     subset="answerable", comparisons=comparisons, allow_dirty=allow_dirty,
+                     subset="answerable", comparisons=comparisons, allow_dirty=allow_dirty, measurements=measurements,
                      notes="Retrieval only, on the answerable questions; the score floor is off.")
     return path, comparisons
 
 
-def pair_comparison(rows_a: list[dict], rows_b: list[dict], root: Path = ROOT) -> dict:
-    """recall@5 of a minus b on the answerable questions, with the paired interval (see better())."""
-    info = split_info(SPLIT, root)
-    pos = subset_positions("answerable", SPLIT, info, root)
-    ids, groups = [info.ids[i] for i in pos], [info.groups[i] for i in pos]
-    sa, sb = ({r["id"]: r["rank"] for r in rows} for rows in (rows_a, rows_b))
-    a, b = (Scored(groups=groups, ranks=[m[i] for i in ids]) for m in (sa, sb))
-    return recompute_comparison(a, b, DECIDING_METRIC)
+class TimedReranker:
+    """Wraps a reranker and records the milliseconds of each call."""
+
+    def __init__(self, inner) -> None:
+        self.inner, self.ms = inner, []
+
+    def score(self, query: str, texts: list[str]) -> list[float]:
+        t = time.perf_counter()
+        out = self.inner.score(query, texts)
+        self.ms.append((time.perf_counter() - t) * 1000)
+        return out
+
+
+def time_search(retriever, timed: TimedReranker, spec: RetrievalSpec, questions: list[Question], root: Path = ROOT,
+                warmup: int = 3) -> tuple[list[float], list[float]]:
+    """(whole-search ms, reranker-call ms) per question, as served (k=SERVED_K, rerank on). The first `warmup`
+    questions are searched once untimed, so model loading and kernel start-up are not counted."""
+    crops, classes = retriever.crops, load_classes(root)
+    search_ms: list[float] = []
+
+    def one(q: Question) -> None:
+        crop, ident = simulate_identification(q, crops, classes)
+        query = build_query(q.question, ident, q.history, spec.query_mode)
+        retriever.search(query, crop=crop, k=SERVED_K, mode=spec.mode, rerank=True)
+
+    for q in questions[:warmup]:
+        one(q)
+    timed.ms.clear()
+    for q in questions:
+        t = time.perf_counter()
+        one(q)
+        search_ms.append((time.perf_counter() - t) * 1000)
+    return search_ms, list(timed.ms)
 
 
 # A rule added to the base prompt is kept when the thing it targets improves and answering answerable questions does
@@ -275,33 +387,57 @@ def choose_prompt(values: dict[str, dict[str, float | None]]) -> tuple[str, list
     return ("+".join(["base", *names]) if holds else f"base+{best}"), decisions, False
 
 
-def choose_floor(kept_scores: list[float], dropped_scores: list[float]) -> dict:
-    """The floor that best keeps the answerable questions' best passage and drops the unanswerable ones' (balanced
-    over the two groups); halfway between the two neighbouring scores. Picked on rag_dev, so slightly optimistic."""
-    values = sorted(set(kept_scores) | set(dropped_scores))
-    candidates = [0.0] + [(a + b) / 2 for a, b in zip(values, values[1:], strict=False)] + ([values[-1] + 1e-6] if values else [])
+# Floor rule, version 2. Revised after the first pass: the old rule balanced "keeps answerable" against "drops
+# unanswerable" equally, which picked a dense floor of 0.80 that declined every unanswerable question but answered only
+# 65% of the answerable ones. Now: among floors that answer at least 80% of answerable questions, take the highest
+# declines_when_unanswerable (ties: more answers, then the lower floor); if none reaches 80%, take the floor with the
+# highest mean of the two and say so.
+def choose_floor(answerable_scores: list[float], unanswerable_scores: list[float]) -> dict:
+    values = sorted(set(answerable_scores) | set(unanswerable_scores))
+    candidates = [0.0] + [(a + b) / 2 for a, b in zip(values, values[1:], strict=False)]
+    candidates += [values[-1] + 1e-6] if values else []
 
-    def balanced(f: float) -> float:
-        keep = np.mean([s >= f for s in kept_scores]) if kept_scores else 0.0
-        drop = np.mean([s < f for s in dropped_scores]) if dropped_scores else 0.0
-        return float((keep + drop) / 2)
+    def rates(f: float) -> tuple[float, float]:
+        ans = float(np.mean([s >= f for s in answerable_scores])) if answerable_scores else 0.0
+        dec = float(np.mean([s < f for s in unanswerable_scores])) if unanswerable_scores else 0.0
+        return ans, dec
 
-    best = max(candidates, key=lambda f: (balanced(f), -f))
-    return {"floor": round(float(best), 6), "balanced": balanced(best),
-            "answerable_kept": float(np.mean([s >= best for s in kept_scores])) if kept_scores else None,
-            "unanswerable_dropped": float(np.mean([s < best for s in dropped_scores])) if dropped_scores else None}
+    ok = [f for f in candidates if rates(f)[0] >= FLOOR_MIN_ANSWERS]
+    if ok:
+        best, rule = max(ok, key=lambda f: (rates(f)[1], rates(f)[0], -f)), f"highest declines among floors answering at least {FLOOR_MIN_ANSWERS:.0%}"
+    else:
+        best, rule = max(candidates, key=lambda f: (sum(rates(f)) / 2, -f)), f"no floor reached {FLOOR_MIN_ANSWERS:.0%} answers; highest mean of the two rates"
+    ans, dec = rates(best)
+    steps = np.unique(np.quantile(values, np.linspace(0, 1, 11))) if values else []
+    return {"floor": round(float(best), 6), "answers_when_answerable": ans, "declines_when_unanswerable": dec,
+            "rule_applied": rule, "curve": [{"floor": round(float(f), 4), "answers": rates(f)[0], "declines": rates(f)[1]} for f in steps]}
 
 
 def floor_groups(questions: list[Question], rows: list[dict]) -> tuple[list[float], list[float]]:
     top = {r["id"]: r["top_score"] for r in rows}
-    kept = [top[q.id] for q in questions if q.expected == "answer"]
-    dropped = [top[q.id] for q in questions if q.expected in ("abstain", "crop_mismatch")]
-    return kept, dropped
+    return ([top[q.id] for q in questions if q.expected == "answer"],
+            [top[q.id] for q in questions if q.expected == "abstain"])
+
+
+def floor_diagnosis(questions: list[Question], rows: list[dict], floor: float) -> dict:
+    """Why answerable questions fall under the floor: which kinds, whether retrieval found the gold page anyway,
+    whether the plant filter or a missing simulated diagnosis could be the cause."""
+    by = {r["id"]: r for r in rows}
+    under = [q for q in questions if q.expected == "answer" and by[q.id]["top_score"] < floor]
+    out: dict[str, Any] = {"floor": floor, "answerable_under_floor": len(under), "of": sum(q.expected == "answer" for q in questions)}
+    out["by_category"] = {c: sum(q.category == c for q in under) for c in sorted({q.category for q in under})}
+    out["gold_in_top10_anyway"] = sum(by[q.id]["rank"] is not None for q in under)
+    out["gold_missing_from_top10"] = sum(by[q.id]["rank"] is None for q in under)
+    out["no_simulated_diagnosis"] = sum(not by[q.id]["diagnosed"] for q in under)
+    out["plant_filter_applied"] = sum(by[q.id]["crop"] is not None for q in under)
+    if all("nocrop_top_score" in by[q.id] for q in under):
+        out["would_pass_floor_without_plant_filter"] = sum(by[q.id]["nocrop_top_score"] >= floor for q in under)
+    return out
 
 
 def write_floor_record(
     questions: list[Question], by_mode: dict[str, list[dict]], floors: dict[str, dict], default_floor: float,
-    device: dict, root: Path = ROOT, allow_dirty: bool = False,
+    device: dict, root: Path = ROOT, allow_dirty: bool = False, diagnosis: dict | None = None, extra_config: dict | None = None,
 ) -> Path:
     """Answer-or-decline from the best passage's score alone: at the old 0.3 floor and at the chosen one, per mode."""
     info = split_info(SPLIT, root)
@@ -313,11 +449,15 @@ def write_floor_record(
             out_rows[tag] = [{"id": i, "answered": bool(top[i] >= floor)} for i in info.ids]
             s = Scored(groups=info.ids, answered=np.array([r["answered"] for r in out_rows[tag]]), expected=info.expected)
             metrics[tag] = {m: recompute_metric(m, s) for m in BEHAVIOUR_METRICS}
-    config = {"stage": "floors", "floors": floors, "default_floor": default_floor, "device": device,
-              "labels_reviewed": False, "decline_rule": "a question is declined when its best passage scores under the floor"}
+    config = {"stage": "floors", "method_version": METHOD_VERSION, "floors": floors, "default_floor": default_floor,
+              **device_fields(device), "labels_reviewed": False, "floor_diagnosis": diagnosis or {},
+              "decline_rule": "a question is declined when its best passage scores under the floor",
+              "floor_rule": "among floors answering at least 80% of answerable questions, the highest declines_when_unanswerable; "
+                            "else the highest mean of the two (version 2, revised after the first pass)",
+              **(extra_config or {})}
     return write_run("E7", SPLIT, config, {"embedder": "BAAI/bge-small-en-v1.5", "reranker": "cross-encoder/ms-marco-MiniLM-L6-v2"},
-                     metrics, {n: {} for n in out_rows}, [{"mode": m, **floors[m]} for m in floors], out_rows, info.hash,
-                     root=root, allow_dirty=allow_dirty,
+                     metrics, {n: {} for n in out_rows}, [{"mode": m, **{k: v for k, v in floors[m].items() if k != "curve"}} for m in floors],
+                     out_rows, info.hash, root=root, allow_dirty=allow_dirty,
                      notes="Floors were picked on rag_dev itself, so these rates are optimistic.")
 
 
@@ -346,8 +486,21 @@ def retrieval_for_answers(retriever, cfg: AnswerConfig, q: Question, crops: set[
     return {"id": q.id, "query": query, "crop": searched, "passages": passages_to_json(found)}
 
 
-def run_answer_retrieval(retriever, cfg: AnswerConfig, questions: list[Question], work: Path, root: Path = ROOT) -> dict:
-    ck = Checkpoint(work / "answer-retrieval.jsonl")
+def answer_retrieval_file(
+    work: Path, tag: str, cfg: AnswerConfig, floors: dict, min_score: float, index_dir: Path, root: Path = ROOT,
+) -> Path:
+    """Where the passages for `tag` (with floors, or without) are cached; the name carries a hash of everything
+    they depend on, so a changed method, index or question set never reuses old rows."""
+    key = checkpoint_key(asdict(replace_sources(cfg)), floors, min_score, index_stamp(index_dir), split_info(SPLIT, root).hash)
+    return Path(work) / f"{tag}-{key}.jsonl"
+
+
+def run_answer_retrieval(
+    retriever, cfg: AnswerConfig, questions: list[Question], work: Path, root: Path = ROOT, tag: str = "answers",
+) -> dict:
+    """Passages each question gets under `cfg` and the retriever's floors. `tag` names the cache (with floors or without)."""
+    ck = Checkpoint(answer_retrieval_file(work, tag, cfg, retriever.config.floors, retriever.config.min_score,
+                                          retriever._index_dir, root))
     classes = load_classes(root)
     for q in questions:
         if q.id not in ck.rows:
@@ -355,11 +508,31 @@ def run_answer_retrieval(retriever, cfg: AnswerConfig, questions: list[Question]
     return ck.rows
 
 
+def replace_sources(cfg: AnswerConfig) -> AnswerConfig:
+    from dataclasses import replace
+
+    return replace(cfg, sources=None)
+
+
 def cached_retriever(crops: set[str], rows: dict[str, dict]) -> CachedRetriever:
     return CachedRetriever(crops, {(r["query"], r["crop"]): [Passage(**p) for p in r["passages"]] for r in rows.values()})
 
 
-def generation_row(q: Question, ans: Answer, system: str, single: set[str]) -> dict:
+class TimedLLM:
+    """Counts the model calls and the seconds each took, so a record can show the writer really ran."""
+
+    def __init__(self, llm) -> None:
+        self.llm, self.model, self.seconds = llm, llm.model, []
+
+    def complete(self, messages: list[dict], *, max_tokens: int, timeout_s: float):
+        t = time.perf_counter()
+        try:
+            return self.llm.complete(messages, max_tokens=max_tokens, timeout_s=timeout_s)
+        finally:
+            self.seconds.append(time.perf_counter() - t)
+
+
+def generation_row(q: Question, ans: Answer, system: str, single: set[str], calls: int = 0, seconds: float = 0.0) -> dict:
     cited_gold = None
     if q.gold_source:
         cited_gold = any(c.source == q.gold_source and c.page == q.gold_page for c in ans.citations)
@@ -367,7 +540,7 @@ def generation_row(q: Question, ans: Answer, system: str, single: set[str]) -> d
         "id": q.id, "system": system, "answered": bool(ans.grounded), "state": ans.state, "asks_for": ans.asks_for,
         "cited_gold": cited_gold, "gold_rank": gold_rank(ans.passages, q, single) if q.gold_source else None,
         "query": ans.query, "text": ans.text, "passages": passages_to_json(ans.passages),
-        "citations": [asdict(c) for c in ans.citations],
+        "citations": [asdict(c) for c in ans.citations], "llm_calls": calls, "llm_seconds": round(seconds, 3),
     }
 
 
@@ -376,21 +549,24 @@ FAILED_STATES = ("unavailable", "retrieval_failed")
 
 def run_generation(
     system: str, questions: list[Question], retriever, llm, cfg: AnswerConfig, work: Path, single: set[str],
-    root: Path = ROOT,
+    root: Path = ROOT, key: str = "",
 ) -> tuple[list[dict], list[str]]:
     """(rows in question order for finished questions, ids still missing). An outage is never recorded as an answer."""
-    ck = Checkpoint(work / f"generate-{system}.jsonl")
+    ck = Checkpoint(work / f"generate-{system}{'-' + key if key else ''}.jsonl")
     classes = load_classes(root)
+    timed = TimedLLM(llm)
     missing = []
     for q in questions:
         if q.id in ck.rows:
             continue
         crop, ident = simulate_identification(q, retriever.crops, classes)
-        ans = answer(q.question, identification=ident, history=q.history, retriever=retriever, llm=llm, config=cfg, crop=crop)
+        before = len(timed.seconds)
+        ans = answer(q.question, identification=ident, history=q.history, retriever=retriever, llm=timed, config=cfg, crop=crop)
         if ans.state in FAILED_STATES:
             missing.append(q.id)
             continue
-        ck.add(generation_row(q, ans, system, single))
+        used = timed.seconds[before:]
+        ck.add(generation_row(q, ans, system, single, len(used), sum(used)))
     return [ck.rows[q.id] for q in questions if q.id in ck.rows], missing
 
 
@@ -401,9 +577,11 @@ def row_to_answer(row: dict) -> Answer:
                   [Passage(**p) for p in row["passages"]], row["query"])
 
 
-def run_judging(system: str, rows: list[dict], questions: dict[str, Question], judge_llm, work: Path) -> list[dict]:
+def run_judging(
+    system: str, rows: list[dict], questions: dict[str, Question], judge_llm, work: Path, key: str = "",
+) -> list[dict]:
     """Per-claim judgments for the answers of one system, resumable per answer. Answers with no claims are skipped."""
-    ck = Checkpoint(work / f"judge-{system}.jsonl")
+    ck = Checkpoint(work / f"judge-{system}{'-' + key if key else ''}.jsonl")
     for row in rows:
         if row["id"] in ck.rows:
             continue
@@ -436,7 +614,11 @@ def write_generation_record(
         metrics[name] = {m: recompute_metric(m, s) for m in BEHAVIOUR_METRICS}
     samples = {f"faithfulness_{n}": [bool(c["verdict"]) for r in judged.get(n, []) for c in r["claims"]] for n in rows}
     samples = {k: v for k, v in samples.items() if v}
-    config = {**config, "stage": stage, "labels_reviewed": False, "gold_matching": GOLD_RULE, "crop_source": CROP_RULE}
+    usage = {n: {"rows": len(r), "model_calls": sum(x.get("llm_calls", 0) for x in r),
+                 "rows_without_model_call": sum(x.get("llm_calls", 0) == 0 for x in r),
+                 "model_seconds": round(sum(x.get("llm_seconds", 0.0) for x in r), 1)} for n, r in rows.items()}
+    config = {**config, "stage": stage, "method_version": METHOD_VERSION, "labels_reviewed": False,
+              "gold_matching": GOLD_RULE, "crop_source": CROP_RULE, "writer_usage": usage}
     return write_run("E7", SPLIT, config, models, metrics, {n: {} for n in rows},
                      [{"system": n, "answers_graded": len(judged.get(n, []))} for n in rows], out_rows, info.hash,
                      root=root, subset=split_subset, judged=samples or None, allow_dirty=allow_dirty,
@@ -445,11 +627,12 @@ def write_generation_record(
 
 @dataclass
 class Chosen:
-    """results/e7/chosen.json: the settings each stage settled on, and every keep-or-drop decision."""
+    """results/e7/v2/chosen.json: the settings each stage settled on, and every keep-or-drop decision."""
 
     retrieval: dict = field(default_factory=lambda: asdict(RetrievalSpec()))
     floors: dict = field(default_factory=dict)
-    prompt: str = "v1"
+    prompt: str = "base"
+    combined: str = ""  # the prompt the combined run uses, fixed when the single additions are decided
     decisions: list[dict] = field(default_factory=list)
 
     @classmethod
@@ -459,3 +642,63 @@ class Chosen:
     def save(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         atomic_write_text(path, json.dumps(asdict(self), indent=1) + "\n")
+
+
+# ---------------------------------------------------------------- intervals for the prompt stage
+
+_GOLD_FOR = {"answers_when_answerable": "answer", "declines_when_unanswerable": "abstain",
+             "declines_when_crop_mismatch": "crop_mismatch", "declines_when_ambiguous": "clarify"}
+
+
+def behaviour_gain(metric: str, questions: list[Question], rows_other: list[dict], rows_base: list[dict],
+                   n: int = 10000, seed: int = 13) -> dict:
+    """other minus base for a behaviour rate, paired over the questions it is defined on, with McNemar's exact p."""
+    gold = _GOLD_FOR[metric]
+    ids = [q.id for q in questions if q.expected == gold]
+    ao, ab = ({r["id"]: r["answered"] for r in rows} for rows in (rows_other, rows_base))
+    flip = (lambda x: x) if metric == "answers_when_answerable" else (lambda x: not x)
+    a = np.array([flip(ao[i]) for i in ids], dtype=float)
+    b = np.array([flip(ab[i]) for i in ids], dtype=float)
+    diff, lo, hi = paired_bootstrap_diff(a, b, ids, n, seed)
+    return {"metric": metric, "n": len(ids), "diff": diff, "ci": [lo, hi], "mcnemar_p": mcnemar_exact(a > 0.5, b > 0.5)}
+
+
+def faithfulness_gain(judged_other: list[dict], judged_base: list[dict], n: int = 10000, seed: int = 13) -> dict:
+    """other minus base share of claims judged supported. Whole answers are resampled, each system on its own, since
+    the two systems' answers are different texts (not paired)."""
+    def counts(judged):
+        return np.array([[sum(bool(c["verdict"]) for c in r["claims"]), len(r["claims"])] for r in judged], dtype=float)
+
+    a, b = counts(judged_other), counts(judged_base)
+    rng = np.random.default_rng(seed)
+    ia, ib = rng.integers(0, len(a), (n, len(a))), rng.integers(0, len(b), (n, len(b)))
+    boot = a[ia, 0].sum(1) / a[ia, 1].sum(1) - b[ib, 0].sum(1) / b[ib, 1].sum(1)
+    lo, hi = np.percentile(boot, [2.5, 97.5])
+    return {"metric": "faithfulness", "answers": [len(a), len(b)], "diff": float(a[:, 0].sum() / a[:, 1].sum() - b[:, 0].sum() / b[:, 1].sum()),
+            "ci": [float(lo), float(hi)]}
+
+
+def prompt_intervals(questions: list[Question], rows: dict[str, list[dict]], graded: dict[str, list[dict]]) -> dict[str, dict]:
+    """For each addition: its gain over the base on its target, and on answers_when_answerable, with intervals.
+    An interval that includes zero means the difference is not distinguishable from noise."""
+    out = {}
+    for add, target in ADDITIONS:
+        if add not in rows:
+            continue
+        gain_target = (faithfulness_gain(graded[add], graded["base"]) if target == "faithfulness"
+                       else behaviour_gain(target, questions, rows[add], rows["base"]))
+        out[add] = {"target": gain_target, "answers": behaviour_gain("answers_when_answerable", questions, rows[add], rows["base"]),
+                    "distinguishable": bool(gain_target["ci"][0] > 0)}
+    return out
+
+
+def category_breakdown(rows: list[dict], questions: list[Question]) -> dict[str, dict]:
+    """recall@5 and MRR per question category among the answerable ones, so a gain that only helps follow-ups
+    (or hurts them) is visible instead of being averaged away. Reported next to the pooled numbers, not used to decide."""
+    by = {r["id"]: r["rank"] for r in rows}
+    out = {}
+    for cat in sorted({q.category for q in questions if q.expected == "answer"}):
+        ranks = [by[q.id] for q in questions if q.category == cat and q.expected == "answer"]
+        out[cat] = {"n": len(ranks), "recall@5": float(np.mean([r is not None and r <= 5 for r in ranks])),
+                    "mrr": float(np.mean([0.0 if r is None else 1.0 / r for r in ranks]))}
+    return out

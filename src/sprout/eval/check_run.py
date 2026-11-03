@@ -192,7 +192,7 @@ def recompute_comparison(
     a: Scored, b: Scored, metric: str, n: int = BOOTSTRAP_N, seed: int = BOOTSTRAP_SEED
 ) -> dict[str, Any] | None:
     """System a minus system b over the same resampled groups, as saved in a record's `comparisons`.
-    McNemar is always on per-image correctness (accuracy, or recall@k for retrieval)."""
+    McNemar is always on per-image correctness (accuracy, or recall@k for retrieval; for mrr, first-rank hits)."""
     if a.groups != b.groups:
         return None
     if metric == "macro_f1":
@@ -202,7 +202,7 @@ def recompute_comparison(
         diff, lo, hi = paired_macro_f1_diff(a.labels, pa, pb, a.groups, a.probs.shape[1], n, seed)
         p = mcnemar_exact(pa == a.labels, pb == b.labels)
         return {"diff": diff, "ci": [lo, hi], "mcnemar_p": p}
-    if metric != "accuracy" and not re.fullmatch(r"recall@\d+", metric):
+    if metric not in ("accuracy", "mrr") and not re.fullmatch(r"recall@\d+", metric):
         return None
     sa, sb = item_series(metric, a), item_series(metric, b)
     if sa is None or sb is None or len(sa) != len(sb):

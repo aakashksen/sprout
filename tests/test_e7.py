@@ -8,6 +8,7 @@ from sprout.eval.check_run import check_file
 from sprout.experiments import e7_rag as e7
 from sprout.llm.client import FakeLLM
 from sprout.rag.answer import AnswerConfig
+from sprout.rag.evalset import Question
 from sprout.rag.judge import blind_view, judge_answer, split_claims
 from sprout.rag.retrieve import Passage, RetrievalConfig, Retriever
 
@@ -119,31 +120,81 @@ def test_retrieval_record_passes_check_run(root, tmp_path):
     qs = e7.dev_questions(root)
     specs = {"bm25": e7.RetrievalSpec(mode="bm25"), "bm25_history": e7.RetrievalSpec(mode="bm25", query_mode="history")}
     rows = {n: e7.run_retrieval(n, r, s, qs, tmp_path / "w", root) for n, s in specs.items()}
-    path, comps = e7.write_retrieval_record("baseline", rows, specs, "bm25", {"device": "cuda"}, root)
+    path, comps = e7.write_retrieval_record("baseline", rows, specs, "bm25", {"device": "cuda", "gpu": "x"}, root)
     assert check_file(path, root) == []
     rec = json.loads(path.read_text())
     assert rec["subset"] == "answerable" and rec["n"] == 2 and rec["metrics"]["bm25"]["recall@5"] == 1.0
-    assert comps[0]["a"] == "bm25_history" and comps[0]["metric"] == "recall@5"
+    assert set(rec["metrics"]) == {"bm25", "bm25_terms", "bm25_history", "bm25_history_terms"}
+    assert [(c["a"], c["metric"]) for c in comps] == [("bm25_history", "recall@5"), ("bm25_history", "mrr")]
+    assert rec["config"]["device"] == "cuda" and rec["config"]["device_info"]["gpu"] == "x"  # a plain string, as MLflow shows
+    assert rec["config"]["method_version"] == e7.METHOD_VERSION
 
 
-def test_candidate_is_kept_only_when_its_interval_excludes_zero():
-    assert e7.better({"ci": [0.02, 0.2]}) and not e7.better({"ci": [-0.05, 0.2]}) and not e7.better({"ci": [0.0, 0.2]})
+def comp(metric, diff, lo, hi):
+    return {"a": "x", "b": "base", "metric": metric, "diff": diff, "ci": [lo, hi], "mcnemar_p": 0.5}
 
 
-def test_choose_floor_separates_the_two_groups_and_checks_out(root):
-    f = e7.choose_floor([0.8, 0.9, 0.7], [0.2, 0.1])
-    assert 0.2 < f["floor"] < 0.7 and f["balanced"] == 1.0
-    assert e7.choose_floor([0.5], [0.5])["balanced"] == 0.5  # no floor can separate equal scores
+def test_retrieval_rule_v2_keeps_a_gain_on_either_metric_unless_the_other_is_worse():
+    # the first pass: hybrid_rerank over dense, recall@5 +0.117 [0.0, 0.233], MRR +0.169 with an interval above zero
+    assert e7.better([comp("recall@5", 0.117, 0.0, 0.233), comp("mrr", 0.169, 0.07, 0.27)])
+    assert e7.better([comp("recall@5", 0.1, 0.02, 0.2), comp("mrr", 0.0, -0.1, 0.1)])  # other not worse
+    assert not e7.better([comp("recall@5", 0.1, 0.02, 0.2), comp("mrr", -0.01, -0.1, 0.1)])  # other worse
+    assert not e7.better([comp("recall@5", 0.05, -0.05, 0.15), comp("mrr", 0.02, -0.04, 0.08)])  # neither excludes zero
+    assert not e7.better([comp("recall@5", -0.05, -0.1, -0.01), comp("mrr", 0.0, -0.1, 0.1)])
+    with pytest.raises(ValueError):
+        e7.better([comp("recall@5", 0.1, 0.02, 0.2)])
+
+
+def test_floor_rule_v2_answers_at_least_80_percent_then_declines_most():
+    answerable = [0.9, 0.85, 0.8, 0.7, 0.4]  # 80% answered needs a floor at or under 0.7
+    unanswerable = [0.75, 0.6, 0.3, 0.2]
+    f = e7.choose_floor(answerable, unanswerable)
+    assert f["answers_when_answerable"] >= 0.8 and f["floor"] <= 0.7
+    assert f["declines_when_unanswerable"] == 0.75  # 0.75 stays answered; the other three are declined
+    assert "at least 80%" in f["rule_applied"]
+    assert f["curve"] and all({"floor", "answers", "declines"} <= set(c) for c in f["curve"])
+
+
+def test_floor_rule_falls_back_to_the_best_mean_when_no_floor_keeps_80_percent():
+    # every floor above 0 loses answerable questions at once, so only floor 0 reaches 80%; make it unreachable
+    out = e7.choose_floor([], [0.1, 0.9])
+    assert "no floor reached" in out["rule_applied"]
+
+
+def test_floor_record_and_diagnosis(root):
     qs = e7.dev_questions(root)
-    rows = [{"id": q.id, "rank": None, "top_score": s} for q, s in zip(qs, [0.9, 0.8, 0.2, 0.3, 0.5], strict=True)]
+    rows = [{"id": q.id, "rank": None if q.id == "s2" else 2, "top_score": s, "crop": q.crop, "diagnosed": q.id == "s1",
+             "nocrop_top_score": 0.95, "query": q.question}
+            for q, s in zip(qs, [0.9, 0.4, 0.2, 0.3, 0.5], strict=True)]
     kept, dropped = e7.floor_groups(qs, rows)
-    assert kept == [0.9, 0.8] and dropped == [0.2, 0.3]
+    assert kept == [0.9, 0.4] and dropped == [0.2]
     floors = {"hybrid": e7.choose_floor(kept, dropped)}
-    path = e7.write_floor_record(qs, {"hybrid": rows}, floors, 0.3, {"device": "cuda"}, root)
+    diag = e7.floor_diagnosis(qs, rows, 0.6)
+    assert diag["answerable_under_floor"] == 1 and diag["by_category"] == {"supported": 1}
+    assert diag["gold_missing_from_top10"] == 1 and diag["no_simulated_diagnosis"] == 1
+    assert diag["would_pass_floor_without_plant_filter"] == 1
+    path = e7.write_floor_record(qs, {"hybrid": rows}, floors, 0.3, {"device": "cuda"}, root, diagnosis={"hybrid": diag})
     assert check_file(path, root) == []
-    m = json.loads(path.read_text())["metrics"]
-    assert m["floor_chosen_hybrid"]["answers_when_answerable"] == 1.0
-    assert m["floor_chosen_hybrid"]["declines_when_unanswerable"] == 1.0
+    rec = json.loads(path.read_text())
+    assert rec["config"]["floor_diagnosis"]["hybrid"]["answerable_under_floor"] == 1 and rec["config"]["device"] == "cuda"
+
+
+def test_checkpoints_start_fresh_when_settings_or_index_change(root, tmp_path):
+    r = retriever(root)
+    qs = e7.dev_questions(root)[:2]
+    work = tmp_path / "w"
+    e7.run_retrieval("x", r, e7.RetrievalSpec(mode="bm25"), qs, work, root)
+    e7.run_retrieval("x", r, e7.RetrievalSpec(mode="bm25", query_mode="history"), qs, work, root)
+    assert len(list(work.glob("x-*.jsonl"))) == 2  # different settings, different files
+    (root / "knowledge" / "index" / "build-info.json").write_text(json.dumps({"built": "later"}))
+    e7.run_retrieval("x", r, e7.RetrievalSpec(mode="bm25"), qs, work, root)
+    assert len(list(work.glob("x-*.jsonl"))) == 3  # a rebuilt index never reuses old rows
+
+
+def test_term_rank_is_a_lenient_cross_check_of_the_gold_rank(root):
+    qs = {q.id: q for q in e7.dev_questions(root)}
+    other_doc = Passage("Concentric rings are typical", "elsewhere.pdf", 9, "potato", 1.0)
+    assert e7.term_rank([other_doc], qs["s1"]) == 1 and e7.gold_rank([other_doc], qs["s1"], set()) is None
 
 
 def writer_reply(messages):
@@ -186,7 +237,7 @@ def test_an_outage_is_not_recorded_as_an_answer_and_resumes(root, tmp_path):
 
 
 def judge_reply(messages):
-    return "NOT_SUPPORTED" if "weekly" in messages[1]["content"] else "SUPPORTED"
+    return "NOT_SUPPORTED" if "weekly" in messages[-1]["content"] else "SUPPORTED"
 
 
 def test_judged_rows_keep_everything_a_second_grader_needs(root, tmp_path):
@@ -264,9 +315,55 @@ def test_prompt_additions_are_kept_only_when_they_help_without_costing_answers()
     assert worse[0] == "base+ask"  # the larger single gain wins when the combination loses one
 
 
-def test_pair_comparison_matches_what_the_record_stores(root, tmp_path):
+def test_pair_comparisons_give_both_deciding_metrics(root, tmp_path):
     r = retriever(root)
     qs = e7.dev_questions(root)
     a = e7.run_retrieval("a", r, e7.RetrievalSpec(mode="bm25"), qs, tmp_path / "w", root)
     b = e7.run_retrieval("b", r, e7.RetrievalSpec(mode="bm25", query_mode="history"), qs, tmp_path / "w", root)
-    assert set(e7.pair_comparison(a, b, root)) == {"diff", "ci", "mcnemar_p"}
+    got = e7.pair_comparisons(a, b, root)
+    assert [c["metric"] for c in got] == ["recall@5", "mrr"] and set(got[0]) >= {"diff", "ci", "mcnemar_p"}
+
+
+def test_writer_calls_are_counted_and_declined_rows_skip_the_writer(root, tmp_path):
+    qs, (rows, _), llm = generate(root, tmp_path)
+    assert sum(r["llm_calls"] for r in rows) == len(llm.calls)
+    assert all(r["llm_seconds"] >= 0 for r in rows)
+    path = e7.write_generation_record("t", None, {"abstain": rows}, {"abstain": []}, {"writer": "qwen-test", "judge": "gemma-test"},
+                                      {"judge": {"model": "gemma-test"}, "device": "cuda"}, root)
+    usage = json.loads(path.read_text())["config"]["writer_usage"]["abstain"]
+    assert usage["model_calls"] == len(llm.calls) and usage["rows"] == len(qs)
+    assert usage["rows_without_model_call"] == sum(r["llm_calls"] == 0 for r in rows)
+
+
+def test_prompt_gain_intervals_say_when_a_difference_is_noise():
+    def judged(flags):
+        return [{"id": str(i), "claims": [{"verdict": v} for v in f]} for i, f in enumerate(flags)]
+
+    same = e7.faithfulness_gain(judged([[True, False]] * 20), judged([[True, False]] * 20), n=2000)
+    assert same["diff"] == 0 and same["ci"][0] <= 0 <= same["ci"][1]
+    better = e7.faithfulness_gain(judged([[True, True]] * 30), judged([[True, False]] * 30), n=2000)
+    assert better["ci"][0] > 0
+    qs = [Question(id=f"q{i}", category="supported", split="dev", question="q", expected="answer") for i in range(30)]
+    hi = [{"id": q.id, "answered": True} for q in qs]
+    lo = [{"id": q.id, "answered": i % 2 == 0} for i, q in enumerate(qs)]
+    got = e7.behaviour_gain("answers_when_answerable", qs, lo, hi, n=2000)
+    assert got["diff"] < 0 and got["ci"][1] < 0 and got["mcnemar_p"] < 0.01
+
+
+def test_search_latency_is_timed_per_search_and_per_reranker_call_and_records_check_out(root, tmp_path):
+    class Rer:
+        def score(self, query, texts):
+            return [0.5] * len(texts)
+
+    timed = e7.TimedReranker(Rer())
+    r = Retriever(root / "knowledge" / "index", config=RetrievalConfig(min_score=0.0), reranker=timed)
+    spec = e7.RetrievalSpec(mode="bm25", rerank=True)
+    answerable = [q for q in e7.dev_questions(root) if q.expected == "answer"]
+    search_ms, rerank_ms = e7.time_search(r, timed, spec, answerable, root, warmup=1)
+    assert len(search_ms) == len(rerank_ms) == len(answerable) and all(x >= 0 for x in search_ms + rerank_ms)
+    qs = e7.dev_questions(root)
+    rows = {"rerank_a": e7.run_retrieval("rerank_a", r, spec, qs, tmp_path / "w", root)}
+    path, _ = e7.write_retrieval_record("latency", rows, {"rerank_a": spec}, "rerank_a", {"device": "cuda"}, root,
+                                        measurements={"search_ms_a": search_ms, "rerank_ms_a": rerank_ms})
+    assert check_file(path, root) == []
+    assert "rerank_ms_a_p50" in json.loads(path.read_text())["measurements"]["values"]

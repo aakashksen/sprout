@@ -88,11 +88,17 @@
         "{py} -m pytest tests/test_field_data.py -q",
         "{py} -m sprout.data.check_splits field"
       ],
-      "status": "in_progress",
+      "status": "done",
       "started_at": "2026-11-03T03:20:32+00:00",
       "attempts": 0,
       "reason": "one same-photo pair still crosses train/dev with conflicting labels: 2013Corn_GrayLeafSpot_0815_0003.JPG.jpg in Corn Gray leaf spot (dev) and Corn leaf blight (train), pHash 16 dHash 13, outside the 12-bit proposal rule",
-      "note": "user approved one final attempt, relayed by the coordinator: remove bad data only, no re-split, no new thresholds"
+      "note": "user approved one final attempt, relayed by the coordinator: remove bad data only, no re-split, no new thresholds",
+      "verified": {
+        "commit": "846048c4949b85e9a4247156d9d4a99bc6c0b5e6",
+        "passed": true,
+        "at": "2026-11-03T06:19:41+00:00"
+      },
+      "done_at": "2026-11-03T06:26:10+00:00"
     },
     {
       "id": "T2.1",
@@ -148,16 +154,17 @@
         "{py} -m pytest tests/test_records.py -q",
         "{py} -m sprout.eval.claims check"
       ],
-      "status": "in_progress",
-      "worktree": "<local path>",
+      "status": "done",
       "started_at": "2026-11-03T05:12:02+00:00",
+      "attempts": 0,
+      "reason": "test-once bypass: _uses() keeps the latest add per stem, so deleting and re-adding, or git mv away and back, the first test record makes a second use rank first with no override_note; no test covers it",
+      "note": "one more narrow attempt, decided by the coordinator: first add per stem wins",
       "verified": {
-        "commit": "340b9f50829e3e008355285f48d9fc8e6a3d6db8",
+        "commit": "84f37bbf74eacc7ac2bff97df48cd2bcdd8d329f",
         "passed": true,
-        "at": "2026-11-03T06:12:04+00:00"
+        "at": "2026-11-03T06:43:06+00:00"
       },
-      "attempts": 2,
-      "reason": "empty subset (first_0, n=0) skips recomputation so a fabricated 0.999 passes check_run and claims; claims check uses finished_at order and passes cases check_run E9 fails; deleting an earlier test record is not caught"
+      "done_at": "2026-11-03T06:52:33+00:00"
     },
     {
       "id": "T3.1",
@@ -172,7 +179,9 @@
         "{py} -m pytest tests/test_e1.py -q",
         "{py} -m sprout.eval.check_run E1 --min-n 1000 --split lab_dev"
       ],
-      "status": "pending"
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-03T06:52:46+00:00"
     },
     {
       "id": "T3.2",
@@ -426,7 +435,16 @@
         "docker compose build app",
         "{py} -m pytest tests/test_container.py -q -m \"real or not real\""
       ],
-      "status": "pending"
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-03T06:20:03+00:00",
+      "verified": {
+        "commit": "7af21698f8d021ce81318a809871f4c550c62681",
+        "passed": true,
+        "at": "2026-11-03T06:57:59+00:00"
+      },
+      "attempts": 1,
+      "reason": "deploy/entrypoint.sh has no line-ending protection: a fresh Windows clone gets CRLF, the image builds, and the container fails every start with exec no such file or directory, exit 255"
     },
     {
       "id": "T7.4",

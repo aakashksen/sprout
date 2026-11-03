@@ -107,7 +107,7 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 **Before starting:** read how ContextLensV2 solved this, read only, and never change that folder: `<local path>` (`records.py`, `check_run.py`, `claims.py`, `stats.py`, `series.py`) and `<local path>`. Use the same design, so its defects aren't repeated: one record maps each system to its predictions, and `check_run` recomputes the intervals and comparisons.
 **Files:** `src/sprout/eval/records.py`, `src/sprout/eval/check_run.py`, `src/sprout/eval/claims.py`, `results/claims.json`, `tests/test_records.py`.
 **Produces:** `write_run(experiment, split, config, models, metrics, intervals, attempts, predictions, dataset_hash, *, root=ROOT, allow_dirty=False, notes="") -> Path`, with the fields in `docs/TESTING.md`; `allow_dirty` exists for tests only. `python -m sprout.eval.check_run <E#> [--min-n N] [--split S]`, enforcing all rules in `docs/TESTING.md`. The dirty check ignores `orchestration/`, as `taskctl` does. Image splits read their manifests; `rag_dev` and `rag_test` read `datasets/rag/questions.jsonl`; `perf` hashes its fixed image list and uses that list's size. `python -m sprout.eval.claims check`.
-**Tests:** one failing case for each `check_run` rule, plus `test_write_run_refuses_dirty_tree`; `test_claim_without_matching_run_fails`; `test_claim_value_must_equal_metric_in_run`.
+**Tests:** one failing case for each `check_run` rule, plus `test_real_runs_cannot_use_the_fake` (`check_run` rejects a record whose models name `FakeIdentifier` from T5.0); `test_write_run_refuses_dirty_tree`; `test_claim_without_matching_run_fails`; `test_claim_value_must_equal_metric_in_run`.
 **Accept:** `{py} -m pytest tests/test_records.py -q`; `{py} -m sprout.eval.claims check`.
 
 ---
@@ -156,7 +156,7 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 ### T5.0: Identification contract and fake identifier
 **Files:** `src/sprout/serve/types.py`, `tests/test_identify_types.py`.
 **Produces:** `Identification` with `status: answered|unsure|not_plant|invalid`, `top`, `alternatives`, `guidance`; `class IdentifierProtocol`; `FakeIdentifier(results)`. This lets the chatbot and the app be built while training runs. T5.2 implements the real one, and T7.4 and T8.1 use only the real one.
-**Tests:** `test_fake_returns_each_status`; `test_identification_round_trips_as_json`; `test_real_runs_cannot_use_the_fake` (`check_run` rejects a record whose models name it).
+**Tests:** `test_fake_returns_each_status`; `test_identification_round_trips_as_json`. T2.3 owns `test_real_runs_cannot_use_the_fake`, since it builds `check_run`.
 **Accept:** `{py} -m pytest tests/test_identify_types.py -q`.
 
 ### T5.1: Experiment E6, ONNX and quantization

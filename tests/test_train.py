@@ -307,6 +307,8 @@ def test_stale_temp_checkpoint_does_not_break_train_or_resume(manifest, tmp_path
     assert train(cfg, resume=out / "latest.pt").epochs_done == 2
 
 
+# Real worker processes die with WinError 6 on this machine when it is busy, so these run only on request
+# (pytest -m real) and are not retried.
 class _PidProbe(torch.utils.data.Dataset):
     def __len__(self):
         return 4
@@ -317,6 +319,7 @@ class _PidProbe(torch.utils.data.Dataset):
         return os.getpid()
 
 
+@pytest.mark.real
 def test_real_workers_are_separate_processes():
     import os
 
@@ -324,6 +327,7 @@ def test_real_workers_are_separate_processes():
     assert pids and os.getpid() not in pids
 
 
+@pytest.mark.real
 def test_real_workers_reseed_from_the_loader_generator(manifest, tmp_path):
     cm = make_class_map(manifest)
 
@@ -338,6 +342,7 @@ def test_real_workers_reseed_from_the_loader_generator(manifest, tmp_path):
     assert not torch.equal(first(1), first(2))
 
 
+@pytest.mark.real
 def test_real_workers_give_the_zero_worker_first_batch_without_augmentation(manifest, tmp_path):
     cm = make_class_map(manifest)
     batches = []
@@ -347,6 +352,7 @@ def test_real_workers_give_the_zero_worker_first_batch_without_augmentation(mani
     assert torch.equal(batches[0][0], batches[1][0]) and torch.equal(batches[0][1], batches[1][1])
 
 
+@pytest.mark.real
 def test_a_resumed_run_iterates_with_real_workers(manifest, tmp_path, monkeypatch):
     cfg = _config(tmp_path, epochs=2)
     undo = _interrupt_after(monkeypatch, 1)

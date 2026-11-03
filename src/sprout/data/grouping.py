@@ -38,30 +38,22 @@ def _find(parent: list[int], i: int) -> int:
     return i
 
 
-def group_near_duplicates(paths, max_distance: int = 4) -> dict[str, str]:
-    paths = sorted(str(p) for p in paths)
-    n = len(paths)
-    parent = list(range(n))
-
-    def union(a: int, b: int) -> None:
-        parent[_find(parent, a)] = _find(parent, b)
-
+def _union_same_source(paths: list[str], parent: list[int]) -> None:
     by_id = defaultdict(list)
     for i, p in enumerate(paths):
         by_id[source_id(p)].append(i)
     for members in by_id.values():
         for m in members[1:]:
-            union(members[0], m)
+            parent[_find(parent, members[0])] = _find(parent, m)
 
-    base, variants = [], []
-    for p in paths:
-        with Image.open(p) as img:
-            v = _variants(img)
-        base.append(v[0])
-        variants.append(v)
 
-    # Pigeonhole: hashes within max_distance of 64 bits agree exactly on at least
-    # one of (max_distance + 1) chunks, so only chunk-sharing pairs are checked.
+def _union_close_hashes(variants: list[list[int]], parent: list[int], max_distance: int) -> None:
+    """Join images whose pHash is within max_distance bits of any symmetry of the other.
+
+    Pigeonhole: hashes within max_distance of 64 bits agree exactly on at least
+    one of (max_distance + 1) chunks, so only chunk-sharing pairs are checked.
+    """
+    base = [v[0] for v in variants]
     chunks = max_distance + 1
     bounds = np.linspace(0, 64, chunks + 1).astype(int)
     for c in range(chunks):
@@ -75,7 +67,18 @@ def group_near_duplicates(paths, max_distance: int = 4) -> dict[str, str]:
             for j in buckets[(h >> int(lo)) & mask]:
                 if j > i and _find(parent, i) != _find(parent, j):
                     if any((h ^ v).bit_count() <= max_distance for v in variants[j]):
-                        union(i, j)
+                        parent[_find(parent, i)] = _find(parent, j)
+
+
+def group_near_duplicates(paths, max_distance: int = 4) -> dict[str, str]:
+    paths = sorted(str(p) for p in paths)
+    parent = list(range(len(paths)))
+    _union_same_source(paths, parent)
+    variants = []
+    for p in paths:
+        with Image.open(p) as img:
+            variants.append(_variants(img))
+    _union_close_hashes(variants, parent, max_distance)
 
     ids: dict[int, str] = {}
     out = {}

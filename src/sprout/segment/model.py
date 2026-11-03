@@ -6,7 +6,7 @@ import torch
 from PIL import Image
 from torch import nn
 
-from sprout.preprocess import MEAN, STD
+from sprout.preprocess import preprocess
 
 MODEL_SOURCE = {
     "name": "lraspp_mobilenet_v3_large",
@@ -33,10 +33,7 @@ def build_model(pretrained: bool = True) -> nn.Module:
 
 
 def to_tensor(image: Image.Image, size: int) -> torch.Tensor:
-    image = image.convert("RGB").resize((size, size), Image.BILINEAR)
-    x = torch.frombuffer(bytearray(image.tobytes()), dtype=torch.uint8).view(size, size, 3)
-    x = x.permute(2, 0, 1).float() / 255.0
-    return (x - torch.tensor(MEAN).view(3, 1, 1)) / torch.tensor(STD).view(3, 1, 1)
+    return preprocess(image, size)
 
 
 @torch.no_grad()

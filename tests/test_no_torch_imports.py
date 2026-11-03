@@ -1,8 +1,23 @@
+import os
 import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 SRC = Path(__file__).resolve().parents[1] / "src"
+ENV = {**os.environ, "PYTHONPATH": str(SRC)}
+DATA_MODULES = [
+    "sprout.data.check_splits",
+    "sprout.data.class_report",
+    "sprout.data.field",
+    "sprout.data.grouping",
+    "sprout.data.inventory",
+    "sprout.data.masks",
+    "sprout.data.splits",
+    "sprout.segment.data",
+    "sprout.segment.crop",
+]
 
 
 def _modules(package: str) -> list[str]:
@@ -18,5 +33,12 @@ def test_serving_modules_do_not_import_torch():
         "bad = sorted(m for m in sys.modules if m == 'torch' or m.startswith('torch.'))\n"
         "sys.exit('torch was imported: ' + ', '.join(bad[:3]) if bad else 0)\n"
     )
-    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env={**__import__("os").environ, "PYTHONPATH": str(SRC)})
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=ENV)
     assert out.returncode == 0, out.stderr[-500:]
+
+
+@pytest.mark.parametrize("module", DATA_MODULES)
+def test_importing_a_data_module_does_not_load_torch(module):
+    code = f"import sys, {module}; sys.exit(1 if 'torch' in sys.modules else 0)"
+    done = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=ENV)
+    assert done.returncode == 0, f"{module} loaded torch\n{done.stderr}"

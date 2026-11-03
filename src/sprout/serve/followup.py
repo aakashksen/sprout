@@ -98,27 +98,28 @@ def uncovered(top: Top3, bank: Sequence[Question] | None = None) -> list[str]:
     return [c for c, _ in top if c not in covered and not c.endswith("healthy")]
 
 
-def next_question(top: Top3, *, asked: Sequence[str], bank: Sequence[Question] | None = None) -> Question | None:
-    """The unasked question that best splits the top-3 probability in half, or None.
-
-    A question can only be asked if it is tied to at least one top-3 class and not to all of them, since a
-    question every candidate shares tells them apart not at all. Among those, the one whose classes hold
-    the share of top-3 probability closest to one half is chosen; a tie goes to the lower question id.
-    Classes without a question are never the subject of one."""
+def askable(top: Top3, bank: Sequence[Question] | None = None) -> list[Question]:
+    """Every question that could be asked about this top-3: tied to at least one of its classes and not to all
+    of them, since a question every candidate shares tells them apart not at all."""
     bank = _default_bank() if bank is None else bank
+    names = {c for c, _ in top}
+    return [item for item in bank if names & set(item.classes) and not names <= set(item.classes)]
+
+
+def next_question(top: Top3, *, asked: Sequence[str], bank: Sequence[Question] | None = None) -> Question | None:
+    """The unasked askable question that best splits the top-3 probability in half, or None.
+
+    The one whose classes hold the share of top-3 probability closest to one half is chosen; a tie goes to the
+    lower question id. Classes without a question are never the subject of one."""
     total = sum(p for _, p in top)
     if total <= 0:
         return None
-    names = {c for c, _ in top}
     best: tuple[float, str] | None = None
     chosen: Question | None = None
-    for item in bank:
+    for item in askable(top, bank):
         if item.id in asked:
             continue
-        inside = names & set(item.classes)
-        if not inside or inside == names:
-            continue
-        share = sum(p for c, p in top if c in inside) / total
+        share = sum(p for c, p in top if c in item.classes) / total
         key = (abs(share - 0.5), item.id)
         if best is None or key < best:
             best, chosen = key, item

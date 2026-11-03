@@ -152,7 +152,14 @@
         "{py} -m pytest tests/test_records.py -q",
         "{py} -m sprout.eval.claims check"
       ],
-      "status": "pending"
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-03T05:12:02+00:00",
+      "verified": {
+        "commit": "234f7a77240512f4419d6d9ce588efc4e12c6934",
+        "passed": true,
+        "at": "2026-11-03T05:27:29+00:00"
+      }
     },
     {
       "id": "T3.1",
@@ -378,9 +385,16 @@
       "acceptance": [
         "{py} -m pytest tests/test_web.py -q"
       ],
-      "status": "in_progress",
-      "worktree": "<local path>",
-      "started_at": "2026-11-03T05:06:17+00:00"
+      "status": "done",
+      "started_at": "2026-11-03T05:06:17+00:00",
+      "verified": {
+        "commit": "1ce6ed30a83a21adb70ec7ae209d944f76bed634",
+        "passed": true,
+        "at": "2026-11-03T05:21:17+00:00"
+      },
+      "attempts": 1,
+      "reason": "vector cache in Retriever not atomic and load has no error handling: truncated file makes every chat 500 permanently; cold embed exceeds 20s timeout, concurrent threads rewrite the file; /readyz ready while chat times out",
+      "done_at": "2026-11-03T05:35:49+00:00"
     },
     {
       "id": "T7.2",

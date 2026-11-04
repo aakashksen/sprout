@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 import re
+import subprocess
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -14,7 +15,7 @@ from typing import Any
 
 import numpy as np
 
-from sprout.eval import agreement, check_cache
+from sprout.eval import agreement, answer_checks, check_cache
 from sprout.eval import metrics as M
 from sprout.eval.records import (
     BOOTSTRAP_N,
@@ -452,6 +453,10 @@ def _header_problems(rec: dict[str, Any], root: Path, min_n: int) -> list[str]:
     if rec["dirty"]:
         problems.append("record was made on a dirty tree")
     problems += _stamp_problems(rec)
+    if rec["experiment"] == "E9":
+        saved = (rec["config"] or {}).get("labels_reviewed")
+        if rec["labels_reviewed"] is not saved:
+            problems.append("labels_reviewed differs from config.labels_reviewed")
     problems += _finite_problems(rec)
     if any(FAKE.search(s) for s in _strings(rec["models"])):
         problems.append("a model name matches fake or stub")
@@ -475,7 +480,7 @@ def _scope(rec: dict[str, Any], root: Path, problems: list[str]) -> tuple[SplitI
     positions = list(range(len(info.ids)))
     if rec["subset"] is not None:
         try:
-            positions = subset_positions(rec["subset"], rec["split"], info, root)
+            positions = subset_positions(rec["subset"], rec["split"], info, root, rec.get("git_commit"))
         except ValueError as exc:
             problems.append(str(exc))
             return None
@@ -645,12 +650,297 @@ def _judge_check_problems(rec: dict[str, Any], root: Path, min_n: int) -> list[s
     return problems
 
 
+def _prompt_problems(rec: dict[str, Any], root: Path) -> list[str]:
+    """E9: the wrong-disease prompt the record names must be the file's text at the commit the record was made on."""
+    cfg = rec["config"]
+    rel, want = cfg.get("prompt_file"), cfg.get("prompt_sha256")
+    if not (isinstance(rel, str) and isinstance(want, str)):
+        return ["config must name prompt_file and prompt_sha256"]
+    shown = subprocess.run(["git", "show", f"{rec['git_commit']}:{rel}"], cwd=root, capture_output=True)
+    if shown.returncode != 0 or hashlib.sha256(shown.stdout).hexdigest() != want:
+        return [f"prompt_sha256 is not the hash of {rel} at the record's commit"]
+    return []
+
+
+def _e9_dev_rows(rec: dict[str, Any], info: SplitInfo, rows: list[dict[str, Any]], root: Path) -> list[str]:
+    """Rows of the wrong-disease dev stage: one per checked answer, from the sha-checked E7 judgments file."""
+    cfg, problems = rec["config"], []
+    if any(set(r) != set(answer_checks.DEV_ROW_KEYS) for r in rows):
+        return ["every row must hold exactly " + ", ".join(answer_checks.DEV_ROW_KEYS)]
+    ids = [r["id"] for r in rows]
+    if len(set(ids)) != len(ids) or not set(ids) <= set(info.ids):
+        problems.append("rows must be distinct rag_dev questions")
+    if any(r["call"] != answer_checks.parse_call(str(r["reply"])) for r in rows):
+        problems.append("a row's call is not what its reply says")
+    src = cfg.get("source")
+    path = root / RUNS_REL / src["judgments"] if isinstance(src, dict) and "judgments" in src else None
+    if path is None or not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != src.get("judgments_sha256"):
+        return problems + ["the source judgments file named in config.source is missing or differs from its sha256"]
+    saved = {(r["system"], r["id"]): (r["question"], r["answer"]) for r in _read_rows(path)}
+    bad = sum(saved.get((cfg.get("served_system"), r["id"])) != (r["question"], r["answer"]) for r in rows)
+    if bad:
+        problems.append(f"{bad} rows' question or answer differ from the source judgments")
+    if rec["claude_calls"] != len(rows):
+        problems.append("claude_calls must be one per checked answer")
+    return problems
+
+
+def _e9_dev_problems(rec: dict[str, Any], root: Path, min_n: int) -> list[str]:
+    """E9 stage records on rag_dev (the wrong-disease dev run). Rows are not one per split item, so
+    they are checked on their own and every number is recomputed with sprout.eval.answer_checks."""
+    problems = _header_problems(rec, root, min_n)
+    info = split_info(rec["split"], root)
+    if rec["dataset_hash"] != info.hash:
+        problems.append("dataset_hash does not match the manifest")
+    paths, metrics, cfg = rec["predictions"], rec["metrics"], rec["config"]
+    if not (isinstance(paths, dict) and set(paths) == {"served"} and isinstance(metrics, dict) and set(metrics) == {"served"}):
+        return problems + ["an E9 stage record holds one system, served, in predictions and metrics"]
+    if not (root / paths["served"]).is_file():
+        return problems + ["the predictions file is missing"]
+    rows = _read_rows(root / paths["served"])
+    if len(rows) != rec["n"]:
+        problems.append(f"predictions hold {len(rows)} rows but n={rec['n']}")
+    stage = cfg.get("stage") if isinstance(cfg, dict) else None
+    if stage == "wrong_disease_dev":
+        found, fresh, fresh_ci = _e9_dev_rows(rec, info, rows, root), None, None
+        if not found:
+            fresh, fresh_ci = answer_checks.dev_metrics(rows), answer_checks.dev_intervals(rows)
+    else:
+        return problems + [f"unknown E9 stage {stage!r} on rag_dev"]
+    problems += found + _prompt_problems(rec, root)
+    if fresh is not None:
+        saved = metrics["served"]
+        if set(saved) != set(fresh) or not all(_same(fresh[k], saved[k]) for k in fresh):
+            problems.append("metrics do not recompute from predictions")
+        got = (rec["intervals"].get("served") or {})
+        if set(got) != set(fresh_ci) or not all(_same_pair(fresh_ci[k], got[k]) for k in fresh_ci):
+            problems.append("intervals do not recompute from predictions")
+    if set(rec["intervals"]) - {"served"}:
+        problems.append("intervals name systems not in predictions")
+    return problems
+
+
+def _e9_final_problems(rec: dict[str, Any], root: Path) -> list[str]:
+    """E9 rag_test: the saved claims must be the answer's own claims, each verdict must follow from its reply, the judged
+    samples must be the rows' own claims, the first judge must be the one the committed Haiku check names, and the prompt
+    must be the frozen one. Neither judge's figure may be called accuracy, upper or conservative."""
+    from sprout.experiments.e14_judge_check import parse_verdict
+    from sprout.rag.judge import split_claims
+
+    cfg, problems = rec["config"], _prompt_problems(rec, root)
+    shown = subprocess.run(["git", "show", f"{rec['git_commit']}:configs/e9_wrong_disease.json"], cwd=root,
+                           capture_output=True)
+    frozen = json.loads(shown.stdout) if shown.returncode == 0 else {}
+    if frozen.get("prompt_sha256") != cfg.get("prompt_sha256"):
+        problems.append("config.prompt_sha256 is not the frozen prompt's hash at the record's commit")
+    problems += _frozen_record_problems(frozen, root)
+    rows = _read_rows(root / rec["predictions"]["served"])
+    if any(set(r) != set(answer_checks.FINAL_ROW_KEYS) for r in rows) or any(
+            set(c) != set(answer_checks.CLAIM_KEYS) for r in rows for c in r["claims"]):
+        return problems + ["every row and claim must hold exactly the E9 fields"]
+    bad = {"claims": 0, "haiku": 0, "sonnet": 0, "check": 0, "calls": 0}
+    for r in rows:
+        want = [c.text for c in split_claims(r["text"])] if r["state"] in ("answered", "ungrounded") else []
+        bad["claims"] += [c["claim"] for c in r["claims"]] != want
+        bad["haiku"] += any(c["haiku"] != parse_verdict(str(c["haiku_reply"])) for c in r["claims"])
+        bad["sonnet"] += any(c["sonnet"] != parse_verdict(str(c["sonnet_reply"])) for c in r["claims"])
+        reply = r["wrong_disease_reply"]
+        bad["check"] += (r["wrong_disease"] != answer_checks.parse_call(str(reply or ""))
+                         or (reply is None) != (not r["claims"]))
+        bad["calls"] += (r["haiku_calls"] != len(r["claims"])
+                         or r["sonnet_calls"] != len(r["claims"]) + (reply is not None))
+    for key, what in (("claims", "claims do not follow from the answer text"),
+                      ("haiku", "a Haiku verdict does not match its reply"),
+                      ("sonnet", "a Sonnet verdict does not match its reply"),
+                      ("check", "a wrong-disease call does not match its reply or its answer has no claim to check"),
+                      ("calls", "haiku_calls or sonnet_calls is not one per claim (plus one per check for Sonnet)")):
+        if bad[key]:
+            problems.append(f"{bad[key]} rows: {what}")
+    calls = {"haiku": sum(r["haiku_calls"] for r in rows), "sonnet": sum(r["sonnet_calls"] for r in rows)}
+    if cfg.get("calls") != calls or rec["claude_calls"] != calls["haiku"] + calls["sonnet"]:
+        problems.append("claude_calls or config.calls differ from the calls the rows record")
+    side = root / rec["judged"]["file"] if isinstance(rec["judged"], dict) and "file" in rec["judged"] else None
+    if side is None or not side.is_file() or json.loads(side.read_text(encoding="utf-8")) != answer_checks.final_lists(rows):
+        problems.append("the judged samples are not the rows' own claim verdicts and checks")
+    problems += _first_judge_problems(rec, root)
+    if re.search(r"accuracy|\bupper\b|conservative", json.dumps({k: rec[k] for k in ("config", "models", "notes", "judged", "metrics")}), re.I):
+        problems.append("a judge's figure is called accuracy, upper or conservative; it is a share of claims judged supported")
+    return problems
+
+
+def _first_judge_problems(rec: dict[str, Any], root: Path) -> list[str]:
+    """The Haiku judge is the first judge the committed Haiku check names, at the commit the record was made on."""
+    judges = rec["config"].get("judges")
+    if not (isinstance(judges, dict) and isinstance(judges.get("haiku"), dict) and isinstance(judges.get("sonnet"), dict)
+            and judges.get("same_claims_and_rubric") is True):
+        return ["config.judges must name the Haiku judge and the Sonnet judge, reading the same claims and rubric"]
+    shown = git(root, "show", f"{rec['git_commit']}:results/e14/haiku_decision.json")
+    decision = json.loads(shown.stdout) if shown.returncode == 0 else {}
+    if decision.get("first_judge") != "haiku" or judges["haiku"].get("model") != decision.get("model") \
+            or rec["models"].get("judge_first") != decision.get("model")             or (rec["config"].get("judge") or {}).get("model") != decision.get("model"):
+        return ["the first judge is not the model the committed Haiku decision (results/e14/haiku_decision.json) names"]
+    return []
+
+
+def _e9_roles_problems(rec: dict[str, Any], root: Path) -> list[str]:
+    """E9 images: config.primary and the alternates are the candidates the committed decision picks. The frozen config
+    and the decision are read at the commit the record names, so a later decision does not change an earlier record.
+    An alternate whose checkpoint was not on disk is named in config.alternates_not_scored instead of being scored."""
+    from sprout.eval import e9_roles
+
+    cfg = rec["config"]
+    frozen = git(root, "show", f"{rec['git_commit']}:configs/e9.json")
+    if frozen.returncode != 0:
+        return []  # no E9 config was committed where this record was made (a bare fixture, not a real E9 run)
+    read = {"frozen config": json.loads(frozen.stdout)}
+    got = git(root, "show", f"{rec['git_commit']}:{read['frozen config'].get('decision_file')}")
+    if got.returncode != 0:
+        return ["the decision cannot be read at the record's commit, so primary and alternate cannot be re-derived"]
+    e15 = git(root, "show", f"{rec['git_commit']}:{read['frozen config'].get('e15_config')}")
+    try:
+        decision = e9_roles.normalized(json.loads(got.stdout), json.loads(e15.stdout) if e15.returncode == 0 else {})
+        specs = e9_roles.candidate_specs(read["frozen config"].get("candidates", {}), decision)
+        primary, others = e9_roles.roles(read["frozen config"].get("candidates", {}), decision)
+    except (ValueError, StopIteration) as exc:
+        return [f"the committed decision cannot be matched to a candidate: {exc}"]
+    out = []
+    wants = [("primary", primary)] + [(e9_roles.system_of(i), k) for i, k in enumerate(others)]
+    left = {x.get("candidate") for x in cfg.get("alternates_not_scored") or [] if isinstance(x, dict)}
+    for role, key in wants:
+        have = cfg.get(role)
+        if have is None and key in left and role != "primary":
+            continue
+        want = {"candidate": key, "checkpoint": specs[key]["checkpoint"]}
+        if role == "primary":
+            want["sha256"] = decision.get("chosen_model_sha256")
+        if not isinstance(have, dict) or any(have.get(k) != v for k, v in want.items()):
+            out.append(f"config.{role} differs from the committed decision (it should be {key}, {want['checkpoint']})")
+    named = {r for r, _ in wants}
+    if any(k.startswith("alternate") and k not in named for k in cfg if k not in ("alternates_not_scored",)):
+        out.append("config names an alternate the committed decision does not")
+    if cfg.get("chosen_model") != decision.get("chosen_model"):
+        out.append("config.chosen_model differs from the committed decision")
+    return out
+
+
+def _e9_exif_problems(rec: dict[str, Any], root: Path, info: SplitInfo) -> list[str]:
+    """config.exif counts the photos of the whole scored set, which the shared-classes view of a lab record shares, so
+    it is counted again from the headers of the set the subset names without that view."""
+    parts = [x for x in (rec["subset"] or "").split("+") if x and x != "shared_classes"]
+    try:
+        positions = subset_positions("+".join(parts), rec["split"], info, root, rec.get("git_commit")) if parts else range(len(info.ids))
+        fresh = answer_checks.exif_counts([root / info.ids[i] for i in positions])
+    except (OSError, ValueError):
+        return ["config.exif cannot be recomputed: some scored photos are not on disk"]
+    return [] if rec["config"].get("exif") == fresh else ["config.exif does not recompute from the photos' headers"]
+
+
+def _e9_thresholds_problems(rec: dict[str, Any], root: Path) -> list[str]:
+    """config.quantized_thresholds is E6's own account, read again from the E6 record it names."""
+    cfg = rec["config"]
+    saved = cfg.get("quantized_thresholds")
+    path = root / RUNS_REL / f"{saved.get('e6_record')}.json" if isinstance(saved, dict) else None
+    if path is None or not path.is_file():
+        return ["config.quantized_thresholds must name an E6 record that exists"]
+    e6 = json.loads(path.read_text(encoding="utf-8"))
+    held = (e6.get("config") or {}).get("e5_thresholds") or {}
+    row = (held.get("systems") or {}).get(saved.get("variant"))
+    if e6.get("experiment") != "E6" or e6["config"].get("checkpoint_sha256") != cfg.get("chosen_model_sha256") or row is None:
+        return ["config.quantized_thresholds: the named record is not an E6 record of the chosen checkpoint for this variant"]
+    want = {"e6_record": e6["run_id"], "variant": saved["variant"], "e6_split": e6["split"], "file": held["file"],
+            "temperature": held["temperature"], "abstain_threshold": held["abstain_threshold"],
+            "names_this_checkpoint": held["names_this_checkpoint"], "on_e6_rows": row}
+    return [] if saved == want else ["config.quantized_thresholds does not match the E6 record it names"]
+
+
+def _e9_image_problems(rec: dict[str, Any], root: Path, info: SplitInfo, positions: list[int]) -> list[str]:
+    """E9 lab_test and field_test: the cleaned-row counts recompute from the exclusion log, and each calibrated system is its plain system's saved probabilities at E5's temperature,
+    with E5's threshold in its metric names."""
+    from sprout.data.label_review import read_log
+    from sprout.serve.calibrate import apply_temperature
+
+    cfg, problems = rec["config"], _e9_roles_problems(rec, root)
+    if rec["split"] == "field_test":
+        saved = cfg.get("cleaned_rows")
+        version = saved.get("version") if isinstance(saved, dict) else None
+        if not isinstance(version, int) or rec["subset"] != f"clean:{version}":
+            problems.append("an E9 field_test record must be scored on its cleaned rows (subset clean:N) and state config.cleaned_rows")
+        elif saved != answer_checks.cleaned_rows(read_log(root / "datasets" / "label_exclusions.csv"), version, info.ids,
+                                                 [info.ids[i] for i in subset_positions(f"clean:{version}", "field_test", info, root)]):
+            problems.append("config.cleaned_rows does not recompute from the exclusion log")
+    real = git(root, "cat-file", "-e", f"{rec['git_commit']}:configs/e9.json").returncode == 0  # else a bare fixture
+    if real:
+        problems += _e9_exif_problems(rec, root, info) + _e9_thresholds_problems(rec, root)
+    cal = cfg.get("calibration")
+    bound = cfg.get("calibration_binding")
+    for system in ("improved", *[k for k in ("alternate", "alternate_2") if k in cfg], "quantized") if real else ():
+        role = cfg.get(system if system.startswith("alternate") else "primary")
+        have = bound.get(system) if isinstance(bound, dict) else None
+        fitted = cal.get(system) if isinstance(cal, dict) else None
+        if not (isinstance(have, dict) and isinstance(role, dict)):
+            problems.append(f"config.calibration_binding must say which checkpoint {system}'s calibration is bound to")
+        elif have.get("sha256") != role.get("sha256") or have.get("calibration_file") != (fitted or {}).get("file"):
+            problems.append(f"config.calibration_binding for {system} does not match the checkpoint it is scored on "
+                            "and the calibration file used")
+    for name, rel in rec["predictions"].items():
+        base = name.removesuffix("_calibrated")
+        if base == name:
+            continue
+        settings = cal.get(base) if isinstance(cal, dict) else None
+        if not (isinstance(settings, dict) and {"temperature", "abstain_threshold"} <= set(settings)):
+            problems.append(f"{name}: config.calibration must hold temperature and abstain_threshold for {base}")
+            continue
+        t = f"{settings['abstain_threshold']:.6f}".rstrip("0").rstrip(".")
+        if base not in rec["predictions"] or not (root / rel).is_file() or not (root / rec["predictions"][base]).is_file():
+            problems.append(f"{name}: calibrated system without its plain system's predictions")
+            continue
+        raw = {r["path"]: r["probs"] for r in _read_rows(root / rec["predictions"][base])}
+        got = {r["path"]: r["probs"] for r in _read_rows(root / rel)}
+        fresh = {k: apply_temperature(np.log(np.maximum(np.array(v, dtype=float), 1e-12)), settings["temperature"])
+                 for k, v in raw.items()}
+        if set(got) != set(fresh) or not all(np.allclose(got[k], fresh[k], atol=1e-9, rtol=0) for k in got):
+            problems.append(f"{name}: probabilities are not the plain system's at the calibration temperature")
+        if f"coverage@{t}" not in rec["metrics"].get(name, {}):
+            problems.append(f"{name}: metrics lack coverage@{t}, the calibration's abstention threshold")
+    return problems
+
+
+def _frozen_record_problems(frozen: dict[str, Any], root: Path) -> list[str]:
+    """The frozen config's dev run must exist, have been made before the freeze, and name the frozen prompt's hash; the
+    frozen config must say the check was not validated."""
+    out = []
+    if frozen.get("validated") is not False:
+        out.append("the frozen config must say validated: false (the check was not read blind)")
+    try:
+        frozen_at = datetime.fromisoformat(frozen["frozen_at"])
+    except (KeyError, TypeError, ValueError):
+        return out + ["the frozen config has no valid frozen_at"]
+    rid = frozen.get("dev_record")
+    path = root / RUNS_REL / f"{rid}.json"
+    if not path.is_file():
+        return out + [f"frozen dev_record {rid} does not exist"]
+    rec = json.loads(path.read_text(encoding="utf-8"))
+    cfg = rec.get("config") or {}
+    if not (rec.get("experiment") == "E9" and rec.get("split") == "rag_dev" and cfg.get("stage") == "wrong_disease_dev"):
+        out.append(f"dev_record {rid} is not an E9 wrong_disease_dev record on rag_dev")
+    if cfg.get("prompt_sha256") != frozen.get("prompt_sha256"):
+        out.append(f"dev_record {rid}: its prompt_sha256 is not the frozen prompt's")
+    try:
+        if datetime.fromisoformat(rec["finished_at"]) >= frozen_at:
+            out.append(f"dev_record {rid}: finished at or after the freeze; it must be made before the freeze")
+    except (KeyError, TypeError, ValueError):
+        out.append(f"dev_record {rid}: has no valid finished_at to compare with the freeze")
+    return out
+
+
 def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
     problems = [f"missing field {k}" for k in REQUIRED if k not in rec]
     if problems:
         return problems
     if rec["experiment"] == "E14":
         return _judge_check_problems(rec, root, min_n)
+    if rec["experiment"] == "E9" and rec["split"] == "rag_dev":
+        return _e9_dev_problems(rec, root, min_n)
     if rec["experiment"] == "E14H":
         from sprout.experiments.e14h_haiku_check import problems as haiku_check_problems
 
@@ -660,6 +950,8 @@ def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
     if scope is None:
         return problems
     info, positions = scope
+    if rec["experiment"] == "E9" and rec["split"] in ("lab_test", "field_test"):
+        problems += _e9_image_problems(rec, root, info, positions)
 
     shape = _shape_problem(rec)
     if shape and not shape.startswith("bootstrap"):
@@ -682,6 +974,9 @@ def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
     problems += _measurement_problems(rec["judged"], root, "judged")
     if rec["judged"]:
         problems += _judge_problems(rec["config"], rec["models"])
+    if rec["experiment"] == "E9" and rec["split"] == "rag_test":
+        problems += (_e9_final_problems(rec, root) if set(rec["predictions"]) == {"served"}
+                     else ["an E9 rag_test record holds one system, served"])
     return problems
 
 
@@ -696,8 +991,9 @@ def _row_map(root: Path, rel: str) -> dict[str, str]:
 
 def _is_view_of(view: dict[str, Any], full: dict[str, Any], root: Path) -> bool:
     """A declared subset drawn from the same commit, models, config and predictions as a full record."""
-    if view.get("subset") is None or full.get("subset") is not None:
-        return False
+    parts = lambda r: set((r.get("subset") or "").split("+")) - {""}  # noqa: E731
+    if view.get("subset") is None or parts(view) == parts(full) or not parts(full) <= parts(view):
+        return False  # a view narrows its full record: it holds every part of the full record's subset and more
     drop = lambda c: {k: v for k, v in (c or {}).items() if k != "override_note"}  # noqa: E731
     if any(view.get(k) != full.get(k) for k in ("git_commit", "models", "split")) or drop(view.get("config")) != drop(
         full.get("config")

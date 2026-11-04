@@ -98,16 +98,17 @@ def scoring_part(groups: list[str], seed: int, fit_percent: int) -> np.ndarray:
     return np.array([g not in fit for g in groups], dtype=bool)
 
 
-def subset_positions(name: str, split: str, info: SplitInfo, root: Path = ROOT) -> list[int]:
+def subset_positions(name: str, split: str, info: SplitInfo, root: Path = ROOT, commit: str | None = None) -> list[int]:
     """Positions within the split of a declared subset: `first_<N>` rows, `source:<name>` (field rows whose
     `source` column in field.csv is <name>), `shared_classes` (labels present in both lab.csv and field.csv),
-    `final_classes` (labels in `classes` of configs/e15.json), `answerable` (RAG questions whose gold behaviour is to answer), `clean:<N>` (field rows not in datasets/label_exclusions.csv up to version N), or
+    `final_classes` (labels in `classes` of configs/e15.json), `answerable` (RAG questions whose gold behaviour is to answer), `clean:<N>` (field rows not in datasets/label_exclusions.csv up to version N),
+    `classes_in:<json path>` (rows whose label is in that file's `classes`, read at `commit` when one is given), or
     `group_part:<seed>:<fit_percent>` (the scoring part of `scoring_part`, for settings fitted on the rest).
     Parts joined with `+` must all hold."""
     if "+" in name:
         keep = None
         for part in name.split("+"):
-            found = set(subset_positions(part, split, info, root))
+            found = set(subset_positions(part, split, info, root, commit))
             keep = found if keep is None else keep & found
         return sorted(keep)
     clean = re.fullmatch(r"clean:(\d+)", name)
@@ -121,6 +122,17 @@ def subset_positions(name: str, split: str, info: SplitInfo, root: Path = ROOT) 
     part = re.fullmatch(r"group_part:(\d+):(\d+)", name)
     if part:
         return [int(i) for i in np.flatnonzero(scoring_part(info.groups, int(part.group(1)), int(part.group(2))))]
+    listed = re.fullmatch(r"classes_in:(.+)", name)
+    if listed and info.labels is not None:
+        if commit is None:
+            text = (root / listed.group(1)).read_text(encoding="utf-8")
+        else:  # the file as it was at the record's commit
+            shown = git(root, "show", f"{commit}:{listed.group(1)}")
+            if shown.returncode != 0:
+                raise ValueError(f"{listed.group(1)} cannot be read at commit {commit}")
+            text = shown.stdout
+        names = set(json.loads(text)["classes"])
+        return [i for i, label in enumerate(info.labels) if label in names]
     first = re.fullmatch(r"first_(\d+)", name)
     if first:
         return list(range(min(int(first.group(1)), len(info.ids))))

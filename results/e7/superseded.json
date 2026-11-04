@@ -25,7 +25,7 @@
    "reason": "method v1 (first pass): its selection rules were revised after seeing its numbers (docs/DECISIONS.md, method revised)"
   },
   "E7-20261103T231812228057Z": {
-   "by": "E7-20261104T013649302918Z",
+   "by": "E7-20261104T040010301317Z",
    "reason": "method v1 (first pass): its selection rules were revised after seeing its numbers (docs/DECISIONS.md, method revised); prompt variants ran behind a dense floor, so 60 of 101 questions never reached the writer"
   },
   "E7-20261104T004412525032Z": {
@@ -47,10 +47,15 @@
   "E7-20261104T012205498018Z": {
    "by": "E7-20261104T014326302860Z",
    "reason": "the comparison used the base prompt, not the chosen one"
+  },
+  "E7-20261104T013649302918Z": {
+   "by": "E7-20261104T040010301317Z",
+   "reason": "made before the decline fixes: prose declines and a trailing NO_SUPPORT were counted as answers and kept their sources; rerun on the fixed code"
+  },
+  "E7-20261104T014326302860Z": {
+   "by": "E7-20261104T040723229114Z",
+   "reason": "made before the decline fixes: prose declines and a trailing NO_SUPPORT were counted as answers and kept their sources; rerun on the fixed code"
   }
  },
- "needs_rerun": {
-  "E7-20261104T013649302918Z": "answer() later began to decline on a NO_SUPPORT token anywhere and on a prose decline in the first sentence; some answered rows would become declines, so its answer-rate numbers (and faithfulness over the remaining claims) change",
-  "E7-20261104T014326302860Z": "same answer() change; the local and Sonnet answered rows would change"
- }
+ "needs_rerun": {}
 }

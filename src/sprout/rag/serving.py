@@ -2,7 +2,8 @@
 
 Retrieval: hybrid search with reranking over the main index, with a score floor per mode. Prompt: the base prompt plus
 the `faithful` and `abstain` rules. The floors and the prompt were picked on rag_dev (method v2, see docs/DECISIONS.md),
-so they are optimistic; the prompt choice is direction-only, since neither rule's gain is distinguishable from noise.
+so they are optimistic. Both prompt rules are distinguishable gains over the base prompt on rag_dev
+(record E7-20261104T040010301317Z).
 Reranking costs about 30 ms on the GPU and about 600 ms on the CPU per search (record E7-20261103T235630916335Z).
 """
 

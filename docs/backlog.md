@@ -17,3 +17,10 @@ Short index of the 93-item audit the plan refers to as #N. "Skipped" items aren'
 **State and deployment (69-82):** 69 process-local state; 70 scoped conversations; 71 database setup; 72 persistent storage; 73 model and index provisioning; 74 missing dependencies; 75 locked dependencies; 76 startup race; 77 liveness vs readiness; 78 arbitrary startup delay; 79 timeouts and retries; 80 worker memory; 81 container permissions; 82 measured performance.
 
 **Frontend and presentation (83-93):** 83 chat logic; 84 report button; 85 request handling; 86 deletion; 87 regression tests; 88 smoke test; 89 CI; 90 README; 91 model report; 92 demo and examples; 93 resume claims.
+
+# Try later
+
+Things to try if time allows. None of these is a plan task, and none blocks anything. Fixed rules and code stay in place.
+
+- **E12 gate G1, look-alike retrain:** retrain with PlantDoc held out and its extras at DINOv2 class-token cosine 0.75 or above removed, to learn how much of the PlantDoc gain survives. Rule in `docs/DECISIONS.md`, T4.6 gates entry; code on branch `gates/E12`, `tools/extra_trim.py` and `configs/e12_gates.json`.
+- **E12 gate G2, second seed:** rerun E12 and the E4 arms it's compared with on one new seed, paired, for the seen-source and both held-out runs, because the held-out gain rests on one seed. Same entry and code.

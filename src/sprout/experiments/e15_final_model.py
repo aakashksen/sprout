@@ -3,7 +3,9 @@
 Settings and the decision rules are in configs/e15.json. Run from the repo root with PYTHONPATH set to its src folder,
 one stage per command (each is safe to run alone, and says what it needs):
   classes   CPU  the 80/10/10 class rule from the manifests -> results/e15/classes.json; refuses if it differs from the config
-  extra     CPU  rebuild extra_train without the cap (same copy checks) -> datasets/manifests/extra_train_full.csv
+  extra     CPU or GPU (--device cuda) rebuild extra_train without the cap (same copy checks; the 2026-11-04 attempt on
+                 the CPU was still running after 31 minutes, the T4.8 build took 123 minutes on a GPU share)
+                 -> datasets/manifests/extra_train_full.csv
                  and results/e15/extra_full.json (rows, hash, the rows the cap used to cut)
   draws     CPU  every pass's draw, and how many different photos training will see -> results/e15/draws.json
   train     GPU  10 passes, best pass chosen on field_dev accuracy -> models/e15/final/{best,latest}.pt (--resume continues)
@@ -17,6 +19,7 @@ field_test and lab_test photos are never opened; field_test rows are only counte
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
 import json
 import os
@@ -241,12 +244,13 @@ def _extra(cfg: dict[str, Any]) -> pd.DataFrame:
     return load_manifest(name if (MANIFEST_DIR / f"{name}.csv").is_file() else "extra_train")
 
 
-def stage_extra(cfg: dict[str, Any], root: Path, summary: dict[str, Any] | None = None) -> Path:
+def stage_extra(cfg: dict[str, Any], root: Path, summary: dict[str, Any] | None = None, device: str = "cpu") -> Path:
     """Build the uncapped manifest and describe it. `summary` is the dict extra_sources.main returned (or printed)
     for a build that already ran, so a finished build is not repeated."""
     from sprout.data import extra_sources
 
-    summary = summary or extra_sources.main(cap=10**9, out_name=cfg["extra"]["manifest"])
+    summary = summary or extra_sources.main(lambda: contextlib.nullcontext(device), cap=10**9,
+                                            out_name=cfg["extra"]["manifest"])
     new = load_manifest(cfg["extra"]["manifest"])
     old = load_manifest("extra_train")
     cut = summary["removed"].get("over the per-class cap", 0)
@@ -584,15 +588,18 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--num-workers", type=int, default=None)
     ap.add_argument("--note", default="")
+    ap.add_argument("--device", default="cpu", choices=("cpu", "cuda"), help="extra stage only: where the DINOv2 copy checks run")
     a = ap.parse_args(argv)
     try:
         cfg = load_config(ROOT / a.config)
         if a.stage == "train":
             result: Any = stage_train(cfg, ROOT, resume=a.resume, num_workers=a.num_workers)
+        elif a.stage == "extra":
+            result = stage_extra(cfg, ROOT, device=a.device)
         elif a.stage == "score":
             result = stage_score(cfg, ROOT, num_workers=a.num_workers, note=a.note)
         else:
-            result = {"classes": stage_classes, "extra": stage_extra, "draws": stage_draws, "decide": stage_decide,
+            result = {"classes": stage_classes, "draws": stage_draws, "decide": stage_decide,
                       "refit": stage_refit}[a.stage](cfg, ROOT)
     except (RuntimeError, ValueError, OSError, KeyError) as exc:
         print(f"refused: {exc}", file=sys.stderr)

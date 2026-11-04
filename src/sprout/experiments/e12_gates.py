@@ -53,6 +53,9 @@ def sick_healthy_split(new: Scored, old: Scored, healthy: np.ndarray) -> dict[st
     is_healthy = healthy[new.labels]
     out: dict[str, Any] = {"n_sick": int((~is_healthy).sum()), "n_healthy": int(is_healthy.sum())}
     for part, mask, metric in (("sick_only_macro_f1", ~is_healthy, "macro_f1"), ("healthy_accuracy", is_healthy, "accuracy")):
+        if not mask.any():  # PlantSeg's rows are all sick: there is no healthy accuracy to report
+            out[part] = None
+            continue
         a, b = _part(new, mask), _part(old, mask)
         got = recompute_comparison(a, b, metric)
         out[part] = {"new": float(recompute_metric(metric, a)), "old": float(recompute_metric(metric, b)),

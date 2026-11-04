@@ -17,6 +17,8 @@ from sprout.experiments import e5_confidence as e5
 from sprout.experiments import e12_gates as g
 from sprout.experiments import e12_more_sources as e12
 
+_part = g._part
+
 ROOT = Path(__file__).resolve().parents[1]
 GATES = ROOT / "configs" / "e12_gates.json"
 BASE_RUNS = ("convnext_joint_extra", "heldout_plantdoc_extra", "heldout_plantseg_extra")
@@ -176,6 +178,9 @@ def test_sick_only_and_healthy_split_is_computed_on_the_right_rows():
     assert out["sick_only_macro_f1"]["diff"] == 0 and out["sick_only_macro_f1"]["ci_touches_zero"] is True
     assert (out["healthy_accuracy"]["new"], out["healthy_accuracy"]["old"], out["healthy_accuracy"]["diff"]) == (1.0, 0.0, 1.0)
     assert out["healthy_accuracy"]["ci"][0] > 0 and out["healthy_accuracy"]["ci_touches_zero"] is False
+    only_sick = ~np.isin(labels, [0])  # a source with no healthy photo, like PlantSeg
+    one = g.sick_healthy_split(_part(good, only_sick), _part(bad, only_sick), healthy)
+    assert one["healthy_accuracy"] is None and one["n_healthy"] == 0 and one["sick_only_macro_f1"]["new"] == 1.0
 
 
 # ---------------------------------------------------------------------------------------------------------------

@@ -187,6 +187,7 @@ def cfg():
         "experiment": "E6", "split": "field_dev", "subset": "clean:1", "out_dir": "results/e6",
         "model_dir": "models/e6", "model": {"name": "tiny", "checkpoint": "models/e4/best.pt"},
         "crop_kept": False, "torch_device": "cpu", "threads": 1, "batch_size": 3, "chunk": 2,
+        "quantize": ["dynamic"], "scoring_part": {"seed": 0, "fit_percent": 50},
         "calibration": {"split": "lab_dev", "n": 3, "seed": 0}, "thresholds": "results/e5/chosen.json",
         "latency": {"images": 3, "warmup": 1},
     }
@@ -207,16 +208,16 @@ def test_stages_end_to_end_and_the_record_passes_check_run(world, cfg):
     record = e6.run_stage("record", cfg, world)
     rec = json.loads(record.read_text())
     assert rec["experiment"] == "E6" and rec["split"] == "field_dev" and rec["subset"] == "clean:1"
-    assert set(rec["predictions"]) == {"pytorch", "onnx", "onnx_dynamic", "onnx_static"}
+    assert set(rec["predictions"]) == {"pytorch", "onnx_dynamic"}  # the unquantized ONNX file is not scored
     assert rec["n"] == 7  # eight field_dev photos, one excluded; field_test and field_train never read
     assert {r["path"] for r in _rows(world, "pytorch")} == {f"f/dev{i}.jpg" for i in range(8)} - {"f/dev1.jpg"}
-    assert rec["metrics"]["onnx"]["changed_vs@pytorch"] == pytest.approx(0.0)
+    assert 0.0 <= rec["metrics"]["onnx_dynamic"]["changed_vs@pytorch"] <= 1.0
     assert "changed_vs@pytorch" not in rec["metrics"]["pytorch"]
     c = rec["config"]
     assert set(c["probs_device"].values()) == {"cpu"} and c["latency"]["threads"] == 1 and c["latency"]["cpu"]
     assert c["segmentation_model"].startswith("not exported") and "crop" in c["segmentation_model"]
-    assert c["calibration"]["split"] == "lab_dev" and len(c["calibration"]["paths"]) == 3
-    assert {"latency_ms_onnx_static_p50", "latency_ms_onnx_static_p95"} <= set(rec["measurements"]["values"])
+    assert c["calibration"] is None  # dynamic quantization uses no calibration photos
+    assert {"latency_ms_onnx_dynamic_p50", "latency_ms_onnx_dynamic_p95"} <= set(rec["measurements"]["values"])
     assert {f"size_bytes_{s}_p50" for s in rec["predictions"]} <= set(rec["measurements"]["values"])
     assert check("E6", root=world, min_n=7, split="field_dev") == []
 
@@ -228,30 +229,49 @@ def test_every_exported_file_carries_the_checkpoint_checksum(world, cfg):
         assert OnnxModel(world / "models/e6" / info["file"]).source_sha256 == state["checkpoint_sha256"], system
 
 
-def test_record_states_how_e5_thresholds_behave_on_every_system(world, cfg):
-    from sprout.experiments.e5_confidence import FLOOR
-    from sprout.serve.calibrate import apply_temperature
+def test_record_states_how_the_fitted_thresholds_behave_on_every_system(world, cfg):
+    from sprout.experiments.e5_confidence import calibrate, scoring_part
 
     _run_stages(cfg, world)
     rows = _rows(world, "pytorch")
-    top = apply_temperature(np.log(np.maximum([r["probs"] for r in rows], FLOOR)), 1.5).max(axis=1)
-    threshold = float(np.sort(top)[3])  # answers some photos and abstains on others
-    (world / "results/e5/chosen.json").write_text(json.dumps({"temperature": 1.5, "abstain_threshold": threshold}))
+    top = calibrate(np.array([r["probs"] for r in rows]), 1.5).max(axis=1)
+    abstain = float(np.sort(top)[3])  # answers some photos and abstains on others
+    (world / "results/e5/chosen.json").write_text(json.dumps(
+        {"temperature": 1.5, "abstain_threshold": abstain, "healthy_threshold": 1.0, "healthy_suffix": "A"}))
     _commit(world)
     rec = json.loads(e6.run_stage("record", cfg, world).read_text())
-    t = rec["config"]["e5_thresholds"]
-    assert t["file"] == "results/e5/chosen.json" and t["temperature"] == 1.5 and t["abstain_threshold"] == threshold
+    t = rec["config"]["thresholds"]
+    assert t["file"] == "results/e5/chosen.json" and t["temperature"] == 1.5 and t["abstain_threshold"] == abstain
     assert t["model_sha256"] is None and t["names_this_checkpoint"] is None  # this file names no model
-    assert set(t["systems"]) == {"pytorch", "onnx", "onnx_dynamic", "onnx_static"}
-    probs = apply_temperature(np.log(np.maximum([r["probs"] for r in rows], FLOOR)), 1.5)
-    answered = probs.max(axis=1) >= threshold
-    wrong = probs.argmax(axis=1) != np.array([r["label"] for r in rows])
-    assert 0 < answered.sum() < len(rows)
-    got = t["systems"]["pytorch"]
-    assert got["n"] == 7 and got["coverage"] == pytest.approx(answered.mean())
-    assert got["abstained"] == pytest.approx(1 - answered.mean())
-    assert got["confident_error_rate"] == pytest.approx(wrong[answered].mean())
-    assert "Coverage at E5's fitted abstention threshold" in rec["notes"]
+    assert set(t["systems"]) == {"pytorch", "onnx_dynamic"}
+    cal = calibrate(np.array([r["probs"] for r in rows]), 1.5)
+    y = np.array([r["label"] for r in rows])
+    # class "A" (column 0) counts as healthy here, and its bar is 1.0: it is never answered
+    ok = (cal.max(axis=1) >= abstain) & (cal.argmax(axis=1) != 0)
+    got = t["systems"]["pytorch"]["all_rows"]
+    assert 0 < ok.sum() < len(rows)
+    assert got["n"] == 7 and got["answered"] == ok.sum() and got["unsure"] == len(rows) - ok.sum()
+    assert got["coverage"] == pytest.approx(ok.mean())
+    assert got["confident_wrong"] == (ok & (cal.argmax(axis=1) != y)).sum()
+    assert got["healthy_answers"] == 0 and got["sick_called_healthy"] == 0
+    names = [n for n, _ in sorted({"A": 0, "B": 1}.items(), key=lambda kv: kv[1])]
+    groups = [g for _p, _l, g, s_ in FIELD_ROWS if s_ == "field_dev" and _p != "f/dev1.jpg"]
+    part = scoring_part(groups, 0, 50)
+    assert t["systems"]["pytorch"]["scoring_part"]["n"] == part.sum() and names
+    assert "Thresholds fitted for the PyTorch model" in rec["notes"]
+
+
+def test_fitted_classes_may_be_listed_in_another_order_than_the_model_s(world, cfg):
+    _run_stages(cfg, world)
+    counts = []
+    for classes in (["A", "B"], ["B", "A"]):
+        (world / "results/e5/chosen.json").write_text(json.dumps(
+            {"temperature": 1.0, "abstain_threshold": 0.5, "classes": classes}))
+        _commit(world)
+        rec = json.loads(e6.run_stage("record", cfg, world).read_text())
+        counts.append(rec["config"]["thresholds"]["systems"]["pytorch"]["all_rows"])
+        _commit(world)
+    assert counts[0] == counts[1] and counts[0]["n"] == 7
 
 
 def test_record_says_whether_the_thresholds_name_this_checkpoint(world, cfg):
@@ -264,7 +284,7 @@ def test_record_says_whether_the_thresholds_name_this_checkpoint(world, cfg):
         _commit(world)
         _run_stages(cfg, world)
         rec = json.loads(e6.run_stage("record", cfg, world).read_text())
-        assert rec["config"]["e5_thresholds"]["names_this_checkpoint"] is want
+        assert rec["config"]["thresholds"]["names_this_checkpoint"] is want
         _commit(world)
 
 
@@ -276,7 +296,7 @@ def test_record_refuses_without_latency(world, cfg):
 
 def test_probs_stage_resumes_and_does_not_redo_finished_rows(world, cfg, monkeypatch):
     _run_stages(cfg, world, ("export", "probs"))
-    path = world / "results/e6/probs.onnx.jsonl"
+    path = world / "results/e6/probs.onnx_dynamic.jsonl"
     full = path.read_text()
     path.write_text("".join(full.splitlines(keepends=True)[:3]) + '{"path": "f/dev')  # crash mid-line
     calls = []
@@ -288,14 +308,14 @@ def test_probs_stage_resumes_and_does_not_redo_finished_rows(world, cfg, monkeyp
 
 def test_new_checkpoint_discards_old_outputs(world, cfg):
     _run_stages(cfg, world, ("export", "probs"))
-    before = _rows(world, "onnx")
+    before = _rows(world, "onnx_dynamic")
     torch.manual_seed(5)
     model = build_model("tiny_cnn", 2, pretrained=False)
     ckpt = TrainConfig(manifest="m.csv", out_dir="o", model="tiny_cnn")
     torch.save({"model": model.state_dict(), "class_map": {"A": 0, "B": 1}, "config": ckpt.to_dict()},
                world / "models/e4/best.pt")
     _run_stages(cfg, world, ("export", "probs"))
-    after = _rows(world, "onnx")
+    after = _rows(world, "onnx_dynamic")
     assert [r["path"] for r in after] == [r["path"] for r in before] and after != before
 
 
@@ -318,3 +338,13 @@ def test_real_config_is_valid_and_names_the_model_path():
     cfg = json.loads((Path(__file__).resolve().parents[1] / "configs" / "e6.json").read_text())
     e6.check_config(cfg)
     assert cfg["model"]["checkpoint"].endswith(".pt")
+
+
+def test_static_mode_is_built_scored_and_timed_when_the_config_asks_for_it(world, cfg):
+    both = {**cfg, "quantize": ["dynamic", "static"], "calibration": {"split": "field_train", "n": 3, "seed": 0}}
+    _run_stages(both, world)
+    rec = json.loads(e6.run_stage("record", both, world).read_text())
+    assert set(rec["predictions"]) == {"pytorch", "onnx_dynamic", "onnx_static"}
+    assert rec["config"]["calibration"]["split"] == "field_train" and len(rec["config"]["calibration"]["paths"]) == 2
+    with pytest.raises(ValueError, match="quantize"):
+        e6.check_config({**cfg, "quantize": ["half"]})

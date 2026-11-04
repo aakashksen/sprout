@@ -39,14 +39,14 @@ from sprout.eval.records import (
     subset_positions,
     write_run,
 )
-from sprout.experiments.e5_confidence import FLOOR
-from sprout.serve.calibrate import apply_temperature
+from sprout.experiments.e5_confidence import calibrate, scoring_part
+from sprout.experiments.e15_final_model import answered, mask_columns
 from sprout.serve.export import OnnxModel, export_onnx, quantize
 
 SPLIT = "field_dev"
 REFERENCE = "pytorch"
-ONNX_FILES = {"onnx": "model.onnx", "onnx_dynamic": "model.dynamic.onnx", "onnx_static": "model.static.onnx"}
-SYSTEMS = (REFERENCE, *ONNX_FILES)
+BASE = "onnx"  # the unquantized ONNX file: built because the quantized ones come from it, never scored or timed
+ONNX_FILES = {BASE: "model.onnx", "onnx_dynamic": "model.dynamic.onnx", "onnx_static": "model.static.onnx"}
 CALIBRATION_SPLITS = ("lab_dev", "lab_train", "field_train")  # never field_dev (scored) or any test split
 INTERVALS = ("accuracy", "macro_f1")
 CAVEAT = (
@@ -55,7 +55,15 @@ CAVEAT = (
 )
 
 
+def systems(cfg: dict[str, Any]) -> tuple[str, ...]:
+    """The systems compared: the PyTorch model and each quantized file named in `quantize`."""
+    return (REFERENCE, *(f"onnx_{m}" for m in cfg["quantize"]))
+
+
 def check_config(cfg: dict[str, Any]) -> None:
+    bad = [m for m in cfg["quantize"] if m not in ("dynamic", "static")]
+    if not cfg["quantize"] or bad:
+        raise ValueError(f"quantize lists dynamic and/or static, not {cfg['quantize']!r}")
     if cfg["split"] != SPLIT:
         raise ValueError(f"E6 scores {SPLIT} only, not {cfg['split']!r}")
     if cfg["calibration"]["split"] not in CALIBRATION_SPLITS:
@@ -142,7 +150,8 @@ def stage_export(cfg: dict[str, Any], root: Path) -> None:
     state = json.loads(p.export.read_text(encoding="utf-8")) if p.export.is_file() else {}
     if state.get("checkpoint_sha256") != sha:
         state = {"checkpoint_sha256": sha, "files": {}}  # a different model: nothing built so far is reusable
-    calibration = {"split": cfg["calibration"]["split"], "paths": calibration_paths(cfg, root)}
+    static = "onnx_static" in systems(cfg)
+    calibration = {"split": cfg["calibration"]["split"], "paths": calibration_paths(cfg, root)} if static else None
     if state.get("calibration") != calibration:
         state["files"].pop("onnx_static", None)
     state["calibration"] = calibration
@@ -163,19 +172,20 @@ def stage_export(cfg: dict[str, Any], root: Path) -> None:
         atomic_write_text(p.export, json.dumps(state, indent=1) + "\n")
         log(p, f"export {system}: {out.stat().st_size} bytes in {time.time() - t:.1f}s")
 
-    build("onnx", lambda: export_onnx(p.checkpoint, base))
-    build("onnx_dynamic", lambda: quantize(base, "dynamic"))
-    build("onnx_static", lambda: quantize(base, "static", [root / x for x in calibration["paths"]]))
+    build(BASE, lambda: export_onnx(p.checkpoint, base))
+    for system in systems(cfg)[1:]:
+        mode = system.removeprefix("onnx_")
+        build(system, lambda mode=mode: quantize(base, mode, [root / x for x in calibration["paths"]] if static else None))
 
 
-def exported(p: Paths) -> dict[str, Any]:
+def exported(p: Paths, cfg: dict[str, Any]) -> dict[str, Any]:
     """export.json, after checking the files on disk are the ones it describes and match the checkpoint."""
     if not p.export.is_file():
         raise RuntimeError("run the export stage first")
     state = json.loads(p.export.read_text(encoding="utf-8"))
     if state["checkpoint_sha256"] != sha256_file(p.checkpoint):
         raise RuntimeError("the checkpoint changed since the export stage; run it again")
-    for system in ONNX_FILES:
+    for system in (BASE, *systems(cfg)[1:]):
         info = state["files"].get(system)
         if not info or sha256_file(p.models / info["file"]) != info["sha256"]:
             raise RuntimeError(f"{system} is missing or changed since the export stage; run it again")
@@ -214,9 +224,9 @@ def _device_name(device: str) -> str:
 
 def stage_probs(cfg: dict[str, Any], root: Path) -> None:
     p = Paths(cfg, root)
-    state = exported(p)
+    state = exported(p, cfg)
     paths, _groups, labels, _info = scored_rows(cfg, root)
-    for system in SYSTEMS:
+    for system in systems(cfg):
         device = _device_name(cfg["torch_device"]) if system == REFERENCE else "cpu"
         meta = {"source_sha256": source_sha(state, system), "device": device, "subset": cfg["subset"]}
         rows: list[dict[str, Any]] = []
@@ -277,7 +287,7 @@ def stage_latency(cfg: dict[str, Any], root: Path) -> None:
     import torch
 
     p = Paths(cfg, root)
-    state = exported(p)
+    state = exported(p, cfg)
     paths = scored_rows(cfg, root)[0][: cfg["latency"]["images"]]
     images = []
     for x in paths:
@@ -292,7 +302,7 @@ def stage_latency(cfg: dict[str, Any], root: Path) -> None:
     if {k: saved.get(k) for k in machine} != machine:
         saved = {**machine, "systems": {}}  # another machine or setting: earlier numbers do not carry over
     torch.set_num_threads(cfg["threads"])
-    for system in SYSTEMS:
+    for system in systems(cfg):
         old = saved["systems"].get(system)
         if old and old["source_sha256"] == source_sha(state, system) and len(old["samples_ms"]) == len(images):
             log(p, f"latency {system}: finished already")
@@ -323,41 +333,56 @@ def stage_latency(cfg: dict[str, Any], root: Path) -> None:
 # record
 
 
-def threshold_behaviour(cfg: dict[str, Any], root: Path, checkpoint_sha: str, preds: dict[str, Predictions]) -> dict[str, Any]:
-    """How the fitted temperature and abstention threshold behave on each system's probabilities: the share of
-    scored photos answered (coverage), the share abstained on, and the error rate among the answered ones.
-    E5 fitted them on PyTorch probabilities; the ONNX rows say whether they hold on the files that get served."""
+def threshold_behaviour(cfg: dict[str, Any], root: Path, checkpoint_sha: str, preds: dict[str, Predictions],
+                        names: list[str], groups: list[str]) -> dict[str, Any]:
+    """How the fitted temperature, abstain threshold and healthy threshold behave on each system's probabilities.
+    The outputs are masked to the fitted file's `classes` and renormalized, as `Identifier` does. Counts are given on
+    the refit's scoring part (the groups it did not fit on: same seed and share) and on all rows. `sick_called_healthy`
+    is a sick photo answered with a healthy label."""
     path = root / cfg["thresholds"]
     fitted = json.loads(path.read_text(encoding="utf-8"))
-    temperature, threshold = float(fitted["temperature"]), float(fitted["abstain_threshold"])
-    named = fitted.get("model_sha256")
-    systems = {}
+    temperature, abstain = float(fitted["temperature"]), float(fitted["abstain_threshold"])
+    healthy = max(abstain, float(fitted.get("healthy_threshold", 0.0)))
+    suffix = fitted.get("healthy_suffix", "___healthy")
+    classes = fitted.get("classes") or names
+    part = scoring_part(groups, cfg["scoring_part"]["seed"], cfg["scoring_part"]["fit_percent"])
+    flags = np.array([c.endswith(suffix) for c in classes])
+    systems_out = {}
     for system, pr in preds.items():
-        top = apply_temperature(np.log(np.maximum(pr.probs, FLOOR)), temperature)
-        answered = top.max(axis=1) >= threshold
-        wrong = top.argmax(axis=1) != pr.label
-        systems[system] = {
-            "n": int(len(wrong)), "coverage": float(answered.mean()), "abstained": float(1 - answered.mean()),
-            "confident_error_rate": float(wrong[answered].mean()) if answered.any() else None,
-        }
+        cal = calibrate(mask_columns(pr.probs, names, classes), temperature)
+        y = np.array([classes.index(names[i]) for i in pr.label])
+        top = cal.argmax(axis=1)
+        ok = answered(cal, classes, abstain, healthy, suffix)
+        counts = {}
+        for label, rows in (("scoring_part", part), ("all_rows", np.ones(len(y), dtype=bool))):
+            a = ok & rows
+            counts[label] = {
+                "n": int(rows.sum()), "answered": int(a.sum()), "unsure": int((rows & ~ok).sum()),
+                "coverage": float(a.sum() / rows.sum()), "healthy_answers": int((a & flags[top]).sum()),
+                "sick_called_healthy": int((a & ~flags[y] & flags[top]).sum()),
+                "confident_wrong": int((a & (top != y)).sum()),
+            }
+        systems_out[system] = counts
+    named = fitted.get("model_sha256")
     return {
         "file": cfg["thresholds"], "file_sha256": sha256_file(path), "temperature": temperature,
-        "abstain_threshold": threshold, "model_sha256": named,
-        "names_this_checkpoint": None if named is None else named == checkpoint_sha, "systems": systems,
+        "abstain_threshold": abstain, "healthy_threshold": healthy, "classes": len(classes), "model_sha256": named,
+        "names_this_checkpoint": None if named is None else named == checkpoint_sha,
+        "scoring_part": cfg["scoring_part"], "systems": systems_out,
     }
 
 
 def stage_record(cfg: dict[str, Any], root: Path) -> Path:
     p = Paths(cfg, root)
-    state = exported(p)
+    state = exported(p, cfg)
     paths, groups, labels, info = scored_rows(cfg, root)
     if not p.latency.is_file():
         raise RuntimeError("run the latency stage first (alone on the machine); the record needs its numbers")
     latency = json.loads(p.latency.read_text(encoding="utf-8"))
-    class_map = OnnxModel(p.models / state["files"]["onnx"]["file"]).class_map
+    class_map = OnnxModel(p.models / state["files"][BASE]["file"]).class_map
     names = sorted(class_map, key=class_map.get)
     preds, devices = {}, {}
-    for system in SYSTEMS:
+    for system in systems(cfg):
         source = source_sha(state, system)
         meta = json.loads(p.probs_meta(system).read_text(encoding="utf-8")) if p.probs_meta(system).is_file() else {}
         rows = read_jsonl(p.probs(system)) if p.probs(system).is_file() else []
@@ -372,18 +397,18 @@ def stage_record(cfg: dict[str, Any], root: Path) -> Path:
         raise RuntimeError("the saved labels do not match the manifest")
     scored = {s: Scored(groups=groups, labels=pr.label, probs=pr.probs) for s, pr in preds.items()}
     metrics = {s: standard_image_metrics(pr.probs, pr.label, names) for s, pr in preds.items()}
-    for s in ONNX_FILES:
+    for s in systems(cfg)[1:]:
         metrics[s]["changed_vs@" + REFERENCE] = float(
             (preds[s].probs.argmax(axis=1) != preds[REFERENCE].probs.argmax(axis=1)).mean())
     intervals = {s: {m: recompute_interval(m, sc) for m in INTERVALS} for s, sc in scored.items()}
     comparisons = []
-    for s in ONNX_FILES:
+    for s in systems(cfg)[1:]:
         for m in INTERVALS:
             got = recompute_comparison(scored[REFERENCE], scored[s], m)
             comparisons.append({"a": REFERENCE, "b": s, "metric": m, "diff": got["diff"], "ci": got["ci"],
                                 "mcnemar_p": got["mcnemar_p"]})
     measurements = {}
-    for s in SYSTEMS:
+    for s in systems(cfg):
         measurements[f"latency_ms_{s}"] = latency["systems"][s]["samples_ms"]
         size = p.checkpoint.stat().st_size if s == REFERENCE else state["files"][s]["size_bytes"]
         measurements[f"size_bytes_{s}"] = [float(size)]
@@ -392,28 +417,30 @@ def stage_record(cfg: dict[str, Any], root: Path) -> Path:
         "class_names": names,
         "model": cfg["model"],
         "checkpoint_sha256": state["checkpoint_sha256"],
-        "onnx_files": {s: {k: v for k, v in state["files"][s].items() if k != "file"} for s in ONNX_FILES},
+        "onnx_files": {s: {k: v for k, v in state["files"][s].items() if k != "file"} for s in (BASE, *systems(cfg)[1:])},
         "segmentation_model": "not exported: E4 kept no crop (crop_kept is false in configs/e6.json), so no "
                               "segmentation step is exported or timed",
         "calibration": state["calibration"],
         "probs_device": devices,
         "latency": {**machine, "measured": "one photo at a time on the CPU, decoded beforehand, from resize to "
                                            "probabilities, by the latency stage run alone"},
-        "e5_thresholds": threshold_behaviour(cfg, root, state["checkpoint_sha256"], preds),
+        "thresholds": threshold_behaviour(cfg, root, state["checkpoint_sha256"], preds, names, groups),
         "label": "development number, field_dev only",
     }
-    sizes = ", ".join(f"{s} {measurements[f'size_bytes_{s}'][0] / 1e6:.1f} MB" for s in SYSTEMS)
+    sizes = ", ".join(f"{s} {measurements[f'size_bytes_{s}'][0] / 1e6:.1f} MB" for s in systems(cfg))
     loss = "; ".join(f"{c['b']} {c['diff']:+.4f} [{c['ci'][0]:+.4f}, {c['ci'][1]:+.4f}]"
                      for c in comparisons if c["metric"] == "macro_f1")
     notes = (f"{CAVEAT} Sizes: {sizes}. Macro-F1 of pytorch minus each ONNX file: {loss}. Latency on {machine['cpu']}, "
              f"{machine['threads']} threads. Class probabilities were computed on {devices[REFERENCE]} (PyTorch) and the "
              "CPU (ONNX).")
-    held = "; ".join(f"{s} {v['coverage']:.3f}" for s, v in config["e5_thresholds"]["systems"].items())
-    notes += f" Coverage at E5's fitted abstention threshold on these photos (E5 aimed for 0.5 on its fitting part): {held}."
+    held = "; ".join(f"{s} {v['scoring_part']['answered']}/{v['scoring_part']['n']} answered, "
+                     f"{v['scoring_part']['sick_called_healthy']} sick called healthy"
+                     for s, v in config["thresholds"]["systems"].items())
+    notes += f" Thresholds fitted for the PyTorch model, on the refit's scoring part: {held}."
     attempts = [{"setting": s, "result": f"macro_f1 {metrics[s]['macro_f1']:.4f}", "device": devices[s]}
-                for s in SYSTEMS]
+                for s in systems(cfg)]
     models = {s: (f"{cfg['model']['name']} checkpoint {cfg['model']['checkpoint']}" if s == REFERENCE
-                  else f"{cfg['model']['name']} {ONNX_FILES[s]}") for s in SYSTEMS}
+                  else f"{cfg['model']['name']} {ONNX_FILES[s]}") for s in systems(cfg)}
     return write_run("E6", SPLIT, config, models, metrics, intervals, attempts, preds, info.hash, root=root,
                      notes=notes, subset=cfg["subset"], comparisons=comparisons, measurements=measurements)
 

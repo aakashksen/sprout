@@ -457,9 +457,6 @@ def _header_problems(rec: dict[str, Any], root: Path, min_n: int) -> list[str]:
         saved = (rec["config"] or {}).get("labels_reviewed")
         if rec["labels_reviewed"] is not saved:
             problems.append("labels_reviewed differs from config.labels_reviewed")
-        if rec["labels_reviewed"] is not False or saved is not False:
-            problems.append("an E9 record holds no label signature (labels_reviewed must be false): the person signs "
-                            "each split in orchestration/label_signoff.json, which claims check reads")
     problems += _finite_problems(rec)
     if any(FAKE.search(s) for s in _strings(rec["models"])):
         problems.append("a model name matches fake or stub")

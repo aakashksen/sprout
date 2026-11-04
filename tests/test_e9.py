@@ -1058,12 +1058,16 @@ def prior_stems(root, split):
     return e9.prior_uses(root, split)
 
 
-def test_a_record_that_claims_a_signature_is_refused_by_check_run(repo):
+def test_an_edited_labels_reviewed_is_caught_and_claims_ignore_it_for_e9(repo):
     (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
+    claim_on(repo, path)
     rec = json.loads(path.read_text())
-    rec["labels_reviewed"] = rec["config"]["labels_reviewed"] = True
+    rec["labels_reviewed"] = True  # a hand edit of one copy
     path.write_text(json.dumps(rec))
-    assert any("no label signature" in p for p in check_file(path, repo, min_n=1))
+    assert any("labels_reviewed" in p for p in check_file(path, repo, min_n=1))
+    rec["config"]["labels_reviewed"] = True  # both copies: valid as a record, but it signs nothing
+    path.write_text(json.dumps(rec))
+    assert any("not signed" in p for p in check_claims(repo))
 
 
 # ----------------------------------------------------------------------------------------------- the frozen records

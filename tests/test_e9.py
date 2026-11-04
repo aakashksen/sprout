@@ -583,7 +583,7 @@ def test_wrong_disease_dev_makes_one_call_per_answer_and_reports_its_rate(rag_re
     first = json.dumps(llm.calls[0])
     assert "Question: My apple leaves have scab q1" in first and "Diagnosis: The photo suggests Apple - scab" in first
     assert "SUPPORTED" not in first and "judge-model" not in first and "served" not in first
-    assert rec["config"]["prompt_sha256"] == e9.sha256_file(rag_repo / e9.PROMPT_REL)
+    assert rec["config"]["prompt_sha256"] == e9.text_sha256(rag_repo / e9.PROMPT_REL)
     assert rec["models"]["grader"] == "sonnet"
     assert check_file(path, rag_repo, min_n=1) == []
     assert "accuracy" not in path.read_text().lower()
@@ -699,7 +699,7 @@ def test_freeze_records_the_prompt_commit_and_hash_and_says_the_check_was_not_va
     commit(rag_repo, "dev record")
     path = e9.stage_freeze(cfg, rag_repo)
     frozen = json.loads(path.read_text())
-    assert frozen["prompt_sha256"] == e9.sha256_file(rag_repo / e9.PROMPT_REL)
+    assert frozen["prompt_sha256"] == e9.text_sha256(rag_repo / e9.PROMPT_REL)
     assert frozen["prompt_commit"] == git(rag_repo, "log", "-1", "--format=%H", "--", e9.PROMPT_REL).stdout.strip()
     assert frozen["rendered_sha256"] == e9.rendered_sha256(rag_repo)
     assert {"dev_record", "frozen_at"} <= set(frozen) and "blind_read_record" not in frozen

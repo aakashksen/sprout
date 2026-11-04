@@ -125,6 +125,15 @@ def sha256_file(path: Path) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+CRLF, LF = bytes([13, 10]), bytes([10])
+
+
+def text_sha256(path: Path) -> str:
+    """Hash of a text file as git stores it (LF endings), so it equals the hash of `git show <commit>:<path>` on a machine
+    that checks files out with CRLF."""
+    return hashlib.sha256(Path(path).read_bytes().replace(CRLF, LF)).hexdigest()
+
+
 # ---------------------------------------------------------------- the wrong-disease prompt
 
 def prompt_text(root: Path = ROOT) -> str:
@@ -208,15 +217,35 @@ NO_OWN_CALIBRATION = ("the alternate has no calibration of its own (E5 was not r
                       "it), and another model's calibration is not applied to it, so it is scored without abstention only")
 
 
+def path_bound(checkpoint: Path, root: Path, chosen: str, e5_config: str = "configs/e5.json") -> tuple[str, str]:
+    """The checkpoint's sha256 and how a calibration file with no `model_sha256` of its own (E4's, which E5 wrote before
+    it recorded one) is tied to it: the checkpoint is the path configs/e5.json says E5 used, and a committed E5 record
+    of the same E4 record holds the file's temperature and threshold. ValueError when that cannot be shown."""
+    checkpoint = Path(checkpoint).resolve()
+    sha = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
+    fitted = json.loads((root / chosen).read_text(encoding="utf-8"))
+    model = json.loads((root / e5_config).read_text(encoding="utf-8"))["model"]
+    if (root / model["checkpoint"]).resolve() != checkpoint:
+        raise ValueError(f"{checkpoint} is not the checkpoint E5 used ({model['checkpoint']} in {e5_config})")
+    shown = [p for p in sorted((root / "results" / "runs").glob("E5-*.json"))
+             if (c := json.loads(p.read_text(encoding="utf-8")).get("config", {}))
+             and c.get("model_record") == model["e4_record"] and c.get("temperature") == fitted["temperature"]
+             and c.get("abstain_threshold") == fitted["abstain_threshold"]]
+    if not shown:
+        raise ValueError(f"no E5 record of E4 record {model['e4_record']} shows the temperature and threshold in "
+                         f"{chosen}, so the file cannot be tied to that model")
+    rel = checkpoint.relative_to(root.resolve()).as_posix() if checkpoint.is_relative_to(root.resolve()) else str(checkpoint)
+    return sha, (f"path: {rel} is the checkpoint configs/e5.json names, and {shown[0].name} shows these numbers for E4 "
+                 f"record {model['e4_record']}; E5 stored no checksum when it was fitted")
+
+
 def bindings(cfg: dict[str, Any], decision: dict[str, Any], calibration: dict[str, dict[str, Any]],
              shas: dict[str, str | None], quantized_source: str | None, root: Path = ROOT) -> dict[str, dict[str, Any]]:
     """Which checkpoint each calibration is bound to, shown by the file's own hash or, for E5's file that carries none,
-    by sprout.serve.bind. A calibration fitted for another checkpoint than the one it is applied to is refused. An
+    by `path_bound`. A calibration fitted for another checkpoint than the one it is applied to is refused. An
     alternate with no calibration of its own is dropped from `calibration` and says why. The quantized file goes the
     way serving would take it: its stamped source checkpoint must be the one the primary's calibration is bound to.
     `shas` holds the sha256 of each scored model by system name."""
-    from sprout.serve.bind import bound_calibration
-
     root = Path(root)
     specs = specs_of(cfg, decision)
     primary, others = candidate_roles(cfg, decision)
@@ -235,8 +264,7 @@ def bindings(cfg: dict[str, Any], decision: dict[str, Any], calibration: dict[st
             if saved.get("model_sha256"):
                 found, by = saved["model_sha256"], "the file names this checkpoint's sha256"
             else:
-                bound = bound_calibration(root / spec["checkpoint"], root, spec["calibration"])
-                found, by = bound["model_sha256"], bound["bound_by"]
+                found, by = path_bound(root / spec["checkpoint"], root, spec["calibration"])
         except (ValueError, OSError) as exc:
             if role != "improved":
                 del calibration[role]
@@ -440,7 +468,7 @@ def run_images(split: str, cfg: dict[str, Any], predictors: dict[str, Predictor]
                  for n, k in alternates.items()}
     config = {
         "class_names": names, "split": split, "frozen_config": CONFIG_REL,
-        "frozen_config_sha256": sha256_file(root / CONFIG_REL), "decision": cfg["decision_file"],
+        "frozen_config_sha256": text_sha256(root / CONFIG_REL), "decision": cfg["decision_file"],
         "chosen_model": decision["chosen_model"], "chosen_model_sha256": decision["chosen_model_sha256"],
         "primary": primary_spec, **alt_specs,
         **({"alternates_not_scored": not_scored} if not_scored else {}),
@@ -744,7 +772,7 @@ def dev_answers(cfg: dict[str, Any], root: Path) -> list[dict[str, Any]]:
 
 
 def prompt_fields(root: Path) -> dict[str, str]:
-    return {"prompt_file": PROMPT_REL, "prompt_sha256": sha256_file(Path(root) / PROMPT_REL),
+    return {"prompt_file": PROMPT_REL, "prompt_sha256": text_sha256(Path(root) / PROMPT_REL),
             "rendered_sha256": rendered_sha256(root)}
 
 

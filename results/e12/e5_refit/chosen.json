@@ -1,0 +1,51 @@
+{
+ "seed": 0,
+ "fit_percent": 50,
+ "fit_rows": {
+  "field_dev": 523,
+  "not_plant_dev": 604
+ },
+ "temperature": 1.3337098060458428,
+ "min_coverage": 0.5,
+ "abstain_threshold": 0.877154,
+ "gates": {
+  "green_rule": {
+   "settings": {
+    "kind": "green_rule",
+    "green_threshold": 0.05
+   },
+   "fit_plant_rejection": 0.0248565965583174,
+   "fit_not_plant_rejection": 0.6688741721854304,
+   "eligible": true
+  },
+  "confidence": {
+   "settings": {
+    "kind": "confidence",
+    "confidence_threshold": 0.3564655919688158
+   },
+   "fit_plant_rejection": 0.0497131931166348,
+   "fit_not_plant_rejection": 0.9420529801324503,
+   "eligible": true
+  },
+  "confidence_ood": {
+   "settings": {
+    "kind": "confidence_ood",
+    "confidence_threshold": 0.18790700123484294,
+    "ood_threshold": 0.5911384293565715
+   },
+   "fit_plant_rejection": 0.04780114722753348,
+   "fit_not_plant_rejection": 0.9668874172185431,
+   "eligible": true
+  }
+ },
+ "gate": {
+  "chosen": "confidence_ood",
+  "settings": {
+   "kind": "confidence_ood",
+   "confidence_threshold": 0.18790700123484294,
+   "ood_threshold": 0.5911384293565715
+  }
+ },
+ "model_checkpoint": "models/e12/convnext_joint_extra/best.pt",
+ "model_sha256": "96d3001dd40382a5714f0aaf241c4dea28421fa0ae815026e933fe727df8b8e0"
+}

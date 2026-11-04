@@ -16,6 +16,7 @@ Only dev splits are ever read. Each stage logs seconds (and peak GPU memory) to 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 import time
@@ -124,14 +125,17 @@ def green_by_path(cfg: dict[str, Any], root: Path, paths: list[str]) -> np.ndarr
 
 
 def load_field(cfg: dict[str, Any], root: Path) -> Dev:
-    """field_dev with the probabilities saved in the E4 record, which must cover every photo with its right label."""
+    """field_dev with the probabilities saved in the E4 record, which must cover every photo with its right label.
+    A refit on an E12 model (configs/e5_e12.json) names `model.field_dev_predictions_file` instead, because an E12
+    record holds only the cleaned rows; the record still gives the classes and the manifest hash."""
     require_dev(cfg["field_split"])
     info = split_info(cfg["field_split"], root)
     record = json.loads((root / RUNS_REL / f"{cfg['model']['e4_record']}.json").read_text(encoding="utf-8"))
     if record["split"] != cfg["field_split"] or record["dataset_hash"] != info.hash:
         raise RuntimeError("the E4 record is not on this field_dev manifest")
     names = record["config"]["class_names"]
-    rows = _by_path(read_jsonl(root / record["predictions"][cfg["model"]["name"]]), info.ids, "the E4 predictions")
+    saved = cfg["model"].get("field_dev_predictions_file") or record["predictions"][cfg["model"]["name"]]
+    rows = _by_path(read_jsonl(root / saved), info.ids, "the saved predictions")
     labels = np.array([r["label"] for r in rows], dtype=int)
     if [names[x] for x in labels] != info.labels:
         raise RuntimeError("the E4 predictions' labels do not match the manifest")
@@ -295,6 +299,9 @@ def fit(cfg: dict[str, Any], field: Dev, nonplant: Dev) -> dict[str, Any]:
 def stage_fit(cfg: dict[str, Any], root: Path, log: StageLog) -> Path:
     began = time.perf_counter()
     chosen = fit(cfg, load_field(cfg, root), load_not_plant(cfg, root))
+    if "field_dev_predictions_file" in cfg["model"]:  # a refit names the exact weights it was fitted for
+        chosen["model_checkpoint"] = cfg["model"]["checkpoint"]
+        chosen["model_sha256"] = hashlib.sha256((root / cfg["model"]["checkpoint"]).read_bytes()).hexdigest()
     path = out_dir(cfg, root) / "chosen.json"
     atomic_write_text(path, json.dumps(chosen, indent=1) + "\n")
     log(f"fit: T={chosen['temperature']:.4f} abstain>={chosen['abstain_threshold']} gate={chosen['gate']['chosen']} "

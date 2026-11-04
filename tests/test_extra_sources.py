@@ -372,14 +372,14 @@ def _pp_parquet(tmp_path: Path) -> Path:
 
     rows = [
         ("a.jpg", ["scab"]),
-        ("b.jpg", ["healthy"]),
+        ("b", ["healthy"]),
         ("c.jpg", ["rust"]),
         ("d.jpg", ["scab", "frog_eye_leaf_spot"]),
         ("e.jpg", ["frog_eye_leaf_spot"]),
         ("f.jpg", ["complex"]),
         ("g.jpg", ["powdery_mildew"]),
         ("h.jpg", ["rust", "complex"]),
-        ("i.jpg", ["healthy"]),
+        ("i", ["healthy"]),
     ]
 
     def jpeg(i: int) -> bytes:

@@ -57,7 +57,8 @@ PP_MAP = {
 }
 PP_UNMAPPED_REASON = "no lab class for this apple disease"
 PP_MULTI_REASON = "multi-label photo: no single lab class"
-_PP_SAFE_ID = re.compile(r"^[A-Za-z0-9_-]+(\.[A-Za-z]+)?$")
+JPEG_MAGIC = bytes([0xFF, 0xD8, 0xFF])
+_PP_SAFE_ID = re.compile(r"^[A-Za-z0-9_-]+$")
 
 # PlantWild class (v1 and v2 use the same names) to lab class. Healthy-leaf classes exist in v1 only.
 # "bell pepper leaf spot" follows the PlantDoc mapping, which files it under Bacterial_spot.
@@ -162,7 +163,7 @@ def plant_pathology_counts(files) -> Counter:
 
 
 def extract_plant_pathology(files, dest: Path) -> Counter:
-    """Write the images of single-label rows that map into new folder dest/<class>/<image_id>.
+    """Write the images of single-label rows that map into new folder dest/<class>/<image_id>.jpg (the ids carry no suffix in the mirror).
 
     The parquet files are untrusted: the image bytes are written as they are and never decoded here,
     and an image id that is not a plain file name is rejected. Returns the counts of every row.
@@ -175,10 +176,12 @@ def extract_plant_pathology(files, dest: Path) -> Counter:
         counts[cls] += 1
         if cls not in PP_MAP:
             continue
-        name = r["image_id"]
-        if not _PP_SAFE_ID.match(name):
-            raise ValueError(f"unsafe image id: {name!r}")
-        out = dest / cls / name
+        stem = r["image_id"].removesuffix(".jpg")
+        if not _PP_SAFE_ID.match(stem):
+            raise ValueError(f"unsafe image id: {r['image_id']!r}")
+        if not r["image"]["bytes"].startswith(JPEG_MAGIC):
+            raise ValueError(f"not a JPEG: {r['image_id']!r}")
+        out = dest / cls / f"{stem}.jpg"
         out.parent.mkdir(exist_ok=True)
         with open(out, "xb") as f:
             f.write(r["image"]["bytes"])
@@ -348,9 +351,17 @@ def main(device_scope=None) -> None:
     roots = {
         "plantwild": RAW / "plantwild" / "plantwild" / "images",
         "plantwild_v2": RAW / "plantwild_v2" / "plantwild_v2",
+        PP_SOURCE: RAW / PP_SOURCE,
     }
+    shards = sorted((RAW / "plantpathology2021_dl" / "data").glob("*.parquet"))
+    pp_counts = (
+        plant_pathology_counts(shards)
+        if (RAW / PP_SOURCE).exists()
+        else extract_plant_pathology(shards, RAW / PP_SOURCE)
+    )
     inv = extra_inventory(roots)
     classes = {s: sorted(inv[inv["source"] == s]["label"].unique()) for s in roots}
+    classes[PP_SOURCE] = sorted(pp_counts)
     cmap = make_extra_class_map(classes)
     field = load_manifest("field")
     with device_scope() if device_scope else contextlib.nullcontext("cpu") as device:
@@ -371,6 +382,7 @@ def main(device_scope=None) -> None:
             v == split for v in copies.values()
         )
     full = inv.groupby(["source", "label"]).size()
+    full = full.to_dict() | {(PP_SOURCE, c): n for c, n in pp_counts.items()}
     cmap_out["n_images"] = [
         int(full.get((r.source, r.source_class), 0)) for r in cmap_out.itertuples()
     ]

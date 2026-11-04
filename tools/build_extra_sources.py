@@ -1,6 +1,6 @@
 """Rebuild datasets/manifests/extra_train.csv and datasets/class_map_extra.csv; run from the repo root.
 
-The copy-correlation and DINOv2 crop steps run on the GPU while holding a share (`taskctl gpu-acquire T4.5`,
+The copy-correlation and DINOv2 crop steps run on the GPU while holding a share (`taskctl gpu-acquire T4.8`,
 released right after). If the GPU is busy it waits for a share; with no GPU at all it runs on the CPU.
 Hashing and the rest of the rule stay on the CPU.
 """
@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from sprout.data.extra_sources import main  # noqa: E402
 
-TASK = "T4.5"
+TASK = "T4.8"
 WAIT_MINUTES = 240
 
 

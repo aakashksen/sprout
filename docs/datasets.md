@@ -12,7 +12,8 @@ Classes: not applicable
 1. PlantVillage: official 38-class release, CC BY-SA 3.0.
 2. `not_plant`: COCO 2017 validation, local non-commercial evaluation, potted-plant images excluded, images never committed or redistributed.
 3. PlantDoc: local evaluation only, no redistribution. Updated 2026-11-02: T4.1 may also fine-tune on PlantDoc images for local use. The images are not republished, and the person checks before publishing any weights trained on them.
-4. H1 is not yet signed. The person signs it at the end.
+4. Plant Pathology 2021 (T4.8, third-party mirror): local, non-commercial, unpublished training use, approved 2026-11-03. The original terms are unconfirmed, so the person checks before publishing any weights trained on it.
+5. H1 is not yet signed. The person signs it at the end.
 Approved: yes, these are the person's recorded decisions
 
 ## PlantVillage (official 38-class release, used)
@@ -98,10 +99,11 @@ Classes: counted after download: v1 has 18,542 images in 89 class folders (56 di
 Access: Public, repo not gated (`"gated": false`), no login. The UQRDM link on the authors' page is password protected and was not used. Each zip was extracted into its own new folder with a check that no member path escapes it.
 Approved: yes, under the person's rule for public data without login, paywall or block, for local non-commercial training only. Not for publishing
 
-## Plant Pathology 2021 (FGVC8), not used
+## Plant Pathology 2021 (FGVC8), third-party mirror, used for training (T4.8)
 
-URL: https://www.kaggle.com/competitions/plant-pathology-2021-fgvc8 ; third-party mirror https://huggingface.co/datasets/timm/plant-pathology-2021
-License: Not confirmed from the competition (its pages return HTTP 404 to anonymous requests); the third-party mirror card says `apache-2.0`, which is the uploader's statement, not the authors'.
-Classes: Apple foliar disease, 6 classes (complex, frog_eye_leaf_spot, healthy, powdery_mildew, rust, scab); the mirror holds 18,632 images in 16,094,440,857 bytes.
-Access: The Kaggle source needs login. The only other copy is the third-party mirror.
-Approved: no, needs the person. Not used: the Kaggle source needs login, and the only public copy is a third-party mirror covering three usable apple classes at 16 GB. The coordinator may overrule this
+URL: third-party mirror https://huggingface.co/datasets/timm/plant-pathology-2021 (uploader: the Hugging Face account `timm`, "PyTorch Image Models"; the card is first-person and names no individual). Original source: https://www.kaggle.com/competitions/plant-pathology-2021-fgvc8 (not used).
+License: the mirror's card says `apache-2.0`. That is the uploader's own tag, not a statement by the dataset's authors. The Kaggle competition terms and the 2021 paper's terms could not be confirmed (the Kaggle pages return no text to anonymous requests, and the paper PDF failed TLS verification), so the original terms are unknown. There is no LICENSE file in the mirror.
+Classes: Apple foliar disease, 6 labels (complex, frog_eye_leaf_spot, healthy, powdery_mildew, rust, scab), multi-label. The mirror holds 18,632 images (train 16,768 and validation 1,864 as split by the uploader; the Kaggle test set is not in it), 34 parquet shards.
+Size: 16,094,435,250 bytes for the 34 parquet files; revision `ce9371685ebc24cf250bd02a8e0f6274b0c775d3`, downloaded one file at a time by `tools/download_plant_pathology.py` into the git-ignored `datasets/raw/plantpathology2021_dl`.
+Access: Public, repo not gated, no login used.
+Approved: yes, by the person through the coordinator on 2026-11-03, to fetch this mirror for local, non-commercial, unpublished training use. The images are never committed or published. Weights trained on them are added to the list needing the person's check before publishing, because the original terms are unconfirmed.

@@ -2,19 +2,18 @@
 with these functions, so a changed row cannot keep its old number.
 
 Dev rows (one per checked answer): `id, item, question, diagnosis, answer, call, reply`; `call` is FITS, WRONG or None
-when the reply was not exactly one of the two words. Blind-read rows: `id, item, grader, reader`.
+when the reply was not exactly one of the two words.
 """
 
 from __future__ import annotations
 
 import math
-import random
 import re
+from pathlib import Path
 from typing import Any
 
 CALLS = ("FITS", "WRONG")
 DEV_ROW_KEYS = ("id", "item", "question", "diagnosis", "answer", "call", "reply")
-BLIND_ROW_KEYS = ("id", "item", "grader", "reader")
 
 
 def parse_call(reply: str) -> str | None:
@@ -44,63 +43,18 @@ def dev_intervals(rows: list[dict[str, Any]]) -> dict[str, list[float]]:
     return {"flagged_rate": wilson(sum(r["call"] == "WRONG" for r in usable), len(usable))} if usable else {}
 
 
-def strata_sizes(rows: list[dict[str, Any]]) -> dict[str, int]:
-    """How many usable dev answers the grader called WRONG and FITS: the populations the blind sample is drawn from."""
-    return {"grader_wrong": sum(r["call"] == "WRONG" for r in rows), "grader_fits": sum(r["call"] == "FITS" for r in rows)}
-
-
-def draw_blind(rows: list[dict[str, Any]], seed: int, per_call: int) -> list[dict[str, Any]]:
-    """A seeded sample with up to `per_call` answers from each of the grader's two calls, in a shuffled order, so the
-    reader can judge both directions of error and the order tells nothing about the grader's call."""
-    rng = random.Random(seed)
-    chosen: list[dict[str, Any]] = []
-    for call in CALLS:
-        pool = sorted((r for r in rows if r["call"] == call), key=lambda r: r["id"])
-        chosen += rng.sample(pool, min(per_call, len(pool)))
-    rng.shuffle(chosen)
-    return chosen
-
-
-def blind_metrics(rows: list[dict[str, Any]], strata: dict[str, int]) -> dict[str, float | None]:
-    """Where an independent reader disagrees with the grader, in each direction. `estimated_disagreement_rate` weights
-    the two directions by how many dev answers the grader put in each call."""
-    wrong = [r for r in rows if r["grader"] == "WRONG"]
-    fits = [r for r in rows if r["grader"] == "FITS"]
-    false_alarm = sum(r["reader"] == "FITS" for r in wrong)
-    missed = sum(r["reader"] == "WRONG" for r in fits)
-    fa = false_alarm / len(wrong) if wrong else None
-    miss = missed / len(fits) if fits else None
-    total = strata["grader_wrong"] + strata["grader_fits"]
-    est = (strata["grader_wrong"] * fa + strata["grader_fits"] * miss) / total if fa is not None and miss is not None and total else None
-    return {"read_answers": float(len(rows)), "read_where_grader_said_wrong": float(len(wrong)),
-            "read_where_grader_said_fits": float(len(fits)), "reader_says_fits_after_wrong_call": float(false_alarm),
-            "reader_says_wrong_after_fits_call": float(missed), "false_alarm_rate": fa, "missed_rate": miss,
-            "agreement_in_sample": sum(r["grader"] == r["reader"] for r in rows) / len(rows) if rows else None,
-            "estimated_disagreement_rate": est}
-
-
-def blind_intervals(rows: list[dict[str, Any]]) -> dict[str, list[float]]:
-    wrong = [r for r in rows if r["grader"] == "WRONG"]
-    fits = [r for r in rows if r["grader"] == "FITS"]
-    out: dict[str, list[float]] = {}
-    if wrong:
-        out["false_alarm_rate"] = wilson(sum(r["reader"] == "FITS" for r in wrong), len(wrong))
-    if fits:
-        out["missed_rate"] = wilson(sum(r["reader"] == "WRONG" for r in fits), len(fits))
-    return out
-
-
 FINAL_ROW_KEYS = ("id", "answered", "state", "diagnosis", "text", "claims", "wrong_disease", "wrong_disease_reply",
-                  "sonnet_calls")
-CLAIM_KEYS = ("claim", "cited", "local", "sonnet", "sonnet_reply")
+                  "haiku_calls", "sonnet_calls")
+CLAIM_KEYS = ("claim", "cited", "haiku", "haiku_reply", "sonnet", "sonnet_reply")
 
 
 def final_lists(rows: list[dict[str, Any]]) -> dict[str, list[bool]]:
-    """The per-claim and per-answer samples behind the figures of rag_test: the local judge's and Sonnet's call on the
-    same claims, and the wrong-disease check's flag per checked answer. An empty sample is left out."""
+    """The per-claim and per-answer samples behind the figures of rag_test: the Haiku judge's and the Sonnet judge's call
+    on the same claims (a reply that is not a verdict counts as not supported, for both), and the wrong-disease check's
+    flag per checked answer. An empty sample is left out."""
     claims = [c for r in rows for c in r["claims"]]
-    out = {"claims_supported_by_local_judge": [bool(c["local"]) for c in claims],
-           "claims_supported_by_sonnet": [bool(c["sonnet"]) for c in claims if c["sonnet"] is not None],
+    out = {"claims_supported_by_haiku": [c["haiku"] is True for c in claims],
+           "claims_supported_by_sonnet": [c["sonnet"] is True for c in claims],
            "answers_flagged_wrong_disease": [r["wrong_disease"] == "WRONG" for r in rows if r["wrong_disease"] in CALLS]}
     return {k: v for k, v in out.items() if v}
 

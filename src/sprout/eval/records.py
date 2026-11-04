@@ -101,8 +101,8 @@ def scoring_part(groups: list[str], seed: int, fit_percent: int) -> np.ndarray:
 def subset_positions(name: str, split: str, info: SplitInfo, root: Path = ROOT) -> list[int]:
     """Positions within the split of a declared subset: `first_<N>` rows, `source:<name>` (field rows whose
     `source` column in field.csv is <name>), `shared_classes` (labels present in both lab.csv and field.csv),
-    `answerable` (RAG questions whose gold behaviour is to answer), `clean:<N>` (field rows not in datasets/label_exclusions.csv up to version N), or
-    `group_part:<seed>:<fit_percent>` (the scoring part of `scoring_part`, for settings fitted on the rest).
+    `answerable` (RAG questions whose gold behaviour is to answer), `clean:<N>` (field rows not in datasets/label_exclusions.csv up to version N), `classes_in:<json path>` (rows whose label is in that
+    file's `class_names`), or `group_part:<seed>:<fit_percent>` (the scoring part of `scoring_part`, for settings fitted on the rest).
     Parts joined with `+` must all hold."""
     if "+" in name:
         keep = None
@@ -121,6 +121,10 @@ def subset_positions(name: str, split: str, info: SplitInfo, root: Path = ROOT) 
     part = re.fullmatch(r"group_part:(\d+):(\d+)", name)
     if part:
         return [int(i) for i in np.flatnonzero(scoring_part(info.groups, int(part.group(1)), int(part.group(2))))]
+    listed = re.fullmatch(r"classes_in:(.+)", name)
+    if listed and info.labels is not None:
+        names = set(json.loads((root / listed.group(1)).read_text(encoding="utf-8"))["class_names"])
+        return [i for i, label in enumerate(info.labels) if label in names]
     first = re.fullmatch(r"first_(\d+)", name)
     if first:
         return list(range(min(int(first.group(1)), len(info.ids))))

@@ -2,12 +2,15 @@
 
 Stages (see docs/PLAN.md T8.1; every stage that touches a test split refuses unless the configs are committed, the
 tree is clean and the split has not been used):
-    lab-test, field-test        score every frozen system on one image test split and write its record
+    lab-test, field-test        score every frozen system on one image test split and write its record; the model is
+                                the one the final-model decision (configs/e9.json decision_file) names
     wrong-disease-dev           the wrong-disease check on the final E7 served rag_dev answers (Sonnet), with its rate
-    blind-sample, unblind       a seeded sample for a reader who does not see the grader's call, then the error report
-    freeze                      record the check's prompt commit and sha256 in configs/e9_wrong_disease.json
-    rag-retrieve, rag-generate, rag-judge-local, rag-sonnet, rag-record
-                                rag_test: served retrieval, the local writer, both judges, the wrong-disease check
+    freeze                      record the check's prompt commit and sha256 in configs/e9_wrong_disease.json; the check
+                                is not validated by any blind read
+    rag-retrieve, rag-generate  rag_test: served retrieval, then the local writer
+    rag-haiku, rag-sonnet       the Haiku judge (named by results/e14/haiku_decision.json) and the Sonnet judge grade the
+                                same claims; Sonnet also runs the frozen wrong-disease check
+    rag-record                  the one rag_test record
 No stage reads a test split unless it is the one being run. Tests use fakes and tiny fixtures only.
 """
 
@@ -28,19 +31,15 @@ import pandas as pd
 
 from sprout.atomic import atomic_write_text
 from sprout.data.label_review import read_log
+from sprout.eval import e9_roles
+from sprout.eval.answer_checks import cleaned_rows as cleaned
 from sprout.eval.answer_checks import (
-    CALLS,
-    blind_intervals,
-    blind_metrics,
     dev_intervals,
     dev_metrics,
-    draw_blind,
-    final_lists,
     exif_counts,
+    final_lists,
     parse_call,
-    strata_sizes,
 )
-from sprout.eval.answer_checks import cleaned_rows as cleaned
 from sprout.eval.check_run import (
     Scored,
     check_file,
@@ -70,7 +69,7 @@ from sprout.rag import serving
 from sprout.rag.answer import GENERAL_CROP, AnswerConfig, diagnosis_summary
 from sprout.rag.evalset import Question, load_questions
 from sprout.rag.evalset import index_crops as index_crops_of
-from sprout.rag.judge import rubric
+from sprout.rag.judge import rubric, split_claims
 
 CONFIG_REL = "configs/e9.json"
 FROZEN_REL = "configs/e9_wrong_disease.json"
@@ -109,10 +108,10 @@ def load_config(root: Path = ROOT) -> dict[str, Any]:
 
 
 def load_decision(cfg: dict[str, Any], root: Path = ROOT) -> dict[str, Any]:
-    """E12's decision, read by path. Without it the chosen model is unknown, so nothing runs."""
+    """The final-model decision, read by path. Without it the chosen model is unknown, so nothing runs."""
     path = Path(root) / cfg["decision_file"]
     if not path.is_file():
-        raise Refused(f"{cfg['decision_file']} does not exist: E12 has not chosen a model, so E9 cannot start")
+        raise Refused(f"{cfg['decision_file']} does not exist: no final model has been chosen, so E9 cannot start")
     decision = json.loads(path.read_text(encoding="utf-8"))
     missing = [k for k in ("chosen_model", "chosen_model_sha256", "class_names") if k not in decision]
     if missing:
@@ -140,11 +139,10 @@ def wd_messages(question: str, diagnosis: str, answer: str, root: Path = ROOT) -
 
 # ---------------------------------------------------------------- image test splits
 
-SYSTEMS = ("baseline", "improved", "alternate", "xgboost", "dinov2", "quantized")
+BASE_SYSTEMS = ("baseline", "improved", "xgboost", "dinov2", "quantized")
+ORDER = ("baseline", "improved", "alternate", "alternate_2", "xgboost", "dinov2", "quantized")
 FLOOR = 1e-12
 INTERVALS = ("accuracy", "macro_f1")
-COMPARED = (("improved", "baseline"), ("improved", "alternate"), ("improved", "xgboost"), ("improved", "dinov2"),
-            ("quantized", "improved"))
 
 
 @dataclass
@@ -158,41 +156,50 @@ class Predictor:
     detail: dict[str, Any] = field(default_factory=dict)
 
 
-def candidate_roles(cfg: dict[str, Any], decision: dict[str, Any]) -> tuple[str, str]:
-    """(primary, alternate) candidate keys: the primary is the model E12's decision chose, the other is reported beside it."""
-    found = [k for k, v in cfg["candidates"].items() if v["checkpoint"] == decision["chosen_model"]]
-    others = [k for k in cfg["candidates"] if k not in found]
-    if len(found) != 1 or len(others) != 1:
-        raise Refused(f"E12 chose {decision['chosen_model']!r}, which is neither of the config's candidates "
-                      f"{[v['checkpoint'] for v in cfg['candidates'].values()]}")
-    return found[0], others[0]
+def candidate_roles(cfg: dict[str, Any], decision: dict[str, Any]) -> tuple[str, list[str]]:
+    """(primary key, alternate keys): the primary is the model the decision chose, every other candidate is reported
+    beside it. A chosen model that is none of the config's candidates needs the decision to name its calibration."""
+    try:
+        return e9_roles.roles(cfg["candidates"], decision)
+    except ValueError as exc:
+        raise Refused(str(exc)) from exc
+
+
+def specs_of(cfg: dict[str, Any], decision: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    candidate_roles(cfg, decision)
+    return e9_roles.candidate_specs(cfg["candidates"], decision)
 
 
 def load_calibration(rel: str, model_sha: str | None, root: Path = ROOT, *, required: bool = False) -> dict[str, Any]:
     """Temperature and abstention threshold from an E5-style chosen.json. When the file names the model it was fitted
-    on (`model_sha256`), that must be the model scored; `required` demands the name (E12 says E5 was refit)."""
+    on (`model_sha256`), that must be the model scored; `required` demands the name (the decision says E5 was refit)."""
     path = Path(root) / rel
     if not path.is_file():
         raise Refused(f"{rel} does not exist: the calibration and threshold are not chosen")
     saved = json.loads(path.read_text(encoding="utf-8"))
     named = saved.get("model_sha256")
     if named is None and required:
-        raise Refused(f"E12 says E5 was refit on the chosen model, but {rel} does not name that model (model_sha256)")
+        raise Refused(f"the decision says E5 was refit on the chosen model, but {rel} does not name that model (model_sha256)")
     if named is not None and named != model_sha:
         raise Refused(f"{rel} was fitted on another model than the one scored (model_sha256 differs)")
     return {"file": rel, "temperature": float(saved["temperature"]), "abstain_threshold": float(saved["abstain_threshold"])}
 
 
 def calibrations(cfg: dict[str, Any], decision: dict[str, Any], root: Path = ROOT, *,
-                 alternate_sha: str | None = None) -> dict[str, dict[str, Any]]:
-    """Calibration per calibrated system: the primary model's own (also used for the quantized copy of it) and the
-    alternate's own, so both models are reported with and without abstention."""
-    primary, alternate = candidate_roles(cfg, decision)
-    prim = load_calibration(cfg["candidates"][primary]["calibration"], decision["chosen_model_sha256"], root,
-                            required=bool(decision.get("refit_e5")))
+                 alternate_sha: str | None = None, alternate_2_sha: str | None = None,
+                 scored: tuple[str, ...] | None = None) -> dict[str, dict[str, Any]]:
+    """Calibration per calibrated system: the primary model's own (also used for the quantized copy of it) and each
+    alternate's own, so every model is reported with and without abstention."""
+    specs = specs_of(cfg, decision)
+    primary, others = candidate_roles(cfg, decision)
+    prim = load_calibration(specs[primary]["calibration"], decision["chosen_model_sha256"], root,
+                            required=bool(decision.get("refit_e5") or decision.get("calibration")))
     out = {"improved": prim, "quantized": prim}
-    if (Path(root) / cfg["candidates"][alternate]["calibration"]).is_file():
-        out["alternate"] = load_calibration(cfg["candidates"][alternate]["calibration"], alternate_sha, root)
+    for i, (key, sha) in enumerate(zip(others, (alternate_sha, alternate_2_sha), strict=False)):
+        if scored is not None and e9_roles.system_of(i) not in scored:
+            continue  # its saved model is not on disk and it is not scored, so its calibration is not needed
+        if (Path(root) / specs[key]["calibration"]).is_file():
+            out[e9_roles.system_of(i)] = load_calibration(specs[key]["calibration"], sha, root)
     return out
 
 
@@ -201,18 +208,23 @@ NO_OWN_CALIBRATION = ("the alternate has no calibration of its own (E5 was not r
 
 
 def bindings(cfg: dict[str, Any], decision: dict[str, Any], calibration: dict[str, dict[str, Any]],
-             alternate_sha: str | None, quantized_source: str | None, root: Path = ROOT) -> dict[str, dict[str, Any]]:
+             shas: dict[str, str | None], quantized_source: str | None, root: Path = ROOT) -> dict[str, dict[str, Any]]:
     """Which checkpoint each calibration is bound to, shown by the file's own hash or, for E5's file that carries none,
-    by sprout.serve.bind. A calibration fitted for another checkpoint than the one it is applied to is refused. The
+    by sprout.serve.bind. A calibration fitted for another checkpoint than the one it is applied to is refused. An
     alternate with no calibration of its own is dropped from `calibration` and says why. The quantized file goes the
-    way serving would take it: its stamped source checkpoint must be the one the primary's calibration is bound to."""
+    way serving would take it: its stamped source checkpoint must be the one the primary's calibration is bound to.
+    `shas` holds the sha256 of each scored model by system name."""
     from sprout.serve.bind import bound_calibration
 
     root = Path(root)
-    primary, alternate = candidate_roles(cfg, decision)
+    specs = specs_of(cfg, decision)
+    primary, others = candidate_roles(cfg, decision)
     out: dict[str, dict[str, Any]] = {}
-    for role, key, scored in (("improved", primary, decision["chosen_model_sha256"]), ("alternate", alternate, alternate_sha)):
-        spec = cfg["candidates"][key]
+    scored_roles = [("improved", primary), *[(e9_roles.system_of(i), k) for i, k in enumerate(others)]]
+    for role, key in scored_roles:
+        if role not in shas:
+            continue
+        spec, scored = specs[key], shas[role]
         if role not in calibration:
             out[role] = {"calibration_file": None, "checkpoint": spec["checkpoint"], "sha256": scored,
                          "why": NO_OWN_CALIBRATION}
@@ -225,8 +237,8 @@ def bindings(cfg: dict[str, Any], decision: dict[str, Any], calibration: dict[st
                 bound = bound_calibration(root / spec["checkpoint"], root, spec["calibration"])
                 found, by = bound["model_sha256"], bound["bound_by"]
         except (ValueError, OSError) as exc:
-            if role == "alternate":
-                del calibration["alternate"]
+            if role != "improved":
+                del calibration[role]
                 out[role] = {"calibration_file": None, "checkpoint": spec["checkpoint"], "sha256": scored,
                              "why": f"{NO_OWN_CALIBRATION}: {exc}"}
                 continue
@@ -331,7 +343,9 @@ def score_block(probs: dict[str, np.ndarray], labels: np.ndarray, groups: list[s
     metrics["quantized"]["changed_vs@improved"] = recompute_metric("changed_vs@improved", scored["quantized"], scored)
     intervals = {n: {m: recompute_interval(m, s) for m in INTERVALS} for n, s in scored.items()}
     comparisons = []
-    for a, b in COMPARED:
+    alts = [n for n in ("alternate", "alternate_2") if n in scored]
+    for a, b in (("improved", "baseline"), *[("improved", n) for n in alts], ("improved", "xgboost"),
+                 ("improved", "dinov2"), ("quantized", "improved")):
         for m in INTERVALS:
             got = recompute_comparison(scored[a], scored[b], m)
             comparisons.append({"a": a, "b": b, "metric": m, **got})
@@ -342,44 +356,60 @@ def run_images(split: str, cfg: dict[str, Any], predictors: dict[str, Predictor]
                root: Path = ROOT, *,
                override_note: str = "") -> list[Path]:
     """Score every frozen system once on `split` and write its record: lab_test gets a full record and a view on the
-    shared classes, field_test gets one record on its cleaned rows. Refuses before any model runs unless the config
-    is committed, the tree is clean, E12 has decided, and the split is unused (or an override note says why)."""
+    shared classes, field_test gets one record on its cleaned rows. Only rows whose true class is in the decision's
+    class list are scored, by every system. Refuses before any model runs unless the config is committed, the tree is
+    clean, the final model is decided, and the split is unused (or an override note says why)."""
     if split not in IMAGE_TESTS:
         raise Refused(f"E9 scores lab_test or field_test here, not {split!r}")
     root = Path(root)
     require_committed(root, [CONFIG_REL])
     require_clean(root)
     decision = load_decision(cfg, root)
-    primary, alternate = candidate_roles(cfg, decision)
+    primary, others = candidate_roles(cfg, decision)
     require_unused(root, split, override_note)
     if callable(predictors):  # built only after every guard has passed, so a refused run loads no model
         predictors = predictors()
-    absent = [n for n in SYSTEMS if n not in predictors]
+    absent = [n for n in BASE_SYSTEMS if n not in predictors]
     if absent:
         raise Refused(f"frozen systems missing: {absent}")
-    alternate_sha = predictors["alternate"].detail.get("sha256")
-    calibration = calibrations(cfg, decision, root, alternate_sha=alternate_sha)
-    binding = bindings(cfg, decision, calibration, alternate_sha,
+    specs = specs_of(cfg, decision)
+    alternates, not_scored = {}, []
+    for i, key in enumerate(others):
+        system = e9_roles.system_of(i)
+        if system in predictors:
+            alternates[system] = key
+        elif (root / specs[key]["checkpoint"]).is_file():
+            raise Refused(f"frozen systems missing: {[system]}")
+        else:
+            not_scored.append({"candidate": key, "checkpoint": specs[key]["checkpoint"],
+                               "why": "the saved model is not on disk, so it is not scored"})
+    systems = [n for n in ORDER if n in predictors and (n in BASE_SYSTEMS or n in alternates)]
+    shas = {"improved": decision["chosen_model_sha256"],
+            **{n: predictors[n].detail.get("sha256") for n in alternates}}
+    calibration = calibrations(cfg, decision, root, alternate_sha=shas.get("alternate"),
+                               alternate_2_sha=shas.get("alternate_2"), scored=tuple(alternates))
+    binding = bindings(cfg, decision, calibration, shas,
                        predictors["quantized"].detail.get("source_checkpoint_sha256"), root)
     cal_names = [n for n in cfg["calibrated"] if n in calibration]
     names = decision["class_names"]
-    for n in SYSTEMS:
+    for n in systems:
         if predictors[n].class_names != names:
-            raise Refused(f"{n} has a different class order from E12's decision")
+            raise Refused(f"{n} has a different class order from the decision's class list")
     info = split_info(split, root)
-    subset = f"clean:{cfg['exclusion_version']}" if split == "field_test" else None
-    positions = subset_positions(subset, split, info, root) if subset else list(range(len(info.ids)))
+    clean = f"clean:{cfg['exclusion_version']}" if split == "field_test" else None
+    base = subset_positions(clean, split, info, root) if clean else list(range(len(info.ids)))
+    positions = [i for i in base if info.labels[i] in set(names)]
+    outside = sorted({info.labels[i] for i in base} - set(names))
+    class_part = f"classes_in:{cfg['decision_file']}"
+    subset = "+".join(x for x in (clean, class_part if outside else None) if x) or None
     labels_by_name = [info.labels[i] for i in positions]
-    unknown = sorted(set(labels_by_name) - set(names))
-    if unknown:
-        raise Refused(f"{split} has classes the model does not output: {unknown}")
     paths = [info.ids[i] for i in positions]
     groups = [info.groups[i] for i in positions]
     labels = np.array([names.index(x) for x in labels_by_name], dtype=int)
     frame = pd.DataFrame({"path": [str(root / p) for p in paths], "label": labels_by_name})
     started = datetime.now(timezone.utc).isoformat()
     probs: dict[str, np.ndarray] = {}
-    for n in SYSTEMS:
+    for n in systems:
         out = np.asarray(predictors[n].run(frame), dtype=float)
         if out.shape != (len(paths), len(names)) or not np.isfinite(out).all():
             raise Refused(f"{n} returned probabilities of shape {out.shape}; expected {(len(paths), len(names))}")
@@ -388,40 +418,51 @@ def run_images(split: str, cfg: dict[str, Any], predictors: dict[str, Predictor]
         probs[f"{n}_calibrated"] = calibrated(probs[n], calibration[n]["temperature"])
     thresholds = e6_thresholds(cfg, decision, root)
     exif = exif_counts([Path(p) for p in frame["path"]])
-    order = [x for n in SYSTEMS for x in (n, f"{n}_calibrated") if x in probs]
-    cleaned_info = cleaned_rows(split, cfg, info, positions, root) if subset else None
+    order = [x for n in systems for x in (n, f"{n}_calibrated") if x in probs]
+    cleaned_info = cleaned_rows(split, cfg, info, base, root) if clean else None
     basis = (f"cleaned rows: {cleaned_info['after']} of {cleaned_info['before']} field_test photos kept "
-             f"({subset}); {cleaned_info['removed']} removed by the label cleaning" if subset else
+             f"({clean}); {cleaned_info['removed']} removed by the label cleaning" if clean else
              "lab_test photos, all of them: the label cleaning covers real photos only")
+    class_rule = {"classes": len(names), "rows_before_class_rule": len(base), "rows_scored": len(positions),
+                  "rows_dropped": len(base) - len(positions), "labels_outside_the_list": outside,
+                  "rule": "rows whose true class is outside the class list are not scored; an older model's outputs "
+                          "for classes outside the list are masked and the rest renormalized before scoring"}
+    if outside:
+        basis += (f"; {len(base) - len(positions)} further photos of {len(outside)} classes outside the "
+                  f"{len(names)}-class list left out")
+    primary_spec = {"system": "improved", "candidate": primary, "checkpoint": decision["chosen_model"],
+                    "sha256": decision["chosen_model_sha256"], "why": "the model the final-model decision chose"}
+    alt_specs = {n: {"system": n, "candidate": k, "checkpoint": specs[k]["checkpoint"],
+                     "sha256": predictors[n].detail.get("sha256"),
+                     "why": "another candidate, reported beside the primary on the same rows"}
+                 for n, k in alternates.items()}
     config = {
         "class_names": names, "split": split, "frozen_config": CONFIG_REL,
         "frozen_config_sha256": sha256_file(root / CONFIG_REL), "decision": cfg["decision_file"],
         "chosen_model": decision["chosen_model"], "chosen_model_sha256": decision["chosen_model_sha256"],
-        "primary": {"system": "improved", "candidate": primary, "checkpoint": decision["chosen_model"],
-                    "sha256": decision["chosen_model_sha256"], "why": "the model E12's decision chose"},
-        "alternate": {"system": "alternate", "candidate": alternate,
-                      "checkpoint": cfg["candidates"][alternate]["checkpoint"],
-                      "sha256": predictors["alternate"].detail.get("sha256"),
-                      "why": "the other candidate, reported beside the primary on the same rows"},
-        "basis": basis, "calibration": calibration, "calibration_binding": binding,
+        "primary": primary_spec, **alt_specs,
+        **({"alternates_not_scored": not_scored} if not_scored else {}),
+        "basis": basis, "class_rule": class_rule, "calibration": calibration, "calibration_binding": binding,
         "quantized_thresholds": thresholds, "exif": exif, "labels_reviewed": LABELS_REVIEWED, "label_signature": LABEL_SIGNATURE,
         "device": device_name(cfg), "started_at": started,
-        "systems": {n: {"description": predictors[n].description, **predictors[n].detail} for n in SYSTEMS},
+        "systems": {n: {"description": predictors[n].description, **predictors[n].detail} for n in systems},
         "abstention": "a *_calibrated system answers only when its calibrated top probability is at least the "
                       "threshold; the other systems answer every photo",
-        **({"cleaned_rows": cleaned_info} if subset else {}),
+        **({"cleaned_rows": cleaned_info} if clean else {}),
         **({"override_note": override_note.strip()} if override_note.strip() else {}),
     }
-    models = {n: predictors[n].description for n in SYSTEMS}
+    models = {n: predictors[n].description for n in systems}
     models["improved"] = f"primary ({primary}): {models['improved']}"
-    models["alternate"] = f"alternate ({alternate}): {models['alternate']}"
+    for n, k in alternates.items():
+        models[n] = f"alternate ({k}): {models[n]}"
     models.update({f"{n}_calibrated": f"{models[n]}, temperature {calibration[n]['temperature']}"
                    for n in cal_names})
-    attempts = [{"system": n, "kind": "frozen, scored once", **predictors[n].detail} for n in SYSTEMS]
+    attempts = [{"system": n, "kind": "frozen, scored once", **predictors[n].detail} for n in systems]
     views = [(subset, np.ones(len(paths), dtype=bool), "")]
     if split == "lab_test":
-        shared = set(subset_positions("shared_classes", split, info, root))
-        views.append(("shared_classes", np.array([p in shared for p in positions]),
+        view = "+".join(x for x in ("shared_classes", class_part if outside else None) if x)
+        shared = set(subset_positions(view, split, info, root))
+        views.append((view, np.array([p in shared for p in positions]),
                       " Scored on the classes lab.csv and field.csv share, with all outputs kept, so a prediction "
                       "outside that list is wrong."))
     written = []
@@ -432,8 +473,9 @@ def run_images(split: str, cfg: dict[str, Any], predictors: dict[str, Predictor]
         rows = {n: Predictions([p for p, k in zip(paths, keep, strict=True) if k], labels[keep], probs[n][keep])
                 for n in order}
         notes = (f"Final test on {split}, scored once with configurations frozen before the run; every number is a "
-                 f"held-out number on this basis: {basis}. The primary model ({primary}) is the one E12 chose; the "
-                 f"alternate ({alternate}) is scored beside it on the same rows. Options per plant are in "
+                 f"held-out number on this basis: {basis}. The primary model ({primary}) is the one the final-model "
+                 f"decision chose; the other candidates ({', '.join(alternates.values()) or 'none scored'}) are scored "
+                 f"beside it on the same rows. Options per plant are in "
                  f"config.options_per_plant (plant-given top-3 is easy). {LABEL_SIGNATURE}{extra} "
                  f"{statements(split, thresholds, exif, root)}")
         written.append(write_run("E9", split, config, models, metrics, intervals, attempts, rows, info.hash, root=root,
@@ -518,27 +560,55 @@ def _onnx_predictor(cfg: dict[str, Any], decision: dict[str, Any], root: Path) -
                       "source_checkpoint_sha256": model.source_sha256})
 
 
+def restricted(pred: Predictor, names: list[str]) -> Predictor:
+    """An older model on the final class list: keep the outputs of the listed classes, drop the others and renormalize
+    (the rule fixed in T4.9 for rescoring E4 and E12). A model that cannot output a listed class is refused."""
+    if pred.class_names == names:
+        return pred
+    missing = [n for n in names if n not in pred.class_names]
+    if missing:
+        raise Refused(f"{pred.description} has no output for {missing[:3]}; its classes are not a superset of the list")
+    cols = [pred.class_names.index(n) for n in names]
+    width = len(pred.class_names)
+
+    def run(frame: pd.DataFrame) -> np.ndarray:
+        out = np.asarray(pred.run(frame), dtype=float)
+        if out.ndim != 2 or out.shape[1] != width:
+            raise Refused(f"{pred.description} returned {out.shape[-1]} outputs for {width} classes")
+        kept = out[:, cols]
+        return kept / np.maximum(kept.sum(axis=1, keepdims=True), FLOOR)
+
+    return Predictor(f"{pred.description}, outputs masked to the {len(names)}-class list and renormalized", names, run,
+                     {**pred.detail, "masked_from_classes": width})
+
+
 def build_predictors(cfg: dict[str, Any], decision: dict[str, Any], root: Path = ROOT) -> dict[str, Predictor]:
-    """The six frozen systems from the config and E12's decision. `improved` is the model E12 chose and `alternate` the
-    other candidate; the chosen file must be the one the decision hashes."""
+    """The frozen systems from the config and the decision. `improved` is the model the decision chose and each other
+    candidate whose saved file is on disk is an alternate; the chosen file must be the one the decision hashes. Every
+    older model is restricted to the decision's class list."""
     root, size, device = Path(root), cfg["batch_size"], cfg["torch_device"]
     spec = cfg["systems"]
-    primary, alternate = candidate_roles(cfg, decision)
+    specs = specs_of(cfg, decision)
+    primary, others = candidate_roles(cfg, decision)
+    names = decision["class_names"]
     chosen = root / decision["chosen_model"]
     if not chosen.is_file() or sha256_file(chosen) != decision["chosen_model_sha256"]:
-        raise Refused(f"{decision['chosen_model']} differs from E12's decision (sha256) or is missing")
-    other = root / cfg["candidates"][alternate]["checkpoint"]
-    if not other.is_file():
-        raise Refused(f"{cfg['candidates'][alternate]['checkpoint']} is missing: the alternate model must be scored too")
-    return {
-        "baseline": _torch_predictor(root / spec["baseline"]["checkpoint"], "clean lab baseline", size, device),
-        "improved": _torch_predictor(chosen, f"{primary} model chosen by E12", size, device),
-        "alternate": _torch_predictor(other, f"{alternate} model, the other candidate", size, device),
-        "xgboost": _xgboost_predictor(root / spec["xgboost"]["model"], spec["xgboost"]["features"],
-                                      decision["class_names"]),
-        "dinov2": _torch_predictor(root / spec["dinov2"]["checkpoint"], "DINOv2 small", size, device),
+        raise Refused(f"{decision['chosen_model']} differs from the decision's sha256 or is missing")
+    old = names
+    if cfg.get("old_classes_file"):
+        old = json.loads((root / cfg["old_classes_file"]).read_text(encoding="utf-8"))["class_names"]
+    out = {
+        "baseline": restricted(_torch_predictor(root / spec["baseline"]["checkpoint"], "clean lab baseline", size, device), names),
+        "improved": restricted(_torch_predictor(chosen, f"{primary} model chosen by the final-model decision", size, device), names),
+        "xgboost": restricted(_xgboost_predictor(root / spec["xgboost"]["model"], spec["xgboost"]["features"], old), names),
+        "dinov2": restricted(_torch_predictor(root / spec["dinov2"]["checkpoint"], "DINOv2 small", size, device), names),
         "quantized": _onnx_predictor(cfg, decision, root),
     }
+    for i, key in enumerate(others):
+        path = root / specs[key]["checkpoint"]
+        if path.is_file():
+            out[e9_roles.system_of(i)] = restricted(_torch_predictor(path, f"{key} model, another candidate", size, device), names)
+    return out
 
 
 METRIC_LINES = (("accuracy", "accuracy"), ("macro_f1", "macro-F1"), ("ece", "calibration error (ECE)"),
@@ -551,7 +621,7 @@ def image_report(rec: dict[str, Any]) -> str:
     c = rec["config"]
     tag = "cleaned rows" if "cleaned_rows" in c else f"{rec['split']}" + (f" {rec['subset']}" if rec["subset"] else "")
     role = {c["primary"]["system"]: f"primary ({c['primary']['candidate']})",
-            c["alternate"]["system"]: f"alternate ({c['alternate']['candidate']})"}
+            **{k: f"alternate ({c[k]['candidate']})" for k in ("alternate", "alternate_2") if k in c}}
     lines = [f"[{tag}] basis: {c['basis']}; n = {rec['n']}"]
     if "cleaned_rows" in c:
         r = c["cleaned_rows"]
@@ -593,14 +663,15 @@ def check_budget(llm: Any, need: int, limit: int, spent: int) -> None:
         raise LLMError(f"Claude call cap {cap} would be passed ({made()} made, {need} needed); no call was made")
 
 
-def run_two_at_a_time(todo: list[Any], one: Callable[[Any], dict[str, Any]], ck: Checkpoint) -> None:
-    """Run `one` over `todo` with at most IN_FLIGHT calls at once, saving each row as it arrives. An error stops new
-    calls, keeps what arrived, and is raised."""
+def run_two_at_a_time(todo: list[Any], one: Callable[[Any], dict[str, Any]], ck: Checkpoint,
+                      workers: int = IN_FLIGHT) -> None:
+    """Run `one` over `todo` with at most `workers` calls at once (two unless said), saving each row as it arrives. An
+    error stops new calls, keeps what arrived, and is raised."""
     failure: LLMError | None = None
-    with ThreadPoolExecutor(max_workers=IN_FLIGHT) as pool:
+    with ThreadPoolExecutor(max_workers=workers) as pool:
         queue, live = iter(todo), set()
         while True:
-            while failure is None and len(live) < IN_FLIGHT:
+            while failure is None and len(live) < workers:
                 nxt = next(queue, None)
                 if nxt is None:
                     break
@@ -695,10 +766,10 @@ def stage_wrong_disease_dev(cfg: dict[str, Any], llm: Any, root: Path = ROOT, no
     return write_run("E9", DEV_SPLIT, config, {"grader": llm.model}, {"served": dev_metrics(rows)},
                      {"served": dev_intervals(rows)}, attempts, {"served": rows}, info.hash, root=root,
                      notes=("Development check of the wrong-disease grader on the final served rag_dev answers. "
-                            "The prompt is frozen only after this and the blind read." + (" " + note if note else "")))
+                            "The prompt is frozen only after this. " + NOT_VALIDATED + (" " + note if note else "")))
 
 
-# ---------------------------------------------------------------- blind read, freeze
+# ---------------------------------------------------------------- freeze
 
 def latest_stage_record(root: Path, stage: str) -> tuple[Path, dict[str, Any]]:
     """The newest E9 rag_dev record of this stage, which must pass check_run."""
@@ -716,76 +787,24 @@ def _jsonl(path: Path) -> list[dict[str, Any]]:
     return [json.loads(x) for x in Path(path).read_text(encoding="utf-8").splitlines() if x.strip()]
 
 
-def blind_file(root: Path) -> Path:
-    return Path(root) / "results" / "runs" / "E9-wrong-disease-blind.jsonl"
-
-
-def stage_blind_sample(cfg: dict[str, Any], root: Path = ROOT) -> Path:
-    """Write the file a reader judges: a seeded sample of the dev answers with only the question, diagnosis and answer.
-    The grader's call is not in it, and the order does not follow the call."""
-    _, rec = latest_stage_record(root, "wrong_disease_dev")
-    rows = _jsonl(Path(root) / rec["predictions"]["served"])
-    sample = draw_blind(rows, cfg["wrong_disease"]["blind_seed"], cfg["wrong_disease"]["blind_per_call"])
-    path = blind_file(root)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    atomic_write_text(path, "".join(json.dumps({k: r[k] for k in ("item", "question", "diagnosis", "answer")}) + "\n"
-                                    for r in sample))
-    return path
-
-
-def stage_unblind(cfg: dict[str, Any], root: Path, read_file: Path, reader: str, note: str = "") -> Path:
-    """Join the reader's calls to the grader's, and record the error in both directions."""
-    root = Path(root)
-    require_clean(root)
-    dev_path, dev = latest_stage_record(root, "wrong_disease_dev")
-    fields = prompt_fields(root)
-    if any(fields[k] != dev["config"][k] for k in ("prompt_sha256", "rendered_sha256")):
-        raise Refused("the prompt has changed since the dev run; the blind read would measure a different prompt")
-    wd = cfg["wrong_disease"]
-    dev_rows = _jsonl(root / dev["predictions"]["served"])
-    sample = draw_blind(dev_rows, wd["blind_seed"], wd["blind_per_call"])
-    read = _jsonl(read_file)
-    items = [r.get("item") for r in read]
-    if len(set(items)) != len(items) or set(items) != {s["item"] for s in sample}:
-        raise Refused("the reader's file must hold every item of the blind file exactly once, and no other")
-    if any(r.get("reader") not in CALLS for r in read):
-        raise Refused("every reader call must be FITS or WRONG")
-    by_item = {r["item"]: r["reader"] for r in read}
-    rows = [{"id": s["id"], "item": s["item"], "grader": s["call"], "reader": by_item[s["item"]]} for s in sample]
-    strata = strata_sizes(dev_rows)
-    config = {"stage": "wrong_disease_blind_read", **{k: dev["config"][k] for k in ("prompt_file", "prompt_sha256", "rendered_sha256")},
-              "dev_record": dev["run_id"], "blind_seed": wd["blind_seed"], "blind_per_call": wd["blind_per_call"],
-              "strata": strata, "reader": reader, "read_file": Path(read_file).name,
-              "read_file_sha256": sha256_file(Path(read_file)), "claude_calls": 0, "device": WD_DEVICE,
-              "labels_reviewed": LABELS_REVIEWED, "label_signature": LABEL_SIGNATURE,
-              "started_at": datetime.now(timezone.utc).isoformat()}
-    attempts = [{"stage": "wrong_disease_blind_read", "read_answers": len(rows), "reader": reader}]
-    return write_run("E9", DEV_SPLIT, config, {"reader": reader, "grader": dev["models"]["grader"]},
-                     {"served": blind_metrics(rows, strata)}, {"served": blind_intervals(rows)}, attempts,
-                     {"served": rows}, split_info(DEV_SPLIT, root).hash, root=root,
-                     notes=("A reader judged a seeded sample of the dev answers without the grader's call; the rates are "
-                            "how often the reader disagrees with it, in each direction. The reader is one reader, not truth."
-                            + (" " + note if note else "")))
+NOT_VALIDATED = ("The wrong-disease check was not validated: no one read a sample of its calls on rag_dev, so how often "
+                 "it flags a good answer or passes a wrong one is not known. Its rate is a count of the grader's calls.")
 
 
 def stage_freeze(cfg: dict[str, Any], root: Path = ROOT) -> Path:
-    """Record the prompt's commit and sha256 in a config to be committed. Needs the dev run and the blind read, both
-    made with this very prompt."""
+    """Record the prompt's commit and sha256 in a config to be committed. Needs the dev run, made with this very prompt."""
     root = Path(root)
     if (root / FROZEN_REL).exists():
         raise Refused(f"{FROZEN_REL} already frozen; a frozen prompt is not changed")
     require_committed(root, [PROMPT_REL])
     require_clean(root)
     _, dev = latest_stage_record(root, "wrong_disease_dev")
-    _, blind = latest_stage_record(root, "wrong_disease_blind_read")
-    if blind["config"]["dev_record"] != dev["run_id"]:
-        raise Refused("the blind read belongs to another dev run")
     fields = prompt_fields(root)
     if any(fields[k] != dev["config"][k] for k in ("prompt_sha256", "rendered_sha256")):
-        raise Refused("the prompt has changed since the dev run and the blind read measured it")
+        raise Refused("the prompt has changed since the dev run that measured it")
     commit = git(root, "log", "-1", "--format=%H", "--", PROMPT_REL).stdout.strip()
     frozen = {"experiment": "E9", **fields, "prompt_commit": commit, "grader_model": cfg["rag"]["grader"],
-              "dev_record": dev["run_id"], "blind_read_record": blind["run_id"],
+              "dev_record": dev["run_id"], "validated": False, "validation": NOT_VALIDATED,
               "frozen_at": datetime.now(timezone.utc).isoformat(),
               "rule": "rag_test runs the wrong-disease check only with this prompt; it is not tuned after rag_test"}
     path = root / FROZEN_REL
@@ -809,27 +828,48 @@ def require_frozen(root: Path = ROOT) -> dict[str, Any]:
     return frozen
 
 
+# ---------------------------------------------------------------- the judges
+
+HAIKU_DECISION_REL = "results/e14/haiku_decision.json"
+
+
+def first_judge(root: Path = ROOT) -> dict[str, Any]:
+    """The first judge, read from the committed decision file of the Haiku check (E14H) and never typed into a config.
+    E9 has no local judge: a decision that names anything but Haiku stops the run."""
+    from sprout.experiments.e14h_haiku_check import rubric_hash
+
+    root = Path(root)
+    require_committed(root, [HAIKU_DECISION_REL])
+    decision = json.loads((root / HAIKU_DECISION_REL).read_text(encoding="utf-8"))
+    if decision.get("first_judge") != "haiku":
+        raise Refused(f"{HAIKU_DECISION_REL} says the first judge is {decision.get('first_judge')!r}; E9 has no local "
+                      "judge, so it cannot run on that decision")
+    if not decision.get("model") or decision.get("rubric_sha256") != rubric_hash():
+        raise Refused(f"{HAIKU_DECISION_REL} names no model, or the rubric changed since the Haiku check graded with it")
+    return decision
+
+
 # ---------------------------------------------------------------- rag_test
 
 RAG_TEST = "rag_test"
-ROLES = {"local": "upper figure", "sonnet": "conservative figure"}
 SERVED = "served"
 EMBEDDER, RERANKER = "BAAI/bge-small-en-v1.5", "cross-encoder/ms-marco-MiniLM-L6-v2"
 FINAL_CAVEAT = (
-    "Held-out numbers, from one run with everything frozen before it. The two judges read the same claims with the same "
-    "rubric. The local judge is the upper figure and Sonnet the conservative one: the local judge errs kind and Sonnet "
-    "errs literal (docs/e14-adjudication.md), so the truth lies between them and neither is the share of correct "
-    "claims. The wrong-disease check is a Sonnet grader whose error was read blind on rag_dev."
+    "Held-out numbers, from one run with everything frozen before it. The Haiku judge (the first judge, chosen by the "
+    "committed Haiku check) and the Sonnet judge (the second figure) read the same claims with the same rubric. Their "
+    "figures differ, Sonnet is a reference and not truth, and neither is the share of correct claims. The wrong-disease "
+    "check is a Sonnet grader that was run on rag_dev, frozen, and run once here; it was not validated by a blind read."
 )
 
 
 def guard_rag_test(root: Path, override_note: str) -> dict[str, Any]:
-    """Every rag_test stage starts here: configs and prompt committed, tree clean, prompt equal to the frozen one,
-    split unused."""
+    """Every rag_test stage starts here: configs, prompt and the Haiku decision committed, tree clean, prompt equal to
+    the frozen one, split unused."""
     root = Path(root)
-    require_committed(root, [CONFIG_REL, FROZEN_REL, PROMPT_REL])
+    require_committed(root, [CONFIG_REL, FROZEN_REL, PROMPT_REL, HAIKU_DECISION_REL])
     require_clean(root)
     frozen = require_frozen(root)
+    first_judge(root)
     require_unused(root, RAG_TEST, override_note)
     return frozen
 
@@ -893,88 +933,94 @@ def _generated(cfg: dict[str, Any], root: Path) -> list[dict[str, Any]]:
     return rows
 
 
-def stage_rag_judge_local(cfg: dict[str, Any], llm: Any, root: Path = ROOT, *, override_note: str = "") -> Path:
-    """Per-claim faithfulness by the local judge, through the code E7 used. Returns the judgments file."""
+def claim_rows(cfg: dict[str, Any], root: Path) -> list[dict[str, Any]]:
+    """The answers that have claims to grade, in question order, each with the passages it was written from and its
+    claims (the answer's factual sentences, split by the code E7 used). Both judges are shown exactly this."""
+    out = []
+    for g in _generated(cfg, root):
+        claims = split_claims(g["text"]) if g["state"] in ("answered", "ungrounded") else []
+        if claims:
+            out.append({"item": e14.item_of(SERVED, g["id"]), "id": g["id"], "answer": g["text"],
+                        "passages": [{"n": i, **p} for i, p in enumerate(g["passages"], 1)],
+                        "claims": [{"claim": c.text, "cited": c.cited} for c in claims]})
+    return out
+
+
+def _claims_key(model: str, rows: list[dict[str, Any]]) -> str:
+    parts = [model, rubric(), [[r["item"], [c["claim"] for c in r["claims"]]] for r in rows]]
+    return hashlib.sha1(json.dumps(parts).encode()).hexdigest()[:10]
+
+
+def _claims_checkpoint(model: str, rows: list[dict[str, Any]], root: Path) -> Checkpoint:
+    return Checkpoint(Path(root) / WORK_REL / "claims" / f"claims-{model}-{_claims_key(model, rows)}.jsonl")
+
+
+def _pending(rows: list[dict[str, Any]], done: dict[str, Any]) -> list[tuple[dict[str, Any], int]]:
+    return [(r, j) for r in rows for j in range(len(r["claims"])) if f"{r['item']}:{j}" not in done]
+
+
+def grade_claims(rows: list[dict[str, Any]], llm: Any, ck: Checkpoint, workers: int) -> None:
+    """One call per claim not already saved, `workers` at a time, each reply saved as it arrives (E14's code and rubric)."""
+    def one(task: tuple[dict[str, Any], int]) -> dict[str, Any]:
+        got = e14.grade_claim(llm, task[0], task[1])
+        return {"id": got["id"], "reply": got["reply"], "verdict": got["sonnet"]}
+
+    run_two_at_a_time(_pending(rows, ck.rows), one, ck, workers)
+
+
+def stage_rag_haiku(cfg: dict[str, Any], llm: Any, root: Path = ROOT, *, override_note: str = "") -> None:
+    """The Haiku judge grades every claim. Its model is the one the committed Haiku check names."""
     guard_rag_test(root, override_note)
-    _require_model(llm, cfg["rag"]["judge"], "local judge")
-    rows = _generated(cfg, root)
-    qmap = {q.id: q for q in rag_questions(root)}
-    judged = e7.run_judging(SERVED, rows, qmap, llm, Path(root) / WORK_REL / "judge", key=_judge_key(cfg, root))
-    return e7.write_judgments(Path(root) / WORK_REL / "local", judged)[0]
+    _require_model(llm, first_judge(root)["model"], "Haiku judge")
+    rows = claim_rows(cfg, root)
+    ck = _claims_checkpoint(llm.model, rows, root)
+    check_budget(llm, len(_pending(rows, ck.rows)), cfg["rag"]["max_haiku_calls"], len(ck.rows))
+    grade_claims(rows, llm, ck, cfg["rag"]["judge_in_flight"])
 
 
-def _judge_key(cfg: dict[str, Any], root: Path) -> str:
-    ck = _retrieval_checkpoint(cfg, root)
-    return e7.checkpoint_key(_generation_key(cfg, ck), cfg["rag"]["judge"], rubric())
-
-
-def _local_judgments(cfg: dict[str, Any], root: Path) -> tuple[list[dict[str, Any]], Path, dict[str, dict[str, Any]]]:
-    rows = _generated(cfg, root)
-    done = Checkpoint(Path(root) / WORK_REL / "judge" / f"judge-{SERVED}-{_judge_key(cfg, root)}.jsonl")
-    if any(r["id"] not in done.rows for r in rows):
-        raise Refused("run rag-judge-local first: some answers are not judged")
-    judged = [done.rows[r["id"]] for r in rows if done.rows[r["id"]]["claims"]]
-    full, blind = e7.write_judgments(Path(root) / WORK_REL / "local", judged)
-    return judged, full, {b["item"]: b for b in _jsonl(blind)}
-
-
-def _test_items(cfg: dict[str, Any], root: Path, judged: list[dict[str, Any]], rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _test_items(cfg: dict[str, Any], root: Path, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     qmap = {q.id: q for q in rag_questions(root)}
     crops, classes = index_crops(Path(root) / cfg["rag"]["index_dir"]), e7.load_classes(root)
-    text = {r["id"]: r["text"] for r in rows}
-    return [{"id": j["id"], "question": qmap[j["id"]].question, "diagnosis": diagnosis_for(qmap[j["id"]], crops, classes),
-             "answer": text[j["id"]]} for j in judged]
-
-
-def _claims_checkpoint(model: str, cfg14: dict[str, Any], root: Path) -> Checkpoint:
-    return Checkpoint(Path(root) / WORK_REL / "claims" / f"claims-{e14.run_key(cfg14, model)}.jsonl")
+    return [{"id": r["id"], "question": qmap[r["id"]].question, "diagnosis": diagnosis_for(qmap[r["id"]], crops, classes),
+             "answer": r["answer"]} for r in rows]
 
 
 def stage_rag_sonnet(cfg: dict[str, Any], llm: Any, root: Path = ROOT, *, override_note: str = "") -> None:
-    """Sonnet grades the same claims with the same rubric (E14's code), then runs the frozen wrong-disease check once per
+    """The Sonnet judge grades the same claims with the same rubric, then runs the frozen wrong-disease check once per
     answer. The cap and the stage limit are checked for both together before any call."""
     guard_rag_test(root, override_note)
-    _require_model(llm, cfg["rag"]["grader"], "Sonnet grader")
-    judged, full, blind = _local_judgments(cfg, root)
-    limit = cfg["rag"]["max_sonnet_calls"]
-    sample = [{"item": e14.item_of(SERVED, j["id"]), "id": j["id"], "system": SERVED, "stratum": SERVED} for j in judged]
-    cfg14 = {"seed": 0, "sample_size": len(sample), "served_system": SERVED, "max_calls": limit,
-             "source": {"judgments_sha256": sha256_file(full)}}
-    items = _test_items(cfg, root, judged, _generated(cfg, root))
-    claims_done = _claims_checkpoint(llm.model, cfg14, root).rows
-    wd_path = Path(root) / WORK_REL / f"wd-test-{wd_key(items, llm.model, root)}.jsonl"
-    wd_done = Checkpoint(wd_path).rows
-    need = sum(f"{e['item']}:{k}" not in claims_done for e in sample for k in range(len(blind[e["item"]]["claims"])))
-    need += sum(i["id"] not in wd_done for i in items)
-    check_budget(llm, need, limit, len(claims_done) + len(wd_done))
-    e14.grade(sample, blind, llm, Path(root) / WORK_REL / "claims", cfg14)
+    _require_model(llm, cfg["rag"]["grader"], "Sonnet judge")
+    rows = claim_rows(cfg, root)
+    ck = _claims_checkpoint(llm.model, rows, root)
+    items = _test_items(cfg, root, rows)
+    wd_done = Checkpoint(Path(root) / WORK_REL / f"wd-test-{wd_key(items, llm.model, root)}.jsonl").rows
+    need = len(_pending(rows, ck.rows)) + sum(i["id"] not in wd_done for i in items)
+    check_budget(llm, need, cfg["rag"]["max_sonnet_calls"], len(ck.rows) + len(wd_done))
+    grade_claims(rows, llm, ck, IN_FLIGHT)
     wd_grade(items, llm, "test", root)
 
 
-def final_rows(cfg: dict[str, Any], llm_model: str, root: Path) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """(rows in question order, generation rows) with both judges' calls on every claim and the wrong-disease call."""
-    judged, full, _ = _local_judgments(cfg, root)
-    gen = _generated(cfg, root)
-    by_id = {j["id"]: j for j in judged}
-    cfg14 = {"seed": 0, "sample_size": len(judged), "served_system": SERVED, "max_calls": cfg["rag"]["max_sonnet_calls"],
-             "source": {"judgments_sha256": sha256_file(full)}}
-    claims = _claims_checkpoint(llm_model, cfg14, root).rows
-    items = _test_items(cfg, root, judged, gen)
-    wd = Checkpoint(Path(root) / WORK_REL / f"wd-test-{wd_key(items, llm_model, root)}.jsonl").rows
-    diagnosis = {i["id"]: i["diagnosis"] for i in items}
+def final_rows(cfg: dict[str, Any], haiku_model: str, sonnet_model: str, root: Path) -> list[dict[str, Any]]:
+    """Rows in question order, with both judges' calls on every claim and the wrong-disease call."""
+    gen, claims = _generated(cfg, root), claim_rows(cfg, root)
+    by_id = {r["id"]: r for r in claims}
+    haiku, sonnet = (_claims_checkpoint(m, claims, root).rows for m in (haiku_model, sonnet_model))
+    items = _test_items(cfg, root, claims)
+    wd = Checkpoint(Path(root) / WORK_REL / f"wd-test-{wd_key(items, sonnet_model, root)}.jsonl").rows
     qmap = {q.id: q for q in rag_questions(root)}
     crops, classes = index_crops(Path(root) / cfg["rag"]["index_dir"]), e7.load_classes(root)
+    diagnosis = {i["id"]: i["diagnosis"] for i in items}
     rows = []
     for g in gen:
-        j = by_id.get(g["id"], {"claims": []})
-        item = e14.item_of(SERVED, g["id"])
+        have = by_id.get(g["id"])
         got = []
-        for k, c in enumerate(j["claims"]):
-            r = claims.get(f"{item}:{k}")
-            if r is None:
-                raise ValueError("some claims are not graded by Sonnet yet; run the rag-sonnet stage")
-            got.append({"claim": c["claim"], "cited": c["cited"], "local": bool(c["verdict"]), "sonnet": r["sonnet"],
-                        "sonnet_reply": r["reply"]})
+        for j, c in enumerate(have["claims"] if have else []):
+            key = f"{have['item']}:{j}"
+            if key not in haiku or key not in sonnet:
+                raise ValueError("some claims are not graded by both judges yet; run the rag-haiku and rag-sonnet stages")
+            got.append({"claim": c["claim"], "cited": c["cited"], "haiku": haiku[key]["verdict"],
+                        "haiku_reply": haiku[key]["reply"], "sonnet": sonnet[key]["verdict"],
+                        "sonnet_reply": sonnet[key]["reply"]})
         check = wd.get(g["id"]) if got else None
         if got and check is None:
             raise ValueError("some answers are not wrong-disease checked yet; run the rag-sonnet stage")
@@ -982,8 +1028,8 @@ def final_rows(cfg: dict[str, Any], llm_model: str, root: Path) -> tuple[list[di
                      "diagnosis": diagnosis.get(g["id"]) or diagnosis_for(qmap[g["id"]], crops, classes), "text": g["text"],
                      "claims": got, "wrong_disease": check["call"] if check else None,
                      "wrong_disease_reply": check["reply"] if check else None,
-                     "sonnet_calls": len(got) + (1 if check else 0)})
-    return rows, gen
+                     "haiku_calls": len(got), "sonnet_calls": len(got) + (1 if check else 0)})
+    return rows
 
 
 def stage_rag_record(cfg: dict[str, Any], root: Path = ROOT, *, device: str, note: str = "",
@@ -991,14 +1037,16 @@ def stage_rag_record(cfg: dict[str, Any], root: Path = ROOT, *, device: str, not
     """Write the one rag_test record from the saved stages. Refuses unless every answer, claim and check is saved."""
     frozen = guard_rag_test(root, override_note)
     root = Path(root)
-    rows, gen = final_rows(cfg, cfg["rag"]["grader"], root)
+    haiku = first_judge(root)
+    rows = final_rows(cfg, haiku["model"], cfg["rag"]["grader"], root)
+    gen = _generated(cfg, root)
     info = split_info(RAG_TEST, root)
     if [r["id"] for r in rows] != info.ids:
         raise Refused("the saved answers do not cover rag_test in order")
     answered = np.array([r["answered"] for r in rows])
     scored = Scored(groups=info.ids, answered=answered, expected=info.expected)
     metrics = {SERVED: {m: recompute_metric(m, scored) for m in e7.BEHAVIOUR_METRICS}}
-    calls = sum(r["sonnet_calls"] for r in rows)
+    calls = {"haiku": sum(r["haiku_calls"] for r in rows), "sonnet": sum(r["sonnet_calls"] for r in rows)}
     ac = serve_config(None)
     usage = {"rows": len(gen), "model_calls": sum(g.get("llm_calls", 0) for g in gen),
              "rows_without_model_call": sum(g.get("llm_calls", 0) == 0 for g in gen),
@@ -1006,28 +1054,31 @@ def stage_rag_record(cfg: dict[str, Any], root: Path = ROOT, *, device: str, not
     config = {
         "stage": "final", "served": {"prompt_version": ac.prompt_version, "mode": ac.mode, "rerank": ac.rerank, "k": ac.k,
                                      "query_mode": ac.query_mode, "floors": serving.FLOORS},
-        "judge": {"model": cfg["rag"]["judge"]},
-        "judges": {"local": {"model": cfg["rag"]["judge"], "role": ROLES["local"]},
-                   "sonnet": {"model": cfg["rag"]["grader"], "role": ROLES["sonnet"]},
+        "judge": {"model": haiku["model"]},
+        "judges": {"haiku": {"model": haiku["model"], "name": "Haiku judge", "role": "first judge",
+                             "chosen_by": {"file": HAIKU_DECISION_REL, "record": haiku["record_id"]}},
+                   "sonnet": {"model": cfg["rag"]["grader"], "name": "Sonnet judge", "role": "second judge"},
                    "same_claims_and_rubric": True},
         "rubric": rubric(), **prompt_fields(root), "frozen_wrong_disease": {"file": FROZEN_REL, **frozen},
-        "diagnosis_source": DIAGNOSIS_RULE, "claude_calls": calls, "device": device, "writer_usage": usage,
+        "wrong_disease_validated": False, "wrong_disease_validation": NOT_VALIDATED,
+        "diagnosis_source": DIAGNOSIS_RULE, "calls": calls, "claude_calls": calls["haiku"] + calls["sonnet"],
+        "device": device, "writer_usage": usage,
         "labels_reviewed": LABELS_REVIEWED, "label_signature": LABEL_SIGNATURE,
         "basis": "rag_test questions as asked; the photo label cleaning does not apply to them",
         "started_at": datetime.now(timezone.utc).isoformat(), "caveat": FINAL_CAVEAT,
         **({"override_note": override_note.strip()} if override_note.strip() else {}),
     }
-    models = {"writer": cfg["rag"]["writer"], "judge_upper_figure": cfg["rag"]["judge"],
-              "judge_conservative_figure": cfg["rag"]["grader"], "wrong_disease_grader": cfg["rag"]["grader"],
-              "embedder": EMBEDDER, "reranker": RERANKER}
+    models = {"writer": cfg["rag"]["writer"], "judge_first": haiku["model"], "judge_second": cfg["rag"]["grader"],
+              "wrong_disease_grader": cfg["rag"]["grader"], "embedder": EMBEDDER, "reranker": RERANKER}
     attempts = [{"stage": "rag_test", "answers": len(rows), "claims": sum(len(r["claims"]) for r in rows),
-                 "claude_calls": calls}]
+                 "claude_calls": config["claude_calls"]}]
     return write_run("E9", RAG_TEST, config, models, metrics, {SERVED: {}}, attempts, {SERVED: rows}, info.hash,
                      root=root, judged=final_lists(rows), notes=FINAL_CAVEAT + (" " + note if note else ""))
 
 
 def report(rec: dict[str, Any], root: Path = ROOT) -> str:
-    """The figures of a rag_test record in words. The two judges are named as the upper and the conservative figure."""
+    """The figures of a rag_test record in words. The two judges are named, with the model of each; neither figure is
+    called accuracy, and the report says which judge's share is the higher."""
     sidecar = json.loads((Path(root) / rec["judged"]["file"]).read_text(encoding="utf-8"))
     judges = rec["config"]["judges"]
 
@@ -1035,24 +1086,26 @@ def report(rec: dict[str, Any], root: Path = ROOT) -> str:
         v = sidecar[name]
         return f"{label}: {sum(v)} of {len(v)} claims supported = {sum(v) / len(v):.3f}"
 
+    h, s = (sum(sidecar[k]) / len(sidecar[k]) for k in ("claims_supported_by_haiku", "claims_supported_by_sonnet"))
+    order = "below" if h < s else "above" if h > s else "equal to"
     flagged = sidecar.get("answers_flagged_wrong_disease", [])
     tag = "[rag_test questions, no photo cleaning applies]"
     lines = [f"{tag} {rec['n']} questions, one run, configurations frozen before it. Label review is signed in "
              f"{SIGNOFF_REL}, not in this record.",
-             share("claims_supported_by_local_judge",
-                   f"local judge {judges['local']['model']} ({judges['local']['role']})"),
-             share("claims_supported_by_sonnet", f"Sonnet ({judges['sonnet']['role']})"),
-             "The two read the same claims with the same rubric; the truth lies between the figures.",
+             share("claims_supported_by_haiku", f"{judges['haiku']['name']} {judges['haiku']['model']} ({judges['haiku']['role']})"),
+             share("claims_supported_by_sonnet", f"{judges['sonnet']['name']} {judges['sonnet']['model']} ({judges['sonnet']['role']})"),
+             f"The two read the same claims with the same rubric. The Haiku judge's share is {order} the Sonnet judge's; "
+             "neither is the share of correct claims.",
              f"wrong-disease check (Sonnet, prompt frozen before this run): {sum(flagged)} of {len(flagged)} checked "
-             "answers flagged as advice for the wrong disease or plant"]
+             "answers flagged as advice for the wrong disease or plant. " + NOT_VALIDATED]
     lines += [f"{k}: {v:.3f}" if v is not None else f"{k}: undefined" for k, v in rec["metrics"][SERVED].items()]
     return "\n".join(x if x.startswith(tag) else f"{tag} {x}" for x in lines)
 
 
 # ---------------------------------------------------------------- command line (wires in the real models)
 
-STAGES = ("lab-test", "field-test", "wrong-disease-dev", "blind-sample", "unblind", "freeze", "rag-retrieve",
-          "rag-generate", "rag-judge-local", "rag-sonnet", "rag-record")
+STAGES = ("lab-test", "field-test", "wrong-disease-dev", "freeze", "rag-retrieve", "rag-generate", "rag-haiku",
+          "rag-sonnet", "rag-record")
 EXIT_INCOMPLETE = 2
 
 
@@ -1068,15 +1121,16 @@ def _remember_device(root: Path, role: str, info: dict[str, Any]) -> None:
 
 
 def device_text(root: Path = ROOT) -> str:
-    """Where retrieval, the writer and the local judge ran, as recorded by their stages. Refuses if a stage left none."""
+    """Where retrieval and the writer ran, as recorded by their stages; the judges run through the claude command and use
+    no local device. Refuses if a stage left none."""
     path = _device_file(root)
     known = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
-    missing = [r for r in ("retrieval", "writer", "judge") if r not in known]
+    missing = [r for r in ("retrieval", "writer") if r not in known]
     if missing:
         raise Refused(f"no device was recorded for {missing}; run those stages first")
-    r, w, j = known["retrieval"], known["writer"], known["judge"]
+    r, w = known["retrieval"], known["writer"]
     return (f"retrieval on {r['device']}; writer {w['model']} with {w['size_vram']} of {w['size']} bytes in GPU memory; "
-            f"judge {j['model']} with {j['size_vram']} of {j['size']} bytes in GPU memory")
+            "both judges and the wrong-disease grader run through the claude command, with no local device")
 
 
 def _on_gpu(client: Any, role: str, root: Path):
@@ -1120,8 +1174,6 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("stage", choices=STAGES)
     ap.add_argument("--override-note", default="", help="why a test split is run again (a later record needs one)")
     ap.add_argument("--note", default="")
-    ap.add_argument("--read-file", help="unblind: the reader's file, one {item, reader} per line")
-    ap.add_argument("--reader", default="", help="unblind: who read the blind file")
     a = ap.parse_args(argv)
     try:
         cfg, root, stage = load_config(ROOT), ROOT, a.stage
@@ -1134,36 +1186,30 @@ def main(argv: list[str] | None = None) -> int:
             print(image_report(json.loads(paths[0].read_text(encoding="utf-8"))))
         elif stage == "wrong-disease-dev":
             print(stage_wrong_disease_dev(cfg, grader(), root, a.note))
-        elif stage == "blind-sample":
-            print(stage_blind_sample(cfg, root))
-        elif stage == "unblind":
-            if not (a.read_file and a.reader.strip()):
-                raise Refused("unblind needs --read-file and --reader")
-            print(stage_unblind(cfg, root, Path(a.read_file), a.reader.strip(), a.note))
         elif stage == "freeze":
             print(stage_freeze(cfg, root))
         elif stage == "rag-retrieve":
             guard_rag_test(root, a.override_note)
             print(f"{len(stage_rag_retrieve(cfg, _real_retriever(cfg, root), root, override_note=a.override_note).rows)} questions")
-        elif stage in ("rag-generate", "rag-judge-local"):
+        elif stage == "rag-generate":
             guard_rag_test(root, a.override_note)
-            role = "writer" if stage == "rag-generate" else "judge"
-            client = OllamaClient(cfg["rag"][role], keep_alive="10m")
-            with _on_gpu(client, role, root):
-                if role == "writer":
-                    from sprout.rag.answer import load_sources
+            client = OllamaClient(cfg["rag"]["writer"], keep_alive="10m")
+            with _on_gpu(client, "writer", root):
+                from sprout.rag.answer import load_sources
 
-                    missing = stage_rag_generate(cfg, client, root, load_sources(root / "knowledge" / "manifest.csv"),
-                                                 override_note=a.override_note)
-                    print(f"{len(rag_questions(root)) - len(missing)} answers, {len(missing)} missing")
-                    if missing:
-                        print("Some questions got no model answer (Ollama down or timing out). Run it again to resume.")
-                        return EXIT_INCOMPLETE
-                else:
-                    print(stage_rag_judge_local(cfg, client, root, override_note=a.override_note))
+                missing = stage_rag_generate(cfg, client, root, load_sources(root / "knowledge" / "manifest.csv"),
+                                             override_note=a.override_note)
+                print(f"{len(rag_questions(root)) - len(missing)} answers, {len(missing)} missing")
+                if missing:
+                    print("Some questions got no model answer (Ollama down or timing out). Run it again to resume.")
+                    return EXIT_INCOMPLETE
+        elif stage == "rag-haiku":
+            guard_rag_test(root, a.override_note)
+            stage_rag_haiku(cfg, ClaudeCodeClient(model=first_judge(root)["model"]), root, override_note=a.override_note)
+            print("the Haiku judge graded the claims")
         elif stage == "rag-sonnet":
             stage_rag_sonnet(cfg, grader(), root, override_note=a.override_note)
-            print("Sonnet judged the claims and ran the wrong-disease check")
+            print("the Sonnet judge graded the claims and ran the wrong-disease check")
         else:
             path = stage_rag_record(cfg, root, device=device_text(root), note=a.note, override_note=a.override_note)
             print(path)

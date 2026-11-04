@@ -48,10 +48,9 @@ CONFIG = {
                       "model_dir": "models/e6"},
     },
     "calibrated": ["improved", "alternate", "quantized"],
-    "rag": {"index_dir": "knowledge/index", "device": "cuda", "writer": "writer-model", "judge": "judge-model",
-            "grader": "sonnet", "max_sonnet_calls": 400, "judge_in_flight": 2},
-    "wrong_disease": {"dev_source": {}, "served_system": "served", "blind_seed": 5, "blind_per_call": 3,
-                      "dev_max_calls": 100},
+    "rag": {"index_dir": "knowledge/index", "device": "cuda", "writer": "writer-model",
+            "grader": "sonnet", "max_sonnet_calls": 400, "max_haiku_calls": 400, "judge_in_flight": 3},
+    "wrong_disease": {"dev_source": {}, "served_system": "served", "dev_max_calls": 100},
 }
 
 
@@ -111,6 +110,10 @@ def repo(tmp_path):
             exif[0x0112] = 6
         (r / rel).parent.mkdir(parents=True, exist_ok=True)
         img.save(r / rel, exif=exif)
+    from sprout.experiments.e14h_haiku_check import rubric_hash
+
+    write(r, "results/e14/haiku_decision.json", {"first_judge": "haiku", "record_id": "E14H-1", "model": "haiku-model",
+                                                  "rubric_sha256": rubric_hash()})
     prompt = e9.PROMPT_REL
     (r / prompt).parent.mkdir(parents=True, exist_ok=True)
     shutil.copy(REAL_ROOT / prompt, r / prompt)
@@ -451,7 +454,7 @@ def test_quantized_model_must_come_from_the_chosen_checkpoint(repo):
     changed = {**decision, "chosen_model_sha256": "d" * 64}
     other["files"]["onnx_dynamic"]["sha256"] = e9.sha256_file(repo / "models/e6/model.dynamic.onnx")
     write(repo, "results/e6/export.json", other)
-    with pytest.raises(e9.Refused, match="differs from E12's decision"):
+    with pytest.raises(e9.Refused, match="differs from the decision"):
         e9.build_predictors(cfg, changed, repo)
 
 
@@ -624,7 +627,7 @@ def test_an_unusable_reply_is_counted_and_never_read_as_a_call(rag_repo):
     assert m["unusable_replies"] == 1 and m["usable_calls"] == 7 and m["flagged_wrong_disease"] == 0
 
 
-# ----------------------------------------------------------------------------------------------- blind read, freeze
+# ----------------------------------------------------------------------------------------------- freeze
 
 
 def dev_record(rag_repo):
@@ -632,89 +635,6 @@ def dev_record(rag_repo):
     commit(rag_repo, "dev source")
     path = e9.stage_wrong_disease_dev(cfg, FakeLLM(reply=grader_reply, model="sonnet"), rag_repo)
     return cfg, path
-
-
-def reader_file(root, cfg, wrong_after_fits=1, fits_after_wrong=1, name="E9-wrong-disease-blind-read.jsonl"):
-    """What a reader returns for the blind file: agrees with the grader except for the stated number of answers."""
-    rec = json.loads(e9.latest_stage_record(root, "wrong_disease_dev")[0].read_text())
-    calls = {r["item"]: r["call"] for r in map(json.loads, (root / rec["predictions"]["served"]).read_text().splitlines())}
-    blind = [json.loads(x) for x in e9.blind_file(root).read_text().splitlines()]
-    out, flip = [], {"FITS": wrong_after_fits, "WRONG": fits_after_wrong}
-    for b in blind:
-        call = calls[b["item"]]
-        if flip[call]:
-            flip[call] -= 1
-            call = "WRONG" if call == "FITS" else "FITS"
-        out.append({"item": b["item"], "reader": call})
-    path = root / "results" / "runs" / name
-    path.write_text("".join(json.dumps(r) + "\n" for r in out))
-    return path
-
-
-def test_blind_file_hides_the_graders_call_and_is_the_same_every_time(rag_repo):
-    cfg, _ = dev_record(rag_repo)
-    path = e9.stage_blind_sample(cfg, rag_repo)
-    text = path.read_text()
-    rows = [json.loads(x) for x in text.splitlines()]
-    assert len(rows) == 5  # 3 of the 6 answers called FITS and both called WRONG
-    assert all(set(r) == {"item", "question", "diagnosis", "answer"} for r in rows)
-    for secret in ("FITS", "WRONG", "reply", "call", "grader", "sonnet", "served"):
-        assert secret not in text
-    assert sum("Tomato advice" in r["answer"] for r in rows) == 2  # both of the grader's WRONG calls are in it
-    path.unlink()
-    assert e9.stage_blind_sample(cfg, rag_repo).read_text() == text  # the seed fixes the draw and its order
-    assert len({r["item"] for r in rows}) == 5
-
-
-def test_unblind_reports_error_in_both_directions(rag_repo):
-    cfg, _ = dev_record(rag_repo)
-    e9.stage_blind_sample(cfg, rag_repo)
-    read = reader_file(rag_repo, cfg, wrong_after_fits=1, fits_after_wrong=1)
-    path = e9.stage_unblind(cfg, rag_repo, read, "second reader")
-    rec = json.loads(path.read_text())
-    m = rec["metrics"]["served"]
-    assert m["false_alarm_rate"] == 0.5 and m["missed_rate"] == pytest.approx(1 / 3)  # WRONG calls the reader passes; FITS calls it fails
-    assert m["estimated_disagreement_rate"] == pytest.approx((2 * 0.5 + 6 * (1 / 3)) / 8)  # weighted by the dev calls
-    assert m["reader_says_fits_after_wrong_call"] == 1 and m["reader_says_wrong_after_fits_call"] == 1
-    assert set(rec["intervals"]["served"]) == {"false_alarm_rate", "missed_rate"}
-    assert rec["config"]["strata"] == {"grader_wrong": 2, "grader_fits": 6} and rec["config"]["reader"] == "second reader"
-    assert rec["claude_calls"] == 0 and rec["models"]["reader"] == "second reader"
-    assert check_file(path, rag_repo, min_n=1) == []
-
-
-def test_unblind_refuses_a_reader_file_that_does_not_match_the_sample(rag_repo):
-    cfg, _ = dev_record(rag_repo)
-    e9.stage_blind_sample(cfg, rag_repo)
-    read = reader_file(rag_repo, cfg)
-    lines = read.read_text().splitlines()
-    read.write_text("\n".join(lines[:-1]) + "\n")
-    with pytest.raises(e9.Refused, match="every item"):
-        e9.stage_unblind(cfg, rag_repo, read, "r")
-    row = json.loads(lines[0])
-    read.write_text("\n".join([json.dumps({**row, "reader": "MAYBE"}), *lines[1:]]) + "\n")
-    with pytest.raises(e9.Refused, match="FITS or WRONG"):
-        e9.stage_unblind(cfg, rag_repo, read, "r")
-
-
-def test_blind_read_record_tampering_is_caught(rag_repo):
-    cfg, _ = dev_record(rag_repo)
-    e9.stage_blind_sample(cfg, rag_repo)
-    path = e9.stage_unblind(cfg, rag_repo, reader_file(rag_repo, cfg), "r")
-    rec = json.loads(path.read_text())
-    pred = rag_repo / rec["predictions"]["served"]
-    original = pred.read_text()
-    lines = original.splitlines()
-    for field, value, expect in (("reader", None, "do not recompute"), ("grader", None, "seeded sample")):
-        row = json.loads(lines[0])
-        row[field] = "WRONG" if row[field] == "FITS" else "FITS"
-        pred.write_text("\n".join([json.dumps(row), *lines[1:]]) + "\n")
-        assert any(expect in p for p in check_file(path, rag_repo, min_n=1)), field
-    pred.write_text(original)
-    assert check_file(path, rag_repo, min_n=1) == []
-    saved = json.loads(path.read_text())
-    saved["config"]["strata"] = {"grader_wrong": 5, "grader_fits": 3}
-    path.write_text(json.dumps(saved))
-    assert any("strata" in p for p in check_file(path, rag_repo, min_n=1))
 
 
 def test_dev_record_tampering_is_caught(rag_repo):
@@ -739,26 +659,23 @@ def test_dev_record_tampering_is_caught(rag_repo):
 
 def frozen_repo(rag_repo):
     cfg, _ = dev_record(rag_repo)
-    e9.stage_blind_sample(cfg, rag_repo)
-    e9.stage_unblind(cfg, rag_repo, reader_file(rag_repo, cfg), "r")
     commit(rag_repo, "records")
     return cfg
 
 
-def test_freeze_records_the_prompt_commit_and_hash_and_needs_the_blind_read(rag_repo):
+def test_freeze_records_the_prompt_commit_and_hash_and_says_the_check_was_not_validated(rag_repo):
+    cfg = e9.load_config(rag_repo)
+    with pytest.raises(e9.Refused, match="wrong_disease_dev"):  # needs the dev run first
+        e9.stage_freeze(cfg, rag_repo)
     cfg, _ = dev_record(rag_repo)
     commit(rag_repo, "dev record")
-    with pytest.raises(e9.Refused, match="wrong_disease_blind_read"):
-        e9.stage_freeze(cfg, rag_repo)
-    e9.stage_blind_sample(cfg, rag_repo)
-    e9.stage_unblind(cfg, rag_repo, reader_file(rag_repo, cfg), "r")
-    commit(rag_repo, "records")
     path = e9.stage_freeze(cfg, rag_repo)
     frozen = json.loads(path.read_text())
     assert frozen["prompt_sha256"] == e9.sha256_file(rag_repo / e9.PROMPT_REL)
     assert frozen["prompt_commit"] == git(rag_repo, "log", "-1", "--format=%H", "--", e9.PROMPT_REL).stdout.strip()
     assert frozen["rendered_sha256"] == e9.rendered_sha256(rag_repo)
-    assert {"dev_record", "blind_read_record", "frozen_at"} <= set(frozen)
+    assert {"dev_record", "frozen_at"} <= set(frozen) and "blind_read_record" not in frozen
+    assert frozen["validated"] is False and "not validated" in frozen["validation"]
     with pytest.raises(e9.Refused, match="already frozen"):
         e9.stage_freeze(cfg, rag_repo)
     with pytest.raises(e9.Refused, match="not committed"):  # a frozen file is only usable once committed
@@ -774,8 +691,6 @@ def test_freeze_refuses_a_prompt_changed_after_the_dev_run(rag_repo):
     commit(rag_repo, "tuned the prompt")
     with pytest.raises(e9.Refused, match="changed since"):
         e9.stage_freeze(cfg, rag_repo)
-    with pytest.raises(e9.Refused, match="changed since"):
-        e9.stage_unblind(cfg, rag_repo, reader_file(rag_repo, cfg, name="again.jsonl"), "r")
 
 
 # ----------------------------------------------------------------------------------------------- rag_test
@@ -797,16 +712,20 @@ def writer_reply(messages):
     return "Apple scab spreads in wet weather [1]. Remove fallen leaves in autumn [1]. Spray in spring [2]."
 
 
-def local_reply(messages):  # the kinder grader: supports two of the three claims
-    claim = messages[-1]["content"].rsplit("Claim: ", 1)[1]
-    return "SUPPORTED" if ("Remove" in claim or "Apple scab" in claim) else "NOT_SUPPORTED"
-
-
 def sonnet_reply(messages):
     body = messages[-1]["content"]
     if body.startswith("Question:"):  # the wrong-disease check
         return "WRONG" if "ferns" in body else "FITS"
     return "SUPPORTED" if "Spray" in body.rsplit("Claim: ", 1)[1] else "NOT_SUPPORTED"
+
+
+def haiku_reply(messages):  # the kinder judge: supports two of the three claims
+    claim = messages[-1]["content"].rsplit("Claim: ", 1)[1]
+    return "SUPPORTED" if ("Remove" in claim or "Apple scab" in claim) else "NOT_SUPPORTED"
+
+
+def haiku(reply=haiku_reply):
+    return FakeLLM(reply=reply, model="haiku-model")
 
 
 @pytest.fixture
@@ -824,56 +743,116 @@ def run_rag(root, sonnet=None, writer=None, judge=None, override=""):
     missing = e9.stage_rag_generate(cfg, writer or FakeLLM(reply=writer_reply, model="writer-model"), root, None,
                                     override_note=override)
     assert missing == []
-    e9.stage_rag_judge_local(cfg, judge or FakeLLM(reply=local_reply, model="judge-model"), root, override_note=override)
+    e9.stage_rag_haiku(cfg, judge or haiku(), root, override_note=override)
     e9.stage_rag_sonnet(cfg, sonnet or FakeLLM(reply=sonnet_reply, model="sonnet"), root, override_note=override)
     return e9.stage_rag_record(cfg, root, device="none: fakes", override_note=override)
 
 
 def test_rag_test_runs_every_stage_and_check_run_recomputes_it(frozen):
-    sonnet = FakeLLM(reply=sonnet_reply, model="sonnet")
-    path = run_rag(frozen, sonnet=sonnet)
+    sonnet, judge = FakeLLM(reply=sonnet_reply, model="sonnet"), haiku()
+    path = run_rag(frozen, sonnet=sonnet, judge=judge)
     rec = json.loads(path.read_text())
     assert rec["split"] == "rag_test" and rec["experiment"] == "E9" and rec["n"] == 6 and rec["subset"] is None
     rows = read_rows(frozen, rec, "served")
     claims = sum(len(r["claims"]) for r in rows)
     checked = sum(r["wrong_disease"] is not None for r in rows)
-    assert claims > 0 and checked > 0 and rec["claude_calls"] == claims + checked == len(sonnet.calls)
+    assert claims > 0 and checked > 0
+    assert len(judge.calls) == claims and len(sonnet.calls) == claims + checked
+    assert rec["config"]["calls"] == {"haiku": claims, "sonnet": claims + checked}
+    assert rec["claude_calls"] == 2 * claims + checked
+    assert all(r["haiku_calls"] == len(r["claims"]) for r in rows)
     assert all(r["sonnet_calls"] == len(r["claims"]) + (r["wrong_disease"] is not None) for r in rows)
     assert check_file(path, frozen, min_n=6) == []
     assert rec["labels_reviewed"] is False and rec["config"]["labels_reviewed"] is False
-    assert rec["models"]["writer"] == "writer-model" and rec["config"]["judge"]["model"] == "judge-model"
-    # Sonnet never saw the local judge's grade, its model name, or the system name
-    seen = json.dumps(sonnet.calls)
-    for secret in ("judge-model", "writer-model", "verdict", "judge_reply", "served"):
-        assert secret not in seen
+    assert rec["models"]["writer"] == "writer-model" and rec["models"]["judge_first"] == "haiku-model"
+    # neither judge saw the other's grade or name, the writer's name, or the system name
+    for fake, secrets in ((sonnet, ("haiku", "writer-model", "verdict", "judge_reply", "served")),
+                          (judge, ("sonnet", "writer-model", "verdict", "judge_reply", "served"))):
+        seen = json.dumps(fake.calls).lower()
+        for secret in secrets:
+            assert secret not in seen
+    assert rec["config"]["wrong_disease_validated"] is False and "not validated" in e9.report(rec, frozen)
 
 
 def test_both_judges_are_reported_and_neither_is_called_accuracy(frozen):
     path = run_rag(frozen)
     rec = json.loads(path.read_text())
     rows = read_rows(frozen, rec, "served")
-    local = [c["local"] for r in rows for c in r["claims"]]
-    sonnet = [c["sonnet"] for r in rows for c in r["claims"] if c["sonnet"] is not None]
+    first = [c["haiku"] is True for r in rows for c in r["claims"]]
+    second = [c["sonnet"] is True for r in rows for c in r["claims"]]
     values = rec["judged"]["values"]
-    assert values["claims_supported_by_local_judge"] == pytest.approx(sum(local) / len(local))  # on the same claims
-    assert values["claims_supported_by_sonnet"] == pytest.approx(sum(sonnet) / len(sonnet))
-    assert len(local) == len(sonnet) and values["claims_supported_by_local_judge"] != values["claims_supported_by_sonnet"]
+    assert values["claims_supported_by_haiku"] == pytest.approx(sum(first) / len(first))  # on the same claims
+    assert values["claims_supported_by_sonnet"] == pytest.approx(sum(second) / len(second))
+    assert len(first) == len(second) and values["claims_supported_by_haiku"] != values["claims_supported_by_sonnet"]
     assert 0 < values["answers_flagged_wrong_disease"] < 1
     judges = rec["config"]["judges"]
-    assert judges["local"]["role"] == "upper figure" and judges["sonnet"]["role"] == "conservative figure"
-    assert judges["sonnet"]["model"] == "sonnet" and judges["same_claims_and_rubric"] is True
+    assert judges["haiku"]["role"] == "first judge" and judges["sonnet"]["role"] == "second judge"
+    assert judges["haiku"]["model"] == "haiku-model" and judges["sonnet"]["model"] == "sonnet"
+    assert judges["same_claims_and_rubric"] is True
     report = e9.report(rec, frozen)
     for text in (path.read_text(), report, json.dumps(json.loads((frozen / rec["judged"]["file"]).read_text()))):
         assert "accuracy" not in text.lower()
-    assert "upper figure" in report and "conservative figure" in report and "local judge" in report and "Sonnet" in report
+        assert "upper" not in text.lower() and "conservative" not in text.lower()
+    assert "Haiku judge" in report and "Sonnet judge" in report and "first judge" in report and "second judge" in report
+    assert "Haiku judge's share is above the Sonnet judge's" in report  # the kinder fake judge: said, not hidden
     assert "Remove fallen leaves" not in report  # a report of numbers, not of answers
+    # a record that calls a figure upper, conservative or accuracy is caught
+    saved = json.loads(path.read_text())
+    saved["config"]["judges"]["haiku"]["role"] = "upper figure"
+    path.write_text(json.dumps(saved))
+    assert any("upper" in p for p in check_file(path, frozen, min_n=6))
+
+
+def test_the_report_says_when_haiku_is_below_sonnet(frozen):
+    path = run_rag(frozen, judge=haiku(lambda m: "NOT_SUPPORTED"))
+    report = e9.report(json.loads(path.read_text()), frozen)
+    assert "Haiku judge's share is below the Sonnet judge's" in report and "upper" not in report.lower()
+
+
+def test_first_judge_follows_the_committed_haiku_check(frozen):
+    cfg = e9.load_config(frozen)
+    e9.stage_rag_retrieve(cfg, FakeRetriever(), frozen)
+    e9.stage_rag_generate(cfg, FakeLLM(reply=writer_reply, model="writer-model"), frozen, None)
+    assert e9.first_judge(frozen)["model"] == "haiku-model"
+    assert "judge" not in cfg["rag"]  # the judge is not typed into the config
+    wrong = FakeLLM(reply=haiku_reply, model="another-model")  # the client must be the model the decision file names
+    with pytest.raises(e9.Refused, match="haiku-model"):
+        e9.stage_rag_haiku(cfg, wrong, frozen)
+    assert wrong.calls == []
+    decision = json.loads((frozen / e9.HAIKU_DECISION_REL).read_text())
+    # the check found Haiku clearly worse: E9 has no local judge, so it stops
+    write(frozen, e9.HAIKU_DECISION_REL, {**decision, "first_judge": "local"})
+    commit(frozen, "the check says local")
+    judge = haiku()
+    with pytest.raises(e9.Refused, match="no local judge"):
+        e9.stage_rag_haiku(cfg, judge, frozen)
+    assert judge.calls == []
+    # an uncommitted edit is refused too, and a changed rubric makes the decision stale
+    write(frozen, e9.HAIKU_DECISION_REL, decision)
+    with pytest.raises(e9.Refused, match="not committed"):
+        e9.first_judge(frozen)
+    write(frozen, e9.HAIKU_DECISION_REL, {**decision, "rubric_sha256": "0" * 64})
+    commit(frozen, "stale rubric")
+    with pytest.raises(e9.Refused, match="rubric"):
+        e9.first_judge(frozen)
+    # the model in the record is the committed decision's, checked again by check_run
+    write(frozen, e9.HAIKU_DECISION_REL, decision)
+    commit(frozen, "back")
+    e9.stage_rag_haiku(cfg, haiku(), frozen)
+    e9.stage_rag_sonnet(cfg, FakeLLM(reply=sonnet_reply, model="sonnet"), frozen)
+    made = e9.stage_rag_record(cfg, frozen, device="none: fakes")
+    assert check_file(made, frozen, min_n=6) == []
+    saved = json.loads(made.read_text())
+    saved["config"]["judges"]["haiku"]["model"] = "claude-haiku-5-5"
+    made.write_text(json.dumps(saved))
+    assert any("first judge" in p for p in check_file(made, frozen, min_n=6))
 
 
 def test_wrong_disease_check_refuses_rag_test_when_its_prompt_hash_differs_from_the_frozen_one(frozen):
     cfg = e9.load_config(frozen)
     e9.stage_rag_retrieve(cfg, FakeRetriever(), frozen)
     e9.stage_rag_generate(cfg, FakeLLM(reply=writer_reply, model="writer-model"), frozen, None)
-    e9.stage_rag_judge_local(cfg, FakeLLM(reply=local_reply, model="judge-model"), frozen)
+    e9.stage_rag_haiku(cfg, haiku(), frozen)
     prompt = frozen / e9.PROMPT_REL
     prompt.write_text(prompt.read_text().replace("FITS or WRONG", "FITS or WRONG now"))
     commit(frozen, "tune the prompt after seeing rag_test")  # committed and clean, but not the frozen prompt
@@ -906,7 +885,7 @@ def test_rag_sonnet_calls_are_resumed_capped_and_two_at_a_time(frozen, tmp_path,
     cfg = e9.load_config(frozen)
     e9.stage_rag_retrieve(cfg, FakeRetriever(), frozen)
     e9.stage_rag_generate(cfg, FakeLLM(reply=writer_reply, model="writer-model"), frozen, None)
-    e9.stage_rag_judge_local(cfg, FakeLLM(reply=local_reply, model="judge-model"), frozen)
+    e9.stage_rag_haiku(cfg, haiku(), frozen)
     # the cap refuses before any call, counting claims and wrong-disease calls together
     ran = []
     real = subprocess.run
@@ -935,7 +914,7 @@ def test_rag_sonnet_calls_are_resumed_capped_and_two_at_a_time(frozen, tmp_path,
     with pytest.raises(LLMError, match="usage limit"):
         e9.stage_rag_sonnet(cfg, FakeLLM(reply=flaky, model="sonnet"), frozen)
     saved = sum(len(f.read_text().splitlines()) for f in (frozen / "results/e9/work").rglob("*.jsonl")
-                if f.name.startswith(("claims-", "wd-test")))
+                if f.name.startswith(("claims-sonnet", "wd-test")))
     assert 3 <= saved <= 4
     again = FakeLLM(reply=sonnet_reply, model="sonnet")
     e9.stage_rag_sonnet(cfg, again, frozen)
@@ -974,11 +953,12 @@ def test_rag_record_tampering_is_caught(frozen):
         pred.write_text("\n".join([*lines[:withc], json.dumps(row), *lines[withc + 1:]]) + "\n")
         return check_file(path, frozen, min_n=6)
 
-    assert any("judged" in p for p in change(lambda r: r["claims"][0].update(local=not r["claims"][0]["local"])))
+    assert any("judged" in p for p in change(lambda r: r["claims"][0].update(haiku=not r["claims"][0]["haiku"])))
     assert any("judged" in p for p in change(lambda r: r["claims"][0].update(sonnet=not r["claims"][0]["sonnet"])))
     assert any("reply" in p for p in change(lambda r: r.update(wrong_disease="FITS" if r["wrong_disease"] == "WRONG" else "WRONG")))
     assert any("claims" in p for p in change(lambda r: r.update(text=r["text"] + " Extra sentence about fungicide.")))
     assert any("sonnet_calls" in p for p in change(lambda r: r.update(sonnet_calls=r["sonnet_calls"] + 1)))
+    assert any("haiku_calls" in p for p in change(lambda r: r.update(haiku_calls=r["haiku_calls"] + 1)))
     assert any("answered" in p or "recompute" in p for p in change(lambda r: r.update(answered=not r["answered"])))
     pred.write_text(original)
     assert check_file(path, frozen, min_n=6) == []
@@ -993,7 +973,7 @@ def test_rag_record_tampering_is_caught(frozen):
     saved["config"]["prompt_sha256"] = rec["config"]["prompt_sha256"]
     sidecar = frozen / rec["judged"]["file"]
     samples = json.loads(sidecar.read_text())
-    samples["claims_supported_by_sonnet"][0] = not samples["claims_supported_by_sonnet"][0]
+    samples["claims_supported_by_haiku"][0] = not samples["claims_supported_by_haiku"][0]
     sidecar.write_text(json.dumps(samples))
     path.write_text(json.dumps(saved))
     assert any("judged" in p for p in check_file(path, frozen, min_n=6))
@@ -1002,8 +982,7 @@ def test_rag_record_tampering_is_caught(frozen):
 def test_the_device_of_every_local_stage_must_be_recorded(tmp_path):
     with pytest.raises(e9.Refused, match="retrieval"):
         e9.device_text(tmp_path)
-    for role, info in (("retrieval", {"device": "cuda"}), ("writer", {"model": "w", "size": 10, "size_vram": 10}),
-                       ("judge", {"model": "j", "size": 8, "size_vram": 8})):
+    for role, info in (("retrieval", {"device": "cuda"}), ("writer", {"model": "w", "size": 10, "size_vram": 10})):
         e9._remember_device(tmp_path, role, info)
     assert "retrieval on cuda" in e9.device_text(tmp_path) and "writer w with 10 of 10" in e9.device_text(tmp_path)
 
@@ -1112,32 +1091,28 @@ def test_an_edited_labels_reviewed_is_caught_and_claims_ignore_it_for_e9(repo):
 # ----------------------------------------------------------------------------------------------- the frozen records
 
 
-def test_the_frozen_config_must_name_a_dev_and_a_blind_record_made_before_it_with_its_prompt(frozen):
+def test_the_frozen_config_must_name_a_dev_record_made_before_it_with_its_prompt_and_say_not_validated(frozen):
     path = run_rag(frozen)
     assert check_file(path, frozen, min_n=6) == []
     runs = frozen / "results" / "runs"
     frozen_cfg = json.loads((frozen / e9.FROZEN_REL).read_text())
-    dev, blind = runs / f"{frozen_cfg['dev_record']}.json", runs / f"{frozen_cfg['blind_read_record']}.json"
-    saved = {p: p.read_text() for p in (dev, blind)}
+    dev = runs / f"{frozen_cfg['dev_record']}.json"
+    saved = dev.read_text()
 
-    def with_edit(target, mutate):
-        rec = json.loads(saved[target])
+    def with_edit(mutate):
+        rec = json.loads(saved)
         mutate(rec)
-        target.write_text(json.dumps(rec))
+        dev.write_text(json.dumps(rec))
         problems = check_file(path, frozen, min_n=6)
-        target.write_text(saved[target])
+        dev.write_text(saved)
         return problems
 
-    assert any("dev_record" in p and "prompt" in p for p in with_edit(dev, lambda r: r["config"].update(prompt_sha256="0" * 64)))
-    assert any("blind_read_record" in p and "prompt" in p
-               for p in with_edit(blind, lambda r: r["config"].update(prompt_sha256="0" * 64)))
+    assert any("dev_record" in p and "prompt" in p for p in with_edit(lambda r: r["config"].update(prompt_sha256="0" * 64)))
     assert any("dev_record" in p and "before the freeze" in p
-               for p in with_edit(dev, lambda r: r.update(finished_at="2999-01-01T00:00:00+00:00")))
-    assert any("blind_read_record" in p and "dev_record" in p
-               for p in with_edit(blind, lambda r: r["config"].update(dev_record="E9-20200101T000000000000Z")))
-    blind.unlink()
-    assert any("blind_read_record" in p and "does not exist" in p for p in check_file(path, frozen, min_n=6))
-    blind.write_text(saved[blind])
+               for p in with_edit(lambda r: r.update(finished_at="2999-01-01T00:00:00+00:00")))
+    dev.unlink()
+    assert any("dev_record" in p and "does not exist" in p for p in check_file(path, frozen, min_n=6))
+    dev.write_text(saved)
     assert check_file(path, frozen, min_n=6) == []
 
 
@@ -1388,3 +1363,121 @@ def test_no_e6_record_for_the_chosen_checkpoint_refuses_the_run(repo):
     commit(repo, "no E6")
     with pytest.raises(e9.Refused, match="E6"):
         e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
+
+
+# ----------------------------------------------------------------------------------------------- the final model (T4.9)
+
+E15_BYTES = b"the T4.9 checkpoint"
+SHA15 = hashlib.sha256(E15_BYTES).hexdigest()
+CLASSES3 = CLASSES[:3]  # the class rule drops Tomato___healthy, a class lab_test holds
+
+
+def final_model(root, calibration=True):
+    """What T4.9 is assumed to leave: a checkpoint, an E5-style calibration naming it, and a decision file."""
+    write(root, "models/e15/best.pt", "x")
+    (root / "models/e15/best.pt").write_bytes(E15_BYTES)
+    write(root, "results/e15/calibration.json", {"temperature": 1.2, "abstain_threshold": 0.8, "model_sha256": SHA15})
+    e6 = json.loads((root / "results/runs/E6-1.json").read_text())
+    e6["run_id"], e6["config"]["checkpoint_sha256"] = "E6-3", SHA15
+    write(root, "results/runs/E6-3.json", e6)
+    write(root, "results/e12/decision.json", {
+        "chosen_model": "models/e15/best.pt", "chosen_model_sha256": SHA15, "class_names": CLASSES3,
+        **({"calibration": "results/e15/calibration.json"} if calibration else {})})
+    commit(root, "T4.9 decided")
+
+
+def three_class_predictors(omit=()):
+    out = {n: tiny(i, 0.5 + 0.1 * i, names=CLASSES3) for i, n in enumerate(SYSTEMS)}
+    out["alternate"] = tiny(7, names=CLASSES3, sha=SHA)  # E4
+    out["alternate_2"] = tiny(8, names=CLASSES3, sha=SHA12)  # E12
+    out["quantized"].detail["source_checkpoint_sha256"] = SHA15
+    return {k: v for k, v in out.items() if k not in omit}
+
+
+def test_a_new_final_model_is_primary_and_e4_and_e12_are_scored_beside_it_on_its_class_list(repo):
+    final_model(repo)
+    paths = e9.run_images("lab_test", e9.load_config(repo), three_class_predictors(), repo)
+    full = json.loads(paths[0].read_text())
+    c = full["config"]
+    assert c["primary"]["candidate"] == "e15" and c["primary"]["checkpoint"] == "models/e15/best.pt"
+    assert (c["alternate"]["candidate"], c["alternate_2"]["candidate"]) == ("e4", "e12")
+    assert c["calibration"]["improved"]["temperature"] == 1.2  # the decision's refit, not E4's or E12's own file
+    assert c["calibration"]["alternate"]["temperature"] == 1.5 and c["calibration"]["alternate_2"]["temperature"] == 2.0
+    assert c["class_names"] == CLASSES3 and "alternate_2" in full["predictions"]
+    assert ("improved", "alternate_2") in {(x["a"], x["b"]) for x in full["comparisons"]}
+    # the rule: rows whose true class is outside the 29 (here 3) are not scored, by any system, and the record says so
+    assert full["subset"] == "classes_in:results/e12/decision.json" and full["n"] == 12
+    assert c["class_rule"]["rows_dropped"] == 4 and c["class_rule"]["labels_outside_the_list"] == ["Tomato___healthy"]
+    assert "4 further photos" in c["basis"]
+    assert [check_file(p, repo, min_n=1) for p in paths] == [[], []]
+    # a record that swaps the roles, or leaves an alternate out unannounced, is caught
+    saved = json.loads(paths[0].read_text())
+    del saved["config"]["alternate_2"]
+    paths[0].write_text(json.dumps(saved))
+    assert any("alternate_2" in p for p in check_file(paths[0], repo, min_n=1))
+
+
+def test_a_chosen_model_that_is_none_of_the_candidates_needs_a_calibration_in_the_decision(repo):
+    final_model(repo, calibration=False)
+    with pytest.raises(e9.Refused, match="neither"):
+        e9.run_images("lab_test", e9.load_config(repo), three_class_predictors(), repo)
+
+
+def test_an_alternate_whose_saved_model_is_missing_is_named_and_not_scored(repo):
+    final_model(repo)
+    with pytest.raises(e9.Refused, match="missing"):  # a file on disk but no predictor for it is not an excuse
+        e9.run_images("lab_test", e9.load_config(repo), three_class_predictors(omit=("alternate_2",)), repo)
+    git(repo, "rm", "-q", "models/e12/convnext_joint_extra/best.pt")
+    commit(repo, "E12's file is gone")
+    (path,) = e9.run_images("field_test", e9.load_config(repo), three_class_predictors(omit=("alternate_2",)), repo)
+    rec = json.loads(path.read_text())
+    assert "alternate_2" not in rec["predictions"] and rec["config"]["alternates_not_scored"][0]["candidate"] == "e12"
+    assert check_file(path, repo, min_n=1) == []
+
+
+def test_old_models_are_masked_to_the_class_list_and_renormalized():
+    old = tiny(3, names=CLASSES)
+    frame = pd.DataFrame({"path": [f"p{i}" for i in range(6)], "label": [CLASSES[i % 3] for i in range(6)]})
+    kept = e9.restricted(old, CLASSES3)
+    full = old.run(frame)
+    out = kept.run(frame)
+    assert kept.class_names == CLASSES3 and out.shape == (6, 3) and np.allclose(out.sum(axis=1), 1.0)
+    assert np.allclose(out, full[:, :3] / full[:, :3].sum(axis=1, keepdims=True))
+    assert kept.detail["masked_from_classes"] == 4
+    assert e9.restricted(tiny(3, names=CLASSES3), CLASSES3).class_names == CLASSES3
+    with pytest.raises(e9.Refused, match="no output for"):
+        e9.restricted(tiny(3, names=CLASSES3), CLASSES)
+
+
+def test_the_committed_config_reads_the_final_decision_and_the_e12_refit_exists():
+    cfg = e9.load_config(REAL_ROOT)
+    assert cfg["decision_file"] == "results/e15/decision.json" and "judge" not in cfg["rag"]
+    assert "blind_seed" not in cfg["wrong_disease"]
+    refit = json.loads((REAL_ROOT / cfg["candidates"]["e12"]["calibration"]).read_text())
+    cal = e9.load_calibration(cfg["candidates"]["e12"]["calibration"], refit["model_sha256"], REAL_ROOT, required=True)
+    assert cal["temperature"] == refit["temperature"] and cal["abstain_threshold"] == refit["abstain_threshold"]
+    with pytest.raises(e9.Refused, match="fitted on another"):
+        e9.load_calibration(cfg["candidates"]["e12"]["calibration"], "0" * 64, REAL_ROOT)
+    if not (REAL_ROOT / cfg["decision_file"]).is_file():  # T4.9 has not run: E9 refuses rather than guess
+        with pytest.raises(e9.Refused, match="no final model"):
+            e9.load_decision(cfg, REAL_ROOT)
+
+
+def test_labels_reviewed_is_false_before_h2_and_true_after(repo):
+    """The record never holds the signature (so signing needs no rerun); `labels_reviewed` as the claims check sees it
+    follows the per-split sign-off file: false while the split is unsigned, true once the person has signed it. H2's
+    `done` status signs nothing, and every split ships unsigned."""
+    from sprout.eval.claims import signoff_problems
+
+    shipped = json.loads((REAL_ROOT / "orchestration/label_signoff.json").read_text())
+    assert {shipped[s]["signed"] for s in ("lab_test", "field_test", "rag_test")} == {False}
+    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
+    claim_on(repo, path)
+    rec = json.loads(path.read_text())
+    assert rec["labels_reviewed"] is False and rec["config"]["labels_reviewed"] is False
+    assert signoff_problems(repo, "field_test") and any("not signed" in p for p in check_claims(repo))  # before
+    before = _hashlib.sha256(path.read_bytes()).hexdigest()
+    sign(repo, "field_test")
+    assert signoff_problems(repo, "field_test") == [] and check_claims(repo) == []  # after
+    assert signoff_problems(repo, "lab_test")  # another split is still unsigned
+    assert _hashlib.sha256(path.read_bytes()).hexdigest() == before  # the record itself is unchanged

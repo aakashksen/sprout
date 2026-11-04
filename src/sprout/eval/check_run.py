@@ -685,33 +685,8 @@ def _e9_dev_rows(rec: dict[str, Any], info: SplitInfo, rows: list[dict[str, Any]
     return problems
 
 
-def _e9_blind_rows(rec: dict[str, Any], rows: list[dict[str, Any]], root: Path) -> list[str]:
-    """Rows of the blind read: the sample must be the seeded draw from the named dev record, with the grader's own
-    calls, and the reader's calls must be one of the two words."""
-    cfg, problems = rec["config"], []
-    if any(set(r) != set(answer_checks.BLIND_ROW_KEYS) for r in rows):
-        return ["every row must hold exactly " + ", ".join(answer_checks.BLIND_ROW_KEYS)]
-    dev_path = root / RUNS_REL / f"{cfg.get('dev_record')}.json"
-    if not dev_path.is_file():
-        return ["config.dev_record names a record that does not exist"]
-    dev = json.loads(dev_path.read_text(encoding="utf-8"))
-    dev_rows = _read_rows(root / dev["predictions"]["served"])
-    if dev["config"].get("prompt_sha256") != cfg.get("prompt_sha256"):
-        problems.append("the blind read and its dev record used different prompts")
-    drawn = answer_checks.draw_blind(dev_rows, cfg.get("blind_seed"), cfg.get("blind_per_call"))
-    if sorted((r["id"], r["item"], r["call"]) for r in drawn) != sorted((r["id"], r["item"], r["grader"]) for r in rows):
-        problems.append("the rows are not the seeded sample of the dev record with the grader's own calls")
-    if any(r["reader"] not in answer_checks.CALLS for r in rows):
-        problems.append("every reader call must be FITS or WRONG")
-    if cfg.get("strata") != answer_checks.strata_sizes(dev_rows):
-        problems.append("config.strata differs from the dev record's calls")
-    if rec["claude_calls"] != 0:
-        problems.append("a blind read makes no Claude call")
-    return problems
-
-
 def _e9_dev_problems(rec: dict[str, Any], root: Path, min_n: int) -> list[str]:
-    """E9 stage records on rag_dev (the wrong-disease dev run and the blind read). Rows are not one per split item, so
+    """E9 stage records on rag_dev (the wrong-disease dev run). Rows are not one per split item, so
     they are checked on their own and every number is recomputed with sprout.eval.answer_checks."""
     problems = _header_problems(rec, root, min_n)
     info = split_info(rec["split"], root)
@@ -730,11 +705,6 @@ def _e9_dev_problems(rec: dict[str, Any], root: Path, min_n: int) -> list[str]:
         found, fresh, fresh_ci = _e9_dev_rows(rec, info, rows, root), None, None
         if not found:
             fresh, fresh_ci = answer_checks.dev_metrics(rows), answer_checks.dev_intervals(rows)
-    elif stage == "wrong_disease_blind_read":
-        found, fresh, fresh_ci = _e9_blind_rows(rec, rows, root), None, None
-        if not found:
-            fresh = answer_checks.blind_metrics(rows, cfg["strata"])
-            fresh_ci = answer_checks.blind_intervals(rows)
     else:
         return problems + [f"unknown E9 stage {stage!r} on rag_dev"]
     problems += found + _prompt_problems(rec, root)
@@ -752,8 +722,8 @@ def _e9_dev_problems(rec: dict[str, Any], root: Path, min_n: int) -> list[str]:
 
 def _e9_final_problems(rec: dict[str, Any], root: Path) -> list[str]:
     """E9 rag_test: the saved claims must be the answer's own claims, each verdict must follow from its reply, the judged
-    samples must be the rows' own claims, and the prompt must be the frozen one. Neither judge's figure may be called
-    accuracy."""
+    samples must be the rows' own claims, the first judge must be the one the committed Haiku check names, and the prompt
+    must be the frozen one. Neither judge's figure may be called accuracy, upper or conservative."""
     from sprout.experiments.e14_judge_check import parse_verdict
     from sprout.rag.judge import split_claims
 
@@ -768,38 +738,56 @@ def _e9_final_problems(rec: dict[str, Any], root: Path) -> list[str]:
     if any(set(r) != set(answer_checks.FINAL_ROW_KEYS) for r in rows) or any(
             set(c) != set(answer_checks.CLAIM_KEYS) for r in rows for c in r["claims"]):
         return problems + ["every row and claim must hold exactly the E9 fields"]
-    bad = {"claims": 0, "sonnet": 0, "check": 0, "calls": 0}
+    bad = {"claims": 0, "haiku": 0, "sonnet": 0, "check": 0, "calls": 0}
     for r in rows:
         want = [c.text for c in split_claims(r["text"])] if r["state"] in ("answered", "ungrounded") else []
         bad["claims"] += [c["claim"] for c in r["claims"]] != want
+        bad["haiku"] += any(c["haiku"] != parse_verdict(str(c["haiku_reply"])) for c in r["claims"])
         bad["sonnet"] += any(c["sonnet"] != parse_verdict(str(c["sonnet_reply"])) for c in r["claims"])
         reply = r["wrong_disease_reply"]
         bad["check"] += (r["wrong_disease"] != answer_checks.parse_call(str(reply or ""))
                          or (reply is None) != (not r["claims"]))
-        bad["calls"] += r["sonnet_calls"] != len(r["claims"]) + (reply is not None)
+        bad["calls"] += (r["haiku_calls"] != len(r["claims"])
+                         or r["sonnet_calls"] != len(r["claims"]) + (reply is not None))
     for key, what in (("claims", "claims do not follow from the answer text"),
+                      ("haiku", "a Haiku verdict does not match its reply"),
                       ("sonnet", "a Sonnet verdict does not match its reply"),
                       ("check", "a wrong-disease call does not match its reply or its answer has no claim to check"),
-                      ("calls", "sonnet_calls is not one per claim plus one per check")):
+                      ("calls", "haiku_calls or sonnet_calls is not one per claim (plus one per check for Sonnet)")):
         if bad[key]:
             problems.append(f"{bad[key]} rows: {what}")
-    if rec["claude_calls"] != sum(r["sonnet_calls"] for r in rows):
-        problems.append("claude_calls differs from the calls the rows record")
+    calls = {"haiku": sum(r["haiku_calls"] for r in rows), "sonnet": sum(r["sonnet_calls"] for r in rows)}
+    if cfg.get("calls") != calls or rec["claude_calls"] != calls["haiku"] + calls["sonnet"]:
+        problems.append("claude_calls or config.calls differ from the calls the rows record")
     side = root / rec["judged"]["file"] if isinstance(rec["judged"], dict) and "file" in rec["judged"] else None
     if side is None or not side.is_file() or json.loads(side.read_text(encoding="utf-8")) != answer_checks.final_lists(rows):
         problems.append("the judged samples are not the rows' own claim verdicts and checks")
-    judges = cfg.get("judges")
-    if not (isinstance(judges, dict) and judges.get("local", {}).get("role") == "upper figure"
-            and judges.get("sonnet", {}).get("role") == "conservative figure"):
-        problems.append("config.judges must name the local judge as the upper figure and Sonnet as the conservative one")
-    if re.search("accuracy", json.dumps({k: rec[k] for k in ("config", "models", "notes", "judged", "metrics")}), re.I):
-        problems.append("a judge's figure is called accuracy; it is a share of claims judged supported")
+    problems += _first_judge_problems(rec, root)
+    if re.search(r"accuracy|\bupper\b|conservative", json.dumps({k: rec[k] for k in ("config", "models", "notes", "judged", "metrics")}), re.I):
+        problems.append("a judge's figure is called accuracy, upper or conservative; it is a share of claims judged supported")
     return problems
 
 
+def _first_judge_problems(rec: dict[str, Any], root: Path) -> list[str]:
+    """The Haiku judge is the first judge the committed Haiku check names, at the commit the record was made on."""
+    judges = rec["config"].get("judges")
+    if not (isinstance(judges, dict) and isinstance(judges.get("haiku"), dict) and isinstance(judges.get("sonnet"), dict)
+            and judges.get("same_claims_and_rubric") is True):
+        return ["config.judges must name the Haiku judge and the Sonnet judge, reading the same claims and rubric"]
+    shown = git(root, "show", f"{rec['git_commit']}:results/e14/haiku_decision.json")
+    decision = json.loads(shown.stdout) if shown.returncode == 0 else {}
+    if decision.get("first_judge") != "haiku" or judges["haiku"].get("model") != decision.get("model") \
+            or rec["models"].get("judge_first") != decision.get("model")             or (rec["config"].get("judge") or {}).get("model") != decision.get("model"):
+        return ["the first judge is not the model the committed Haiku decision (results/e14/haiku_decision.json) names"]
+    return []
+
+
 def _e9_roles_problems(rec: dict[str, Any], root: Path) -> list[str]:
-    """E9 images: config.primary and config.alternate are the candidates the committed decision picks. The frozen config
-    and the decision are read at the commit the record names, so a later decision does not change an earlier record."""
+    """E9 images: config.primary and the alternates are the candidates the committed decision picks. The frozen config
+    and the decision are read at the commit the record names, so a later decision does not change an earlier record.
+    An alternate whose checkpoint was not on disk is named in config.alternates_not_scored instead of being scored."""
+    from sprout.eval import e9_roles
+
     cfg = rec["config"]
     frozen = git(root, "show", f"{rec['git_commit']}:configs/e9.json")
     if frozen.returncode != 0:
@@ -808,31 +796,40 @@ def _e9_roles_problems(rec: dict[str, Any], root: Path) -> list[str]:
     got = git(root, "show", f"{rec['git_commit']}:{read['frozen config'].get('decision_file')}")
     if got.returncode != 0:
         return ["the decision cannot be read at the record's commit, so primary and alternate cannot be re-derived"]
-    read["decision"] = json.loads(got.stdout)
-    candidates, decision = read["frozen config"].get("candidates", {}), read["decision"]
-    chosen = [k for k, v in candidates.items() if v.get("checkpoint") == decision.get("chosen_model")]
-    others = [k for k in candidates if k not in chosen]
-    if len(chosen) != 1 or len(others) != 1:
-        return ["the committed decision's chosen_model is not one of the config's two candidates"]
+    decision = json.loads(got.stdout)
+    try:
+        specs = e9_roles.candidate_specs(read["frozen config"].get("candidates", {}), decision)
+        primary, others = e9_roles.roles(read["frozen config"].get("candidates", {}), decision)
+    except (ValueError, StopIteration) as exc:
+        return [f"the committed decision cannot be matched to a candidate: {exc}"]
     out = []
-    for role, key in (("primary", chosen[0]), ("alternate", others[0])):
-        want = {"candidate": key, "checkpoint": candidates[key]["checkpoint"]}
+    wants = [("primary", primary)] + [(e9_roles.system_of(i), k) for i, k in enumerate(others)]
+    left = {x.get("candidate") for x in cfg.get("alternates_not_scored") or [] if isinstance(x, dict)}
+    for role, key in wants:
+        have = cfg.get(role)
+        if have is None and key in left and role != "primary":
+            continue
+        want = {"candidate": key, "checkpoint": specs[key]["checkpoint"]}
         if role == "primary":
             want["sha256"] = decision.get("chosen_model_sha256")
-        have = cfg.get(role)
         if not isinstance(have, dict) or any(have.get(k) != v for k, v in want.items()):
             out.append(f"config.{role} differs from the committed decision (it should be {key}, {want['checkpoint']})")
+    named = {r for r, _ in wants}
+    if any(k.startswith("alternate") and k not in named for k in cfg if k not in ("alternates_not_scored",)):
+        out.append("config names an alternate the committed decision does not")
     if cfg.get("chosen_model") != decision.get("chosen_model"):
         out.append("config.chosen_model differs from the committed decision")
     return out
 
 
-def _e9_exif_problems(rec: dict[str, Any], root: Path) -> list[str]:
-    """config.exif is counted again from the scored photos' headers."""
-    files = [root / r["path"] for r in _read_rows(root / rec["predictions"]["baseline"])]
+def _e9_exif_problems(rec: dict[str, Any], root: Path, info: SplitInfo) -> list[str]:
+    """config.exif counts the photos of the whole scored set, which the shared-classes view of a lab record shares, so
+    it is counted again from the headers of the set the subset names without that view."""
+    parts = [x for x in (rec["subset"] or "").split("+") if x and x != "shared_classes"]
     try:
-        fresh = answer_checks.exif_counts(files)
-    except OSError:
+        positions = subset_positions("+".join(parts), rec["split"], info, root) if parts else range(len(info.ids))
+        fresh = answer_checks.exif_counts([root / info.ids[i] for i in positions])
+    except (OSError, ValueError):
         return ["config.exif cannot be recomputed: some scored photos are not on disk"]
     return [] if rec["config"].get("exif") == fresh else ["config.exif does not recompute from the photos' headers"]
 
@@ -868,13 +865,15 @@ def _e9_image_problems(rec: dict[str, Any], root: Path, info: SplitInfo, positio
         if not isinstance(version, int) or rec["subset"] != f"clean:{version}":
             problems.append("an E9 field_test record must be scored on its cleaned rows (subset clean:N) and state config.cleaned_rows")
         elif saved != answer_checks.cleaned_rows(read_log(root / "datasets" / "label_exclusions.csv"), version, info.ids,
-                                                 [info.ids[i] for i in positions]):
+                                                 [info.ids[i] for i in subset_positions(f"clean:{version}", "field_test", info, root)]):
             problems.append("config.cleaned_rows does not recompute from the exclusion log")
-    problems += _e9_exif_problems(rec, root) + _e9_thresholds_problems(rec, root)
+    real = git(root, "cat-file", "-e", f"{rec['git_commit']}:configs/e9.json").returncode == 0  # else a bare fixture
+    if real:
+        problems += _e9_exif_problems(rec, root, info) + _e9_thresholds_problems(rec, root)
     cal = cfg.get("calibration")
     bound = cfg.get("calibration_binding")
-    for system in ("improved", "alternate", "quantized") if git(root, "cat-file", "-e", f"{rec['git_commit']}:configs/e9.json").returncode == 0 else ():
-        role = cfg.get("alternate" if system == "alternate" else "primary")
+    for system in ("improved", *[k for k in ("alternate", "alternate_2") if k in cfg], "quantized") if real else ():
+        role = cfg.get(system if system.startswith("alternate") else "primary")
         have = bound.get(system) if isinstance(bound, dict) else None
         fitted = cal.get(system) if isinstance(cal, dict) else None
         if not (isinstance(have, dict) and isinstance(role, dict)):
@@ -906,35 +905,30 @@ def _e9_image_problems(rec: dict[str, Any], root: Path, info: SplitInfo, positio
 
 
 def _frozen_record_problems(frozen: dict[str, Any], root: Path) -> list[str]:
-    """The frozen config's dev run and blind read must exist, have been made before the freeze, and name the frozen
-    prompt's hash; the blind read must belong to that dev run."""
+    """The frozen config's dev run must exist, have been made before the freeze, and name the frozen prompt's hash; the
+    frozen config must say the check was not validated."""
     out = []
+    if frozen.get("validated") is not False:
+        out.append("the frozen config must say validated: false (the check was not read blind)")
     try:
         frozen_at = datetime.fromisoformat(frozen["frozen_at"])
     except (KeyError, TypeError, ValueError):
-        return ["the frozen config has no valid frozen_at"]
-    made = {}
-    for key, stage in (("dev_record", "wrong_disease_dev"), ("blind_read_record", "wrong_disease_blind_read")):
-        rid = frozen.get(key)
-        path = root / RUNS_REL / f"{rid}.json"
-        if not path.is_file():
-            out.append(f"frozen {key} {rid} does not exist")
-            continue
-        rec = json.loads(path.read_text(encoding="utf-8"))
-        made[key] = rec
-        cfg = rec.get("config") or {}
-        if not (rec.get("experiment") == "E9" and rec.get("split") == "rag_dev" and cfg.get("stage") == stage):
-            out.append(f"{key} {rid} is not an E9 {stage} record on rag_dev")
-        if cfg.get("prompt_sha256") != frozen.get("prompt_sha256"):
-            out.append(f"{key} {rid}: its prompt_sha256 is not the frozen prompt's")
-        try:
-            if datetime.fromisoformat(rec["finished_at"]) >= frozen_at:
-                out.append(f"{key} {rid}: finished at or after the freeze; it must be made before the freeze")
-        except (KeyError, TypeError, ValueError):
-            out.append(f"{key} {rid}: has no valid finished_at to compare with the freeze")
-    blind = made.get("blind_read_record")
-    if blind is not None and (blind.get("config") or {}).get("dev_record") != frozen.get("dev_record"):
-        out.append("blind_read_record: its dev_record is not the frozen dev_record")
+        return out + ["the frozen config has no valid frozen_at"]
+    rid = frozen.get("dev_record")
+    path = root / RUNS_REL / f"{rid}.json"
+    if not path.is_file():
+        return out + [f"frozen dev_record {rid} does not exist"]
+    rec = json.loads(path.read_text(encoding="utf-8"))
+    cfg = rec.get("config") or {}
+    if not (rec.get("experiment") == "E9" and rec.get("split") == "rag_dev" and cfg.get("stage") == "wrong_disease_dev"):
+        out.append(f"dev_record {rid} is not an E9 wrong_disease_dev record on rag_dev")
+    if cfg.get("prompt_sha256") != frozen.get("prompt_sha256"):
+        out.append(f"dev_record {rid}: its prompt_sha256 is not the frozen prompt's")
+    try:
+        if datetime.fromisoformat(rec["finished_at"]) >= frozen_at:
+            out.append(f"dev_record {rid}: finished at or after the freeze; it must be made before the freeze")
+    except (KeyError, TypeError, ValueError):
+        out.append(f"dev_record {rid}: has no valid finished_at to compare with the freeze")
     return out
 
 
@@ -996,8 +990,9 @@ def _row_map(root: Path, rel: str) -> dict[str, str]:
 
 def _is_view_of(view: dict[str, Any], full: dict[str, Any], root: Path) -> bool:
     """A declared subset drawn from the same commit, models, config and predictions as a full record."""
-    if view.get("subset") is None or full.get("subset") is not None:
-        return False
+    parts = lambda r: set((r.get("subset") or "").split("+")) - {""}  # noqa: E731
+    if view.get("subset") is None or parts(view) == parts(full) or not parts(full) <= parts(view):
+        return False  # a view narrows its full record: it holds every part of the full record's subset and more
     drop = lambda c: {k: v for k, v in (c or {}).items() if k != "override_note"}  # noqa: E731
     if any(view.get(k) != full.get(k) for k in ("git_commit", "models", "split")) or drop(view.get("config")) != drop(
         full.get("config")

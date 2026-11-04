@@ -18,22 +18,26 @@ from sprout.serve.types import Identification
 
 CLASS_MAP = {"Apple___healthy": 0, "Apple___scab": 1, "Tomato___blight": 2}
 ACCEPT_ALL = {"kind": "confidence", "confidence_threshold": 0.0}
+CHECKPOINT_SHA = "c" * 64
 
 
-def _model_path(tmp_path):
+def _model_path(tmp_path, source_sha256=CHECKPOINT_SHA):
     torch.manual_seed(1)
     net = nn.Sequential(
         nn.AdaptiveAvgPool2d(32), nn.Flatten(), nn.Linear(3 * 32 * 32, len(CLASS_MAP)), nn.Identity()
     ).eval()
     with torch.no_grad():
         net[2].weight.mul_(40)  # spread the logits so photos get different answers
-    return export_module(net, CLASS_MAP, tmp_path / "m.onnx")
+    return export_module(net, CLASS_MAP, tmp_path / "m.onnx", source_sha256=source_sha256)
 
 
-def _calibration(tmp_path, abstain=0.0, gate=ACCEPT_ALL, temperature=1.0):
+def _calibration(tmp_path, abstain=0.0, gate=ACCEPT_ALL, temperature=1.0, model_sha256=CHECKPOINT_SHA):
     path = tmp_path / "chosen.json"
-    path.write_text(json.dumps({"temperature": temperature, "abstain_threshold": abstain,
-                                "gate": {"chosen": gate["kind"], "settings": gate}}), encoding="utf-8")
+    body = {"temperature": temperature, "abstain_threshold": abstain,
+            "gate": {"chosen": gate["kind"], "settings": gate}}
+    if model_sha256 is not None:
+        body["model_sha256"] = model_sha256
+    path.write_text(json.dumps(body), encoding="utf-8")
     return path
 
 
@@ -142,3 +146,28 @@ def test_green_rule_gate_reads_the_photo(tmp_path):
     ident = _identifier(tmp_path, gate=green_rule)
     assert ident.identify(_png(Image.new("RGB", (64, 64), (200, 30, 30)))).status == "not_plant"
     assert ident.identify(_png(Image.new("RGB", (64, 64), (30, 200, 30)))).status == "answered"
+
+
+def test_a_calibration_fitted_for_another_model_is_refused_naming_both_checksums(tmp_path):
+    with pytest.raises(ValueError, match=r"d{64}") as err:
+        Identifier(_model_path(tmp_path), _calibration(tmp_path, model_sha256="d" * 64))
+    assert CHECKPOINT_SHA in str(err.value) and "d" * 64 in str(err.value)
+
+
+@pytest.mark.parametrize("model_sha,calibration_sha,missing", [
+    (None, CHECKPOINT_SHA, "model file"), (CHECKPOINT_SHA, None, "calibration"), (None, None, "model file")])
+def test_a_missing_checksum_on_either_side_is_refused(tmp_path, model_sha, calibration_sha, missing):
+    model = _model_path(tmp_path, source_sha256=model_sha or "")
+    with pytest.raises(ValueError, match="checksum") as err:
+        Identifier(model, _calibration(tmp_path, model_sha256=calibration_sha))
+    assert missing in str(err.value)
+
+
+@pytest.mark.parametrize("mode", ["dynamic", "static"])
+def test_a_quantized_file_is_bound_to_the_same_checkpoint(tmp_path, mode):
+    from sprout.serve.export import quantize
+
+    quantized = quantize(_model_path(tmp_path), mode, [_photo()])
+    assert Identifier(quantized, _calibration(tmp_path)).identify(_png(_photo())).status == "answered"
+    with pytest.raises(ValueError, match="another model"):
+        Identifier(quantized, _calibration(tmp_path, model_sha256="e" * 64))

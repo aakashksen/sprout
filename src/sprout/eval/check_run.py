@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import re
@@ -13,7 +14,7 @@ from typing import Any
 
 import numpy as np
 
-from sprout.eval import check_cache
+from sprout.eval import agreement, check_cache
 from sprout.eval import metrics as M
 from sprout.eval.records import (
     BOOTSTRAP_N,
@@ -587,10 +588,69 @@ def _shape_problem(rec: dict[str, Any]) -> str | None:
     return None
 
 
+def _same_source(cfg: Any, rows: list[dict[str, Any]], root: Path) -> list[str]:
+    """E14's local grades must be the ones in the judgment file it names, unchanged."""
+    src = cfg.get("source") if isinstance(cfg, dict) else None
+    path = root / RUNS_REL / src["judgments"] if isinstance(src, dict) and "judgments" in src else None
+    if path is None or not path.is_file():
+        return ["the source judgments file named in config.source is missing"]
+    if hashlib.sha256(path.read_bytes()).hexdigest() != src.get("judgments_sha256"):
+        return ["the source judgments file differs from the sha256 in config.source"]
+    saved = {(r["system"], r["id"]): ([c["claim"] for c in r["claims"]], [bool(c["verdict"]) for c in r["claims"]])
+             for r in _read_rows(path)}
+    bad = sum(saved.get((r["system"], r["id"])) != (r["claims"], r["local"]) for r in rows)
+    return [f"{bad} rows' claims or local grades differ from the source judgments"] if bad else []
+
+
+def _judge_check_problems(rec: dict[str, Any], root: Path, min_n: int) -> list[str]:
+    """E14 grades answers, not split items: rows are one per sampled (question, system) answer, all from rag_dev.
+    Every metric and interval is recomputed from them with sprout.eval.agreement."""
+    problems = _header_problems(rec, root, min_n)
+    if rec["split"] != "rag_dev":
+        return problems + ["E14 grades rag_dev answers only"]
+    info = split_info(rec["split"], root)
+    if rec["dataset_hash"] != info.hash:
+        problems.append("dataset_hash does not match the manifest")
+    paths, metrics, boot, cfg = rec["predictions"], rec["metrics"], rec["bootstrap"], rec["config"]
+    if not (isinstance(paths, dict) and set(paths) == {"sample"} and isinstance(metrics, dict) and set(metrics) == {"sample"}):
+        return problems + ["E14 holds one system, sample, in predictions and metrics"]
+    if not (isinstance(boot, dict) and boot.get("n") == BOOTSTRAP_N and isinstance(boot.get("seed"), int)):
+        return problems + [f"bootstrap must record n={BOOTSTRAP_N:,} and a seed"]
+    served = cfg.get("served_system") if isinstance(cfg, dict) else None
+    if not isinstance(served, str) or not (root / paths["sample"]).is_file():
+        return problems + ["config.served_system and the sample predictions file are required"]
+    rows = _read_rows(root / paths["sample"])
+    if len(rows) != rec["n"]:
+        problems.append(f"predictions hold {len(rows)} rows but n={rec['n']}")
+    shape = agreement.row_problems(rows, set(info.ids))
+    if shape:
+        return problems + shape
+    if rec["claude_calls"] != sum(r["calls"] for r in rows):
+        problems.append("claude_calls differs from the calls the rows record")
+    problems += _same_source(cfg, rows, root)
+    fresh = agreement.metrics_from_rows(rows, served)
+    for name, saved in metrics["sample"].items():
+        if name not in fresh:
+            problems.append(f"metric {name} cannot be recomputed from predictions")
+        elif not _same(fresh[name], saved):
+            problems.append(f"metric {name} does not recompute from predictions")
+    fresh_ci = agreement.intervals_from_rows(rows, served, boot["n"], boot["seed"])
+    for name, saved in (rec["intervals"].get("sample") or {}).items():
+        if name not in fresh_ci:
+            problems.append(f"interval {name} cannot be recomputed from predictions")
+        elif not _same_pair(fresh_ci[name], saved):
+            problems.append(f"interval {name} does not recompute from predictions")
+    if set(rec["intervals"]) - {"sample"}:
+        problems.append("intervals name systems not in predictions")
+    return problems
+
+
 def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
     problems = [f"missing field {k}" for k in REQUIRED if k not in rec]
     if problems:
         return problems
+    if rec["experiment"] == "E14":
+        return _judge_check_problems(rec, root, min_n)
     problems = _header_problems(rec, root, min_n)
     scope = _scope(rec, root, problems)
     if scope is None:

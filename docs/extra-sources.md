@@ -10,7 +10,7 @@ Rebuilt 2026-11-03 (fourth pass, after two failed verifications) by `tools/build
 |---|---|
 | PlantWild v1 (`plantwild.zip`, 18,542 images, 89 classes) | used. CC BY-NC-ND 4.0; weights trained on it need the person's check before publishing (no-derivatives term). |
 | PlantWild v2 (`plantwild_v2.zip`, 11,488 images, 115 disease classes) | used, but adds almost nothing (15 images): nearly every mapped v2 image is a copy of a PlantSeg image already in `field.csv`, or of v1. |
-| Plant Pathology 2021 | not used. The Kaggle source needs login; the only public copy is a third-party 16 GB mirror covering three usable apple classes. The coordinator may overrule. |
+| Plant Pathology 2021 | used from T4.8, from the third-party Hugging Face mirror `timm/plant-pathology-2021` (public, no login). T4.5 first left it out because the Kaggle source needs login; the person approved the mirror on 2026-11-03 through the coordinator. Only single-label scab, healthy and rust rows are mapped. The original Kaggle and paper terms are unconfirmed, so weights trained on it need the person's check before publishing. See the T4.8 section below and `docs/datasets.md`. |
 
 Details and licenses: `docs/datasets.md`. Both zips were extracted into new folders with a check that no member path escapes them.
 

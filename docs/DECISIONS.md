@@ -430,3 +430,21 @@ These are workflow changes with no plan task of their own, filed under T0.1.
 - **Blocked tasks:** a task blocks after 3 failed attempts; two blocked tasks in one run stop the whole run, since something shared is probably wrong.
 - **Parallel tracks:** up to 3 tasks in git worktrees, landed one at a time (`58138a9`).
 - **Evidence:** `.claude/skills/run-plan/SKILL.md`, `CLAUDE.md`, the commits above.
+
+### T4.8 - Plant Pathology 2021 used from the third-party mirror, single-label scab, healthy and rust only (2026-11-03)
+- **Chose:** fetch `timm/plant-pathology-2021` (16.1 GB, public, no login) and use only rows whose single label is `scab`, `healthy` or `rust`, mapped to `Apple___Apple_scab`, `Apple___healthy`, `Apple___Cedar_apple_rust`. Multi-label rows (1,355) and the single labels `complex`, `frog_eye_leaf_spot`, `powdery_mildew` (5,967) are excluded with reasons in `datasets/class_map_extra.csv`.
+- **Considered:** using multi-label rows by their first label, which would file a photo with several diseases under one; mapping `complex` or `frog_eye_leaf_spot` to a lab class, which has none. Not using the source, as T4.5 first decided; the person approved the fetch on 2026-11-03 through the coordinator.
+- **Evidence:** `docs/extra-sources.md` (T4.8 section), `docs/datasets.md`. The `rust` to cedar apple rust mapping is an inference from the name; 24 viewed samples looked like it (20 clear lesions, 4 only tiny spots). The mirror's `apache-2.0` is the uploader's tag; the Kaggle and paper terms are unconfirmed, so weights trained on it need a check before publishing.
+- **Would change if:** the original terms forbid this use; or E12 or a closer look shows the rust class is another apple rust.
+
+### T4.8 - Established sources first in duplicates and the shared cap of 200 (2026-11-03)
+- **Chose:** rows from the T4.5 sources (PlantWild v1 and v2) win duplicate groups and come before any new-source row in the per-class cap; new rows fill only the room left, by sha1 order among themselves. The cap stays 200. Result: no T4.5 row moved (3,347 of 3,347 kept, same label and sha1), and the new source added 137 rows (scab 106, rust 31, healthy 0).
+- **Considered:** pooling all rows and keeping the first 200 by sha1, which would cut PlantWild rows already chosen and, with about 7,440 usable Plant Pathology rows against 7,300 PlantWild rows after checks, would make one orchard most of the apple classes; raising the cap, which changes a number fixed before any E12 result and is the person's call.
+- **Evidence:** `tests/test_extra_sources.py::test_a_new_source_fills_only_the_room_the_cap_leaves`; row-by-row comparison with the T4.5 manifest; the per-step difference table in `docs/extra-sources.md` closes exactly (11,310 - 321 - 3,530 - 3 - 16 - 7,303 = 137).
+- **Would change if:** E12 shows the apple classes starved, or the person raises the cap (then the 7,303 cut rows are the pool).
+
+### T4.8 - Copy checks unchanged for the new source, over-removal reported and not fixed (2026-11-03)
+- **Chose:** the T4.5 correlation (0.75) and crop-aware rule applied as they are. The crop step dropped 3,530 of 10,989 new rows (32%), almost all by class-token cosine of at least 0.80 with an apple `field_dev` or `field_test` photo.
+- **Considered:** loosening the rule for apple, which would be tuning on the new data after seeing it and would risk leaked evaluation photos; the task says to report this cost.
+- **Evidence:** a seeded sample of 400 rows: 36.8% flagged, best inlier count 28 (the 30-inlier clause never fired), and the 12 highest-cosine flagged pairs viewed were all different leaves.
+- **Would change if:** a pair-specific check (inliers, not class-token cosine) were wanted for apple; that would be a new task.

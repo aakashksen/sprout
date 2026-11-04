@@ -493,7 +493,9 @@
         "{py} -m pytest tests/test_e15.py -q",
         "{py} -m sprout.eval.check_run E15 --min-n 200 --split field_dev"
       ],
-      "status": "pending"
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-04T19:15:56+00:00"
     },
     {
       "id": "T5.0",
@@ -545,8 +547,15 @@
       "acceptance": [
         "{py} -m pytest tests/test_identify.py -q"
       ],
-      "status": "pending",
-      "verifier": false
+      "status": "done",
+      "verifier": false,
+      "started_at": "2026-11-04T19:15:58+00:00",
+      "verified": {
+        "commit": "b08f037311203a572985c437998c807b1b5144bf",
+        "passed": true,
+        "at": "2026-11-04T19:21:29+00:00"
+      },
+      "done_at": "2026-11-04T19:21:30+00:00"
     },
     {
       "id": "T6.1",

@@ -787,3 +787,27 @@ These are workflow changes with no plan task of their own, filed under T0.1.
 - **Considered:** hand-editing the flag, which would alter a stage output; rerunning the stage with a corrected check, which costs about 90 minutes of GPU and changes no row.
 - **Evidence:** `extra_full.json`: `rows` 10,832, `capped_rows` 3,484, `capped_rows_missing_now` 0, `over_the_cap_now` 0, Plant Pathology 7,440 rows. Comparing the two manifests by path: new rows by source as above, and no capped row changed label or sha1.
 - **Would change if:** the verifier finds a new row that fails a copy check, or a later rebuild gives other counts.
+### T5.2 - The identifier reads E5's chosen.json, applies the gate before the abstention threshold (2026-11-04)
+- **Chose:** `Identifier(model_path, calibration_path)` takes the file shape `results/e5/chosen.json` has (`temperature`, `abstain_threshold`, `gate.settings`), so no number is written in code. Probabilities are calibrated as E5 does (log with a 1e-12 floor, then temperature), then the gate gives `not_plant`, then `decide` gives `answered` or `unsure`. Files over 20 MB or images over 60 megapixels are rejected from the header before `load()`; any decode failure returns `invalid`; a flat spread returns `unsure` with `top=None`; `unsure` carries fixed photo tips.
+- **Considered:** a separate calibration format (a second thing to keep in step with E5); abstaining before the gate (a non-plant photo would be told to retake the photo instead of "not a plant"); a side limit instead of a pixel count.
+- **Evidence:** `tests/test_identify.py` on a tiny exported ONNX model; `FLOOR` is asserted equal to E5's; `load` is patched to fail in the oversize test.
+- **Would change if:** E5's selection puts the gate after abstention, or the file's shape changes.
+
+### T5.2 - A calibration is bound to the checkpoint it was fitted for (2026-11-04; phase 4 review D1)
+- **Chose:** the sha256 of the source checkpoint is in the ONNX metadata (`source_checkpoint_sha256`, kept through quantization); `Identifier` compares it with `model_sha256` in the calibration file and refuses a mismatch, or a missing value on either side, naming both values. No option skips it. T4.9's refit writes `model_sha256` itself.
+- **Considered:** comparing the `.pt` hash with a hash of the served file (never equal); hand-adding a hash to E4's `results/e5/chosen.json` (a result file edited with no check behind it). The prepared `sprout.serve.bind` (stamps E4's file after checking the path and an E5 record) is not brought over: the served model is T4.9's, which carries its own hash.
+- **Evidence:** phase 4 review D1; `test_a_calibration_fitted_for_another_model_is_refused_naming_both_checksums`, the missing-checksum cases, and the dynamic and static quantized files.
+- **Still open for E6:** whether thresholds fitted on the PyTorch model hold on the quantized one (coverage was 0.497 against a 0.5 target on the scoring half).
+- **Would change if:** E6 shows coverage on the quantized file differs enough that the threshold must be refit on it.
+
+### T5.2 - Only the listed classes can be named; healthy gets a stricter bar (2026-11-04; the person's 29-class direction)
+- **Chose:** the calibration must carry `classes` (T4.9's list of 29). Outputs of any other class are masked and the rest renormalized before calibration, the same rule T4.9 scores E4 and E12 by, so a chosen model with extra outputs still serves 29. A listed class the model lacks, a missing or repeated list, or all weight on dropped classes (answered `unsure`) cannot name anything outside. An optional `healthy_threshold` applies when the top class ends in "healthy"; the effective bar is the larger of it and `abstain_threshold`, so it only tightens.
+- **Considered:** trusting the model's own class map (an E4 or E12 model has more than 29 outputs); a check that the model has exactly 29 outputs (refuses the allowed fallback to E4 or E12); renaming the field to follow T4.9 (its file does not exist yet, so the field names are this task's guess and T4.9's refit must write them).
+- **Evidence:** `test_a_class_outside_the_list_is_never_named`, `test_dropped_outputs_are_masked_then_renormalized`, `test_healthy_threshold_is_stricter`, the missing-class and missing-list refusals. All on fixtures.
+- **Would change if:** T4.9 names its fields differently.
+
+### T5.2 - Serving applies EXIF orientation; training and evaluation never did (2026-11-04; phase 4 review D3)
+- **Chose:** `Identifier` applies `ImageOps.exif_transpose`. Every recorded number was computed on photos opened without it, so they describe unrotated pixels. Rotation tags 3, 6, 8 are on 6 of 1,040 `field_dev` photos (about 0.6%), 14 of 2,069 `field_train`, 4 of 3,484 extra-source photos; the evaluation-to-serving difference is at most those photos and is not measured.
+- **Considered:** dropping rotation in serving (a sideways phone photo would be read as a rotated leaf); retraining and re-evaluating with rotation (a full retrain for a small effect).
+- **Evidence:** phase 4 review; `test_exif_rotation_gives_same_result_as_upright`, `test_preprocess_matches_evaluation_exactly`.
+- **Would change if:** T8.1's phone-photo check shows rotated photos scoring worse, or a rescoring with rotation moves a headline number.

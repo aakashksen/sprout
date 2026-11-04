@@ -346,8 +346,9 @@ def drop_crop_copies(
     return crop_copies(todo, list(held["path"]), list(held["split"]), encoder, device)
 
 
-def main(device_scope=None) -> None:
-    """device_scope: optional context manager that yields the device name (e.g. holds a GPU share)."""
+def main(device_scope=None, cap: int = CAP_PER_CLASS, out_name: str = "extra_train") -> dict:
+    """device_scope: optional context manager that yields the device name (e.g. holds a GPU share). A different
+    `out_name` writes that manifest only and leaves datasets/class_map_extra.csv as it is."""
     roots = {
         "plantwild": RAW / "plantwild" / "plantwild" / "images",
         "plantwild_v2": RAW / "plantwild_v2" / "plantwild_v2",
@@ -372,6 +373,7 @@ def main(device_scope=None) -> None:
         cmap,
         load_manifest("lab"),
         field,
+        cap,
     )
     for split in ("field_dev", "field_test"):
         removed[f"crop or caption copy of {split}"] = sum(
@@ -386,19 +388,12 @@ def main(device_scope=None) -> None:
     cmap_out["n_images"] = [
         int(full.get((r.source, r.source_class), 0)) for r in cmap_out.itertuples()
     ]
-    out.to_csv(MANIFEST_DIR / "extra_train.csv", index=False)
-    cmap_out.to_csv(CLASS_MAP_EXTRA_PATH, index=False)
-    print(
-        json.dumps(
-            {
-                "device": device,
-                "inventory": len(inv),
-                "kept": len(out),
-                "removed": removed,
-            },
-            indent=1,
-        )
-    )
+    out.to_csv(MANIFEST_DIR / f"{out_name}.csv", index=False)
+    if out_name == "extra_train":
+        cmap_out.to_csv(CLASS_MAP_EXTRA_PATH, index=False)
+    summary = {"device": device, "inventory": len(inv), "kept": len(out), "removed": removed}
+    print(json.dumps(summary, indent=1))
+    return summary
 
 
 if __name__ == "__main__":

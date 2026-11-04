@@ -1,0 +1,56 @@
+{
+ "rows_scored": 517,
+ "classes": 29,
+ "systems": {
+  "convnextv2_final": {
+   "temperature": 1.3006159097468235,
+   "abstain_threshold": 0.929437,
+   "abstain_only": {
+    "healthy_threshold": 0.929437,
+    "answered": 258,
+    "unsure": 259,
+    "unsure_share": 0.5009671179883946,
+    "healthy_answers": 76,
+    "confident_sick_called_healthy": 0,
+    "confident_wrong": 5
+   },
+   "with_healthy_threshold": {
+    "healthy_threshold": 0.964719,
+    "answered": 241,
+    "unsure": 276,
+    "unsure_share": 0.5338491295938105,
+    "healthy_answers": 59,
+    "confident_sick_called_healthy": 0,
+    "confident_wrong": 5
+   }
+  },
+  "convnext_joint": {
+   "temperature": 1.1926994533819275,
+   "abstain_threshold": 0.885377,
+   "abstain_only": {
+    "healthy_threshold": 0.885377,
+    "answered": 265,
+    "unsure": 252,
+    "unsure_share": 0.4874274661508704,
+    "healthy_answers": 55,
+    "confident_sick_called_healthy": 0,
+    "confident_wrong": 15
+   }
+  },
+  "convnext_joint_extra": {
+   "temperature": 1.3337098060458428,
+   "abstain_threshold": 0.877154,
+   "abstain_only": {
+    "healthy_threshold": 0.877154,
+    "answered": 272,
+    "unsure": 245,
+    "unsure_share": 0.4738878143133462,
+    "healthy_answers": 71,
+    "confident_sick_called_healthy": 1,
+    "confident_wrong": 12
+   }
+  }
+ },
+ "chosen": "convnextv2_final",
+ "note": "Counts are on the scoring part of the compared rows (seed 0, 50% of groups). E4 and E12 use their saved temperature and threshold on outputs masked to the 29 classes and renormalized."
+}

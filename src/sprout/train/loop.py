@@ -37,6 +37,10 @@ def build_model(name: str, num_classes: int, pretrained: bool = True, unfreeze_b
         model = convnext_tiny(weights="DEFAULT" if pretrained else None)
         model.classifier[2] = nn.Linear(model.classifier[2].in_features, num_classes)
         return model
+    if name == "convnextv2_tiny":
+        import timm
+
+        return timm.create_model("convnextv2_tiny.fcmae_ft_in22k_in1k", pretrained=pretrained, num_classes=num_classes)
     if name == "dinov2_small":
         from sprout.baselines.dino import DinoClassifier, load_dino_encoder
 

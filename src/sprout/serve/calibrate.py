@@ -71,6 +71,26 @@ class Decision:
     top_k: tuple[tuple[int, float], ...]  # (class index, probability): at most 3, each above 10%
 
 
+def healthy_bar(threshold: float, healthy_threshold: float | None) -> float:
+    """The bar a top class ending in "healthy" must clear: the stricter of the two thresholds."""
+    return max(float(threshold), float(healthy_threshold or 0.0))
+
+
+def healthy_unsure(label: str, confidence: float, bar: float) -> bool:
+    """True when a healthy top label is below the healthy bar (the photo is then called unsure)."""
+    return label.endswith("healthy") and confidence < bar
+
+
+def answered_mask(probs, class_names: list[str], threshold: float, healthy_threshold: float | None = None) -> np.ndarray:
+    """Per row, whether the served rule answers: top probability at the threshold, and a healthy top label also at the
+    healthy bar. `Identifier` applies the same two functions to one photo."""
+    probs = np.asarray(probs, dtype=float)
+    bar = healthy_bar(threshold, healthy_threshold)
+    top, conf = probs.argmax(axis=1), probs.max(axis=1)
+    return np.array([c >= threshold and not healthy_unsure(class_names[i], c, bar) for i, c in zip(top, conf, strict=True)],
+                    dtype=bool)
+
+
 def decide(probs, threshold: float) -> Decision:
     """Answer when the top probability reaches the threshold, otherwise say unsure. The most likely classes
     come along either way, so an unsure reply can still name them."""

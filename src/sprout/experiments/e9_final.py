@@ -193,7 +193,10 @@ def load_calibration(rel: str, model_sha: str | None, root: Path = ROOT, *, requ
         raise Refused(f"the decision says E5 was refit on the chosen model, but {rel} does not name that model (model_sha256)")
     if named is not None and named != model_sha:
         raise Refused(f"{rel} was fitted on another model than the one scored (model_sha256 differs)")
-    return {"file": rel, "temperature": float(saved["temperature"]), "abstain_threshold": float(saved["abstain_threshold"])}
+    out = {"file": rel, "temperature": float(saved["temperature"]), "abstain_threshold": float(saved["abstain_threshold"])}
+    if saved.get("healthy_threshold") is not None:  # only a refit that defined one; E4's and E12's files have none
+        out["healthy_threshold"] = float(saved["healthy_threshold"])
+    return out
 
 
 def calibrations(cfg: dict[str, Any], decision: dict[str, Any], root: Path = ROOT, *,
@@ -357,17 +360,37 @@ def cleaned_rows(split: str, cfg: dict[str, Any], info: SplitInfo, positions: li
     return cleaned(log, cfg["exclusion_version"], info.ids, [info.ids[i] for i in positions])
 
 
+ABSTENTION_RULE = (
+    "a *_calibrated system answers only when its calibrated top probability is at least the abstain threshold; the "
+    "other systems answer every photo. Where the calibration file has a healthy_threshold (T4.9's refit, for the "
+    "primary and its quantized copy) the metrics named coverage@T~H, selective_accuracy@T~H and "
+    "confident_error_rate@T~H apply what Identifier serves, a top label ending in 'healthy' must also reach "
+    "max(T, H), through sprout.serve.calibrate.answered_mask; the metrics named @T are abstention alone, so the cost "
+    "of the healthy bar in unsure answers is the difference. E4's and E12's files define no healthy threshold, so "
+    "those alternates use abstention alone."
+)
+
+
+def threshold_text(x: float) -> str:
+    return f"{x:.6f}".rstrip("0").rstrip(".")
+
+
 def score_block(probs: dict[str, np.ndarray], labels: np.ndarray, groups: list[str], names: list[str],
-                thresholds: dict[str, float], keep: np.ndarray) -> tuple[dict, dict, list]:
+                thresholds: dict[str, float], keep: np.ndarray,
+                healthy: dict[str, float] | None = None) -> tuple[dict, dict, list]:
     """Metrics, intervals and paired comparisons of every system over the rows in `keep`, the way check_run recomputes."""
     scored = {n: Scored(groups=[g for g, k in zip(groups, keep, strict=True) if k], labels=labels[keep],
                         class_names=names, probs=p[keep]) for n, p in probs.items()}
     metrics = {n: standard_image_metrics(s.probs, s.labels, names) for n, s in scored.items()}
     for n in scored:
         if n.endswith("_calibrated"):
-            t = f"{thresholds[n.removesuffix('_calibrated')]:.6f}".rstrip("0").rstrip(".")
+            base = n.removesuffix("_calibrated")
+            t = threshold_text(thresholds[base])
             for m in ("coverage", "selective_accuracy", "confident_error_rate"):
-                metrics[n][f"{m}@{t}"] = recompute_metric(f"{m}@{t}", scored[n])
+                metrics[n][f"{m}@{t}"] = recompute_metric(f"{m}@{t}", scored[n])  # abstention alone
+                if base in (healthy or {}):  # abstention as Identifier serves it
+                    h = threshold_text(healthy[base])
+                    metrics[n][f"{m}@{t}~{h}"] = recompute_metric(f"{m}@{t}~{h}", scored[n])
     metrics["quantized"]["changed_vs@improved"] = recompute_metric("changed_vs@improved", scored["quantized"], scored)
     intervals = {n: {m: recompute_interval(m, s) for m in INTERVALS} for n, s in scored.items()}
     comparisons = []
@@ -475,8 +498,9 @@ def run_images(split: str, cfg: dict[str, Any], predictors: dict[str, Predictor]
         "quantized_thresholds": thresholds, "exif": exif, "labels_reviewed": LABELS_REVIEWED, "label_signature": LABEL_SIGNATURE,
         "device": device_name(cfg), "started_at": started,
         "systems": {n: {"description": predictors[n].description, **predictors[n].detail} for n in systems},
-        "abstention": "a *_calibrated system answers only when its calibrated top probability is at least the "
-                      "threshold; the other systems answer every photo",
+        "abstention": ABSTENTION_RULE,
+        "abstention_as_served_for": [n for n in cal_names if "healthy_threshold" in calibration[n]],
+        "abstention_alone_for": [n for n in cal_names if "healthy_threshold" not in calibration[n]],
         **({"cleaned_rows": cleaned_info} if clean else {}),
         **({"override_note": override_note.strip()} if override_note.strip() else {}),
     }
@@ -498,7 +522,8 @@ def run_images(split: str, cfg: dict[str, Any], predictors: dict[str, Predictor]
     for name, keep, extra in views:
         metrics, intervals, comparisons = score_block(
             {n: probs[n] for n in order}, labels, groups, names,
-            {n: calibration[n]["abstain_threshold"] for n in cal_names}, keep)
+            {n: calibration[n]["abstain_threshold"] for n in cal_names}, keep,
+            {n: calibration[n]["healthy_threshold"] for n in cal_names if "healthy_threshold" in calibration[n]})
         rows = {n: Predictions([p for p, k in zip(paths, keep, strict=True) if k], labels[keep], probs[n][keep])
                 for n in order}
         notes = (f"Final test on {split}, scored once with configurations frozen before the run; every number is a "
@@ -660,9 +685,15 @@ def image_report(rec: dict[str, Any]) -> str:
         shown = ", ".join(f"{label} {values[key]:.3f}" for key, label in METRIC_LINES if values.get(key) is not None)
         base = name.removesuffix("_calibrated")
         kind = (f"{role.get(base, base)}" + (" with abstention" if name.endswith("_calibrated") else ""))
-        extra = {k: v for k, v in values.items() if k.startswith(("coverage@", "selective_accuracy@", "confident_error_rate@"))}
-        if extra:
-            shown += "; " + ", ".join(f"{k} {v:.3f}" for k, v in extra.items() if v is not None)
+        served = {k: v for k, v in values.items() if "~" in k and v is not None}
+        alone = {k: v for k, v in values.items() if k.startswith(("coverage@", "selective_accuracy@", "confident_error_rate@"))
+                 and "~" not in k and v is not None}
+        if alone:
+            shown += "; abstention alone: " + ", ".join(f"{k} {v:.3f}" for k, v in alone.items())
+        if served:
+            shown += "; as served (healthy bar): " + ", ".join(f"{k} {v:.3f}" for k, v in served.items())
+        elif name.endswith("_calibrated"):
+            shown += "; no healthy threshold in its calibration, abstention alone"
         lines.append(f"[{tag}] {kind}: {shown}")
     return "\n".join(lines)
 
@@ -1068,7 +1099,7 @@ def stage_rag_sonnet(cfg: dict[str, Any], llm: Any, root: Path = ROOT, *, overri
     wd_grade(items, llm, "test", root)
 
 
-GENERIC_FEW = 10  # fewer generic follow-ups than this and the record says its faithfulness does not cover them
+GENERIC_FEW = 10  # wording only, chosen before rag_test was run: below it the report says "few"; no number depends on it
 
 
 def is_generic_followup(q: Question, crops: set[str], classes: list[str]) -> bool:
@@ -1138,7 +1169,11 @@ def stage_rag_record(cfg: dict[str, Any], root: Path = ROOT, *, device: str, not
                 "generic_with_claims": sum(bool(r["claims"]) for r in generic),
                 "fallback_fired": sum(r["fallback_fired"] for r in rows),
                 "fallback_fired_with_claims": sum(r["fallback_fired"] and bool(r["claims"]) for r in rows),
-                "covers_generic_followups": len(generic) >= GENERIC_FEW}
+                "answers_with_claims": sum(bool(r["claims"]) for r in rows),
+                "claims_on_generic_followups": sum(len(r["claims"]) for r in generic),
+                "claims_in_all": sum(len(r["claims"]) for r in rows),
+                "few_cutoff": GENERIC_FEW, "few_cutoff_note": "wording only, chosen before the run",
+                "few": len(generic) < GENERIC_FEW}
     scored = Scored(groups=info.ids, answered=answered, expected=info.expected)
     metrics = {SERVED: {m: recompute_metric(m, scored) for m in e7.BEHAVIOUR_METRICS}}
     calls = {"haiku": sum(r["haiku_calls"] for r in rows), "sonnet": sum(r["sonnet_calls"] for r in rows)}
@@ -1178,14 +1213,17 @@ GENERIC_RULE = ("no plant given for the question, no plant of the index and no d
 
 
 def coverage_line(c: dict[str, Any]) -> str:
-    text = (f"{c['generic_followups']} of {c['questions']} rag_test questions are generic follow-ups (no plant or "
-            f"disease word, rule fixed in code before the run), {c['generic_answered']} answered, {c['generic_with_claims']} "
-            f"with claims graded; the fallback fired on {c['fallback_fired']} answers ({c['fallback_fired_with_claims']} "
-            "with claims graded).")
-    if not c["covers_generic_followups"]:
-        text += (" This is too few: the faithfulness figure does not cover generic follow-ups, the case the fallback "
-                 "exists for. E8's dev figure for them (70 of 95 passages naming the right disease) is a floor, "
-                 "because the text rule misses some aliases, and is a retrieval measure, not faithfulness.")
+    text = (f"Generic follow-ups (no plant or disease word; rule fixed in code before the run): {c['generic_followups']} "
+            f"of {c['questions']} rag_test questions, {c['generic_answered']} answered, {c['generic_with_claims']} with "
+            f"claims graded. Coverage: the faithfulness figures rest on {c['claims_in_all']} claims in "
+            f"{c['answers_with_claims']} answers, of which {c['claims_on_generic_followups']} claims come from generic "
+            f"follow-ups. The fallback fired on {c['fallback_fired']} answers ({c['fallback_fired_with_claims']} with "
+            "claims graded).")
+    if c["few"]:
+        text += (f" That is few (the word 'few' means fewer than {c['few_cutoff']}, a wording cutoff chosen before the "
+                 "run): the faithfulness figure says little about generic follow-ups, the case the fallback exists for. "
+                 "E8's dev figure for them (70 of 95 passages naming the right disease) is a floor, because the text "
+                 "rule misses some aliases, and is a retrieval measure, not faithfulness.")
     return text
 
 

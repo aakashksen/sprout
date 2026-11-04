@@ -53,10 +53,16 @@ def ece(probs, labels, bins: int = 15) -> float:
     return float(total)
 
 
-def selective_metrics(probs, labels, threshold: float) -> dict[str, float]:
-    """Answer when top confidence >= threshold. Rates are nan when nothing is answered."""
+def selective_metrics(probs, labels, threshold: float, class_names=None, healthy_threshold=None) -> dict[str, float]:
+    """Answer when top confidence >= threshold; with `class_names` and a healthy threshold, the rule serving applies
+    (a healthy top label must also reach the healthy bar). Rates are nan when nothing is answered."""
     probs, labels = np.asarray(probs), np.asarray(labels)
-    answered = probs.max(axis=1) >= threshold
+    if healthy_threshold is not None:
+        from sprout.serve.calibrate import answered_mask
+
+        answered = answered_mask(probs, class_names, threshold, healthy_threshold)
+    else:
+        answered = probs.max(axis=1) >= threshold
     if not answered.any():
         return {
             "coverage": 0.0,

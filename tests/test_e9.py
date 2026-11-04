@@ -1564,9 +1564,9 @@ def test_rag_record_keeps_answer_text_citations_fallback_flag_and_generic_count(
     assert rows["t1"]["text"].startswith("Apple scab") and rows["t1"]["citations"] and "scab" in rows["t1"]["query"]
     cov = rec["config"]["generic_followup_coverage"]
     assert cov["generic_followups"] == 3 and cov["questions"] == 6 and cov["fallback_fired"] == 3
-    assert cov["covers_generic_followups"] is False and cov["rule"]
+    assert cov["few"] is True and cov["rule"] and cov["claims_on_generic_followups"] >= 0 and cov["claims_in_all"] > 0
     text = e9.report(rec, frozen)
-    assert "3 of 6 rag_test questions are generic follow-ups" in text and "does not cover generic follow-ups" in text
+    assert "3 of 6 rag_test questions" in text and "says little about generic follow-ups" in text
     assert "predate the fallback" in text and rec["config"]["served_with_fallback"] is True
     assert rec["config"]["index"]["built"] == "2026-11-03T18:25:10+00:00" and len(rec["config"]["index"]["chunks_sha256"]) == 64
 
@@ -1622,3 +1622,36 @@ def test_haiku_runs_as_many_calls_at_once_as_the_config_says(frozen):
 
     e9.stage_rag_haiku(four, haiku(slow), frozen)
     assert peak[0] == 4
+
+
+def test_abstention_as_served_applies_the_healthy_bar_the_way_identifier_does():
+    from sprout.serve.calibrate import answered_mask, healthy_bar, healthy_unsure
+
+    names = ["Apple___scab", "Apple___healthy"]
+    probs = np.array([[0.95, 0.05], [0.70, 0.30], [0.05, 0.95], [0.30, 0.70], [0.85, 0.15], [0.15, 0.85]])
+    alone = answered_mask(probs, names, 0.8)
+    served = answered_mask(probs, names, 0.8, 0.9)
+    assert alone.tolist() == [True, False, True, False, True, True]
+    assert served.tolist() == [True, False, True, False, True, False]  # a healthy 0.85 is below the healthy bar 0.9
+    assert healthy_bar(0.8, None) == 0.8 and healthy_bar(0.8, 0.5) == 0.8 and healthy_bar(0.8, 0.9) == 0.9
+    assert healthy_unsure("Apple___healthy", 0.85, 0.9) and not healthy_unsure("Apple___scab", 0.85, 0.9)
+
+
+def test_e9_reports_abstention_as_served_beside_abstention_alone_and_check_run_recomputes_both(repo):
+    write(repo, "results/e15/refit/chosen.json", {"temperature": 1.5, "abstain_threshold": 0.6, "healthy_threshold": 0.8,
+                                                  "model_sha256": SHA})
+    commit(repo, "a refit with a healthy threshold")
+    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
+    rec = json.loads(path.read_text())
+    cal = rec["metrics"]["improved_calibrated"]
+    assert {"coverage@0.6", "coverage@0.6~0.8", "selective_accuracy@0.6~0.8", "confident_error_rate@0.6~0.8"} <= set(cal)
+    assert cal["coverage@0.6~0.8"] <= cal["coverage@0.6"]  # the cost of the healthy bar is in the gap
+    assert "coverage@0.6~0.8" in rec["metrics"]["quantized_calibrated"]  # the quantized copy is served the same way
+    assert not [k for k in rec["metrics"]["alternate_calibrated"] if "~" in k]  # E12's file has no healthy threshold
+    assert rec["config"]["abstention_as_served_for"] == ["improved", "quantized"]
+    assert rec["config"]["abstention_alone_for"] == ["alternate"]
+    assert "abstention alone" in e9.image_report(rec) and "as served" in e9.image_report(rec)
+    assert check_file(path, repo, min_n=1) == []
+    rec["metrics"]["improved_calibrated"]["coverage@0.6~0.8"] += 0.1
+    path.write_text(json.dumps(rec))
+    assert any("coverage@0.6~0.8" in p or "recompute" in p for p in check_file(path, repo, min_n=1))

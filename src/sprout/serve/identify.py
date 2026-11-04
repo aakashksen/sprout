@@ -21,7 +21,12 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageOps
 
-from sprout.serve.calibrate import apply_temperature, decide
+from sprout.serve.calibrate import (
+    apply_temperature,
+    decide,
+    healthy_bar,
+    healthy_unsure,
+)
 from sprout.serve.export import OnnxModel
 from sprout.serve.gate import green_ratio, load_settings
 from sprout.serve.types import Candidate, Identification
@@ -46,7 +51,7 @@ class Identifier:
         _require_same_checkpoint(self.model.source_sha256, calibration.get("model_sha256"), model_path, calibration_path)
         self.temperature = float(calibration["temperature"])
         self.threshold = float(calibration["abstain_threshold"])
-        self.healthy_threshold = max(self.threshold, float(calibration.get("healthy_threshold", 0.0)))
+        self.healthy_threshold = healthy_bar(self.threshold, calibration.get("healthy_threshold"))
         self.classes = _served_classes(calibration, self.model.class_names, calibration_path)
         self._columns = [self.model.class_names.index(c) for c in self.classes]
         self.gate = load_settings(Path(calibration_path))
@@ -67,8 +72,8 @@ class Identifier:
             return Identification("not_plant", guidance=NOT_PLANT)
         decision = decide(probs, self.threshold)
         found = [Candidate(self.classes[i], p) for i, p in decision.top_k]
-        healthy_unsure = bool(found) and found[0].label.endswith("healthy") and found[0].confidence < self.healthy_threshold
-        if decision.status == "answered" and found and not healthy_unsure:
+        unsure_healthy = bool(found) and healthy_unsure(found[0].label, found[0].confidence, self.healthy_threshold)
+        if decision.status == "answered" and found and not unsure_healthy:
             return Identification("answered", found[0], found[1:])
         return Identification("unsure", found[0] if found else None, found[1:], PHOTO_TIPS)
 

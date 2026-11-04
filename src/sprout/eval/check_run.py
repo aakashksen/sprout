@@ -80,8 +80,12 @@ def _classification_series(name: str, s: Scored) -> np.ndarray | None:
         return correct
     if name == "end_to_end_accuracy" and s.accepted is not None:
         return (correct.astype(bool) & s.accepted).astype(float)
-    m = re.fullmatch(r"coverage@([\d.]+)", name)
+    m = re.fullmatch(r"coverage@([\d.]+)(?:~([\d.]+))?", name)
     if m:
+        if m.group(2) is not None:
+            from sprout.serve.calibrate import answered_mask
+
+            return answered_mask(s.probs, s.class_names, float(m.group(1)), float(m.group(2))).astype(float)
         return (s.probs.max(axis=1) >= float(m.group(1))).astype(float)
     return None
 
@@ -150,9 +154,10 @@ def _probability_metric(name: str, s: Scored) -> object:
         if s.class_names is None:
             return None
         return _num(M.plant_given_top_k(s.probs, s.labels, s.class_names, int(m.group(1))))
-    m = re.fullmatch(r"(selective_accuracy|confident_error_rate)@([\d.]+)", name)
+    m = re.fullmatch(r"(selective_accuracy|confident_error_rate)@([\d.]+)(?:~([\d.]+))?", name)
     if m:
-        return _num(M.selective_metrics(s.probs, s.labels, float(m.group(2)))[m.group(1)])
+        healthy = float(m.group(3)) if m.group(3) is not None else None
+        return _num(M.selective_metrics(s.probs, s.labels, float(m.group(2)), s.class_names, healthy)[m.group(1)])
     return _OTHER
 
 
@@ -907,6 +912,10 @@ def _e9_image_problems(rec: dict[str, Any], root: Path, info: SplitInfo, positio
             problems.append(f"{name}: probabilities are not the plain system's at the calibration temperature")
         if f"coverage@{t}" not in rec["metrics"].get(name, {}):
             problems.append(f"{name}: metrics lack coverage@{t}, the calibration's abstention threshold")
+        if settings.get("healthy_threshold") is not None:
+            h = f"{settings['healthy_threshold']:.6f}".rstrip("0").rstrip(".")
+            if f"coverage@{t}~{h}" not in rec["metrics"].get(name, {}):
+                problems.append(f"{name}: metrics lack coverage@{t}~{h}, abstention as served (healthy bar {h})")
     return problems
 
 

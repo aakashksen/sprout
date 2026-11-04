@@ -797,13 +797,43 @@ def _e9_final_problems(rec: dict[str, Any], root: Path) -> list[str]:
     return problems
 
 
+def _e9_roles_problems(rec: dict[str, Any], root: Path) -> list[str]:
+    """E9 images: config.primary and config.alternate are the candidates the committed decision picks. The frozen config
+    and the decision are read at the commit the record names, so a later decision does not change an earlier record."""
+    cfg = rec["config"]
+    frozen = git(root, "show", f"{rec['git_commit']}:configs/e9.json")
+    if frozen.returncode != 0:
+        return []  # no E9 config was committed where this record was made (a bare fixture, not a real E9 run)
+    read = {"frozen config": json.loads(frozen.stdout)}
+    got = git(root, "show", f"{rec['git_commit']}:{read['frozen config'].get('decision_file')}")
+    if got.returncode != 0:
+        return ["the decision cannot be read at the record's commit, so primary and alternate cannot be re-derived"]
+    read["decision"] = json.loads(got.stdout)
+    candidates, decision = read["frozen config"].get("candidates", {}), read["decision"]
+    chosen = [k for k, v in candidates.items() if v.get("checkpoint") == decision.get("chosen_model")]
+    others = [k for k in candidates if k not in chosen]
+    if len(chosen) != 1 or len(others) != 1:
+        return ["the committed decision's chosen_model is not one of the config's two candidates"]
+    out = []
+    for role, key in (("primary", chosen[0]), ("alternate", others[0])):
+        want = {"candidate": key, "checkpoint": candidates[key]["checkpoint"]}
+        if role == "primary":
+            want["sha256"] = decision.get("chosen_model_sha256")
+        have = cfg.get(role)
+        if not isinstance(have, dict) or any(have.get(k) != v for k, v in want.items()):
+            out.append(f"config.{role} differs from the committed decision (it should be {key}, {want['checkpoint']})")
+    if cfg.get("chosen_model") != decision.get("chosen_model"):
+        out.append("config.chosen_model differs from the committed decision")
+    return out
+
+
 def _e9_image_problems(rec: dict[str, Any], root: Path, info: SplitInfo, positions: list[int]) -> list[str]:
     """E9 lab_test and field_test: the cleaned-row counts recompute from the exclusion log, and each calibrated system is its plain system's saved probabilities at E5's temperature,
     with E5's threshold in its metric names."""
     from sprout.data.label_review import read_log
     from sprout.serve.calibrate import apply_temperature
 
-    cfg, problems = rec["config"], []
+    cfg, problems = rec["config"], _e9_roles_problems(rec, root)
     if rec["split"] == "field_test":
         saved = cfg.get("cleaned_rows")
         version = saved.get("version") if isinstance(saved, dict) else None

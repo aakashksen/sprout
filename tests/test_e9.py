@@ -1100,3 +1100,53 @@ def test_the_frozen_config_must_name_a_dev_and_a_blind_record_made_before_it_wit
     assert any("blind_read_record" in p and "does not exist" in p for p in check_file(path, frozen, min_n=6))
     blind.write_text(saved[blind])
     assert check_file(path, frozen, min_n=6) == []
+
+
+# ----------------------------------------------------------------------------------------------- roles follow the decision
+
+def _ok(path, repo):
+    return check_file(path, repo, min_n=1)
+
+
+def test_check_run_rederives_primary_and_alternate_from_the_committed_decision(repo):
+    cfg = e9.load_config(repo)
+    (path,) = e9.run_images("field_test", cfg, predictors(), repo)
+    assert _ok(path, repo) == []
+    saved = json.loads(path.read_text())
+
+    def with_roles(primary, alternate):
+        rec = json.loads(json.dumps(saved))
+        rec["config"]["primary"] = primary
+        rec["config"]["alternate"] = alternate
+        path.write_text(json.dumps(rec))
+        return _ok(path, repo)
+
+    # E4 kept: a record that says E12 was the primary (roles swapped) is caught, one field at a time as well
+    p, a = saved["config"]["primary"], saved["config"]["alternate"]
+    assert any("primary" in x for x in with_roles(a, p))
+    assert any("primary" in x for x in with_roles({**p, "candidate": "e12"}, a))
+    assert any("primary" in x for x in with_roles({**p, "checkpoint": a["checkpoint"]}, a))
+    assert any("primary" in x for x in with_roles({**p, "sha256": "f" * 64}, a))
+    assert any("alternate" in x for x in with_roles(p, {**a, "candidate": "e4"}))
+    assert any("alternate" in x for x in with_roles(p, {**a, "checkpoint": p["checkpoint"]}))
+    assert with_roles(p, a) == []
+    # the decision is read where the run was made: a later change to it, committed or not, does not touch this record
+    write(repo, "results/e12/decision.json", {"chosen_model": "models/e12/convnext_joint_extra/best.pt",
+                                              "chosen_model_sha256": SHA12, "class_names": CLASSES, "refit_e5": True})
+    assert _ok(path, repo) == []
+    commit(repo, "E12 chosen later")
+    assert _ok(path, repo) == []
+
+
+def test_check_run_rederives_roles_when_e12_is_chosen(repo):
+    write(repo, "results/e12/decision.json", {"chosen_model": "models/e12/convnext_joint_extra/best.pt",
+                                              "chosen_model_sha256": SHA12, "class_names": CLASSES, "refit_e5": True})
+    commit(repo, "E12 chosen")
+    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
+    assert _ok(path, repo) == []
+    saved = json.loads(path.read_text())
+    assert saved["config"]["primary"]["candidate"] == "e12"
+    saved["config"]["primary"], saved["config"]["alternate"] = saved["config"]["alternate"], saved["config"]["primary"]
+    path.write_text(json.dumps(saved))
+    assert any("primary" in x and "decision" in x for x in _ok(path, repo))
+

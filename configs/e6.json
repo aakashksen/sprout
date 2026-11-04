@@ -21,5 +21,6 @@
     "seed": 0,
     "note": "As the plan says. Allowed: lab_dev, lab_train, field_train. Never field_dev (scored here) or any test split."
   },
+  "thresholds": "results/e5/chosen.json",
   "latency": {"images": 100, "warmup": 10}
 }

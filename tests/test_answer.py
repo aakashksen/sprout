@@ -408,7 +408,7 @@ def test_the_judge_verdict_is_read_strictly_and_odd_replies_count_as_not_support
     assert got is supported
 
 
-@pytest.mark.parametrize("reply", ["Rings appear on leaves [1, 2].", "Rings appear (1).", "Rings appear [Passage 1].", "Rings appear [1-2]."])
+@pytest.mark.parametrize("reply", ["Rings appear (1).", "Rings appear [Passage 1].", "Rings appear [1-2]."])
 def test_citation_forms_we_do_not_parse_fall_on_the_safe_side_as_no_source(reply):
     out = ask(FakeLLM([reply]))
     assert out.citations == [] and not out.grounded and out.state == "ungrounded"

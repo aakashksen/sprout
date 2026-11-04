@@ -92,3 +92,13 @@ def write_review_sample(questions: list[Question], path: Path, n: int = 30, chun
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text("\n".join(out), encoding="utf8")
+
+
+def answer_candidates(chunks_path: Path, plant_terms: list[str], topic: str) -> list[tuple[str, int]]:
+    """Pages holding a chunk that names the plant (or a family term) and the problem together."""
+    plant = re.compile(r"\b(?:%s)" % "|".join(re.escape(t) for t in plant_terms), re.I)
+    problem = re.compile(topic, re.I)
+    found = {
+        (r["source"], r["page"]) for r in _rows(chunks_path) if plant.search(r["text"]) and problem.search(r["text"])
+    }
+    return sorted(found)

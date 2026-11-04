@@ -24,6 +24,7 @@ LIGHT_MODULES = [
     "sprout.eval.metrics",
     "sprout.eval.stats",
     "sprout.eval.predict",
+    "sprout.serve.followup",
 ]
 
 

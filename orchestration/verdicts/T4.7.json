@@ -1,0 +1,139 @@
+{
+  "task": "T4.7",
+  "commit": "c4eb707c46f0d4b8db487f1dc15c2f741962b9af",
+  "verdict": "PASS",
+  "checks": [
+    {
+      "item": "HEAD equals commit; tree clean",
+      "result": "pass",
+      "evidence": "git rev-parse HEAD = b470dbe...; git status --short in worktree empty (also after my temporary edits to src/sprout/data/field.py were reverted with git checkout of that one file)."
+    },
+    {
+      "item": "Acceptance commands",
+      "result": "pass",
+      "evidence": "Evidence log orchestration/evidence/T4.7.log shows 23 passed and 'E13 ok' at b470dbe. I reran pytest tests/test_label_review.py tests/test_e13.py -> 23 passed in 831s, and check_run E13 --min-n 200 --split field_dev -> 'E13 ok'."
+    },
+    {
+      "item": "Review inputs carry only image, label, filename",
+      "result": "pass",
+      "evidence": "All 104 sidecar CSVs in datasets/review/label_sheets (r=70 first pass, s=14 train sample, c=20 second look) have header exactly 'sheet,cell,image_id,label,filename'. Looked at c0001.jpg: only cell number, label and file name drawn. grep of first-pass sidecars for field_/dev/test/train words: 1 hit, an original filename 'train_tylcv-seminar-1-638.jpg' (not a split marker). image_id is a sha1. No score, probability or prediction anywhere in the inputs."
+    },
+    {
+      "item": "field_test never scored; no field_test record from this task",
+      "result": "pass",
+      "evidence": "The three E13 records have split field_dev only and predictions of 1028/610/418 rows, all paths checked against the exclusion list; e13_clean_labels.load_config raises for any split but field_dev; module has no PIL/torch/Image.open. Older records mentioning field_test are E2-E4 from earlier tasks. Reviewers did see field_test photos (disclosed in DECISIONS and label-review.md); no test score exists."
+    },
+    {
+      "item": "First and second pass treat splits alike; ordering cannot reveal the split",
+      "result": "pass",
+      "evidence": "first_r.csv: dev 1040 / test 1035 reviewed. First-pass verdicts dev ok/remove/uncertain 899/17/124, test 894/23/118; Fisher exact on removal dev vs test p=0.34. Final removals dev 12/1040, test 19/1035: Fisher exact p=0.21, odds ratio 0.62, so the 12 vs 19 gap is within chance. Second look confirmed 9 of 16 dev and 15 of 23 test first-pass removals; matched-uncertain confirmed 3/31 dev, 4/31 test (similar). Reason mix dev (6 not_plant/5 wrong_plant/1 contradicted) vs test (11/6/2). Sheet order vs split: point-biserial r=0.019 (p=0.38), runs test z=-1.69, per-10-sheet test share 0.43-0.56; second-look sheets 33-83% test share is just n=6 per sheet."
+    },
+    {
+      "item": "Counts in docs/label-review.md and DECISIONS recompute",
+      "result": "pass",
+      "evidence": "My recompute from label_joined csvs: exclusions 38 (dev 12, test 19, train 7); first-pass removes 40 (dev/test) + 6 (train sample) = 46; second look on those: 30 remove, 3 ok, 13 uncertain; 70 matched uncertain -> 8 remove, 47 ok, 15 uncertain; first-pass uncertain 278 overall (242 dev/test), label_uncertain.csv 283 rows (248 dev/test + 35 train); began_as remove 30 / uncertain 8; reasons among the 31 dev+test: 17 not_plant / 11 wrong_plant / 3 contradicted. Train sample 7/400 Wilson [0.0085, 0.0357] = [0.9%, 3.6%]. All match."
+    },
+    {
+      "item": "Removals are right (read 30 of the 38 images from raw paths, 15 random across splits and reasons plus 15 more plus all 3 label_contradicted)",
+      "result": "pass",
+      "evidence": "Flyers, slides, journal cover, vector/botanical illustrations, word-art, thumbnail strip, document page: clear. Rose leaves under cherry mildew (x2), basil, black pepper vine with stock watermark, five-leaflet raspberry leaf under soybean, cannabis-type leaves: clear wrong plant. Contradicted: raspberry healthy with orange rust pustules, tomato healthy with many dark spots and yellowing: clear; soybean healthy with many brown spots: reasonable but the note leans on the filename. I found no clear false removal. Borderline species guesses (not false but weakest): field_dev DSCN1016.JPG 'pepper seedling not tomato', field_test Bacterial_spots562.jpg 'simple ovate leaves not tomato', field_test flies.jpg / fb959d146aa9.jpg 'cucurbit-type leaf not tomato'. None of the removals is a fine disease judgment; wrong_plant is species-level, as the plan allows."
+    },
+    {
+      "item": "Missed errors (ok and uncertain samples)",
+      "result": "pass",
+      "evidence": "20 random first-pass 'ok' rows (seed 101): 0 clear errors (2 ambiguous: Strawberry leaf scorch strawberry_leaf_scorch_google_0133.jpg and Pepper healthy v9hX3.jpg). 16 random label_uncertain rows (seed 202): 2 look like clear errors under the rule that removed other slides/collages (Pepper_bell___Bacterial_spot 01.jpg 'slide with text and one photo'; Squash powdery mildew squash_powdery_mildew_google_0004.jpg 'titled graphic collage'), the rest are isolated stock leaves/fruit or genuinely unsure. Estimates: ok pool 0/20 (95% upper bound by rule of three ~15%, so this sample cannot bound the miss rate); uncertain pool 2/16 = 12.5% (Wilson roughly 3% to 36%) -> about 30 of 248 uncertain, which would add at most about 1.5 points to the 1.5% dev+test removal rate. The config pattern sent 70 slide-like uncertain rows to the second look, which kept ~28 uncertain; 41 label_uncertain rows have slide/collage/graphic notes. Together with the calibration (2 of 4 known-bad removed), the true bad rate of train is plausibly ~3-4%, not well over 5%."
+    },
+    {
+      "item": "Thumbs/table cause and test",
+      "result": "pass",
+      "evidence": "sample(n=50, random_state=13) of field.csv at 08cb625 (4148 rows) reproduces the old field-sample.md table 50/50 (label and filename); sample of current field.csv reproduces the thumbnails' rows. The worktree thumbs now match the table: 50 files named '<#>-<sha1[:10]>.jpg', all IDs agree with the seed-13 sample of the current field.csv. Mutation: removing stale-thumbnail deletion makes test_thumbs_and_table_come_from_the_same_rows fail; naming thumbs by position only makes it fail. Both reverted with git checkout of src/sprout/data/field.py. Cause is stated as 'most likely, not proven', which is honest."
+    },
+    {
+      "item": "Manifest",
+      "result": "pass",
+      "evidence": "git diff 54f7b13 HEAD -- datasets/manifests/field.csv is empty (git blob identical; worktree sha differs from the blob only through CRLF autocrlf, git ls-files --eol shows i/lf w/crlf). field_clean.csv = 4106 rows = field.csv (4144) minus the 38 exclusions, same rows and order, plus clean_version=1; dataset_hash(clean) = dadd8319... equals clean_manifest_hash in all three E13 records. Every exclusion's path/split/label/source/image_id matches field.csv and all 38 raw files exist. clean:1 on a non-field split falls through to 'unknown subset' (ValueError), and clean:2 raises 'not in label_exclusions.csv', so no silent fallback to uncleaned rows."
+    },
+    {
+      "item": "E13 numbers recomputed from prediction files",
+      "result": "pass",
+      "evidence": "For all 3 records and 11 system rows I recomputed accuracy, macro-F1 (over labels present in y, as the record does), 15-bin ECE and the paired accuracy difference and McNemar p from the E13 prediction files: all equal the record values (e.g. shared_classes convnext_joint 0.7695 / 0.7712 / ECE 0.0769; vs dinov2_head diff +0.0195, p=0.1854). Every E13 prediction row has probs and label identical to the E4 source record's saved row for that path; removed rows = old minus new, all in the exclusion log; old metrics stored in config equal the E4 records' metrics (e.g. e1 acc 0.2240 / F1 0.1990). So old and new are the same saved predictions filtered, nothing re-run. standard_image_metrics fields (ece, top_1/3/5, plant_given_top_1/3) present. config.device = 'none: saved predictions were filtered and no model was run' (honest). e1 macro-F1 falling 0.1990->0.1978 (PlantDoc view 0.2251->0.2242) while its accuracy rises is plausible: 12 of 1040 rows removed, over 30ish classes of an e1 near 22% accuracy, so tiny per-class F1 movement either direction; the paired CI is on convnext_joint comparisons, not on old/new differences."
+    },
+    {
+      "item": "check_run catches tampering",
+      "result": "pass",
+      "evidence": "check_run E13 --min-n 200 --split field_dev -> 'E13 ok'. In temp copies (root without git, so the only extra message is 'not an ancestor of HEAD'): changing a metric -> 'metric accuracy does not recompute from predictions'; flipping a saved label -> 'saved labels do not match the manifest's labels'; setting n=1040 -> 'n=1040 differs from the subset ...'s 1028 items'; deleting a field_dev row from the exclusion log -> 'n=1028 differs from ... 1029 items' and prediction-id mismatch for every system."
+    },
+    {
+      "item": "Old records still pass; no weakened tests; diff hygiene",
+      "result": "pass",
+      "evidence": "test_old_records_still_pass_check_run is in the 23 passed. git diff 54f7b13 HEAD: no legacy/ change, no deleted or modified existing tests (only new files), no secret-like strings, no image files tracked. records.py change adds clean:N and '+' combination only."
+    },
+    {
+      "item": "Test quality",
+      "result": "pass",
+      "evidence": "The planned nine tests exist. test_review_inputs_contain_no_scores_or_predictions only greps label_review.py source text and the SIDECAR_COLUMNS set (a weak guard), but I checked the real sidecars directly and they are clean. test_field_csv_is_unchanged pins a sha256 of the committed file; test_thumbs mutation-checked above."
+    },
+    {
+      "item": "DECISIONS entries",
+      "result": "pass",
+      "evidence": "docs/DECISIONS.md has the T4.7 entry with why, how many, second-look check, dev-score changes (all numbers match the E13 records and my recompute), train decision, who saw what, and 'Would change if'. Considered-and-lost alternatives are given for sheet size and the clean-subset design, but not for the bigger choice (fixed 5% line, two looks) or the train decision; lesser form gap."
+    },
+    {
+      "item": "Re-verification after build merge (c4eb707): merge lost nothing",
+      "result": "pass",
+      "evidence": "HEAD = c4eb707c46f0d4b8db487f1dc15c2f741962b9af, tree clean. subset_positions on field_dev: first_10 10, source:plantdoc 619, shared_classes 1040, clean:1 1028, group_part:13:50 516, shared_classes+clean:1 1028, group_part:13:50+clean:1 509, source:plantseg+clean:1 418; clean:2 and bogus raise ValueError; clean:1 on lab_dev raises (no fallback). check_file (full check incl. ancestry) returns [] for the 3 E13 records and E5-20261103T170832277859Z (subset group_part:0:50); check_run E13 and E5 --min-n 200 --split field_dev both 'ok'."
+    },
+    {
+      "item": "check_cache includes label_exclusions.csv; E13 rechecked after an exclusion change",
+      "result": "pass",
+      "evidence": "data_fingerprint line 90 lists datasets/label_exclusions.csv. In a temp root, dropping the last exclusion row changed shared_fingerprint and the E13 record_key (both True), so a cached pass would not be reused."
+    },
+    {
+      "item": "write_run MLflow logging works with E13",
+      "result": "pass",
+      "evidence": "log_record on E13-20261103T184414193293Z into a temp root returned True; second call with skip_if_logged returned False. test_e13 (which calls write_run) passes."
+    },
+    {
+      "item": "Tests",
+      "result": "pass",
+      "evidence": "pytest tests/test_label_review.py tests/test_e13.py tests/test_check_cache.py tests/test_records.py -> 97 passed in 590s."
+    },
+    {
+      "item": "DECISIONS 'Considered and rejected' line",
+      "result": "pass",
+      "evidence": "docs/DECISIONS.md line 300 lists one look only, removing all uncertain, relabeling, full train review now, with the 3-4% caveat. Closes my earlier minor form gap."
+    }
+  ],
+  "own_tests": [
+    {
+      "input": "Split balance of first pass/second look/removals and sheet ordering vs split (scipy; /tmp-equivalent folder <local path>)",
+      "result": "Fisher p=0.21 for 12/1040 vs 19/1035; first-pass p=0.34; no ordering signal (r=0.019, runs z=-1.69)."
+    },
+    {
+      "input": "Viewed 30 removals, 3 contradicted, 20 random ok, 16 random uncertain images from raw paths",
+      "result": "0 clear false removals; 0/20 clear misses among ok; 2/16 slide-like misses among uncertain."
+    },
+    {
+      "input": "Independent recompute of accuracy/macro-F1/ECE/McNemar for all 3 E13 records and equality with the E4 source predictions (e13.py)",
+      "result": "All equal to record values; probs identical to source rows; removed rows all in exclusion log."
+    },
+    {
+      "input": "Tampered metric, label, n, and an exclusion-log row in temp copies, ran check_file (tam.py, tam2.py)",
+      "result": "check_run reported a specific mismatch each time."
+    },
+    {
+      "input": "Mutated write_review (no stale-thumb removal; position-only thumb names), ran the thumbs test",
+      "result": "test failed both times; file restored by git checkout; tree clean."
+    },
+    {
+      "input": "field.csv vs git history, field_clean = field minus exclusions, hash vs records (man.py)",
+      "result": "git diff empty; rows equal; hash dadd8319... matches records; no raw file missing."
+    },
+    {
+      "input": "Reproduce the old table from the 08cb625 field.csv with seed 13",
+      "result": "50/50 rows match the old committed table, supporting the cause statement."
+    }
+  ],
+  "failures": [],
+  "notes": "Read the numbers as development numbers: the rates are lower bounds. (1) The second look is not consistent about slides/collages: removed rows include 'text slide with small photo', yet ~41 label_uncertain rows have slide/collage/graphic notes and 2 of my 16 sampled uncertain rows (Pepper_bell___Bacterial_spot 01.jpg, squash_powdery_mildew_google_0004.jpg) match the removal rule. Roughly 1.5 points more of dev+test could plausibly be removable; it does not change the ranking (cleaning moved scores under 1 point). Whoever uses clean:1 should know it leaves a handful of slide-like images in. (2) The 5% train decision (7/400, Wilson [0.9%, 3.6%]) is under the line, and with the calibration miss rate (about 2 of 4 known-bad found) a corrected train rate is roughly 3-4%, so I do not flag it as well over 5%, but it cannot be shown to be under 5% either; the 0/20 'ok' sample has an upper bound of ~15%, so it gives little power. (3) field_clean.csv drops only the 7 sampled train removals; the other ~2,000 field_train rows were not reviewed, so E12/T8.1 using clean:1 or field_clean.csv get cleaned dev/test but only partly reviewed train. clean:1 only applies to field_* splits and raises otherwise, so no silent fallback. (4) Records show labels_reviewed false at top level and 'device' only inside config; check_run accepts this. (5) Reviewers saw field_test photos and labels (19 removals are test rows): this is disclosed, no score used it, and T8.1 must restate it. (6) Three or four wrong_plant removals are species guesses from small photos (pepper seedling vs tomato, simple ovate leaves, cucurbit-type leaf); they are plausible but are the weakest removals. (7) The main folder's datasets/review/thumbs still need regeneration after merge, as stated. Re-verification at c4eb707: earlier passes stand for unchanged parts (data, records, review). No new failures."
+}

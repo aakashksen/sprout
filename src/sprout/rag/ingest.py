@@ -6,6 +6,7 @@ import csv
 import json
 import shutil
 from dataclasses import asdict, dataclass, field
+from html.parser import HTMLParser
 from pathlib import Path
 
 from pypdf import PdfReader
@@ -74,10 +75,59 @@ def _extract_pdf(path: Path) -> list[tuple[int, str]]:
     return good
 
 
+class _PageText(HTMLParser):
+    """Visible text of an HTML page; the <main> or <article> part when there is one."""
+
+    SKIP = {"script", "style", "noscript", "nav", "header", "footer", "aside", "form", "svg", "head"}
+    MAIN = {"main", "article"}
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.skip = 0
+        self.main = 0
+        self.all_text: list[str] = []
+        self.main_text: list[str] = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag in self.SKIP:
+            self.skip += 1
+        elif tag in self.MAIN:
+            self.main += 1
+        self._add("\n")
+
+    def handle_endtag(self, tag):
+        if tag in self.SKIP:
+            self.skip = max(0, self.skip - 1)
+        elif tag in self.MAIN:
+            self.main = max(0, self.main - 1)
+        self._add("\n")
+
+    def handle_data(self, data):
+        self._add(data)
+
+    def _add(self, text: str) -> None:
+        if self.skip:
+            return
+        self.all_text.append(text)
+        if self.main:
+            self.main_text.append(text)
+
+
+def _extract_html(path: Path) -> list[tuple[int, str]]:
+    parser = _PageText()
+    parser.feed(path.read_text(encoding="utf-8", errors="replace"))
+    text = "".join(parser.main_text or parser.all_text).strip()
+    if len(text) < MIN_PAGE_CHARS:
+        raise ValueError("html page has no usable text")
+    return [(1, text)]
+
+
 def _extract(path: Path) -> list[tuple[int, str]]:
     suffix = path.suffix.lower()
     if suffix == ".pdf":
         return _extract_pdf(path)
+    if suffix in (".html", ".htm"):
+        return _extract_html(path)
     if suffix == ".md":
         text = path.read_text(encoding="utf-8").strip()
         if len(text) < MIN_PAGE_CHARS:

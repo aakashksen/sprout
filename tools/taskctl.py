@@ -105,7 +105,7 @@ def head(cwd=None):
 
 def dirty(cwd=None):
     # The state files change as work proceeds; everything else must be committed.
-    return git("status", "--porcelain", "--", ".", ":!orchestration", cwd=cwd)
+    return git("--no-optional-locks", "status", "--porcelain", "--", ".", ":!orchestration", cwd=cwd)
 
 
 def python():
@@ -214,7 +214,7 @@ def unlink_shared(worktree):
 
 def rescue_ignored(worktree):
     """Moves git-ignored work out of a worktree before it's removed. Raises rather than overwrite anything."""
-    listed = git("status", "--porcelain", "--ignored", "--untracked-files=all", cwd=worktree)
+    listed = git("--no-optional-locks", "status", "--porcelain", "--ignored", "--untracked-files=all", cwd=worktree)
     paths = [line[3:].strip().strip('"').rstrip("/") for line in listed.splitlines() if line.startswith("!! ")]
     keep = [rel for rel in paths if not any(part in DISPOSABLE or part.endswith(DISPOSABLE) for part in Path(rel).parts)]
     moves, conflicts = [], []

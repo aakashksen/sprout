@@ -83,7 +83,7 @@ def test_every_kept_class_has_a_coverage_row():
     for doc in "; ".join(rows["document"]).split("; "):
         assert doc == "" or doc in known
     for label in ("Squash___Powdery_mildew", "Raspberry___healthy", "Soybean___healthy"):
-        assert rows.set_index("label").loc[label, "crop"] == "none"
+        assert rows.set_index("label").loc[label, "crop"] == label.split("___")[0].lower()
     for _, r in rows.iterrows():
         assert r["crop"] == (cr.class_crop(r["label"]) or "none")
 
@@ -92,7 +92,7 @@ def test_yes_rows_cite_document_and_page_and_no_rows_record_queries():
     rows = cr.load_coverage()
     yes = rows[rows["symptoms_described"] == "yes"]
     no = rows[rows["symptoms_described"] == "no"]
-    assert len(yes) and len(no)
+    assert len(yes)  # no class is uncovered after T6.5, so `no` may be empty
     for _, r in yes.iterrows():
         assert r["document"].strip() and r["page"].strip(), r["label"]
     for _, r in no.iterrows():

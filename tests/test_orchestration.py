@@ -569,5 +569,36 @@ class PlanMatchesState(unittest.TestCase):
             self.assertRegex(path.read_text(encoding="utf-8"), r"(?m)^model: (haiku|sonnet)\s*$", path.name)
 
 
+class ReadOnlyGit(unittest.TestCase):
+    """A read-only status must not take .git/index.lock: a killed process leaves it behind and blocks everyone."""
+
+    def test_status_calls_pass_no_optional_locks(self):
+        import importlib.util
+        from unittest import mock
+
+        spec = importlib.util.spec_from_file_location("taskctl_under_test", CTL)
+        ctl = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(ctl)
+        seen = []
+        real = subprocess.run
+
+        def spy(cmd, *a, **kw):
+            seen.append(cmd)
+            return real(cmd, *a, **kw)
+
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(ctl.subprocess, "run", spy):
+            subprocess.run(["git", "init", "-q"], cwd=tmp, check=True)
+            ctl.dirty(tmp)
+            ctl.git("--no-optional-locks", "status", "--porcelain", "--ignored", cwd=tmp)
+            self.assertFalse((Path(tmp) / ".git" / "index.lock").exists())
+        self.assertTrue(seen and all(c[:2] == ["git", "--no-optional-locks"] for c in seen if "status" in c), seen)
+
+    def test_no_source_file_runs_a_plain_git_status(self):
+        for path in [CTL, REPO / "src" / "sprout" / "eval" / "records.py"]:
+            for line in path.read_text(encoding="utf-8").splitlines():
+                if '"status",' in line and "git(" in line:
+                    self.assertIn('"--no-optional-locks", "status"', line, f"{path.name}: {line.strip()}")
+
+
 if __name__ == "__main__":
     unittest.main()

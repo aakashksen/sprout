@@ -409,8 +409,8 @@ def test_best_arm_is_the_highest_macro_f1_and_ties_go_to_the_lower_number(e4cfg)
 
 
 def test_worker_limit_and_disk_guard(tmp_path, e4cfg):
-    (tmp_path / "c.json").write_text(json.dumps({**e4cfg, "num_workers": 5}))
-    with pytest.raises(ValueError, match="at most 4"):
+    (tmp_path / "c.json").write_text(json.dumps({**e4cfg, "num_workers": 9}))
+    with pytest.raises(ValueError, match="at most 8"):
         e4.load_config(tmp_path / "c.json")
     with pytest.raises(RuntimeError, match="free"):
         e4.check_disk(tmp_path, 10**9)

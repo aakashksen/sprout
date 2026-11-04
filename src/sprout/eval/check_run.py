@@ -13,6 +13,7 @@ from typing import Any
 
 import numpy as np
 
+from sprout.eval import check_cache
 from sprout.eval import metrics as M
 from sprout.eval.records import (
     BOOTSTRAP_N,
@@ -437,6 +438,12 @@ def _stamp_problems(rec: dict[str, Any]) -> list[str]:
     return [] if ok else ["finished_at disagrees with the timestamp in run_id"]
 
 
+def _ancestry_problems(rec: dict[str, Any], root: Path) -> list[str]:
+    if git(root, "merge-base", "--is-ancestor", rec["git_commit"], "HEAD").returncode != 0:
+        return ["git_commit is not an ancestor of HEAD"]
+    return []
+
+
 def _header_problems(rec: dict[str, Any], root: Path, min_n: int) -> list[str]:
     problems = []
     if rec["dirty"]:
@@ -447,8 +454,7 @@ def _header_problems(rec: dict[str, Any], root: Path, min_n: int) -> list[str]:
         problems.append("a model name matches fake or stub")
     if not rec["attempts"]:
         problems.append("attempts is empty")
-    if git(root, "merge-base", "--is-ancestor", rec["git_commit"], "HEAD").returncode != 0:
-        problems.append("git_commit is not an ancestor of HEAD")
+    problems += _ancestry_problems(rec, root)
     if min_n and rec["n"] < min_n:
         problems.append(f"n={rec['n']} is below --min-n {min_n}")
     return problems
@@ -712,14 +718,32 @@ def check_file(path: Path, root: Path, min_n: int = 0, once: list[str] | None = 
     return problems + [m.split(": ", 1)[1] for m in once if m.startswith(f"{path.stem}: ")]
 
 
-def check(experiment: str, *, root: Path = ROOT, min_n: int = 0, split: str | None = None) -> list[str]:
+def check(
+    experiment: str, *, root: Path = ROOT, min_n: int = 0, split: str | None = None, use_cache: bool = False
+) -> list[str]:
+    """With use_cache, a record that fully passed before, with the same checker, data and files, is not
+    rechecked in full. What depends on HEAD or on other records (ancestry, the test-once rule) is still checked."""
     recs = _load_records(experiment, root)
     if split:
         recs = [(p, r) for p, r in recs if r.get("split") == split]
     if not recs:
         return [f"no run record for {experiment}"]
     once = test_once_problems(root)
-    return [f"{p.name}: {m}" for p, _ in recs for m in check_file(p, root, min_n, once)]
+    passed = check_cache.load(root) if use_cache else []
+    known, shared, problems, fresh = set(passed), check_cache.shared_fingerprint(root) if use_cache else "", [], []
+    for p, rec in recs:
+        key = check_cache.record_key(p, rec, root, min_n, shared) if use_cache else ""
+        if key in known:
+            found = _ancestry_problems(rec, root) if "git_commit" in rec else []
+            found += [m.split(": ", 1)[1] for m in once if m.startswith(f"{p.stem}: ")]
+        else:
+            found = check_file(p, root, min_n, once)
+            if use_cache and not found:
+                fresh.append(key)
+        problems += [f"{p.name}: {m}" for m in found]
+    if fresh:
+        check_cache.save(root, passed + fresh)
+    return problems
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -727,8 +751,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("experiment")
     ap.add_argument("--min-n", type=int, default=0)
     ap.add_argument("--split")
+    ap.add_argument("--all", action="store_true", help="recheck every record, ignoring the cache of passed ones")
     a = ap.parse_args(argv)
-    problems = check(a.experiment, min_n=a.min_n, split=a.split)
+    problems = check(a.experiment, root=ROOT, min_n=a.min_n, split=a.split, use_cache=not a.all)
     for p in problems:
         print("FAIL", p)
     if not problems:

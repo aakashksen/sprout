@@ -1,0 +1,52 @@
+{
+  "experiment": "E11",
+  "split": "field_dev",
+  "subset": "clean:1",
+  "seed": 13,
+  "device": "none: saved predictions are re-ranked with the saved answers; no model was run",
+  "models": {
+    "note": "Saved field_dev probabilities of E4's convnext_joint and of its held-out-source runs; no GPU. If E12 later replaces the model, this result stays E4's.",
+    "seen": {"record": "E4-20261103T143743951448Z", "system": "convnext_joint"},
+    "heldout_plantdoc": {"record": "E4-20261103T151651745350Z", "system": "heldout_plantdoc", "source": "plantdoc"},
+    "heldout_plantseg": {"record": "E4-20261103T152355622205Z", "system": "heldout_plantseg", "source": "plantseg"}
+  },
+  "views": [
+    {"name": "seen", "subset": "clean:1", "systems": {"joint": "seen"}},
+    {"name": "heldout_plantdoc", "subset": "source:plantdoc+clean:1",
+     "systems": {"joint": "seen", "heldout": "heldout_plantdoc"}},
+    {"name": "heldout_plantseg", "subset": "source:plantseg+clean:1",
+     "systems": {"joint": "seen", "heldout": "heldout_plantseg"}}
+  ],
+  "unsure": {
+    "definition": "The model is unsure about a photo when at least 2 of its 3 most probable classes have a probability of at least 0.10 (the same floor the product uses for showing an alternative, sprout.serve.calibrate.MIN_ALTERNATIVE). Raw E4 probabilities are used, not recalibrated ones. A photo is asked about only if at least one question can be asked about its top 3.",
+    "min_probability": 0.10,
+    "min_plausible": 2
+  },
+  "rule": {
+    "yes_factor": 3.0,
+    "no_factor": 0.5,
+    "max_questions": 2,
+    "fixed": "Set before any answer was collected or any E11 result seen, and not tuned. 'yes' multiplies the probability of each top-3 class the question is tied to by 3, 'no' by 0.5, and the top-3 is renormalised to the probability it had. A symptom that a document calls characteristic is stronger evidence when seen than when absent, because a photo may simply not show it, so yes is stronger than no. A question is chosen to split the top-3 probability in half; at most 2 are asked.",
+    "tuning": "none"
+  },
+  "healthy": "Healthy classes have no symptom text in any document, so no question is about one. A healthy class can sit in the top 3, and a 'no' answer lowers the diseases the symptom belongs to, which helps it relatively. A 'yes' to a question about another class lowers it relatively.",
+  "sheets": {
+    "seed": 13,
+    "photos_per_sheet": 6,
+    "columns": 3,
+    "cell_px": 500,
+    "questions_per_photo": 10,
+    "decoys": "Each photo gets every question the flow could ask about its top 3 (for each model that finds it unsure), plus decoy questions about classes outside those top 3s, drawn with the seed and preferring the same crops (the crop is plain to see, so decoys from another crop would give themselves away), so every photo has exactly questions_per_photo questions and the list does not show which classes are in its top 3. Decoy answers are collected and never used in the flow."
+  },
+  "answerer": {
+    "kind": "a vision agent reading the photo, not a grower, and not someone who knows the plant",
+    "answers": ["yes", "no", "unknown"],
+    "sees": "the photo, a cell number, and questions in a shuffled order; no label, prediction, file name, path, split, or class name"
+  },
+  "bootstrap": {"n": 10000, "seed": 13},
+  "limits": [
+    "Development numbers on field_dev, where E4's model was selected. field_test is not read.",
+    "The answerer is an agent's reading of a photo. A grower may answer differently.",
+    "Which questions a photo gets depends on the model's top 3, so the question list carries a little of the prediction; decoy questions hide most of it. The answerer never sees a label."
+  ]
+}

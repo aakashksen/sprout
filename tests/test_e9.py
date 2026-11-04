@@ -1600,3 +1600,25 @@ def test_check_run_catches_a_generic_followup_count_that_the_rows_do_not_give(fr
     rec["config"]["generic_followup_coverage"]["generic_followups"] = 9
     path.write_text(json.dumps(rec))
     assert any("generic_followup_coverage" in p for p in check_file(path, frozen, min_n=1))
+
+
+def test_haiku_runs_as_many_calls_at_once_as_the_config_says(frozen):
+    import time
+
+    cfg = e9.load_config(frozen)
+    four = {**cfg, "rag": {**cfg["rag"], "judge_in_flight": 4}}
+    e9.stage_rag_retrieve(four, FakeRetriever(), frozen)
+    e9.stage_rag_generate(four, FakeLLM(reply=writer_reply, model="writer-model"), frozen, None)
+    live, peak, lock = [0], [0], threading.Lock()
+
+    def slow(messages):
+        with lock:
+            live[0] += 1
+            peak[0] = max(peak[0], live[0])
+        time.sleep(0.15)
+        with lock:
+            live[0] -= 1
+        return haiku_reply(messages)
+
+    e9.stage_rag_haiku(four, haiku(slow), frozen)
+    assert peak[0] == 4

@@ -27,11 +27,11 @@ from sprout.eval.check_run import (
 from sprout.eval.records import RAG_REL, ROOT, split_info, subset_positions, write_run
 from sprout.eval.stats import mcnemar_exact, paired_bootstrap_diff
 from sprout.rag.answer import (
-    GENERAL_CROP,
     Answer,
     AnswerConfig,
     answer,
     bounded_history,
+    retrieve,
 )
 from sprout.rag.evalset import Question, index_rows, load_questions, normalize
 from sprout.rag.judge import blind_view, judge_answer
@@ -47,7 +47,7 @@ METHOD_VERSION = 2  # bumped when a selection rule changes; checkpoints and work
 SERVED_K = 5
 # Bumped when what answer() does with a reply changes (notes, declines, plant reading). Generated rows are keyed by it,
 # so rows made by older code are never reused or mixed into a record.
-ANSWER_VERSION = 2
+ANSWER_VERSION = 3  # 3: answer() searches again with the diagnosed disease when the question finds nothing
 FLOOR_MIN_ANSWERS = 0.80
 MIN_GRADED = 200  # graded answers one full run should yield (T6.6 re-checks 200 of them)
 BEHAVIOUR_METRICS = (
@@ -461,6 +461,18 @@ class CachedRetriever:
         return self._found[(query, crop)]
 
 
+class RecordingRetriever:
+    """Passes searches through and keeps each one (query, plant, passages), so every search answer() makes can be replayed."""
+
+    def __init__(self, inner) -> None:
+        self.inner, self.crops, self.searches = inner, inner.crops, []
+
+    def search(self, query: str, *, crop: str | None = None, **kw: Any) -> list[Passage]:
+        found = self.inner.search(query, crop=crop, **kw)
+        self.searches.append({"query": query, "crop": crop, "passages": passages_to_json(found)})
+        return found
+
+
 def passages_to_json(passages: list) -> list[dict]:
     return [asdict(p) for p in passages]
 
@@ -468,10 +480,10 @@ def passages_to_json(passages: list) -> list[dict]:
 def retrieval_for_answers(retriever, cfg: AnswerConfig, q: Question, crops: set[str], classes: list[str]) -> dict:
     """What answer() will search for, and what it finds, so a later stage can replay it without torch."""
     crop, ident = simulate_identification(q, crops, classes)
-    searched = None if crop is None else (crop if crop in crops else GENERAL_CROP)
-    query = build_query(q.question, ident, bounded_history(q.history, cfg), cfg.query_mode)
-    found = retriever.search(query, crop=searched, k=cfg.k, mode=cfg.mode, rerank=cfg.rerank)
-    return {"id": q.id, "query": query, "crop": searched, "passages": passages_to_json(found)}
+    recorder = RecordingRetriever(retriever)
+    found, query, searched = retrieve(q.question, identification=ident, history=bounded_history(q.history, cfg),
+                                      retriever=recorder, cfg=cfg, crop=crop)  # the same code answer() runs
+    return {"id": q.id, "query": query, "crop": searched, "passages": passages_to_json(found), "searches": recorder.searches}
 
 
 def answer_retrieval_file(
@@ -479,7 +491,7 @@ def answer_retrieval_file(
 ) -> Path:
     """Where the passages for `tag` (with floors, or without) are cached; the name carries a hash of everything
     they depend on, so a changed method, index or question set never reuses old rows."""
-    key = checkpoint_key(asdict(replace_sources(cfg)), floors, min_score, index_stamp(index_dir), split_info(SPLIT, root).hash)
+    key = checkpoint_key(ANSWER_VERSION, asdict(replace_sources(cfg)), floors, min_score, index_stamp(index_dir), split_info(SPLIT, root).hash)
     return Path(work) / f"{tag}-{key}.jsonl"
 
 
@@ -503,7 +515,8 @@ def replace_sources(cfg: AnswerConfig) -> AnswerConfig:
 
 
 def cached_retriever(crops: set[str], rows: dict[str, dict]) -> CachedRetriever:
-    return CachedRetriever(crops, {(r["query"], r["crop"]): [Passage(**p) for p in r["passages"]] for r in rows.values()})
+    return CachedRetriever(crops, {(s["query"], s["crop"]): [Passage(**p) for p in s["passages"]]
+                                   for r in rows.values() for s in r["searches"]})
 
 
 class TimedLLM:

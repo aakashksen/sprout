@@ -8,8 +8,8 @@ from pathlib import Path
 
 from sprout.llm.client import LLMClient, LLMError
 from sprout.rag import serving
-from sprout.rag.query import build_query, crop_of_label, detect_crop
-from sprout.serve.types import Identification
+from sprout.rag.query import build_query, crop_of_label, detect_crop, disease_of_label
+from sprout.serve.types import Candidate, Identification
 from sprout.serve.wording import HEALTHY_CAUTION, is_healthy
 
 GENERAL_CROP = "general"  # the crop name general-guidance documents carry in the index
@@ -176,6 +176,41 @@ def _split_need(reply: str) -> tuple[list[str], str] | None:
     return None
 
 
+class SearchFailed(Exception):
+    def __init__(self, query: str) -> None:
+        super().__init__(query)
+        self.query = query
+
+
+def retrieve(question: str, *, identification: Identification | None, history: list[dict], retriever,
+             cfg: AnswerConfig, crop: str | None = None) -> tuple[list, str, str | None]:
+    """(passages, the query that produced them, the plant searched). The question is searched as it is. Only when that
+    finds nothing and the photo gave a confident disease, it is searched once more with that disease's name added: a
+    generic question ("how do I treat it?") otherwise never reaches the document the photo points to. Everything that
+    searches for an answer, served or measured, goes through here. `history` is already bounded."""
+    unsure = identification is not None and identification.status == "unsure"
+    if crop is not None:  # the plant the user named; one with no documents of its own uses general guidance
+        crop = crop.strip().lower()
+        crop = crop if crop in retriever.crops else GENERAL_CROP
+    elif identification is not None and identification.top is not None and not unsure:
+        crop = crop_of_label(identification.top.label, retriever.crops) or GENERAL_CROP
+    if crop is None:  # no named plant and no diagnosis: read the plant from the question and the user's own turns
+        crop = detect_crop(" ".join([*(h["content"] for h in history if h["role"] == "user"), question]), retriever.crops)
+    query = build_query(question, identification, history, cfg.query_mode)
+    try:
+        found = retriever.search(query, crop=crop, k=cfg.k, mode=cfg.mode, rerank=cfg.rerank)
+    except Exception as exc:
+        raise SearchFailed(query) from exc
+    top = identification.top if identification is not None and identification.status == "answered" else None
+    if found or top is None or not disease_of_label(top.label):
+        return found, query, crop
+    query = build_query(question, Identification("answered", Candidate(top.label, top.confidence)), history, "diseases")
+    try:
+        return retriever.search(query, crop=crop, k=cfg.k, mode=cfg.mode, rerank=cfg.rerank), query, crop
+    except Exception as exc:
+        raise SearchFailed(query) from exc
+
+
 def answer(
     question: str,
     *,
@@ -193,19 +228,12 @@ def answer(
         text = identification.guidance or "I couldn't see a plant in that photo. Please send a clear photo of a leaf."
         return Answer(text, [], False, ["photo"], "no_plant", prompt_version=version)
     unsure = identification is not None and identification.status == "unsure"
-    if crop is not None:  # the plant the user named; one with no documents of its own uses general guidance
-        crop = crop.strip().lower()
-        crop = crop if crop in retriever.crops else GENERAL_CROP
-    elif identification is not None and identification.top is not None and not unsure:
-        crop = crop_of_label(identification.top.label, retriever.crops) or GENERAL_CROP
-    if crop is None:  # no named plant and no diagnosis: read the plant from the question and the user's own turns
-        crop = detect_crop(" ".join([*(h["content"] for h in history if h["role"] == "user"), question]), retriever.crops)
     asks = ["clearer photo"] if unsure else []
-    query = build_query(question, identification, history, cfg.query_mode)
     try:
-        found = retriever.search(query, crop=crop, k=cfg.k, mode=cfg.mode, rerank=cfg.rerank)
-    except Exception:
-        return Answer(SEARCH_FAILED, [], False, asks, "retrieval_failed", query=query, prompt_version=version)
+        found, query, crop = retrieve(question, identification=identification, history=history, retriever=retriever,
+                                      cfg=cfg, crop=crop)
+    except SearchFailed as failed:
+        return Answer(SEARCH_FAILED, [], False, asks, "retrieval_failed", query=failed.query, prompt_version=version)
     if not found:
         return Answer(NO_DOCUMENT, [], False, asks, "no_document", query=query, prompt_version=version)
     messages = build_messages(question, identification, history, found, cfg)

@@ -428,3 +428,68 @@ def test_a_clarifying_reply_cannot_carry_advice():
     assert ask(FakeLLM(["NEED:\nBurn it."])).text == "Could you tell me more about the plant and its symptoms?"
     assert ask(FakeLLM(["NEED: crop\nSpray bleach. Which plant?"])).text == "Could you tell me crop?"
     assert ask(FakeLLM(["NEED: crop\nWhich plant?"])).text == "Which plant?"
+
+
+class FirstEmpty(FakeRetriever):
+    """Finds nothing for the first query, and `later` for any other."""
+
+    def __init__(self, later):
+        super().__init__([])
+        self.later = later
+
+    def search(self, query, **kw):
+        self.calls.append((query, kw))
+        return [] if len(self.calls) == 1 else self.later
+
+
+def test_a_generic_question_with_a_diagnosis_retrieves_through_the_disease_name():
+    r = FirstEmpty([P1, P2])
+    llm = FakeLLM(["Rings appear [1]."])
+    out = ask(llm, r, q="How do I treat it?")
+    assert len(r.calls) == 2 and r.calls[0][0] == "How do I treat it?"
+    assert r.calls[1][0] == "How do I treat it? early blight" and out.query == r.calls[1][0]
+    assert r.calls[0][1] == r.calls[1][1] and r.calls[1][1]["crop"] == "tomato"  # same crop, k, mode and rerank
+    assert out.state == "answered" and out.passages
+
+
+def test_the_fallback_uses_only_the_top_disease():
+    ident = Identification("answered", Candidate("Tomato___Early_blight", 0.95), [Candidate("Tomato___Late_blight", 0.03)])
+    r = FirstEmpty([P1])
+    ask(FakeLLM(["x [1]"]), r, ident=ident)
+    assert "late blight" not in r.calls[1][0]
+
+
+def test_a_question_that_already_finds_passages_searches_once():
+    r = FakeRetriever([P1, P2])
+    assert ask(FakeLLM(["Rings [1]."]), r).query == "What are the signs?" and len(r.calls) == 1
+
+
+@pytest.mark.parametrize("ident", [
+    None,
+    Identification("answered", Candidate("Tomato___healthy", 0.97)),
+    Identification("unsure", Candidate("Tomato___Early_blight", 0.5)),
+    Identification("answered", None),
+])
+def test_no_second_search_without_an_answered_disease(ident):
+    r = FakeRetriever([])
+    out = ask(FakeLLM(["x"]), r, ident=ident, q="How do I treat tomato?")
+    assert len(r.calls) == 1 and out.state == "no_document"
+
+
+def test_a_failed_first_search_is_not_retried():
+    r = FakeRetriever(error=RuntimeError("index missing"))
+    out = ask(FakeLLM(["x"]), r)
+    assert len(r.calls) == 1 and out.state == "retrieval_failed" and out.query == "What are the signs?"
+
+
+def test_a_failed_fallback_search_is_visible_with_its_query():
+    class SecondFails(FakeRetriever):
+        def search(self, query, **kw):
+            self.calls.append((query, kw))
+            if len(self.calls) == 2:
+                raise RuntimeError("boom")
+            return []
+
+    r = SecondFails()
+    out = ask(FakeLLM(["x"]), r)
+    assert out.state == "retrieval_failed" and out.query.endswith("early blight")

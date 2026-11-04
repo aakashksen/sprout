@@ -398,3 +398,25 @@ def test_the_blind_view_hides_the_writer_and_the_verdicts_but_rows_can_be_matche
     assert "claude_sonnet" not in json.dumps(blind) and "system" not in blind and "judge_model" not in blind
     assert blind["claims"] == [{"claim": "c", "cited": [1]}] and blind["id"] == "supported-001"
     assert blind["item"] != blind_view({**row, "system": "served"})["item"] and blind["item"] == blind_view(row)["item"]
+
+
+def test_retrieval_replay_records_every_search_answer_makes_including_the_fallback(root):
+    class EmptyThenFound:
+        crops = {"potato", "tomato"}
+
+        def __init__(self):
+            self.calls = []
+
+        def search(self, query, *, crop=None, **kw):
+            self.calls.append((query, crop))
+            return [] if len(self.calls) == 1 else [Passage("Rings on potato", "p.pdf", 1, "potato", 0.9)]
+
+    from sprout.rag.evalset import Question
+
+    q = Question(id="x", category="answerable", split="dev", question="Tell me about early blight", expected="answer", crop="potato")
+    live = EmptyThenFound()
+    row = e7.retrieval_for_answers(live, AnswerConfig(), q, live.crops, e7.load_classes(root))
+    assert [s["query"] for s in row["searches"]] == [c[0] for c in live.calls] and len(live.calls) == 2
+    assert row["query"] == live.calls[1][0] and row["passages"]
+    replay = e7.cached_retriever(live.crops, {"x": row})
+    assert replay.search(live.calls[0][0], crop="potato") == [] and replay.search(live.calls[1][0], crop="potato")

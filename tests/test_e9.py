@@ -365,3 +365,172 @@ def test_quantized_model_must_come_from_the_chosen_checkpoint(repo):
     write(repo, "results/e6/export.json", other)
     with pytest.raises(e9.Refused, match="differs from E12's decision"):
         e9.build_predictors(cfg, changed, repo)
+
+
+# ----------------------------------------------------------------------------------------------- wrong-disease check, dev
+
+import hashlib  # noqa: E402
+import threading  # noqa: E402
+
+from sprout.llm.client import ClaudeCodeClient, FakeLLM, LLMError  # noqa: E402
+from sprout.rag.judge import blind_view, rubric  # noqa: E402
+
+DEV_IDS = [f"q{i}" for i in range(1, 9)]
+TEST_IDS = [f"t{i}" for i in range(1, 7)]
+
+
+def question_row(qid, split):
+    n = int(qid[1:])
+    text = f"My apple leaves have scab {qid}, what do I do?" if n % 2 else f"How do I water my ferns {qid}?"
+    return dict(id=qid, category="supported", split=split, question=text, expected="answer" if n % 3 else "abstain")
+
+
+def judged_row(system, qid, answer=None):
+    n = int(qid[1:])
+    answer = answer or (f"Tomato advice for {qid} [1]. Remove the old leaves [1]." if n % 4 == 0
+                        else f"Apple scab advice for {qid} [1]. Spray in spring [2].")
+    claims = [{"claim": c.rstrip("."), "cited": [1], "verdict": n % 2 == 0, "judge_reply": "SUPPORTED"}
+              for c in ("Remove the old leaves.", "Spray in spring.")]
+    return {"id": qid, "system": system, "question": question_row(qid, "dev")["question"],
+            "passages": [{"n": 1, "source": "a.pdf", "page": 1, "text": "Passage one."},
+                         {"n": 2, "source": "b.pdf", "page": 2, "text": "Passage two."}],
+            "answer": answer, "claims": claims, "rubric": rubric(), "judge_model": "judge-model"}
+
+
+def add_rag_files(root):
+    rows = [question_row(q, "dev") for q in DEV_IDS] + [question_row(q, "test") for q in TEST_IDS]
+    write(root, "datasets/rag/questions.jsonl", "".join(json.dumps(r) + "\n" for r in rows))
+    chunks = [{"source": "a.pdf", "page": 1, "text": "apple scab", "crop": "apple"},
+              {"source": "b.pdf", "page": 2, "text": "tomato blight", "crop": "tomato"},
+              {"source": "g.pdf", "page": 1, "text": "watering", "crop": "general"}]
+    write(root, "knowledge/index/chunks.jsonl", "".join(json.dumps(c) + "\n" for c in chunks))
+
+
+def make_dev_source(root, ids=DEV_IDS):
+    rows = [judged_row("served", q) for q in ids] + [judged_row("base", q) for q in DEV_IDS]
+    runs = root / "results" / "runs"
+    runs.mkdir(parents=True, exist_ok=True)
+    (runs / "E7-prompts-v2-test.judgments.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+    (runs / "E7-prompts-v2-test.blind.jsonl").write_text("".join(json.dumps(blind_view(r)) + "\n" for r in rows))
+    (runs / "E7-20261104T000000000000Z.json").write_text(json.dumps(
+        {"config": {"judgments_file": "E7-prompts-v2-test.judgments.jsonl", "blind_file": "E7-prompts-v2-test.blind.jsonl"}}))
+    sha = lambda n: hashlib.sha256((runs / n).read_bytes()).hexdigest()  # noqa: E731
+    return {"e7_run_id": "E7-20261104T000000000000Z", "judgments": "E7-prompts-v2-test.judgments.jsonl",
+            "judgments_sha256": sha("E7-prompts-v2-test.judgments.jsonl"), "blind": "E7-prompts-v2-test.blind.jsonl",
+            "blind_sha256": sha("E7-prompts-v2-test.blind.jsonl")}
+
+
+def dev_cfg(root, ids=DEV_IDS):
+    cfg = e9.load_config(root)
+    cfg["wrong_disease"]["dev_source"] = make_dev_source(root, ids)
+    return cfg
+
+
+def grader_reply(messages):
+    """WRONG when the answer is about tomatoes, FITS otherwise."""
+    return "WRONG" if "Answer: Tomato" in messages[-1]["content"] else "FITS"
+
+
+@pytest.fixture
+def rag_repo(repo):
+    add_rag_files(repo)
+    commit(repo, "rag fixture")
+    return repo
+
+
+def test_diagnosis_comes_from_the_same_source_for_dev_and_test(rag_repo):
+    from sprout.rag.evalset import load_questions
+
+    crops = {"apple", "tomato"}
+    qs = {q.id: q for q in load_questions(rag_repo / "datasets/rag/questions.jsonl")}
+    named = e9.diagnosis_for(qs["q1"], crops, CLASSES)
+    assert "Apple - scab" in named and "photo suggests" in named  # what the writer was told (answer.diagnosis_summary)
+    assert "Apple - scab" in e9.diagnosis_for(qs["t1"], crops, CLASSES)  # a test question is read the same way
+    assert e9.diagnosis_for(qs["q2"], crops, CLASSES) == "No photo diagnosis is available."
+    qs["q2"].crop = "tomato"  # a stated plant, no disease named: the plant is given, the diagnosis still says none
+    assert e9.diagnosis_for(qs["q2"], crops, CLASSES) == "No photo diagnosis is available. The plant is tomato."
+
+
+def test_wrong_disease_dev_makes_one_call_per_answer_and_reports_its_rate(rag_repo):
+    cfg = dev_cfg(rag_repo)
+    commit(rag_repo, "dev source")
+    llm = FakeLLM(reply=grader_reply, model="sonnet")
+    path = e9.stage_wrong_disease_dev(cfg, llm, rag_repo)
+    rec = json.loads(path.read_text())
+    assert len(llm.calls) == 8 == rec["claude_calls"] and rec["n"] == 8 and rec["split"] == "rag_dev"
+    m = rec["metrics"]["served"]
+    assert m["answers_checked"] == 8 and m["flagged_wrong_disease"] == 2 and m["flagged_rate"] == 0.25  # q4 and q8
+    assert rec["intervals"]["served"]["flagged_rate"][0] < 0.25 < rec["intervals"]["served"]["flagged_rate"][1]
+    first = json.dumps(llm.calls[0])
+    assert "Question: My apple leaves have scab q1" in first and "Diagnosis: The photo suggests Apple - scab" in first
+    assert "SUPPORTED" not in first and "judge-model" not in first and "served" not in first
+    assert rec["config"]["prompt_sha256"] == e9.sha256_file(rag_repo / e9.PROMPT_REL)
+    assert rec["models"]["grader"] == "sonnet"
+    assert check_file(path, rag_repo, min_n=1) == []
+    assert "accuracy" not in path.read_text().lower()
+
+
+def test_dev_rows_are_saved_as_they_arrive_and_a_rerun_resumes(rag_repo):
+    cfg = dev_cfg(rag_repo)
+    commit(rag_repo, "dev source")
+    count = {"n": 0}
+
+    def flaky(messages):
+        count["n"] += 1
+        if count["n"] == 5:
+            raise LLMError("usage limit")
+        return grader_reply(messages)
+
+    with pytest.raises(LLMError, match="usage limit"):
+        e9.stage_wrong_disease_dev(cfg, FakeLLM(reply=flaky, model="sonnet"), rag_repo)
+    saved = [json.loads(x) for f in (rag_repo / "results/e9/work").glob("wd-dev-*.jsonl") for x in f.read_text().splitlines()]
+    assert 4 <= len(saved) <= 5  # the failed call saved nothing; one more may have been in flight
+    again = FakeLLM(reply=grader_reply, model="sonnet")
+    path = e9.stage_wrong_disease_dev(cfg, again, rag_repo)
+    assert len(again.calls) == 8 - len(saved)  # nothing already saved is asked again
+    assert json.loads(path.read_text())["n"] == 8
+
+
+def test_at_most_two_sonnet_calls_run_at_once(rag_repo):
+    cfg = dev_cfg(rag_repo)
+    commit(rag_repo, "dev source")
+    live, peak, lock = [0], [0], threading.Lock()
+
+    def slow(messages):
+        with lock:
+            live[0] += 1
+            peak[0] = max(peak[0], live[0])
+        threading.Event().wait(0.02)
+        with lock:
+            live[0] -= 1
+        return "FITS"
+
+    e9.stage_wrong_disease_dev(cfg, FakeLLM(reply=slow, model="sonnet"), rag_repo)
+    assert peak[0] == 2
+
+
+def test_the_call_cap_refuses_before_any_call(rag_repo, tmp_path, monkeypatch):
+    cfg = dev_cfg(rag_repo)
+    commit(rag_repo, "dev source")
+    ran = []
+    monkeypatch.setattr("shutil.which", lambda name: "C:/bin/claude.exe")
+    real = subprocess.run
+    monkeypatch.setattr(subprocess, "run", lambda cmd, **kw: ran.append(cmd) if "claude" in str(cmd[0]) else real(cmd, **kw))
+    counter = tmp_path / "claude_calls.json"
+    counter.write_text(json.dumps({"calls": 95}))
+    client = ClaudeCodeClient(model="sonnet", cap=100, counter_path=counter)  # 8 answers need 8 calls, 5 left
+    with pytest.raises(LLMError, match="cap"):
+        e9.stage_wrong_disease_dev(cfg, client, rag_repo)
+    assert ran == [] and json.loads(counter.read_text())["calls"] == 95
+    low = {**cfg, "wrong_disease": {**cfg["wrong_disease"], "dev_max_calls": 3}}
+    with pytest.raises(LLMError, match="limit"):  # the experiment's own limit
+        e9.stage_wrong_disease_dev(low, FakeLLM(["FITS"], model="sonnet"), rag_repo)
+    assert not list((rag_repo / "results/e9/work").glob("wd-dev-*.jsonl"))
+
+
+def test_an_unusable_reply_is_counted_and_never_read_as_a_call(rag_repo):
+    cfg = dev_cfg(rag_repo)
+    commit(rag_repo, "dev source")
+    path = e9.stage_wrong_disease_dev(cfg, FakeLLM(["WRONG because it is a different plant", "FITS"], model="sonnet"), rag_repo)
+    m = json.loads(path.read_text())["metrics"]["served"]
+    assert m["unusable_replies"] == 1 and m["usable_calls"] == 7 and m["flagged_wrong_disease"] == 0

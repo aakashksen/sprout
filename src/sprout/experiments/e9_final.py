@@ -17,6 +17,7 @@ import hashlib
 import json
 import re
 from collections.abc import Callable
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,6 +27,7 @@ import numpy as np
 import pandas as pd
 
 from sprout.data.label_review import read_log
+from sprout.eval.answer_checks import CALLS, dev_intervals, dev_metrics, parse_call
 from sprout.eval.predict import Predictions
 from sprout.eval.records import (
     ROOT,
@@ -37,6 +39,12 @@ from sprout.eval.records import (
     subset_positions,
     write_run,
 )
+from sprout.experiments import e7_rag as e7
+from sprout.experiments.e7_rag import Checkpoint
+from sprout.llm.client import LLMError
+from sprout.rag.answer import GENERAL_CROP, diagnosis_summary
+from sprout.rag.evalset import Question
+from sprout.rag.evalset import index_crops as index_crops_of
 
 CONFIG_REL = "configs/e9.json"
 FROZEN_REL = "configs/e9_wrong_disease.json"
@@ -104,14 +112,6 @@ def wd_messages(question: str, diagnosis: str, answer: str, root: Path = ROOT) -
 
     body = f"Question: {clean(question)}\n\nDiagnosis: {clean(diagnosis)}\n\nAnswer: {clean(answer)}"
     return [{"role": "system", "content": prompt_text(root)}, {"role": "user", "content": body}]
-
-
-def parse_call(reply: str) -> str | None:
-    """FITS or WRONG for exactly that one word (case and punctuation aside); anything longer is unusable, not a guess."""
-    words = " ".join(re.findall(r"[A-Za-z]+", reply)).upper()
-    return words if words in CALLS else None
-
-
 
 
 # ---------------------------------------------------------------- image test splits
@@ -374,3 +374,132 @@ def build_predictors(cfg: dict[str, Any], decision: dict[str, Any], root: Path =
         "dinov2": _torch_predictor(root / spec["dinov2"]["checkpoint"], "DINOv2 small", size, device),
         "quantized": _onnx_predictor(cfg, decision, root),
     }
+
+
+# ---------------------------------------------------------------- Sonnet calls, two at a time
+
+WORK_REL = Path("results/e9/work")
+IN_FLIGHT = 2
+CALL_TIMEOUT_S = 180.0
+DEV_SPLIT = "rag_dev"
+WD_DEVICE = "none: no GPU or local model is used; Sonnet runs through the claude command"
+DIAGNOSIS_RULE = (
+    "The diagnosis is the text the writer was given for the same question: the simulated photo diagnosis of E7 "
+    "(sprout.experiments.e7_rag.simulate_identification, which names the plant's class that the question mentions, "
+    "never the gold label) written by answer.diagnosis_summary. With no such class it says no photo diagnosis is "
+    "available, plus the plant when the question states or names one. rag_dev and rag_test questions have no photos "
+    "and use the same rule."
+)
+
+
+def check_budget(llm: Any, need: int, limit: int, spent: int) -> None:
+    """Refuse, before any call, a run that would pass the experiment's limit or the shared Claude call cap."""
+    if spent + need > limit:
+        raise LLMError(f"E9 Sonnet limit of {limit} calls would be passed ({spent} made, {need} needed); no call was made")
+    made, cap = getattr(llm, "calls_made", None), getattr(llm, "cap", None)
+    if callable(made) and cap is not None and made() + need > cap:
+        raise LLMError(f"Claude call cap {cap} would be passed ({made()} made, {need} needed); no call was made")
+
+
+def run_two_at_a_time(todo: list[Any], one: Callable[[Any], dict[str, Any]], ck: Checkpoint) -> None:
+    """Run `one` over `todo` with at most IN_FLIGHT calls at once, saving each row as it arrives. An error stops new
+    calls, keeps what arrived, and is raised."""
+    failure: LLMError | None = None
+    with ThreadPoolExecutor(max_workers=IN_FLIGHT) as pool:
+        queue, live = iter(todo), set()
+        while True:
+            while failure is None and len(live) < IN_FLIGHT:
+                nxt = next(queue, None)
+                if nxt is None:
+                    break
+                live.add(pool.submit(one, nxt))
+            if not live:
+                break
+            done, live = wait(live, return_when=FIRST_COMPLETED)
+            for f in done:
+                try:
+                    ck.add(f.result())
+                except LLMError as exc:
+                    failure = failure or exc
+    if failure is not None:
+        raise failure
+
+
+# ---------------------------------------------------------------- the wrong-disease check
+
+def diagnosis_for(q: Question, crops: set[str], classes: list[str]) -> str:
+    crop, ident = e7.simulate_identification(q, crops, classes)
+    text = diagnosis_summary(ident)
+    return text + (f" The plant is {crop}." if ident is None and crop else "")
+
+
+def index_crops(index_dir: Path) -> set[str]:
+    return set(index_crops_of(Path(index_dir) / "chunks.jsonl").values()) - {GENERAL_CROP}
+
+
+def rendered_sha256(root: Path) -> str:
+    """Hash of the messages built for a fixed input, so a change to the wording or the layout shows up even when the
+    prompt file is unchanged."""
+    return hashlib.sha256(json.dumps(wd_messages("Q", "D", "A", root), sort_keys=True).encode()).hexdigest()
+
+
+def wd_key(items: list[dict[str, Any]], model: str, root: Path) -> str:
+    parts = [prompt_text(root), model, [[i["id"], i["question"], i["diagnosis"], i["answer"]] for i in items]]
+    return hashlib.sha1(json.dumps(parts).encode()).hexdigest()[:10]
+
+
+def wd_grade(items: list[dict[str, Any]], llm: Any, tag: str, root: Path, limit: int | None = None) -> Checkpoint:
+    """One Sonnet call per item not already saved. With `limit`, refuse first if the calls would pass it or the cap."""
+    ck = Checkpoint(Path(root) / WORK_REL / f"wd-{tag}-{wd_key(items, llm.model, root)}.jsonl")
+    todo = [i for i in items if i["id"] not in ck.rows]
+    if limit is not None:
+        check_budget(llm, len(todo), limit, len(ck.rows))
+
+    def one(item: dict[str, Any]) -> dict[str, Any]:
+        reply = llm.complete(wd_messages(item["question"], item["diagnosis"], item["answer"], root),
+                             max_tokens=8, timeout_s=CALL_TIMEOUT_S).text.strip()
+        return {"id": item["id"], "reply": reply, "call": parse_call(reply)}
+
+    run_two_at_a_time(todo, one, ck)
+    return ck
+
+
+def dev_answers(cfg: dict[str, Any], root: Path) -> list[dict[str, Any]]:
+    """The final E7 served answers on rag_dev (from the judgments file the config names, checked by sha256), each with
+    its question and the diagnosis the writer was given."""
+    from sprout.experiments.e14_judge_check import item_of, load_source
+
+    wd = cfg["wrong_disease"]
+    judged, _ = load_source({"source": wd["dev_source"]}, root)
+    questions = {q.id: q for q in e7.dev_questions(root)}
+    crops, classes = index_crops(Path(root) / cfg["rag"]["index_dir"]), e7.load_classes(root)
+    served = sorted((r for r in judged if r["system"] == wd["served_system"]), key=lambda r: r["id"])
+    return [{"id": r["id"], "item": item_of(r["system"], r["id"]), "question": r["question"],
+             "diagnosis": diagnosis_for(questions[r["id"]], crops, classes), "answer": r["answer"]} for r in served]
+
+
+def prompt_fields(root: Path) -> dict[str, str]:
+    return {"prompt_file": PROMPT_REL, "prompt_sha256": sha256_file(Path(root) / PROMPT_REL),
+            "rendered_sha256": rendered_sha256(root)}
+
+
+def stage_wrong_disease_dev(cfg: dict[str, Any], llm: Any, root: Path = ROOT, note: str = "") -> Path:
+    """Run the check on the served rag_dev answers and write its record with the rate. Calls are saved as they arrive."""
+    root = Path(root)
+    require_clean(root)
+    wd = cfg["wrong_disease"]
+    items = dev_answers(cfg, root)
+    started = datetime.now(timezone.utc).isoformat()
+    ck = wd_grade(items, llm, "dev", root, limit=wd["dev_max_calls"])
+    rows = [{**i, "call": ck.rows[i["id"]]["call"], "reply": ck.rows[i["id"]]["reply"]} for i in items]
+    info = split_info(DEV_SPLIT, root)
+    config = {"stage": "wrong_disease_dev", **prompt_fields(root), "source": wd["dev_source"],
+              "served_system": wd["served_system"], "diagnosis_source": DIAGNOSIS_RULE, "claude_calls": len(rows),
+              "device": WD_DEVICE, "labels_reviewed": labels_reviewed(root, cfg["tasks_file"]), "started_at": started,
+              "grader_prompt": "question, diagnosis and answer; the reply is read strictly as FITS or WRONG"}
+    attempts = [{"stage": "wrong_disease_dev", "answers": len(rows), "claude_calls": len(rows),
+                 "replies_without_a_call": sum(r["call"] is None for r in rows)}]
+    return write_run("E9", DEV_SPLIT, config, {"grader": llm.model}, {"served": dev_metrics(rows)},
+                     {"served": dev_intervals(rows)}, attempts, {"served": rows}, info.hash, root=root,
+                     notes=("Development check of the wrong-disease grader on the final served rag_dev answers. "
+                            "The prompt is frozen only after this and the blind read." + (" " + note if note else "")))

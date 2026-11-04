@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 import re
+import subprocess
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -14,7 +15,7 @@ from typing import Any
 
 import numpy as np
 
-from sprout.eval import agreement, check_cache
+from sprout.eval import agreement, answer_checks, check_cache
 from sprout.eval import metrics as M
 from sprout.eval.records import (
     BOOTSTRAP_N,
@@ -645,12 +646,114 @@ def _judge_check_problems(rec: dict[str, Any], root: Path, min_n: int) -> list[s
     return problems
 
 
+def _prompt_problems(rec: dict[str, Any], root: Path) -> list[str]:
+    """E9: the wrong-disease prompt the record names must be the file's text at the commit the record was made on."""
+    cfg = rec["config"]
+    rel, want = cfg.get("prompt_file"), cfg.get("prompt_sha256")
+    if not (isinstance(rel, str) and isinstance(want, str)):
+        return ["config must name prompt_file and prompt_sha256"]
+    shown = subprocess.run(["git", "show", f"{rec['git_commit']}:{rel}"], cwd=root, capture_output=True)
+    if shown.returncode != 0 or hashlib.sha256(shown.stdout).hexdigest() != want:
+        return [f"prompt_sha256 is not the hash of {rel} at the record's commit"]
+    return []
+
+
+def _e9_dev_rows(rec: dict[str, Any], info: SplitInfo, rows: list[dict[str, Any]], root: Path) -> list[str]:
+    """Rows of the wrong-disease dev stage: one per checked answer, from the sha-checked E7 judgments file."""
+    cfg, problems = rec["config"], []
+    if any(set(r) != set(answer_checks.DEV_ROW_KEYS) for r in rows):
+        return ["every row must hold exactly " + ", ".join(answer_checks.DEV_ROW_KEYS)]
+    ids = [r["id"] for r in rows]
+    if len(set(ids)) != len(ids) or not set(ids) <= set(info.ids):
+        problems.append("rows must be distinct rag_dev questions")
+    if any(r["call"] != answer_checks.parse_call(str(r["reply"])) for r in rows):
+        problems.append("a row's call is not what its reply says")
+    src = cfg.get("source")
+    path = root / RUNS_REL / src["judgments"] if isinstance(src, dict) and "judgments" in src else None
+    if path is None or not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != src.get("judgments_sha256"):
+        return problems + ["the source judgments file named in config.source is missing or differs from its sha256"]
+    saved = {(r["system"], r["id"]): (r["question"], r["answer"]) for r in _read_rows(path)}
+    bad = sum(saved.get((cfg.get("served_system"), r["id"])) != (r["question"], r["answer"]) for r in rows)
+    if bad:
+        problems.append(f"{bad} rows' question or answer differ from the source judgments")
+    if rec["claude_calls"] != len(rows):
+        problems.append("claude_calls must be one per checked answer")
+    return problems
+
+
+def _e9_blind_rows(rec: dict[str, Any], rows: list[dict[str, Any]], root: Path) -> list[str]:
+    """Rows of the blind read: the sample must be the seeded draw from the named dev record, with the grader's own
+    calls, and the reader's calls must be one of the two words."""
+    cfg, problems = rec["config"], []
+    if any(set(r) != set(answer_checks.BLIND_ROW_KEYS) for r in rows):
+        return ["every row must hold exactly " + ", ".join(answer_checks.BLIND_ROW_KEYS)]
+    dev_path = root / RUNS_REL / f"{cfg.get('dev_record')}.json"
+    if not dev_path.is_file():
+        return ["config.dev_record names a record that does not exist"]
+    dev = json.loads(dev_path.read_text(encoding="utf-8"))
+    dev_rows = _read_rows(root / dev["predictions"]["served"])
+    if dev["config"].get("prompt_sha256") != cfg.get("prompt_sha256"):
+        problems.append("the blind read and its dev record used different prompts")
+    drawn = answer_checks.draw_blind(dev_rows, cfg.get("blind_seed"), cfg.get("blind_per_call"))
+    if sorted((r["id"], r["item"], r["call"]) for r in drawn) != sorted((r["id"], r["item"], r["grader"]) for r in rows):
+        problems.append("the rows are not the seeded sample of the dev record with the grader's own calls")
+    if any(r["reader"] not in answer_checks.CALLS for r in rows):
+        problems.append("every reader call must be FITS or WRONG")
+    if cfg.get("strata") != answer_checks.strata_sizes(dev_rows):
+        problems.append("config.strata differs from the dev record's calls")
+    if rec["claude_calls"] != 0:
+        problems.append("a blind read makes no Claude call")
+    return problems
+
+
+def _e9_dev_problems(rec: dict[str, Any], root: Path, min_n: int) -> list[str]:
+    """E9 stage records on rag_dev (the wrong-disease dev run and the blind read). Rows are not one per split item, so
+    they are checked on their own and every number is recomputed with sprout.eval.answer_checks."""
+    problems = _header_problems(rec, root, min_n)
+    info = split_info(rec["split"], root)
+    if rec["dataset_hash"] != info.hash:
+        problems.append("dataset_hash does not match the manifest")
+    paths, metrics, cfg = rec["predictions"], rec["metrics"], rec["config"]
+    if not (isinstance(paths, dict) and set(paths) == {"served"} and isinstance(metrics, dict) and set(metrics) == {"served"}):
+        return problems + ["an E9 stage record holds one system, served, in predictions and metrics"]
+    if not (root / paths["served"]).is_file():
+        return problems + ["the predictions file is missing"]
+    rows = _read_rows(root / paths["served"])
+    if len(rows) != rec["n"]:
+        problems.append(f"predictions hold {len(rows)} rows but n={rec['n']}")
+    stage = cfg.get("stage") if isinstance(cfg, dict) else None
+    if stage == "wrong_disease_dev":
+        found, fresh, fresh_ci = _e9_dev_rows(rec, info, rows, root), None, None
+        if not found:
+            fresh, fresh_ci = answer_checks.dev_metrics(rows), answer_checks.dev_intervals(rows)
+    elif stage == "wrong_disease_blind_read":
+        found, fresh, fresh_ci = _e9_blind_rows(rec, rows, root), None, None
+        if not found:
+            fresh = answer_checks.blind_metrics(rows, cfg["strata"])
+            fresh_ci = answer_checks.blind_intervals(rows)
+    else:
+        return problems + [f"unknown E9 stage {stage!r} on rag_dev"]
+    problems += found + _prompt_problems(rec, root)
+    if fresh is not None:
+        saved = metrics["served"]
+        if set(saved) != set(fresh) or not all(_same(fresh[k], saved[k]) for k in fresh):
+            problems.append("metrics do not recompute from predictions")
+        got = (rec["intervals"].get("served") or {})
+        if set(got) != set(fresh_ci) or not all(_same_pair(fresh_ci[k], got[k]) for k in fresh_ci):
+            problems.append("intervals do not recompute from predictions")
+    if set(rec["intervals"]) - {"served"}:
+        problems.append("intervals name systems not in predictions")
+    return problems
+
+
 def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
     problems = [f"missing field {k}" for k in REQUIRED if k not in rec]
     if problems:
         return problems
     if rec["experiment"] == "E14":
         return _judge_check_problems(rec, root, min_n)
+    if rec["experiment"] == "E9" and rec["split"] == "rag_dev":
+        return _e9_dev_problems(rec, root, min_n)
     problems = _header_problems(rec, root, min_n)
     scope = _scope(rec, root, problems)
     if scope is None:

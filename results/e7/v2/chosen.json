@@ -717,6 +717,116 @@
      "distinguishable": true
     }
    }
+  },
+  {
+   "stage": "prompts",
+   "record": "E7-20261104T040010301317Z",
+   "prompt": "base+faithful+abstain",
+   "decisions": [
+    {
+     "addition": "faithful",
+     "target": "faithfulness",
+     "gain": 0.07738008632814386,
+     "answer_drop": 0.0,
+     "kept": true
+    },
+    {
+     "addition": "abstain",
+     "target": "declines_when_unanswerable",
+     "gain": 0.6428571428571428,
+     "answer_drop": 0.033333333333333326,
+     "kept": true
+    },
+    {
+     "addition": "ask",
+     "target": "declines_when_ambiguous",
+     "gain": 0.6923076923076923,
+     "answer_drop": 0.11666666666666659,
+     "kept": false
+    },
+    {
+     "addition": "combined",
+     "kept": true,
+     "answer_drop": 0.016666666666666607,
+     "target_gains": {
+      "faithful": 0.10819012935776329,
+      "abstain": 0.6428571428571428
+     }
+    }
+   ],
+   "intervals": {
+    "faithful": {
+     "target": {
+      "metric": "faithfulness",
+      "answers": [
+       79,
+       88
+      ],
+      "diff": 0.07738008632814386,
+      "ci": [
+       0.014490632039652375,
+       0.1404633282250658
+      ]
+     },
+     "answers": {
+      "metric": "answers_when_answerable",
+      "n": 60,
+      "diff": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "mcnemar_p": 1.0
+     },
+     "distinguishable": true
+    },
+    "abstain": {
+     "target": {
+      "metric": "declines_when_unanswerable",
+      "n": 14,
+      "diff": 0.6428571428571429,
+      "ci": [
+       0.35714285714285715,
+       0.8571428571428571
+      ],
+      "mcnemar_p": 0.00390625
+     },
+     "answers": {
+      "metric": "answers_when_answerable",
+      "n": 60,
+      "diff": -0.03333333333333333,
+      "ci": [
+       -0.08333333333333333,
+       0.0
+      ],
+      "mcnemar_p": 0.5
+     },
+     "distinguishable": true
+    },
+    "ask": {
+     "target": {
+      "metric": "declines_when_ambiguous",
+      "n": 13,
+      "diff": 0.6923076923076923,
+      "ci": [
+       0.46153846153846156,
+       0.9230769230769231
+      ],
+      "mcnemar_p": 0.00390625
+     },
+     "answers": {
+      "metric": "answers_when_answerable",
+      "n": 60,
+      "diff": -0.11666666666666667,
+      "ci": [
+       -0.2,
+       -0.05
+      ],
+      "mcnemar_p": 0.015625
+     },
+     "distinguishable": true
+    }
+   }
   }
  ]
 }

@@ -391,6 +391,112 @@
      "distinguishable": true
     }
    }
+  },
+  {
+   "stage": "prompts",
+   "record": "E7-20261104T010519096337Z",
+   "prompt": "base+faithful+abstain",
+   "decisions": [
+    {
+     "addition": "faithful",
+     "target": "faithfulness",
+     "gain": 0.05842306595778679,
+     "answer_drop": 0.0,
+     "kept": true
+    },
+    {
+     "addition": "abstain",
+     "target": "declines_when_unanswerable",
+     "gain": 0.14285714285714285,
+     "answer_drop": 0.0,
+     "kept": true
+    },
+    {
+     "addition": "ask",
+     "target": "declines_when_ambiguous",
+     "gain": 0.6923076923076923,
+     "answer_drop": 0.1333333333333333,
+     "kept": false
+    },
+    {
+     "addition": "combined",
+     "kept": true,
+     "answer_drop": 0.0
+    }
+   ],
+   "intervals": {
+    "faithful": {
+     "target": {
+      "metric": "faithfulness",
+      "answers": [
+       101,
+       101
+      ],
+      "diff": 0.05842306595778679,
+      "ci": [
+       -0.0017928490094676279,
+       0.11920069649486868
+      ]
+     },
+     "answers": {
+      "metric": "answers_when_answerable",
+      "n": 60,
+      "diff": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "mcnemar_p": 1.0
+     },
+     "distinguishable": false
+    },
+    "abstain": {
+     "target": {
+      "metric": "declines_when_unanswerable",
+      "n": 14,
+      "diff": 0.14285714285714285,
+      "ci": [
+       0.0,
+       0.35714285714285715
+      ],
+      "mcnemar_p": 0.5
+     },
+     "answers": {
+      "metric": "answers_when_answerable",
+      "n": 60,
+      "diff": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "mcnemar_p": 1.0
+     },
+     "distinguishable": false
+    },
+    "ask": {
+     "target": {
+      "metric": "declines_when_ambiguous",
+      "n": 13,
+      "diff": 0.6923076923076923,
+      "ci": [
+       0.46153846153846156,
+       0.9230769230769231
+      ],
+      "mcnemar_p": 0.00390625
+     },
+     "answers": {
+      "metric": "answers_when_answerable",
+      "n": 60,
+      "diff": -0.13333333333333333,
+      "ci": [
+       -0.21666666666666667,
+       -0.05
+      ],
+      "mcnemar_p": 0.0078125
+     },
+     "distinguishable": true
+    }
+   }
   }
  ]
 }

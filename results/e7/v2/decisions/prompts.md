@@ -1,13 +1,16 @@
 ### T6.4 - Prompt versions, one rule at a time, on qwen3.5:4b-q4_K_M (method v2, 2026-11-03)
-- **Chose:** `base+faithful+abstain` (the kept additions still need a `combined` run: generate, judge, then prompts-record again)
+- **Chose:** `base+faithful+abstain`
 - **Considered, direction rule (kept when the target rises and answers_when_answerable falls by at most 0.05), with intervals:**
   - faithful: kept; target gain +0.058, answers change -0.000; target +0.058 (95% CI -0.002 to +0.119), NOT distinguishable from noise; answers_when_answerable +0.000 (95% CI +0.000 to +0.000), McNemar p=1.000
   - abstain: kept; target gain +0.143, answers change -0.000; target +0.143 (95% CI +0.000 to +0.357), NOT distinguishable from noise; answers_when_answerable +0.000 (95% CI +0.000 to +0.000), McNemar p=1.000
   - ask: dropped; target gain +0.692, answers change -0.133; target +0.692 (95% CI +0.462 to +0.923), distinguishable from noise; answers_when_answerable -0.133 (95% CI -0.217 to -0.050), McNemar p=0.008
-- **Evidence:** record `E7-20261104T004412525032Z` (n=101); judge gemma4:e4b-it-qat; 356 graded answers. Per variant faithfulness / answers_when_answerable / declines_when_unanswerable / declines_when_ambiguous:
+  - combined: kept; target gain +0.000, answers change -0.000
+- **Evidence:** record `E7-20261104T010519096337Z` (n=101); judge gemma4:e4b-it-qat; 506 graded answers. Per variant faithfulness / answers_when_answerable / declines_when_unanswerable / declines_when_ambiguous:
   - base: 0.722 / 1.000 / 0.000 / 0.000; writer calls 101, rows without a call 0, 367.9 s; graded answers 101
   - faithful: 0.780 / 1.000 / 0.000 / 0.000; writer calls 101, rows without a call 0, 304.1 s; graded answers 101
   - abstain: 0.763 / 1.000 / 0.143 / 0.000; writer calls 101, rows without a call 0, 300.4 s; graded answers 95
   - ask: 0.860 / 0.867 / 0.929 / 0.692; writer calls 101, rows without a call 0, 258.0 s; graded answers 59
+  - combined: 0.816 / 1.000 / 0.429 / 0.000; writer calls 101, rows without a call 0, 229.9 s; graded answers 88
+  - served: 0.799 / 0.800 / 0.929 / 0.385; writer calls 62, rows without a call 39, 240.4 s; graded answers 62
 - **Device:** writer cuda; judge cuda
 - **Would change if:** a second grader (T6.6) disagrees with the local judge on the claims in the blind file.

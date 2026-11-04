@@ -1,0 +1,88 @@
+{
+ "seed": 0,
+ "fit_percent": 50,
+ "fit_rows": {
+  "field_dev": 501,
+  "not_plant_dev": 604
+ },
+ "temperature": 1.3006159097468235,
+ "min_coverage": 0.5,
+ "abstain_threshold": 0.929437,
+ "gates": {
+  "green_rule": {
+   "settings": {
+    "kind": "green_rule",
+    "green_threshold": 0.05
+   },
+   "fit_plant_rejection": 0.0239520958083832,
+   "fit_not_plant_rejection": 0.6688741721854304,
+   "eligible": true
+  },
+  "confidence": {
+   "settings": {
+    "kind": "confidence",
+    "confidence_threshold": 0.34761849293563607
+   },
+   "fit_plant_rejection": 0.04990019960079839,
+   "fit_not_plant_rejection": 0.9668874172185431,
+   "eligible": true
+  },
+  "confidence_ood": {
+   "settings": {
+    "kind": "confidence_ood",
+    "confidence_threshold": 0.15453240806843455,
+    "ood_threshold": 0.5993013217342331
+   },
+   "fit_plant_rejection": 0.0359281437125748,
+   "fit_not_plant_rejection": 0.9900662251655629,
+   "eligible": true
+  }
+ },
+ "gate": {
+  "chosen": "confidence_ood",
+  "settings": {
+   "kind": "confidence_ood",
+   "confidence_threshold": 0.15453240806843455,
+   "ood_threshold": 0.5993013217342331
+  }
+ },
+ "classes": [
+  "Apple___Apple_scab",
+  "Apple___Black_rot",
+  "Apple___Cedar_apple_rust",
+  "Apple___healthy",
+  "Blueberry___healthy",
+  "Cherry_(including_sour)___healthy",
+  "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+  "Corn_(maize)___Common_rust_",
+  "Corn_(maize)___Northern_Leaf_Blight",
+  "Grape___Black_rot",
+  "Grape___healthy",
+  "Orange___Haunglongbing_(Citrus_greening)",
+  "Peach___healthy",
+  "Pepper,_bell___Bacterial_spot",
+  "Pepper,_bell___healthy",
+  "Potato___Early_blight",
+  "Potato___Late_blight",
+  "Raspberry___healthy",
+  "Soybean___healthy",
+  "Squash___Powdery_mildew",
+  "Strawberry___healthy",
+  "Tomato___Bacterial_spot",
+  "Tomato___Early_blight",
+  "Tomato___Late_blight",
+  "Tomato___Leaf_Mold",
+  "Tomato___Septoria_leaf_spot",
+  "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+  "Tomato___Tomato_mosaic_virus",
+  "Tomato___healthy"
+ ],
+ "healthy_threshold": 0.964719,
+ "healthy_suffix": "___healthy",
+ "model": "convnextv2_final",
+ "model_checkpoint": "models/e15/final/best.pt",
+ "model_sha256": "4648483835d49d93b741eab791e2e30107c6bc8fa17066f79c86051016a7c6ad",
+ "e15_record": "E15-20261104T220052184613Z",
+ "healthy_rule": "healthy_threshold = abstain_threshold + (1 - abstain_threshold) / 2: a photo whose top label ends in the suffix must clear this, every other label the abstain threshold. Fixed before any score; the cost is reported, healthy photos are not deleted or reweighted.",
+ "fit_seconds": 53.57315199999721
+}

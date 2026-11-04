@@ -535,13 +535,18 @@
         "{py} -m pytest tests/test_e6.py -q",
         "{py} -m sprout.eval.check_run E6 --min-n 200 --split field_dev"
       ],
-      "status": "pending",
-      "worktree": "<local path>",
+      "status": "done",
       "started_at": "2026-11-04T17:44:55+00:00",
       "verifier": false,
       "reason": "waits for T4.9's chosen model; run ctl unblock when T4.9 lands",
       "attempts": 0,
-      "note": "T4.9 landed at 25c2402; it chose convnextv2_final"
+      "note": "T4.9 landed at 25c2402; it chose convnextv2_final",
+      "verified": {
+        "commit": "016475c67abd7bf185a87820a37c769aa38d8158",
+        "passed": true,
+        "at": "2026-11-04T22:27:14+00:00"
+      },
+      "done_at": "2026-11-04T22:27:16+00:00"
     },
     {
       "id": "T5.2",

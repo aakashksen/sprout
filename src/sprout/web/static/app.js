@@ -148,6 +148,8 @@
     status.textContent = 'Saving...';
     const r = await post(base + '/selection', {label: radio.value});
     status.textContent = r.ok ? 'Saved.' : 'Could not save your selection: ' + r.error;
+    // the healthy caution is drawn by the server, so a change between healthy and not reloads the page
+    if (r.ok && String(radio.value.toLowerCase().includes('healthy') ? 1 : 0) !== root.dataset.healthy) window.location.reload();
   }));
 
   function passageNode(p) {

@@ -11,6 +11,7 @@ from flask import Flask, g, jsonify, render_template, request, session
 from werkzeug.exceptions import HTTPException
 
 from sprout.serve.types import IdentifierProtocol
+from sprout.serve.wording import HEALTHY_CAUTION, is_healthy
 
 from . import analyses, auth, pages
 from .config import Config
@@ -66,7 +67,7 @@ def create_app(
         threading.Thread(target=_warm, args=(app.extensions["sprout_chat"], retriever), daemon=True).start()
 
     app.teardown_appcontext(close_db)
-    app.context_processor(lambda: {"csrf_token": csrf_token})
+    app.context_processor(lambda: {"csrf_token": csrf_token, "healthy_caution": HEALTHY_CAUTION, "is_healthy": is_healthy})
 
     @app.before_request
     def load_user() -> None:

@@ -12,11 +12,12 @@
       <div class="position-relative">
         <img src="{{ url_for('analyses.image', analysis_id=item.id) }}" alt="Your photo" class="history-image">
         {% if item.ident.status == "answered" and item.ident.top %}
-          {% if "healthy" in item.ident.top.label %}<span class="history-badge bg-success text-white">Healthy</span>
+          {% if is_healthy(item.selected or item.ident.top.label) %}<span class="history-badge bg-secondary text-white" title="{{ healthy_caution }}">Looks healthy</span>
           {% else %}<span class="history-badge bg-danger text-white">Problem</span>{% endif %}
         {% else %}<span class="history-badge bg-secondary text-white">{{ item.ident.status|replace("_", " ") }}</span>{% endif %}
       </div>
       <div class="card-body">
+        {% if item.ident.status == "answered" and item.ident.top and is_healthy(item.selected or item.ident.top.label) %}<p class="small text-muted mb-1">{{ healthy_caution }}</p>{% endif %}
         <h5 class="card-title">
           {% if item.ident.top %}model said {{ pretty(item.ident.top.label) }}{% else %}{{ item.ident.status|replace("_", " ") }}{% endif %}
         </h5>

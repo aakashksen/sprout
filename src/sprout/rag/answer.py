@@ -10,6 +10,7 @@ from sprout.llm.client import LLMClient, LLMError
 from sprout.rag import serving
 from sprout.rag.query import build_query, crop_of_label, detect_crop
 from sprout.serve.types import Identification
+from sprout.serve.wording import HEALTHY_CAUTION, is_healthy
 
 GENERAL_CROP = "general"  # the crop name general-guidance documents carry in the index
 PROMPT_DIR = Path(__file__).parent / "prompts"
@@ -128,6 +129,8 @@ def diagnosis_summary(ident: Identification | None) -> str:
     others = "; ".join(f"{_shown(a.label)} ({a.confidence:.0%})" for a in ident.alternatives)
     uncertain = ident.status == "unsure" or ident.top.confidence < CONFIDENT
     text = f"The photo suggests {top}." + (f" Other possibilities: {others}." if others else "")
+    if is_healthy(ident.top.label):
+        text += f" {HEALTHY_CAUTION} Never tell the user the plant is fine or free of disease."
     return text + (" This is uncertain; say it may be this, never that it is." if uncertain else "")
 
 
@@ -239,5 +242,9 @@ def answer(
     if _uncertain(identification):
         top = identification.top
         text = f"This is only a possible match from the photo, not a certain one ({_shown(top.label)}, {top.confidence:.0%}). " + text
-    text = f"{text.replace(LABEL_NOTE, '').replace(LEGACY_LABEL_NOTE, '').strip()}\n\n{LABEL_NOTE}"
+    notes = LABEL_NOTE
+    if identification is not None and identification.top is not None and is_healthy(identification.top.label):
+        notes = f"{HEALTHY_CAUTION} {LABEL_NOTE}"  # said once here, whatever the writer wrote
+        text = text.replace(HEALTHY_CAUTION, "")
+    text = f"{text.replace(LABEL_NOTE, '').replace(LEGACY_LABEL_NOTE, '').strip()}\n\n{notes}"
     return Answer(text, citations, bool(citations), asks, state, found, query, version)

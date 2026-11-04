@@ -241,10 +241,12 @@ def _extra(cfg: dict[str, Any]) -> pd.DataFrame:
     return load_manifest(name if (MANIFEST_DIR / f"{name}.csv").is_file() else "extra_train")
 
 
-def stage_extra(cfg: dict[str, Any], root: Path) -> Path:
+def stage_extra(cfg: dict[str, Any], root: Path, summary: dict[str, Any] | None = None) -> Path:
+    """Build the uncapped manifest and describe it. `summary` is the dict extra_sources.main returned (or printed)
+    for a build that already ran, so a finished build is not repeated."""
     from sprout.data import extra_sources
 
-    summary = extra_sources.main(cap=10**9, out_name=cfg["extra"]["manifest"])
+    summary = summary or extra_sources.main(cap=10**9, out_name=cfg["extra"]["manifest"])
     new = load_manifest(cfg["extra"]["manifest"])
     old = load_manifest("extra_train")
     cut = summary["removed"].get("over the per-class cap", 0)

@@ -1,0 +1,16 @@
+{
+ "checkpoint_sha256": "4648483835d49d93b741eab791e2e30107c6bc8fa17066f79c86051016a7c6ad",
+ "files": {
+  "onnx": {
+   "file": "model.onnx",
+   "size_bytes": 111672308,
+   "sha256": "cba73016bfaa5b6e97142505492dad3853866fa298d07522ddc7ea3ace2d292b"
+  },
+  "onnx_dynamic": {
+   "file": "model.dynamic.onnx",
+   "size_bytes": 28475011,
+   "sha256": "c05e93dfc6b18c2a8c95ce44b6eaaf079d9d840009eddbc1cae5511c02f1798e"
+  }
+ },
+ "calibration": null
+}

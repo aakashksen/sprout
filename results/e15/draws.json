@@ -1,0 +1,75 @@
+{
+ "passes": [
+  {
+   "pass": 1,
+   "real": 4930,
+   "lab": 2030
+  },
+  {
+   "pass": 2,
+   "real": 4930,
+   "lab": 2030
+  },
+  {
+   "pass": 3,
+   "real": 4930,
+   "lab": 2030
+  },
+  {
+   "pass": 4,
+   "real": 4930,
+   "lab": 2030
+  },
+  {
+   "pass": 5,
+   "real": 4930,
+   "lab": 2030
+  },
+  {
+   "pass": 6,
+   "real": 4930,
+   "lab": 2030
+  },
+  {
+   "pass": 7,
+   "real": 4930,
+   "lab": 2030
+  },
+  {
+   "pass": 8,
+   "real": 4930,
+   "lab": 2030
+  },
+  {
+   "pass": 9,
+   "real": 4930,
+   "lab": 2030
+  },
+  {
+   "pass": 10,
+   "real": 4930,
+   "lab": 2030
+  }
+ ],
+ "draws_total": 69600,
+ "different_real_photos_seen": 6342,
+ "different_lab_photos_seen": 12918,
+ "different_photos_seen": 19260,
+ "different_real_by_source": {
+  "plantdoc": 1227,
+  "plantpathology2021": 1281,
+  "plantseg": 820,
+  "plantwild": 2999,
+  "plantwild_v2": 15
+ },
+ "real_pool": 12526,
+ "lab_pool": 30091,
+ "classes": 29,
+ "real_pool_by_source": {
+  "plantdoc": 1227,
+  "plantpathology2021": 7440,
+  "plantseg": 820,
+  "plantwild": 3024,
+  "plantwild_v2": 15
+ }
+}

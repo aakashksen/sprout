@@ -492,11 +492,18 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--note", default="")
     sub.add_parser("decide")
     sub.add_parser("gates", help="with --config configs/e12_gates.json: writes results/e12/gates.json")
+    sub.add_parser("g3", help="with --config configs/e12_gates.json: G3 alone, writes results/e12/g3.json")
     a = ap.parse_args(argv)
     try:
         cfg = load_config(ROOT / a.config)
         if a.stage == "run":
             print(run(cfg, a.run, ROOT, resume=a.resume, num_workers=a.num_workers, note=a.note))
+        elif a.stage == "g3":
+            if "gates" not in cfg:
+                raise ValueError("the g3 stage needs --config configs/e12_gates.json")
+            from sprout.experiments.e12_gates import g3_only
+
+            print(g3_only(cfg, ROOT))
         elif a.stage == "gates":
             if "gates" not in cfg:
                 raise ValueError("the gates stage needs --config configs/e12_gates.json")

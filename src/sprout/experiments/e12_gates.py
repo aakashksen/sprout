@@ -227,6 +227,27 @@ def gate_g3(cfg: dict[str, Any], root: Path, recs: dict, healthy: np.ndarray) ->
     return out
 
 
+def g3_only(cfg: dict[str, Any], root: Path = ROOT) -> Path:
+    """G3 alone, from the first E12 records and the E5 refit, for when G1 and G2 aren't run. It needs no GPU, and it
+    writes its own file with no all_pass, so a single gate can't read as all three."""
+    g = cfg["gates"]
+    recs = _records(cfg, root, [g["g3"]["seen_record"], *g["g3"]["heldout_records"]])
+    healthy = healthy_flags(recs[g["g3"]["seen_record"]][1]["config"]["class_names"], g["healthy_suffix"])
+    if not healthy.any() or healthy.all():
+        raise RuntimeError("the class names hold no healthy/sick split")
+    result = {
+        "experiment": cfg["experiment"], "computed_at": datetime.now(timezone.utc).isoformat(), "git_commit": head_commit(root),
+        "config": "configs/e12_gates.json", "records": {n: r["run_id"] for n, (_, r) in recs.items()},
+        "g3": gate_g3(cfg, root, recs, healthy), "g1_g2": "not run",
+        "field_test_read": False,
+        "label": "development numbers, field_dev only; web photos, not phone photos",
+    }
+    path = root / Path(g["gates_file"]).with_name("g3.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    atomic_write_text(path, json.dumps(result, indent=1) + "\n")
+    return path
+
+
 def gates(cfg: dict[str, Any], root: Path = ROOT) -> Path:
     g = cfg["gates"]
     first = ["convnext_joint_extra", *g["g3"]["heldout_records"]]

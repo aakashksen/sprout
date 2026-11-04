@@ -332,6 +332,11 @@ def test_second_seed_runs_pair_by_seed_on_the_same_photos_and_the_gates_stage_wr
     assert got["all_pass"] == (got["g1"]["pass"] and got["g2"]["pass"] and got["g3"]["pass"])
     assert not [p for p in opened if "field_test" in p or "lab_test" in p]
 
+    # G3 alone gives the same answer, in its own file, with nothing that could read as all three gates passing
+    alone = _record(g.g3_only(gcfg, repo))
+    assert alone["g3"] == got["g3"] and alone["g1_g2"] == "not run"
+    assert "all_pass" not in alone and "g1" not in alone and "g2" not in alone
+
     # the stage refuses wrong inputs: weights the refit was not fitted for, a pair on different seeds, a tampered record
     chosen = repo / "results/e12/e5_refit/chosen.json"
     good = chosen.read_text()

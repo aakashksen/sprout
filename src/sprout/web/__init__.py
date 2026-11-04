@@ -51,6 +51,7 @@ def create_app(
         RATE_LIMITS=cfg.RATE_LIMITS,
         API_TIMEOUT_SECONDS=cfg.API_TIMEOUT_SECONDS,
         CHAT_TIMEOUT_SECONDS=cfg.CHAT_TIMEOUT_SECONDS,
+        MEASUREMENT=cfg.MEASUREMENT,
     )
     init_db(cfg.db_path)
     cfg.upload_dir.mkdir(parents=True, exist_ok=True)

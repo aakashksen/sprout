@@ -56,5 +56,6 @@ def readyz():
     # The writer's last known state is reported but never makes the app unready: the platform would restart a
     # container for an outage it cannot fix, and chat already says "unavailable" to the user.
     body = {"ready": not problems, "problems": problems, "chat": current_app.extensions["sprout_chat"]["state"],
-            "writer": current_app.extensions["sprout_writer_state"]["state"]}
+            "writer": current_app.extensions["sprout_writer_state"]["state"],
+            "measurement": current_app.config["MEASUREMENT"]}
     return jsonify(body), (200 if not problems else 503)

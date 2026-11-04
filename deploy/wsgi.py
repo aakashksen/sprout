@@ -42,17 +42,30 @@ def _writer(env: dict[str, str]):
     return OllamaClient(env.get("SPROUT_WRITER_MODEL", DEFAULT_WRITER), base_url=url, keep_alive="30m")
 
 
-def build(env: dict[str, str]):
+def build(env: dict[str, str], *, retriever=None, writer=None):
+    """`retriever` and `writer` replace the ones built from the environment (tests only)."""
     cfg = Config.from_env(env)
-    retriever = None
     index = env.get("SPROUT_INDEX_DIR", "")
-    if index and (Path(index) / "chunks.jsonl").exists():
+    if retriever is None and index and (Path(index) / "chunks.jsonl").exists():
         from sprout.rag import serving
         from sprout.rag.retrieve import Retriever
 
         retriever = Retriever(Path(index), config=serving.retrieval_config())
     # The writer is always built; an unreachable Ollama shows up as "unavailable" in chat, never as an answer.
-    return create_app(cfg, identifier=_identifier(env, cfg), retriever=retriever, writer=_writer(env))
+    writer = writer or _writer(env)
+    identifier = _identifier(env, cfg)
+    timers = None
+    if cfg.MEASUREMENT:  # E8 only: wrap the real objects so the routes can report stage times
+        from sprout.serve import timing
+
+        timers = timing.StageTimers()
+        identifier = timing.instrument_identifier(identifier, timers) if identifier is not None else None
+        retriever = timing.TimedRetriever(retriever, timers) if retriever is not None else None
+        writer = timing.TimedLLM(writer, timers)
+    app = create_app(cfg, identifier=identifier, retriever=retriever, writer=writer)
+    if timers is not None:
+        timing.install(app, timers)
+    return app
 
 
 app = build(dict(os.environ)) if os.environ.get("SPROUT_NO_AUTOBUILD") != "1" else None

@@ -759,3 +759,34 @@ These are workflow changes with no plan task of their own, filed under T0.1.
 - **Considered:** loosening the rule for apple, which would be tuning on the new data after seeing it and would risk leaked evaluation photos; the task says to report this cost.
 - **Evidence:** a seeded sample of 400 rows: 36.8% flagged, best inlier count 28 (the 30-inlier clause never fired), and the 12 highest-cosine flagged pairs viewed were all different leaves.
 - **Would change if:** a pair-specific check (inliers, not class-token cosine) were wanted for apple; that would be a new task.
+
+### T5.1 - Torch-free preprocessing and runtime (prepared 2026-11-03, before E12's model is chosen)
+- **Chose:** `sprout.preprocess_np.preprocess_array` does the resize, divide by 255 and normalize in float32 with numpy; `sprout.preprocess.preprocess` wraps it with `torch.from_numpy`. `OnnxModel` and `quantize` in `sprout.serve.export` import no torch (a test runs both in a fresh process and checks `torch` is not loaded); only the export functions import it, inside the function.
+- **Considered:** a second copy of the preprocessing for serving, which could drift from evaluation. Rejected: T5.2 must use the same preprocessing exactly.
+- **Evidence:** `test_numpy_preprocess_is_identical_to_the_torch_one` (bit-identical, RGB, RGBA and grey inputs); `test_running_and_quantizing_a_model_loads_no_torch`; `tests/test_no_torch_imports.py`.
+- **Would change if:** a measured difference between the two paths, which the identity test would catch.
+
+### T5.1 - Class map and preprocessing travel inside the model file (prepared 2026-11-03)
+- **Chose:** `export_onnx` writes the class map, preprocessing settings and model name into the ONNX metadata; `quantize` copies them to the quantized file; `OnnxModel` refuses a file without a class map and exposes `class_map` and `class_names`.
+- **Considered:** a side file next to the model. Rejected: a model file and its class order can then be separated.
+- **Evidence:** `test_class_map_travels_with_the_model` (plain, dynamic and static files).
+- **Would change if:** the serving image needs a different container for the class order.
+
+### T5.1 - Legacy TorchScript exporter (prepared 2026-11-03)
+- **Chose:** `torch.onnx.export(..., dynamo=False)` at opset 17 with an open batch axis.
+- **Considered:** torch's newer default exporter. Not used because it needs another package (`onnxscript`) and the legacy one exports the models here and matches torch in the tests. It prints a deprecation warning.
+- **Would change if:** a future torch removes the legacy exporter, or a DINOv2 model will not export with it.
+
+### T5.1 - Calibration photos come from the plan's `lab_dev`, never `field_dev` or a test split (prepared 2026-11-03)
+- **Chose:** `configs/e6.json` sets calibration to 100 seeded `lab_dev` photos, as the plan says. The code accepts only `lab_dev`, `lab_train` or `field_train`; `field_dev` is refused because E6 scores it, and test splits because they stay unseen.
+- **Open concern:** lab photos look unlike phone photos, so static quantization ranges set on them may fit real photos worse. `field_train` is the safer calibration set (real photos, never scored). Changing it is one config line and is the person's or coordinator's call: the plan names `lab_dev`.
+- **Would change if:** static quantization on cleaned `field_dev` scores differently with `field_train` calibration than with `lab_dev`.
+
+### T5.1 - Latency is its own stage, and the reference model runs on the CPU unless config says otherwise (prepared 2026-11-03)
+- **Chose:** four stages, `export`, `probs`, `latency`, `record`. `latency` times one photo at a time on the CPU for PyTorch and each ONNX file, threads fixed by config, and saves the CPU name and thread count; it is meant to be run alone. `probs` runs ONNX on the CPU and PyTorch on `torch_device` (default `cpu`) and saves the device used. `export` and `probs` resume after a crash and discard outputs when the checkpoint's checksum changes.
+- **Considered:** timing inside the scoring stage. Rejected: scoring may use the GPU or share the machine, and a deployment latency number must be measured where it will run, with nothing else running.
+- **Would change if:** the person wants latency under load; that is E8.
+
+### T5.1 - Crop condition read from config (prepared 2026-11-03)
+- **Chose:** `crop_kept` in `configs/e6.json` is false because E4 kept no crop (T4.1, "Crop kept out of serving"). The record states that no segmentation model was exported or timed. If it is set true the stages refuse, since the combined export and timing path is not built.
+- **Would change if:** a later task keeps a crop.

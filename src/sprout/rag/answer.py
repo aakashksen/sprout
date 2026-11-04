@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from sprout.llm.client import LLMClient, LLMError
+from sprout.rag import serving
 from sprout.rag.query import build_query, crop_of_label
 from sprout.serve.types import Identification
 
@@ -62,11 +63,11 @@ class Answer:
 
 @dataclass(frozen=True)
 class AnswerConfig:
-    prompt_version: str = "base"
-    mode: str = "hybrid"
-    rerank: bool = True
-    k: int = 5
-    query_mode: str = "question"
+    prompt_version: str = serving.PROMPT_VERSION
+    mode: str = serving.MODE
+    rerank: bool = serving.RERANK
+    k: int = serving.K
+    query_mode: str = serving.QUERY_MODE
     history_turns: int = 4
     history_chars: int = 500
     max_tokens: int = 400

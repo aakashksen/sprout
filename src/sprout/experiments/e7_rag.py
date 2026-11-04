@@ -382,7 +382,8 @@ def choose_prompt(values: dict[str, dict[str, float | None]]) -> tuple[str, list
     targets = dict(ADDITIONS)
     drop = (base.get("answers_when_answerable") or 0.0) - (comb.get("answers_when_answerable") or 0.0)
     holds = drop <= MAX_ANSWER_DROP and all((comb.get(targets[a]) or 0.0) > (base.get(targets[a]) or 0.0) for a in names)
-    decisions.append({"addition": "combined", "kept": holds, "answer_drop": drop})
+    gains = {a: (comb.get(targets[a]) or 0.0) - (base.get(targets[a]) or 0.0) for a in names}
+    decisions.append({"addition": "combined", "kept": holds, "answer_drop": drop, "target_gains": gains})
     best = max(kept, key=lambda x: x[1])[0]
     return ("+".join(["base", *names]) if holds else f"base+{best}"), decisions, False
 
@@ -591,10 +592,16 @@ def run_judging(
 
 
 def write_judgments(stem: Path, judged: list[dict]) -> tuple[Path, Path]:
-    """The full file (with verdicts) and the blind file (without) that another grader is given."""
-    full, blind = Path(f"{stem}.judgments.jsonl"), Path(f"{stem}.blind.jsonl")
-    atomic_write_text(full, "".join(json.dumps(r) + "\n" for r in judged))
-    atomic_write_text(blind, "".join(json.dumps(blind_view(r)) + "\n" for r in judged))
+    """The full file (with verdicts) and the blind file (without) that another grader is given. The names carry a hash
+    of the content, so a rerun with other content makes new files and never changes one that is already committed;
+    the same content gives the same names and is not rewritten."""
+    full_text = "".join(json.dumps(r) + "\n" for r in judged)
+    tag = hashlib.sha1(full_text.encode()).hexdigest()[:8]
+    full, blind = Path(f"{stem}-{tag}.judgments.jsonl"), Path(f"{stem}-{tag}.blind.jsonl")
+    if not full.is_file():
+        atomic_write_text(full, full_text)
+    if not blind.is_file():
+        atomic_write_text(blind, "".join(json.dumps(blind_view(r)) + "\n" for r in judged))
     return full, blind
 
 

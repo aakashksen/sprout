@@ -530,17 +530,16 @@ def cmd_prompts_record(_args) -> None:
               "caches": {v: cache_tag(v) for v in variants},
               "answer_config": {k: v for k, v in asdict(answer_config(chosen, "base")).items() if k != "sources"},
               **device_config()}
-    stem = ROOT / "results" / "runs" / f"E7-prompts-v2-{date.today():%Y%m%d}"
-    e7.write_judgments(stem, [r for v in variants for r in graded[v]])
-    config["judgments_file"], config["blind_file"] = f"{stem.name}.judgments.jsonl", f"{stem.name}.blind.jsonl"
+    full, blind = e7.write_judgments(ROOT / "results" / "runs" / "E7-prompts-v2", [r for v in variants for r in graded[v]])
+    config["judgments_file"], config["blind_file"] = full.name, blind.name
     path = e7.write_generation_record("prompts", None, rows, graded, {"writer": WRITER, "judge": JUDGE}, config, ROOT)
     record = json.loads(path.read_text(encoding="utf-8"))
     version, decisions, needs_combined = e7.choose_prompt({v: values(record, v) for v in variants if v != "served"})
     intervals = e7.prompt_intervals(questions, rows, graded)
     if needs_combined:
         chosen.combined = version
-    elif "served" not in variants:
-        chosen.prompt = version
+    else:
+        chosen.prompt = version  # `served` is keyed by this, so a served run made with another prompt is no longer found
     chosen.decisions.append({"stage": "prompts", "record": path.stem, "prompt": version, "decisions": decisions, "intervals": intervals})
     chosen.save(CHOSEN)
     total = sum(len(g) for g in graded.values())
@@ -549,7 +548,9 @@ def cmd_prompts_record(_args) -> None:
              "- **Considered, direction rule (kept when the target rises and answers_when_answerable falls by at most 0.05), with intervals:**"]
     for d in decisions:
         iv = intervals.get(d["addition"])
-        text = f"  - {d['addition']}: {'kept' if d['kept'] else 'dropped'}; target gain {d.get('gain', 0):+.3f}, answers change {-d['answer_drop']:+.3f}"
+        gain_text = (f"target gains over base {', '.join(f'{a} {g:+.3f}' for a, g in d['target_gains'].items())}"
+                     if "target_gains" in d else f"target gain {d['gain']:+.3f}")
+        text = f"  - {d['addition']}: {'kept' if d['kept'] else 'dropped'}; {gain_text}, answers change {-d['answer_drop']:+.3f}"
         if iv:
             text += (f"; target {ci_text(iv['target'])}, {'distinguishable from noise' if iv['distinguishable'] else 'NOT distinguishable from noise'}"
                      f"; answers_when_answerable {ci_text(iv['answers'])}, McNemar p={iv['answers']['mcnemar_p']:.3f}")
@@ -571,7 +572,7 @@ def cmd_prompts_record(_args) -> None:
         sys.exit(EXIT_TOO_FEW_GRADED)
 
 
-def cmd_claude(_args) -> None:
+def cmd_claude(args) -> None:
     require_clean()
     chosen = e7.Chosen.load(CHOSEN)
     if not present(chosen, "served"):
@@ -579,7 +580,6 @@ def cmd_claude(_args) -> None:
     questions = e7.dev_questions(ROOT)[:100]
     retriever, single = answer_retriever(chosen, "answers-floor")
     claude = ClaudeCodeClient(model="sonnet", counter_path=main_folder() / "results" / "claude_calls.json")
-    before = claude.calls_made()
     key = e7.checkpoint_key("claude", variant_version(chosen, "served"), cache_file(chosen, "answers-floor").name)
     rows, missing = e7.run_generation("claude_sonnet", questions, retriever, claude, answer_config(chosen, chosen.prompt),
                                       WORK / "generate", single, ROOT, key=key)
@@ -588,20 +588,28 @@ def cmd_claude(_args) -> None:
         sys.exit(EXIT_INCOMPLETE)
     qa = {q.id: q for q in questions}
     local = [r for r in generated(chosen, "served") if r["id"] in qa]
-    judge = OllamaClient(JUDGE, keep_alive="10m")
+    jkey = e7.checkpoint_key(key, JUDGE, rubric())
+    done = e7.Checkpoint(WORK / "judge" / f"judge-claude_sonnet-{jkey}.jsonl").rows
     try:
-        with ollama_stage(judge, "judge"):
-            claude_graded = e7.run_judging("claude_sonnet", rows, qa, judge, WORK / "judge", key=e7.checkpoint_key(key, JUDGE, rubric()))
-            local_graded = [r for r in judged(chosen, "served", generated(chosen, "served")) if r["id"] in qa]
+        if all(r["id"] in done for r in rows):  # everything is judged already: no model is loaded
+            claude_graded = [done[r["id"]] for r in rows if done[r["id"]]["claims"]]
+        else:
+            judge = OllamaClient(JUDGE, keep_alive="10m")
+            with ollama_stage(judge, "judge"):
+                claude_graded = e7.run_judging("claude_sonnet", rows, qa, judge, WORK / "judge", key=jkey)
     except LLMError as exc:
         print(f"The judge failed: {exc}. Run again to resume.")
         sys.exit(EXIT_INCOMPLETE)
+    local_graded = [r for r in judged(chosen, "served", generated(chosen, "served")) if r["id"] in qa]
     name = f"local_{chosen.prompt.replace('+', '_')}"
-    stem = ROOT / "results" / "runs" / f"E7-claude-v2-{date.today():%Y%m%d}"
-    e7.write_judgments(stem, [*local_graded, *claude_graded])
+    full, blind = e7.write_judgments(ROOT / "results" / "runs" / "E7-claude-v2", [*local_graded, *claude_graded])
+    # counted from the saved rows, so a stage that was stopped and resumed still reports every call it made
+    claude_calls = sum(r["llm_calls"] for r in rows)
     config = {"writer": WRITER, "claude_writer": "sonnet", "judge": {"model": JUDGE}, "prompt": chosen.prompt,
-              "retrieval": chosen.retrieval, "floors": chosen.floors, "claude_calls": claude.calls_made() - before,
-              "judgments_file": f"{stem.name}.judgments.jsonl", "blind_file": f"{stem.name}.blind.jsonl", **device_config()}
+              "retrieval": chosen.retrieval, "floors": chosen.floors, "claude_calls": claude_calls,
+              "judgments_file": full.name, "blind_file": blind.name, **device_config()}
+    if args.supersedes:
+        config["supersedes"] = args.supersedes
     path = e7.write_generation_record("claude", "first_100", {name: local, "claude_sonnet": rows},
                                       {name: local_graded, "claude_sonnet": claude_graded},
                                       {"writer": WRITER, "claude_writer": "sonnet", "judge": JUDGE}, config, ROOT)
@@ -609,7 +617,7 @@ def cmd_claude(_args) -> None:
     lines = [f"### T6.4 - Claude (Sonnet) against the local writer on 100 dev questions (method v2, {date.today()})",
              "- **Chose:** reported as a comparison only; the local writer stays the shipped default.",
              f"- **Evidence:** record `{path.stem}`, judged by {JUDGE} (never Claude), {config['claude_calls']} Claude calls, "
-             "both served with the chosen floors. " + "; ".join(
+             f"prompt `{chosen.prompt}` with the chosen floors for both writers. " + "; ".join(
                  f"{n}: faithfulness {fmt(values(record, n)['faithfulness'])}, answers {fmt(values(record, n)['answers_when_answerable'])}, "
                  f"declines {fmt(values(record, n)['declines_when_unanswerable'])}" for n in record["metrics"]),
              f"- **Device:** {record['config']['device']} (Claude runs remotely)",
@@ -639,6 +647,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("stage", choices=sorted(COMMANDS))
     ap.add_argument("--variants", nargs="+", default=list(PROMPT_VARIANTS), choices=ALL_VARIANTS,
                     help="generate and judge: prompt variants")
+    ap.add_argument("--supersedes", help="claude: id of an earlier record this one corrects (kept untouched, named in config)")
     args = ap.parse_args(argv)
     try:
         COMMANDS[args.stage](args)

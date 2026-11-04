@@ -367,3 +367,15 @@ def test_search_latency_is_timed_per_search_and_per_reranker_call_and_records_ch
                                         measurements={"search_ms_a": search_ms, "rerank_ms_a": rerank_ms})
     assert check_file(path, root) == []
     assert "rerank_ms_a_p50" in json.loads(path.read_text())["measurements"]["values"]
+
+
+def test_the_combined_decision_carries_the_gains_it_was_judged_on():
+    def vals(f, u, ans):
+        return {"faithfulness": f, "declines_when_unanswerable": u, "declines_when_ambiguous": 0.0, "answers_when_answerable": ans}
+
+    v = {"base": vals(0.72, 0.0, 1.0), "faithful": vals(0.78, 0.0, 1.0), "abstain": vals(0.76, 0.14, 1.0),
+         "combined": vals(0.816, 0.43, 1.0)}
+    version, decisions, _ = e7.choose_prompt(v)
+    combined = decisions[-1]
+    assert version == "base+faithful+abstain" and combined["addition"] == "combined" and combined["kept"]
+    assert round(combined["target_gains"]["faithful"], 3) == 0.096 and round(combined["target_gains"]["abstain"], 2) == 0.43

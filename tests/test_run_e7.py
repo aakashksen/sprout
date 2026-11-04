@@ -138,3 +138,87 @@ def test_a_model_partly_on_the_cpu_is_recorded_as_such_and_one_wholly_on_the_cpu
     with pytest.raises(RuntimeError, match="not on the GPU"), tool.ollama_stage(cpu_only, "writer"):
         pass
     assert cpu_only.unloaded
+
+
+def writer_reply(messages):
+    return "NO_SUPPORT" if "magnolia" in messages[-1]["content"] else "Rings appear on potato leaves [1]."
+
+
+def prepare(tool_env, monkeypatch, variants, clients=None):
+    """Baseline, floors and cached passages done and committed; the given variants generated and judged."""
+    clients = {} if clients is None else clients
+
+    def make(model, **kw):
+        llm = Ollama(reply=writer_reply if model == tool.WRITER else judge_reply, model=model)
+        clients.setdefault(model, []).append(llm)
+        return llm
+
+    monkeypatch.setattr(tool, "OllamaClient", make)
+    if not tool.CHOSEN.is_file():
+        tool.cmd_baseline(None)
+        commit_all(tool_env)
+        tool.cmd_floors(None)
+        commit_all(tool_env)
+        tool.cmd_retrieve_answers(None)
+    args = type("A", (), {"variants": variants})()
+    tool.cmd_generate(args)
+    tool.cmd_judge(args)
+    commit_all(tool_env)
+    return clients
+
+
+class Sonnet(FakeLLM):
+    made = 0
+
+    def complete(self, messages, *, max_tokens, timeout_s):
+        type(self).made += 1
+        return super().complete(messages, max_tokens=max_tokens, timeout_s=timeout_s)
+
+
+def test_claude_calls_are_counted_from_saved_rows_when_the_stage_is_resumed(tool_env, monkeypatch):
+    prepare(tool_env, monkeypatch, ["served"])
+    Sonnet.made = 0
+    monkeypatch.setattr(tool, "ClaudeCodeClient", lambda model, counter_path: Sonnet(reply=writer_reply, model=model))
+    real_stage = tool.ollama_stage
+
+    def busy(*a, **k):
+        raise RuntimeError("taskctl gpu-acquire T6.4 failed (exit 1)")  # the GPU is busy after the answers are written
+
+    monkeypatch.setattr(tool, "ollama_stage", busy)
+    with pytest.raises(RuntimeError, match="gpu-acquire"):
+        tool.cmd_claude(type("A", (), {"supersedes": None})())
+    first_run_calls = Sonnet.made
+    assert first_run_calls > 0
+    monkeypatch.setattr(tool, "ollama_stage", real_stage)
+    commit_all(tool_env)
+    tool.cmd_claude(type("A", (), {"supersedes": "E7-earlier"})())  # resumes: Claude answers are all saved already
+    assert Sonnet.made == first_run_calls  # no new calls on the resume
+    runs = tool_env / "results" / "runs"
+    records = [json.loads(p.read_text()) for p in runs.glob("E7-*.json") if "claude_writer" in p.read_text()]
+    assert len(records) == 1 and records[0]["claude_calls"] == first_run_calls == records[0]["config"]["claude_calls"]
+    assert records[0]["config"]["supersedes"] == "E7-earlier"
+    assert check_file(next(p for p in runs.glob("E7-*.json") if "claude_writer" in p.read_text()), tool_env) == []
+
+
+def test_prompts_record_checks_the_tree_before_writing_and_never_rewrites_a_committed_file(tool_env, monkeypatch):
+    prepare(tool_env, monkeypatch, ["base", "faithful"])
+    runs = tool_env / "results" / "runs"
+    (tool_env / "stray.txt").write_text("x")
+    with pytest.raises(SystemExit, match="uncommitted"):
+        tool.cmd_prompts_record(None)
+    assert not list(runs.glob("E7-prompts-v2-*"))  # nothing was written before the check
+    (tool_env / "stray.txt").unlink()
+    with pytest.raises(SystemExit):  # too few graded answers, but the record and files are written
+        tool.cmd_prompts_record(None)
+    first = {p.name: p.read_bytes() for p in runs.glob("E7-prompts-v2-*")}
+    assert len(first) == 2
+    commit_all(tool_env)
+    args = type("A", (), {"variants": ["abstain"]})()
+    tool.cmd_generate(args)
+    tool.cmd_judge(args)
+    commit_all(tool_env)
+    with pytest.raises(SystemExit):
+        tool.cmd_prompts_record(None)  # a second run must not trip over its own files
+    after = {p.name: p.read_bytes() for p in runs.glob("E7-prompts-v2-*")}
+    assert all(after[name] == data for name, data in first.items())  # committed files are untouched
+    assert len(after) == 4  # the new variant set got files of its own

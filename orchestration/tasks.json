@@ -653,7 +653,9 @@
         "{py} -m pytest tests/test_e14.py -q",
         "{py} -m sprout.eval.check_run E14 --min-n 200 --split rag_dev"
       ],
-      "status": "pending"
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-04T07:56:37+00:00"
     },
     {
       "id": "T7.1",

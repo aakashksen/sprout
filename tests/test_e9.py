@@ -98,6 +98,9 @@ def repo(tmp_path):
                                                     "systems": {"pytorch": {"n": 10, "coverage": 0.6, "abstained": 0.4, "confident_error_rate": 0.1},
                                                                 "onnx_dynamic": {"n": 10, "coverage": 0.5, "abstained": 0.5,
                                                                                  "confident_error_rate": 0.2}}}}})
+    e6 = json.loads((r / "results/runs/E6-1.json").read_text())
+    e6["run_id"], e6["config"]["checkpoint_sha256"] = "E6-2", SHA12  # E6 on the other candidate, for the swapped roles
+    write(r, "results/runs/E6-2.json", e6)
     from PIL import Image
 
     for line in (*LAB[1:], *FIELD[1:]):  # tiny photos; every fifth by number carries an EXIF orientation tag

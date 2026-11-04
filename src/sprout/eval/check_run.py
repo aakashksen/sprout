@@ -827,6 +827,34 @@ def _e9_roles_problems(rec: dict[str, Any], root: Path) -> list[str]:
     return out
 
 
+def _e9_exif_problems(rec: dict[str, Any], root: Path) -> list[str]:
+    """config.exif is counted again from the scored photos' headers."""
+    files = [root / r["path"] for r in _read_rows(root / rec["predictions"]["baseline"])]
+    try:
+        fresh = answer_checks.exif_counts(files)
+    except OSError:
+        return ["config.exif cannot be recomputed: some scored photos are not on disk"]
+    return [] if rec["config"].get("exif") == fresh else ["config.exif does not recompute from the photos' headers"]
+
+
+def _e9_thresholds_problems(rec: dict[str, Any], root: Path) -> list[str]:
+    """config.quantized_thresholds is E6's own account, read again from the E6 record it names."""
+    cfg = rec["config"]
+    saved = cfg.get("quantized_thresholds")
+    path = root / RUNS_REL / f"{saved.get('e6_record')}.json" if isinstance(saved, dict) else None
+    if path is None or not path.is_file():
+        return ["config.quantized_thresholds must name an E6 record that exists"]
+    e6 = json.loads(path.read_text(encoding="utf-8"))
+    held = (e6.get("config") or {}).get("e5_thresholds") or {}
+    row = (held.get("systems") or {}).get(saved.get("variant"))
+    if e6.get("experiment") != "E6" or e6["config"].get("checkpoint_sha256") != cfg.get("chosen_model_sha256") or row is None:
+        return ["config.quantized_thresholds: the named record is not an E6 record of the chosen checkpoint for this variant"]
+    want = {"e6_record": e6["run_id"], "variant": saved["variant"], "e6_split": e6["split"], "file": held["file"],
+            "temperature": held["temperature"], "abstain_threshold": held["abstain_threshold"],
+            "names_this_checkpoint": held["names_this_checkpoint"], "on_e6_rows": row}
+    return [] if saved == want else ["config.quantized_thresholds does not match the E6 record it names"]
+
+
 def _e9_image_problems(rec: dict[str, Any], root: Path, info: SplitInfo, positions: list[int]) -> list[str]:
     """E9 lab_test and field_test: the cleaned-row counts recompute from the exclusion log, and each calibrated system is its plain system's saved probabilities at E5's temperature,
     with E5's threshold in its metric names."""
@@ -842,6 +870,7 @@ def _e9_image_problems(rec: dict[str, Any], root: Path, info: SplitInfo, positio
         elif saved != answer_checks.cleaned_rows(read_log(root / "datasets" / "label_exclusions.csv"), version, info.ids,
                                                  [info.ids[i] for i in positions]):
             problems.append("config.cleaned_rows does not recompute from the exclusion log")
+    problems += _e9_exif_problems(rec, root) + _e9_thresholds_problems(rec, root)
     cal = cfg.get("calibration")
     bound = cfg.get("calibration_binding")
     for system in ("improved", "alternate", "quantized") if git(root, "cat-file", "-e", f"{rec['git_commit']}:configs/e9.json").returncode == 0 else ():

@@ -9,7 +9,7 @@
     "checkpoint": "models/e15/final/best.pt",
     "note": "The model T4.9 chose (results/e15/decision.json), a timm ConvNeXt V2 tiny on 29 classes. Everything under results/e6 and models/e6 is rebuilt when the checkpoint's checksum changes."
   },
-  "quantize": ["dynamic"],
+  "quantize": ["dynamic", "static"],
   "crop_kept": false,
   "crop_note": "E4 kept no crop (docs/DECISIONS.md, T4.1 'Crop kept out of serving'), so the segmentation model is not exported or timed. If this becomes true the stages refuse: that path is not built.",
   "torch_device": "cpu",

@@ -428,9 +428,9 @@
       "worktree": "<local path>",
       "started_at": "2026-11-03T16:45:43+00:00",
       "verified": {
-        "commit": "ffca1d892d43edc8ee4210c9dddeb5cb2617268c",
+        "commit": "d1b6c9b036fa270e5057782296e52855b752afef",
         "passed": true,
-        "at": "2026-11-03T20:23:06+00:00"
+        "at": "2026-11-04T01:27:35+00:00"
       },
       "attempts": 2,
       "reason": "at least 7 kept extras are cropped or zoomed copies of field_dev or field_test photos; the full-frame check cannot see crops"

@@ -1,0 +1,95 @@
+{
+ "experiment": "E12",
+ "computed_at": "2026-11-04T17:41:23.215263+00:00",
+ "git_commit": "21df9696759b4d80308bbc32ba48b5cd8cd7d4d4",
+ "config": "configs/e12_gates.json",
+ "records": {
+  "convnext_joint_extra": "E12-20261104T101951153850Z",
+  "heldout_plantdoc_extra": "E12-20261104T103235489613Z",
+  "heldout_plantseg_extra": "E12-20261104T104854427501Z"
+ },
+ "g3": {
+  "pass": false,
+  "e4_confident": 0,
+  "e12_confident": 2,
+  "tie": false,
+  "e4_count_too_low_to_mean_much": true,
+  "rows": 1028,
+  "e5": {
+   "e4": {
+    "temperature": 1.1926994533819275,
+    "abstain_threshold": 0.885377
+   },
+   "e12": {
+    "temperature": 1.3337098060458428,
+    "abstain_threshold": 0.877154,
+    "model_sha256": "96d3001dd40382a5714f0aaf241c4dea28421fa0ae815026e933fe727df8b8e0"
+   }
+  },
+  "unthresholded": {
+   "seen": {
+    "e4": {
+     "n": 1028,
+     "sick_rows": 822,
+     "sick_called_healthy": 8,
+     "sick_called_healthy_rate": 0.009732360097323601,
+     "healthy_rows": 206,
+     "healthy_called_sick": 6,
+     "healthy_called_sick_rate": 0.02912621359223301
+    },
+    "e12": {
+     "n": 1028,
+     "sick_rows": 822,
+     "sick_called_healthy": 27,
+     "sick_called_healthy_rate": 0.032846715328467155,
+     "healthy_rows": 206,
+     "healthy_called_sick": 5,
+     "healthy_called_sick_rate": 0.024271844660194174
+    }
+   },
+   "plantdoc": {
+    "e4": {
+     "n": 610,
+     "sick_rows": 404,
+     "sick_called_healthy": 0,
+     "sick_called_healthy_rate": 0.0,
+     "healthy_rows": 206,
+     "healthy_called_sick": 169,
+     "healthy_called_sick_rate": 0.8203883495145631
+    },
+    "e12": {
+     "n": 610,
+     "sick_rows": 404,
+     "sick_called_healthy": 11,
+     "sick_called_healthy_rate": 0.027227722772277228,
+     "healthy_rows": 206,
+     "healthy_called_sick": 9,
+     "healthy_called_sick_rate": 0.043689320388349516
+    }
+   },
+   "plantseg": {
+    "e4": {
+     "n": 418,
+     "sick_rows": 418,
+     "sick_called_healthy": 79,
+     "sick_called_healthy_rate": 0.18899521531100477,
+     "healthy_rows": 0,
+     "healthy_called_sick": 0,
+     "healthy_called_sick_rate": null
+    },
+    "e12": {
+     "n": 418,
+     "sick_rows": 418,
+     "sick_called_healthy": 14,
+     "sick_called_healthy_rate": 0.03349282296650718,
+     "healthy_rows": 0,
+     "healthy_called_sick": 0,
+     "healthy_called_sick_rate": null
+    }
+   }
+  }
+ },
+ "g1_g2": "not run",
+ "field_test_read": false,
+ "label": "development numbers, field_dev only; web photos, not phone photos"
+}

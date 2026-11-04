@@ -1,7 +1,8 @@
-"""Extra real-photo training sources (PlantWild), mapped, deduplicated and capped."""
+"""Extra real-photo training sources (PlantWild, Plant Pathology 2021), mapped, deduplicated and capped."""
 
 import contextlib
 import json
+import re
 import zipfile
 from collections import Counter
 from pathlib import Path
@@ -43,6 +44,20 @@ FIELD_PRIORITY = ("field_test", "field_dev", "field_train")
 # Extras are plentiful and a leaked copy is costly, so any hash-close pair at or above this score goes too.
 GUARD_SCORE = 0.75
 UNMAPPED_REASON = "no lab class for this plant or disease"
+# Sources from T4.5. A later source never displaces their rows: it loses duplicate groups and
+# gets only the room the per-class cap leaves.
+ESTABLISHED_SOURCES = ("plantwild", "plantwild_v2")
+PP_SOURCE = "plantpathology2021"
+# Plant Pathology 2021 is multi-label. Only rows with exactly one label that maps are used.
+# "rust" to cedar apple rust is an inference from the name (the mirror says only "rust").
+PP_MAP = {
+    "scab": "Apple___Apple_scab",
+    "healthy": "Apple___healthy",
+    "rust": "Apple___Cedar_apple_rust",
+}
+PP_UNMAPPED_REASON = "no lab class for this apple disease"
+PP_MULTI_REASON = "multi-label photo: no single lab class"
+_PP_SAFE_ID = re.compile(r"^[A-Za-z0-9_-]+(\.[A-Za-z]+)?$")
 
 # PlantWild class (v1 and v2 use the same names) to lab class. Healthy-leaf classes exist in v1 only.
 # "bell pepper leaf spot" follows the PlantDoc mapping, which files it under Bacterial_spot.
@@ -108,13 +123,66 @@ def safe_extract(archive: Path, dest: Path) -> int:
     return n
 
 
+def _map_row(source: str, cls: str) -> tuple[str, str]:
+    """(lab class, reason) for one source class; the reason is empty when it maps."""
+    if source == PP_SOURCE:
+        if cls in PP_MAP:
+            return PP_MAP[cls], ""
+        return "", PP_MULTI_REASON if "+" in cls else PP_UNMAPPED_REASON
+    return PLANTWILD_MAP.get(cls, ""), "" if cls in PLANTWILD_MAP else UNMAPPED_REASON
+
+
 def make_extra_class_map(classes_by_source: dict[str, list[str]]) -> pd.DataFrame:
     rows = [
-        (s, c, PLANTWILD_MAP.get(c, ""), "" if c in PLANTWILD_MAP else UNMAPPED_REASON)
+        (s, c, *_map_row(s, c))
         for s, classes in classes_by_source.items()
         for c in sorted(classes)
     ]
     return pd.DataFrame(rows, columns=["source", "source_class", "lab_class", "reason"])
+
+
+def _pp_class(label_names) -> str:
+    """Source class of one Plant Pathology row: the label, or the sorted labels joined by '+'."""
+    return "+".join(sorted(label_names)) or "no label"
+
+
+def _pp_rows(files, columns):
+    import pyarrow.parquet as pq
+
+    for f in files:
+        for batch in pq.ParquetFile(f).iter_batches(batch_size=64, columns=columns):
+            yield from batch.to_pylist()
+
+
+def plant_pathology_counts(files) -> Counter:
+    """Rows per source class (single labels, and label sets joined by '+') in the parquet files."""
+    return Counter(
+        _pp_class(r["label_names"]) for r in _pp_rows(files, ["label_names"])
+    )
+
+
+def extract_plant_pathology(files, dest: Path) -> Counter:
+    """Write the images of single-label rows that map into new folder dest/<class>/<image_id>.
+
+    The parquet files are untrusted: the image bytes are written as they are and never decoded here,
+    and an image id that is not a plain file name is rejected. Returns the counts of every row.
+    """
+    dest = Path(dest)
+    dest.mkdir(parents=True, exist_ok=False)
+    counts: Counter = Counter()
+    for r in _pp_rows(files, ["image", "label_names", "image_id"]):
+        cls = _pp_class(r["label_names"])
+        counts[cls] += 1
+        if cls not in PP_MAP:
+            continue
+        name = r["image_id"]
+        if not _PP_SAFE_ID.match(name):
+            raise ValueError(f"unsafe image id: {name!r}")
+        out = dest / cls / name
+        out.parent.mkdir(exist_ok=True)
+        with open(out, "xb") as f:
+            f.write(r["image"]["bytes"])
+    return counts
 
 
 def extra_inventory(roots: dict[str, Path]) -> pd.DataFrame:
@@ -156,8 +224,11 @@ def build_extra(
     df["lab_class"] = [key.get((s, c), "") for s, c in zip(df["source"], df["label"])]
     removed: Counter = Counter()
     removed["unmapped class"] = int((df["lab_class"] == "").sum())
+    df["rank"] = (~df["source"].isin(ESTABLISHED_SOURCES)).astype(int)
     df = (
-        df[df["lab_class"] != ""].sort_values(["source", "path"]).reset_index(drop=True)
+        df[df["lab_class"] != ""]
+        .sort_values(["rank", "source", "path"])
+        .reset_index(drop=True)
     )
 
     field_split = dict(zip(field["path"], field["split"]))
@@ -214,7 +285,7 @@ def build_extra(
     removed["duplicate of another extra image"] = int((~first).sum())
     left = left[first]
 
-    left = left.sort_values(["lab_class", "sha1"])
+    left = left.sort_values(["lab_class", "rank", "sha1"])
     over = left.groupby("lab_class").cumcount() >= cap
     removed["over the per-class cap"] = int(over.sum())
     left = left[~over]

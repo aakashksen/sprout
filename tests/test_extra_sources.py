@@ -362,3 +362,108 @@ def test_dino_crop_check_flags_nothing_in_the_real_manifest():
         paths, list(held["path"]), list(held["split"]), encoder, "cuda"
     )
     assert not flagged, f"{len(flagged)} extras look like crops of dev or test photos"
+
+
+def _pp_parquet(tmp_path: Path) -> Path:
+    import io
+
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    rows = [
+        ("a.jpg", ["scab"]),
+        ("b.jpg", ["healthy"]),
+        ("c.jpg", ["rust"]),
+        ("d.jpg", ["scab", "frog_eye_leaf_spot"]),
+        ("e.jpg", ["frog_eye_leaf_spot"]),
+        ("f.jpg", ["complex"]),
+        ("g.jpg", ["powdery_mildew"]),
+        ("h.jpg", ["rust", "complex"]),
+        ("i.jpg", ["healthy"]),
+    ]
+
+    def jpeg(i: int) -> bytes:
+        buf = io.BytesIO()
+        Image.fromarray(np.full((8, 8, 3), 20 * i, dtype="uint8")).save(buf, "JPEG")
+        return buf.getvalue()
+
+    table = pa.table(
+        {
+            "image": [{"bytes": jpeg(i), "path": n} for i, (n, _) in enumerate(rows)],
+            "labels": [list(range(len(c))) for _, c in rows],
+            "label_names": [c for _, c in rows],
+            "image_id": [n for n, _ in rows],
+        }
+    )
+    out = tmp_path / "pp" / "data"
+    out.mkdir(parents=True)
+    pq.write_table(table, out / "train-00000-of-00001.parquet")
+    return out
+
+
+def test_only_single_label_rows_that_map_are_used(tmp_path):
+    from sprout.data.extra_sources import (
+        PP_SOURCE,
+        extract_plant_pathology,
+        plant_pathology_counts,
+    )
+
+    files = sorted(_pp_parquet(tmp_path).glob("*.parquet"))
+    dest = tmp_path / "pp_img"
+    counts = extract_plant_pathology(files, dest)
+    on_disk = sorted(p.relative_to(dest).as_posix() for p in dest.rglob("*.*"))
+    assert on_disk == ["healthy/b.jpg", "healthy/i.jpg", "rust/c.jpg", "scab/a.jpg"]
+    assert counts == plant_pathology_counts(files)
+    assert counts["healthy"] == 2 and counts["frog_eye_leaf_spot"] == 1
+    assert counts["frog_eye_leaf_spot+scab"] == 1 and counts["complex+rust"] == 1
+    assert sum(counts.values()) == 9
+    cmap = make_extra_class_map({PP_SOURCE: sorted(counts)})
+    mapped = dict(zip(cmap["source_class"], cmap["lab_class"]))
+    assert {k: v for k, v in mapped.items() if v} == {
+        "scab": "Apple___Apple_scab",
+        "healthy": "Apple___healthy",
+        "rust": "Apple___Cedar_apple_rust",
+    }
+    reasons = dict(zip(cmap["source_class"], cmap["reason"]))
+    assert "multi-label" in reasons["complex+rust"]
+    assert reasons["powdery_mildew"] and reasons["complex"]
+    with pytest.raises(FileExistsError):
+        extract_plant_pathology(files, dest)
+
+
+def test_a_new_source_fills_only_the_room_the_cap_leaves(tmp_path):
+    from sprout.data.extra_sources import PP_SOURCE
+
+    inv, cmap, lab, field, *_ = _world(tmp_path, n_new=3)
+    old, _, _ = build_extra(inv, cmap, lab, field, cap=4)
+    ex = tmp_path / "extra"
+    new = [_photo(ex / "pp" / f"p{i}.png", 700 + i) for i in range(6)]
+    # a second copy of an established photo: the established one must stay
+    dup = _photo(ex / "pp" / "dup.png", 100, size=96)
+    add = _rows(new + [dup], "scab")
+    add["source"] = PP_SOURCE
+    cmap2 = pd.concat(
+        [
+            cmap,
+            pd.DataFrame(
+                {
+                    "source": PP_SOURCE,
+                    "source_class": ["scab"],
+                    "lab_class": ["A"],
+                    "reason": [""],
+                }
+            ),
+        ]
+    )
+    both, _, removed = build_extra(
+        pd.concat([inv, add], ignore_index=True), cmap2, lab, field, cap=4
+    )
+    est = both[both["source"] == "plantwild"]
+    assert set(est["path"]) == set(old["path"])  # nothing established moved
+    assert len(both[both["label"] == "A"]) == 4
+    assert len(both[both["source"] == PP_SOURCE]) == 4 - len(old[old["label"] == "A"])
+    assert dup not in set(both["path"])
+    # the new rows kept are the first by sha1 among those that survived the checks
+    got = both[both["source"] == PP_SOURCE]["sha1"].tolist()
+    assert got == sorted(got)
+    assert removed["over the per-class cap"] == 6 - len(got)

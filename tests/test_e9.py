@@ -523,6 +523,9 @@ def add_rag_files(root):
               {"source": "b.pdf", "page": 2, "text": "tomato blight", "crop": "tomato"},
               {"source": "g.pdf", "page": 1, "text": "watering", "crop": "general"}]
     write(root, "knowledge/index/chunks.jsonl", "".join(json.dumps(c) + "\n" for c in chunks))
+    write(root, "knowledge/index/build-info.json", {"built": "2026-11-03T18:25:10+00:00", "chunks": 3, "embedding_model": "m",
+                                                       "vectors_file": "vectors-x.npy"})
+    write(root, "knowledge/index/vectors-x.npy", "vectors")
 
 
 def make_dev_source(root, ids=DEV_IDS):
@@ -1515,3 +1518,68 @@ def test_labels_reviewed_is_false_before_h2_and_true_after(repo):
     assert signoff_problems(repo, "field_test") == [] and check_claims(repo) == []  # after
     assert signoff_problems(repo, "lab_test")  # another split is still unsigned
     assert _hashlib.sha256(path.read_bytes()).hexdigest() == before  # the record itself is unchanged
+
+
+# ------------------------------------------------------- generic follow-ups, the fallback flag, the counter and the index
+
+def test_generic_followup_rule_is_text_only_and_fixed():
+    from sprout.rag.evalset import Question
+
+    crops = {"apple", "tomato"}
+
+    def q(text, crop=None, history=()):
+        return Question(id="x", category="c", split="test", question=text, expected="answer", crop=crop,
+                        history=list(history))
+
+    assert e9.is_generic_followup(q("How do I treat it?"), crops, CLASSES)
+    assert not e9.is_generic_followup(q("How do I treat apple trees?"), crops, CLASSES)  # a plant word
+    assert not e9.is_generic_followup(q("How do I treat scab?"), crops, CLASSES)  # a disease name
+    assert not e9.is_generic_followup(q("How do I treat it?", crop="apple"), crops, CLASSES)  # a plant given
+    assert not e9.is_generic_followup(q("And then?", history=[{"role": "user", "content": "my tomato is sick"}]),
+                                      crops, CLASSES)  # the user's earlier turn names one
+    assert e9.is_generic_followup(q("And then?", history=[{"role": "assistant", "content": "apple scab"}]),
+                                  crops, CLASSES)  # the assistant's words do not count
+
+
+class FallbackRetriever(FakeRetriever):
+    """Finds nothing for the question as asked, and passages once a disease name is added to it (a second 'scab')."""
+
+    def search(self, query, **kw):
+        return super().search(query, **kw) if query.lower().count("scab") >= 2 else []
+
+
+def test_rag_record_keeps_answer_text_citations_fallback_flag_and_generic_count(frozen):
+    cfg = e9.load_config(frozen)
+    e9.stage_rag_retrieve(cfg, FallbackRetriever(), frozen)
+    assert e9.stage_rag_generate(cfg, FakeLLM(reply=writer_reply, model="writer-model"), frozen, None) == []
+    e9.stage_rag_haiku(cfg, haiku(), frozen)
+    e9.stage_rag_sonnet(cfg, FakeLLM(reply=sonnet_reply, model="sonnet"), frozen)
+    path = e9.stage_rag_record(cfg, frozen, device="none: fakes")
+    rec = json.loads(path.read_text())
+    rows = {r["id"]: r for r in read_rows(frozen, rec, "served")}
+    assert rows["t1"]["fallback_fired"] is True and rows["t2"]["fallback_fired"] is False  # t2 has no diagnosis
+    assert rows["t1"]["text"].startswith("Apple scab") and rows["t1"]["citations"] and "scab" in rows["t1"]["query"]
+    cov = rec["config"]["generic_followup_coverage"]
+    assert cov["generic_followups"] == 3 and cov["questions"] == 6 and cov["fallback_fired"] == 3
+    assert cov["covers_generic_followups"] is False and cov["rule"]
+    text = e9.report(rec, frozen)
+    assert "3 of 6 rag_test questions are generic follow-ups" in text and "does not cover generic follow-ups" in text
+    assert "predate the fallback" in text and rec["config"]["served_with_fallback"] is True
+    assert rec["config"]["index"]["built"] == "2026-11-03T18:25:10+00:00" and len(rec["config"]["index"]["chunks_sha256"]) == 64
+
+
+def test_a_worktree_counts_into_the_main_folders_counter_and_uses_its_index(repo, tmp_path):
+    add_rag_files(repo)
+    (repo / ".gitignore").write_text("knowledge/index/\n")
+    commit(repo, "index is not tracked")
+    tree = tmp_path / "tree"
+    git(repo, "worktree", "add", "-q", str(tree), "-b", "task/x")
+    cfg = e9.load_config(repo)
+    assert not (tree / "knowledge/index").exists()  # untracked, so a worktree does not carry it
+    assert e9.main_folder(tree).resolve() == repo.resolve()
+    assert e9.claude_counter(tree).resolve() == (repo / "results" / "claude_calls.json").resolve()
+    assert e9.index_path(cfg, tree).resolve() == (repo / "knowledge/index").resolve()
+    assert e9.index_path(cfg, repo) == repo / "knowledge/index"
+    (repo / "knowledge/index/chunks.jsonl").unlink()
+    with pytest.raises(e9.Refused, match="no index"):
+        e9.index_path(cfg, tree)

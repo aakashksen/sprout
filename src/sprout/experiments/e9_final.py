@@ -674,6 +674,12 @@ WORK_REL = Path("results/e9/work")
 IN_FLIGHT = 2
 CALL_TIMEOUT_S = 180.0
 DEV_SPLIT = "rag_dev"
+DEV_PREDATES_FALLBACK = (
+    "The saved rag_dev answers this check was developed on (E7 run E7-20261104T040010301317Z) were written before "
+    "T7.4 added the search with the diagnosed disease when the question finds nothing, so they do not reflect the "
+    "retrieval served now; no saved set of served rag_dev answers with the fallback exists, and none was generated "
+    "for this check. rag_test is answered with the fallback."
+)
 WD_DEVICE = "none: no GPU or local model is used; Sonnet runs through the claude command"
 DIAGNOSIS_RULE = (
     "The diagnosis is the text the writer was given for the same question: the simulated photo diagnosis of E7 "
@@ -726,6 +732,38 @@ def diagnosis_for(q: Question, crops: set[str], classes: list[str]) -> str:
     return text + (f" The plant is {crop}." if ident is None and crop else "")
 
 
+def main_folder(root: Path) -> Path:
+    """The folder that holds the repository's .git, which is `root` itself unless `root` is a git worktree."""
+    common = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], cwd=root,
+                            capture_output=True, text=True, check=True).stdout.strip()
+    return Path(common).parent
+
+
+def claude_counter(root: Path) -> Path:
+    """The Claude call counter every run counts into: the main folder's, never a worktree's own copy."""
+    return main_folder(root) / "results" / "claude_calls.json"
+
+
+def index_path(cfg: dict[str, Any], root: Path) -> Path:
+    """The served index: this tree's `rag.index_dir` when it holds one, else the main folder's (a worktree does not carry
+    the index, which is built once and is not tracked)."""
+    for base in (Path(root), main_folder(root)):
+        found = base / cfg["rag"]["index_dir"]
+        if (found / "chunks.jsonl").is_file():
+            return found
+    raise Refused(f"no index at {cfg['rag']['index_dir']} in this tree or the main folder")
+
+
+def index_identity(index_dir: Path) -> dict[str, Any]:
+    """What identifies the index that served rag_test: its build info and the sha256 of the chunk file and the vectors,
+    to be set beside the build info E7 ran on."""
+    info = json.loads((Path(index_dir) / "build-info.json").read_text(encoding="utf-8"))
+    vectors = Path(index_dir) / info["vectors_file"]
+    return {"built": info["built"], "chunks": info["chunks"],
+            "embedding_model": info["embedding_model"], "chunks_sha256": sha256_file(Path(index_dir) / "chunks.jsonl"),
+            "vectors_file": info["vectors_file"], "vectors_sha256": sha256_file(vectors)}
+
+
 def index_crops(index_dir: Path) -> set[str]:
     return set(index_crops_of(Path(index_dir) / "chunks.jsonl").values()) - {GENERAL_CROP}
 
@@ -765,7 +803,7 @@ def dev_answers(cfg: dict[str, Any], root: Path) -> list[dict[str, Any]]:
     wd = cfg["wrong_disease"]
     judged, _ = load_source({"source": wd["dev_source"]}, root)
     questions = {q.id: q for q in e7.dev_questions(root)}
-    crops, classes = index_crops(Path(root) / cfg["rag"]["index_dir"]), e7.load_classes(root)
+    crops, classes = index_crops(index_path(cfg, root)), e7.load_classes(root)
     served = sorted((r for r in judged if r["system"] == wd["served_system"]), key=lambda r: r["id"])
     return [{"id": r["id"], "item": item_of(r["system"], r["id"]), "question": r["question"],
              "diagnosis": diagnosis_for(questions[r["id"]], crops, classes), "answer": r["answer"]} for r in served]
@@ -789,7 +827,7 @@ def stage_wrong_disease_dev(cfg: dict[str, Any], llm: Any, root: Path = ROOT, no
     config = {"stage": "wrong_disease_dev", **prompt_fields(root), "source": wd["dev_source"],
               "served_system": wd["served_system"], "diagnosis_source": DIAGNOSIS_RULE, "claude_calls": len(rows),
               "device": WD_DEVICE, "labels_reviewed": LABELS_REVIEWED, "label_signature": LABEL_SIGNATURE,
-              "started_at": started,
+              "started_at": started, "source_predates_fallback": True, "source_note": DEV_PREDATES_FALLBACK,
               "grader_prompt": "question, diagnosis and answer; the reply is read strictly as FITS or WRONG"}
     attempts = [{"stage": "wrong_disease_dev", "answers": len(rows), "claude_calls": len(rows),
                  "replies_without_a_call": sum(r["call"] is None for r in rows)}]
@@ -835,6 +873,7 @@ def stage_freeze(cfg: dict[str, Any], root: Path = ROOT) -> Path:
     commit = git(root, "log", "-1", "--format=%H", "--", PROMPT_REL).stdout.strip()
     frozen = {"experiment": "E9", **fields, "prompt_commit": commit, "grader_model": cfg["rag"]["grader"],
               "dev_record": dev["run_id"], "validated": False, "validation": NOT_VALIDATED,
+              "dev_source_note": DEV_PREDATES_FALLBACK,
               "frozen_at": datetime.now(timezone.utc).isoformat(),
               "rule": "rag_test runs the wrong-disease check only with this prompt; it is not tuned after rag_test"}
     path = root / FROZEN_REL
@@ -919,8 +958,8 @@ def _require_model(llm: Any, want: str, role: str) -> None:
 
 
 def _retrieval_checkpoint(cfg: dict[str, Any], root: Path) -> Checkpoint:
-    index_dir = Path(root) / cfg["rag"]["index_dir"]
-    key = e7.checkpoint_key(asdict(e7.replace_sources(serve_config(None))), serving.FLOORS, e7.index_stamp(index_dir),
+    index_dir = index_path(cfg, root)
+    key = e7.checkpoint_key(e7.ANSWER_VERSION, asdict(e7.replace_sources(serve_config(None))), serving.FLOORS, e7.index_stamp(index_dir),
                             split_info(RAG_TEST, root).hash)
     return Checkpoint(Path(root) / WORK_REL / "retrieve" / f"retrieve-{key}.jsonl")
 
@@ -948,7 +987,7 @@ def stage_rag_generate(cfg: dict[str, Any], llm: Any, root: Path = ROOT, sources
     if any(q.id not in ck.rows for q in questions):
         raise Refused("run rag-retrieve first: the retrieval is incomplete")
     crops = {r["crop"] for r in ck.rows.values() if r["crop"]} | {GENERAL_CROP}
-    single = e7.single_page_sources(Path(root) / cfg["rag"]["index_dir"])
+    single = e7.single_page_sources(index_path(cfg, root))
     _, missing = e7.run_generation(SERVED, questions, e7.cached_retriever(crops, ck.rows), llm, serve_config(sources),
                                    Path(root) / WORK_REL / "generate", single, root, key=_generation_key(cfg, ck))
     return missing
@@ -1010,7 +1049,7 @@ def stage_rag_haiku(cfg: dict[str, Any], llm: Any, root: Path = ROOT, *, overrid
 
 def _test_items(cfg: dict[str, Any], root: Path, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     qmap = {q.id: q for q in rag_questions(root)}
-    crops, classes = index_crops(Path(root) / cfg["rag"]["index_dir"]), e7.load_classes(root)
+    crops, classes = index_crops(index_path(cfg, root)), e7.load_classes(root)
     return [{"id": r["id"], "question": qmap[r["id"]].question, "diagnosis": diagnosis_for(qmap[r["id"]], crops, classes),
              "answer": r["answer"]} for r in rows]
 
@@ -1030,6 +1069,22 @@ def stage_rag_sonnet(cfg: dict[str, Any], llm: Any, root: Path = ROOT, *, overri
     wd_grade(items, llm, "test", root)
 
 
+GENERIC_FEW = 10  # fewer generic follow-ups than this and the record says its faithfulness does not cover them
+
+
+def is_generic_followup(q: Question, crops: set[str], classes: list[str]) -> bool:
+    """A follow-up that names no plant and no disease: no plant given for the question, no plant word in it or in the
+    user's earlier turns (E7's detect_crop over the index's plants), and no disease name or alias of any class in that
+    text (E8's names_of). Fixed here, before rag_test is read."""
+    from sprout.experiments.e8_fallback import names_of
+    from sprout.rag.query import detect_crop
+
+    text = " ".join([*(h["content"] for h in q.history if h.get("role") == "user"), q.question])
+    flat = " ".join(text.lower().replace("-", " ").split())
+    return (not q.crop and detect_crop(text, crops) is None
+            and not any(n in flat for c in classes for n in names_of(c)))
+
+
 def final_rows(cfg: dict[str, Any], haiku_model: str, sonnet_model: str, root: Path) -> list[dict[str, Any]]:
     """Rows in question order, with both judges' calls on every claim and the wrong-disease call."""
     gen, claims = _generated(cfg, root), claim_rows(cfg, root)
@@ -1038,8 +1093,9 @@ def final_rows(cfg: dict[str, Any], haiku_model: str, sonnet_model: str, root: P
     items = _test_items(cfg, root, claims)
     wd = Checkpoint(Path(root) / WORK_REL / f"wd-test-{wd_key(items, sonnet_model, root)}.jsonl").rows
     qmap = {q.id: q for q in rag_questions(root)}
-    crops, classes = index_crops(Path(root) / cfg["rag"]["index_dir"]), e7.load_classes(root)
+    crops, classes = index_crops(index_path(cfg, root)), e7.load_classes(root)
     diagnosis = {i["id"]: i["diagnosis"] for i in items}
+    searches = _retrieval_checkpoint(cfg, root).rows
     rows = []
     for g in gen:
         have = by_id.get(g["id"])
@@ -1056,6 +1112,9 @@ def final_rows(cfg: dict[str, Any], haiku_model: str, sonnet_model: str, root: P
             raise ValueError("some answers are not wrong-disease checked yet; run the rag-sonnet stage")
         rows.append({"id": g["id"], "answered": bool(g["answered"]), "state": g["state"],
                      "diagnosis": diagnosis.get(g["id"]) or diagnosis_for(qmap[g["id"]], crops, classes), "text": g["text"],
+                     "citations": g["citations"], "query": g["query"],
+                     "fallback_fired": len(searches[g["id"]]["searches"]) > 1,
+                     "generic_followup": is_generic_followup(qmap[g["id"]], crops, classes),
                      "claims": got, "wrong_disease": check["call"] if check else None,
                      "wrong_disease_reply": check["reply"] if check else None,
                      "haiku_calls": len(got), "sonnet_calls": len(got) + (1 if check else 0)})
@@ -1074,6 +1133,13 @@ def stage_rag_record(cfg: dict[str, Any], root: Path = ROOT, *, device: str, not
     if [r["id"] for r in rows] != info.ids:
         raise Refused("the saved answers do not cover rag_test in order")
     answered = np.array([r["answered"] for r in rows])
+    generic = [r for r in rows if r["generic_followup"]]
+    coverage = {"questions": len(rows), "generic_followups": len(generic), "rule": GENERIC_RULE,
+                "generic_answered": sum(r["answered"] for r in generic),
+                "generic_with_claims": sum(bool(r["claims"]) for r in generic),
+                "fallback_fired": sum(r["fallback_fired"] for r in rows),
+                "fallback_fired_with_claims": sum(r["fallback_fired"] and bool(r["claims"]) for r in rows),
+                "covers_generic_followups": len(generic) >= GENERIC_FEW}
     scored = Scored(groups=info.ids, answered=answered, expected=info.expected)
     metrics = {SERVED: {m: recompute_metric(m, scored) for m in e7.BEHAVIOUR_METRICS}}
     calls = {"haiku": sum(r["haiku_calls"] for r in rows), "sonnet": sum(r["sonnet_calls"] for r in rows)}
@@ -1092,7 +1158,9 @@ def stage_rag_record(cfg: dict[str, Any], root: Path = ROOT, *, device: str, not
         "rubric": rubric(), **prompt_fields(root), "frozen_wrong_disease": {"file": FROZEN_REL, **frozen},
         "wrong_disease_validated": False, "wrong_disease_validation": NOT_VALIDATED,
         "diagnosis_source": DIAGNOSIS_RULE, "calls": calls, "claude_calls": calls["haiku"] + calls["sonnet"],
-        "device": device, "writer_usage": usage,
+        "device": device, "writer_usage": usage, "index": index_identity(index_path(cfg, root)),
+        "generic_followup_coverage": coverage, "dev_source_note": DEV_PREDATES_FALLBACK,
+        "served_with_fallback": True,
         "labels_reviewed": LABELS_REVIEWED, "label_signature": LABEL_SIGNATURE,
         "basis": "rag_test questions as asked; the photo label cleaning does not apply to them",
         "started_at": datetime.now(timezone.utc).isoformat(), "caveat": FINAL_CAVEAT,
@@ -1104,6 +1172,22 @@ def stage_rag_record(cfg: dict[str, Any], root: Path = ROOT, *, device: str, not
                  "claude_calls": config["claude_calls"]}]
     return write_run("E9", RAG_TEST, config, models, metrics, {SERVED: {}}, attempts, {SERVED: rows}, info.hash,
                      root=root, judged=final_lists(rows), notes=FINAL_CAVEAT + (" " + note if note else ""))
+
+
+GENERIC_RULE = ("no plant given for the question, no plant of the index and no disease name or alias of the classes "
+                "in the question or the user's earlier turns")
+
+
+def coverage_line(c: dict[str, Any]) -> str:
+    text = (f"{c['generic_followups']} of {c['questions']} rag_test questions are generic follow-ups (no plant or "
+            f"disease word, rule fixed in code before the run), {c['generic_answered']} answered, {c['generic_with_claims']} "
+            f"with claims graded; the fallback fired on {c['fallback_fired']} answers ({c['fallback_fired_with_claims']} "
+            "with claims graded).")
+    if not c["covers_generic_followups"]:
+        text += (" This is too few: the faithfulness figure does not cover generic follow-ups, the case the fallback "
+                 "exists for. E8's dev figure for them (70 of 95 passages naming the right disease) is a floor, "
+                 "because the text rule misses some aliases, and is a retrieval measure, not faithfulness.")
+    return text
 
 
 def report(rec: dict[str, Any], root: Path = ROOT) -> str:
@@ -1126,6 +1210,9 @@ def report(rec: dict[str, Any], root: Path = ROOT) -> str:
              share("claims_supported_by_sonnet", f"{judges['sonnet']['name']} {judges['sonnet']['model']} ({judges['sonnet']['role']})"),
              f"The two read the same claims with the same rubric. The Haiku judge's share is {order} the Sonnet judge's; "
              "neither is the share of correct claims.",
+             coverage_line(rec["config"]["generic_followup_coverage"]),
+             "The saved rag_dev answers the wrong-disease prompt was developed on predate the fallback; rag_test is "
+             "answered with it.",
              f"wrong-disease check (Sonnet, prompt frozen before this run): {sum(flagged)} of {len(flagged)} checked "
              "answers flagged as advice for the wrong disease or plant. " + NOT_VALIDATED]
     lines += [f"{k}: {v:.3f}" if v is not None else f"{k}: undefined" for k, v in rec["metrics"][SERVED].items()]
@@ -1191,7 +1278,7 @@ def _real_retriever(cfg: dict[str, Any], root: Path):
     embedder = TorchEmbedder(config.embedding_model, device=cfg["rag"]["device"])
     reranker = TorchReranker(device=cfg["rag"]["device"])
     _remember_device(root, "retrieval", {**embedder.info, **reranker.info})
-    return Retriever(Path(root) / cfg["rag"]["index_dir"], config=config, embedder=embedder, reranker=reranker)
+    return Retriever(index_path(cfg, root), config=config, embedder=embedder, reranker=reranker)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1207,7 +1294,8 @@ def main(argv: list[str] | None = None) -> int:
     a = ap.parse_args(argv)
     try:
         cfg, root, stage = load_config(ROOT), ROOT, a.stage
-        grader = lambda: ClaudeCodeClient(model=cfg["rag"]["grader"])  # noqa: E731
+        counter = claude_counter(root)
+        grader = lambda: ClaudeCodeClient(model=cfg["rag"]["grader"], counter_path=counter)  # noqa: E731
         if stage in ("lab-test", "field-test"):
             split = stage.replace("-", "_")
             paths = run_images(split, cfg, lambda: build_predictors(cfg, load_decision(cfg, root), root), root,
@@ -1235,7 +1323,7 @@ def main(argv: list[str] | None = None) -> int:
                     return EXIT_INCOMPLETE
         elif stage == "rag-haiku":
             guard_rag_test(root, a.override_note)
-            stage_rag_haiku(cfg, ClaudeCodeClient(model=first_judge(root)["model"]), root, override_note=a.override_note)
+            stage_rag_haiku(cfg, ClaudeCodeClient(model=first_judge(root)["model"], counter_path=counter), root, override_note=a.override_note)
             print("the Haiku judge graded the claims")
         elif stage == "rag-sonnet":
             stage_rag_sonnet(cfg, grader(), root, override_note=a.override_note)

@@ -214,6 +214,20 @@ def _torch_model(p: Paths, device: str):
     return model.to(torch.device(device)).eval(), ckpt["class_map"]
 
 
+def weights_only_size_bytes(checkpoint: Path) -> int:
+    """Size of a file holding just the model's state dict: the fair PyTorch size next to an ONNX file, since the
+    checkpoint also carries training state."""
+    import tempfile
+
+    import torch
+
+    state = torch.load(checkpoint, map_location="cpu", weights_only=True)["model"]
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp) / "weights.pt"
+        torch.save(state, out)
+        return out.stat().st_size
+
+
 def _device_name(device: str) -> str:
     if device.startswith("cuda"):
         import torch
@@ -425,8 +439,9 @@ def stage_record(cfg: dict[str, Any], root: Path) -> Path:
     measurements = {}
     for s in systems(cfg):
         measurements[f"latency_ms_{s}"] = latency["systems"][s]["samples_ms"]
-        size = p.checkpoint.stat().st_size if s == REFERENCE else state["files"][s]["size_bytes"]
+        size = weights_only_size_bytes(p.checkpoint) if s == REFERENCE else state["files"][s]["size_bytes"]
         measurements[f"size_bytes_{s}"] = [float(size)]
+    measurements[f"size_bytes_{REFERENCE}_checkpoint"] = [float(p.checkpoint.stat().st_size)]
     machine = {k: v for k, v in latency.items() if k != "systems"}
     config = {
         "class_names": names,
@@ -444,6 +459,8 @@ def stage_record(cfg: dict[str, Any], root: Path) -> Path:
         "label": "development number, field_dev only",
     }
     sizes = ", ".join(f"{s} {measurements[f'size_bytes_{s}'][0] / 1e6:.1f} MB" for s in systems(cfg))
+    sizes += (f" (pytorch is its weights alone; the checkpoint file with training state is "
+              f"{measurements[f'size_bytes_{REFERENCE}_checkpoint'][0] / 1e6:.1f} MB)")
     loss = "; ".join(f"{c['b']} {c['diff']:+.4f} [{c['ci'][0]:+.4f}, {c['ci'][1]:+.4f}]"
                      for c in comparisons if c["metric"] == "macro_f1")
     notes = (f"{CAVEAT} Sizes: {sizes}. Macro-F1 of pytorch minus each ONNX file: {loss}. Latency on {machine['cpu']}, "

@@ -922,3 +922,9 @@ These are workflow changes with no plan task of their own, filed under T0.1.
 - **Considered:** the unquantized ONNX file as a middle row (skipped by the person's direction; so its latency is unmeasured and "ONNX is slower than PyTorch here" is not established, only that the dynamic file is); more static attempts (not done, no retries to improve a number).
 - **Evidence:** the record above; its CPU load before each timing was 22% (PyTorch), 9% (dynamic), 19% (static), because other work ran on the machine, so latencies are indicative; PyTorch counts match `results/e15/refit/report.json` (241 answered, 5 confident-wrong).
 - **Would change if:** an idle-machine rerun reverses the dynamic latency, or a static configuration keeps accuracy.
+
+### T7.4 - E6 PyTorch size baseline is the weights alone (2026-11-04)
+- **Chose:** the E6 record's `size_bytes_pytorch` is the size of a file holding only the model's state dict (written to a temporary folder by the record stage). The checkpoint file's own size is kept as `size_bytes_pytorch_checkpoint`. Record `E6-20261104T222414977796Z` stays as history; its 334.9 MB is the checkpoint file (`models/e15/final/best.pt`), which probably includes training state, so that record's size ratio is not a like-for-like comparison.
+- **Considered:** reporting the checkpoint size alone (overstates what PyTorch needs to serve and inflates the shrink); hand-editing the old record (records are not edited); saving a weights file under `models/e6/` (one more file to keep in step with the checkpoint).
+- **Evidence:** `tests/test_e6.py::test_pytorch_size_is_the_weights_alone_and_the_checkpoint_keeps_its_own_name`.
+- **Would change if:** the serving baseline were something other than a torch state dict (for example a TorchScript file).

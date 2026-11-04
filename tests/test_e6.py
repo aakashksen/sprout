@@ -349,3 +349,18 @@ def test_static_mode_is_built_scored_and_timed_when_the_config_asks_for_it(world
     assert rec["config"]["calibration"]["split"] == "field_train" and len(rec["config"]["calibration"]["paths"]) == 2
     with pytest.raises(ValueError, match="quantize"):
         e6.check_config({**cfg, "quantize": ["half"]})
+
+
+def test_pytorch_size_is_the_weights_alone_and_the_checkpoint_keeps_its_own_name(world, cfg, tmp_path):
+    path = world / "models/e4/best.pt"
+    ckpt = torch.load(path, map_location="cpu", weights_only=True)
+    ckpt["optimizer"] = {"state": torch.zeros(20000)}  # training state a serving file does not need
+    torch.save(ckpt, path)
+    _commit(world)
+    weights_file = tmp_path / "weights.pt"
+    torch.save(ckpt["model"], weights_file)
+    _run_stages(cfg, world)
+    values = json.loads(e6.run_stage("record", cfg, world).read_text())["measurements"]["values"]
+    assert values["size_bytes_pytorch_p50"] == weights_file.stat().st_size
+    assert values["size_bytes_pytorch_checkpoint_p50"] == path.stat().st_size
+    assert values["size_bytes_pytorch_p50"] < values["size_bytes_pytorch_checkpoint_p50"] - 80000

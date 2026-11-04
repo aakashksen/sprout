@@ -18,7 +18,7 @@ import json
 import subprocess
 from collections.abc import Callable
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -35,12 +35,21 @@ from sprout.eval.answer_checks import (
     dev_intervals,
     dev_metrics,
     draw_blind,
+    final_lists,
     parse_call,
     strata_sizes,
 )
-from sprout.eval.check_run import check_file, records_for
+from sprout.eval.check_run import (
+    Scored,
+    check_file,
+    recompute_comparison,
+    recompute_interval,
+    recompute_metric,
+    records_for,
+)
 from sprout.eval.predict import Predictions
 from sprout.eval.records import (
+    RAG_REL,
     ROOT,
     SplitInfo,
     git,
@@ -51,11 +60,14 @@ from sprout.eval.records import (
     write_run,
 )
 from sprout.experiments import e7_rag as e7
+from sprout.experiments import e14_judge_check as e14
 from sprout.experiments.e7_rag import Checkpoint
 from sprout.llm.client import LLMError
-from sprout.rag.answer import GENERAL_CROP, diagnosis_summary
-from sprout.rag.evalset import Question
+from sprout.rag import serving
+from sprout.rag.answer import GENERAL_CROP, AnswerConfig, diagnosis_summary
+from sprout.rag.evalset import Question, load_questions
 from sprout.rag.evalset import index_crops as index_crops_of
+from sprout.rag.judge import rubric
 
 CONFIG_REL = "configs/e9.json"
 FROZEN_REL = "configs/e9_wrong_disease.json"
@@ -199,8 +211,6 @@ def cleaned_rows(split: str, cfg: dict[str, Any], info: SplitInfo, positions: li
 def score_block(probs: dict[str, np.ndarray], labels: np.ndarray, groups: list[str], names: list[str],
                 threshold: float, keep: np.ndarray) -> tuple[dict, dict, list]:
     """Metrics, intervals and paired comparisons of every system over the rows in `keep`, the way check_run recomputes."""
-    from sprout.eval.check_run import Scored, recompute_comparison, recompute_interval, recompute_metric
-
     scored = {n: Scored(groups=[g for g, k in zip(groups, keep, strict=True) if k], labels=labels[keep],
                         class_names=names, probs=p[keep]) for n, p in probs.items()}
     metrics = {n: standard_image_metrics(s.probs, s.labels, names) for n, s in scored.items()}
@@ -624,3 +634,240 @@ def require_frozen(root: Path = ROOT) -> dict[str, Any]:
     if shown.returncode != 0 or hashlib.sha256(shown.stdout).hexdigest() != frozen["prompt_sha256"]:
         raise Refused("the frozen commit does not hold the frozen prompt")
     return frozen
+
+
+# ---------------------------------------------------------------- rag_test
+
+RAG_TEST = "rag_test"
+ROLES = {"local": "upper figure", "sonnet": "conservative figure"}
+SERVED = "served"
+EMBEDDER, RERANKER = "BAAI/bge-small-en-v1.5", "cross-encoder/ms-marco-MiniLM-L6-v2"
+FINAL_CAVEAT = (
+    "Held-out numbers, from one run with everything frozen before it. The two judges read the same claims with the same "
+    "rubric. The local judge is the upper figure and Sonnet the conservative one: the local judge errs kind and Sonnet "
+    "errs literal (docs/e14-adjudication.md), so the truth lies between them and neither is the share of correct "
+    "claims. The wrong-disease check is a Sonnet grader whose error was read blind on rag_dev."
+)
+
+
+def guard_rag_test(root: Path, override_note: str) -> dict[str, Any]:
+    """Every rag_test stage starts here: configs and prompt committed, tree clean, prompt equal to the frozen one,
+    split unused."""
+    root = Path(root)
+    require_committed(root, [CONFIG_REL, FROZEN_REL, PROMPT_REL])
+    require_clean(root)
+    frozen = require_frozen(root)
+    require_unused(root, RAG_TEST, override_note)
+    return frozen
+
+
+def rag_questions(root: Path) -> list[Question]:
+    return [q for q in load_questions(Path(root) / RAG_REL) if q.split == "test"]
+
+
+def serve_config(sources: dict | None) -> AnswerConfig:
+    """The setup E7 chose for serving (sprout.rag.serving), with nothing set here."""
+    return AnswerConfig(sources=sources)
+
+
+def _require_model(llm: Any, want: str, role: str) -> None:
+    if llm.model != want:
+        raise Refused(f"the {role} is {llm.model!r} but the config names {want!r}")
+
+
+def _retrieval_checkpoint(cfg: dict[str, Any], root: Path) -> Checkpoint:
+    index_dir = Path(root) / cfg["rag"]["index_dir"]
+    key = e7.checkpoint_key(asdict(e7.replace_sources(serve_config(None))), serving.FLOORS, e7.index_stamp(index_dir),
+                            split_info(RAG_TEST, root).hash)
+    return Checkpoint(Path(root) / WORK_REL / "retrieve" / f"retrieve-{key}.jsonl")
+
+
+def stage_rag_retrieve(cfg: dict[str, Any], retriever: Any, root: Path = ROOT, *, override_note: str = "") -> Checkpoint:
+    """The passages each rag_test question gets under the served retrieval, saved per question."""
+    guard_rag_test(root, override_note)
+    ck, classes = _retrieval_checkpoint(cfg, root), e7.load_classes(root)
+    for q in rag_questions(root):
+        if q.id not in ck.rows:
+            ck.add(e7.retrieval_for_answers(retriever, serve_config(None), q, retriever.crops, classes))
+    return ck
+
+
+def _generation_key(cfg: dict[str, Any], ck: Checkpoint) -> str:
+    return e7.checkpoint_key(serve_config(None).prompt_version, ck.path.name, cfg["rag"]["writer"], e7.ANSWER_VERSION)
+
+
+def stage_rag_generate(cfg: dict[str, Any], llm: Any, root: Path = ROOT, sources: dict | None = None, *,
+                       override_note: str = "") -> list[str]:
+    """The local writer's answers with the served settings. Returns the ids still without an answer (an outage)."""
+    guard_rag_test(root, override_note)
+    _require_model(llm, cfg["rag"]["writer"], "writer")
+    questions, ck = rag_questions(root), _retrieval_checkpoint(cfg, root)
+    if any(q.id not in ck.rows for q in questions):
+        raise Refused("run rag-retrieve first: the retrieval is incomplete")
+    crops = {r["crop"] for r in ck.rows.values() if r["crop"]} | {GENERAL_CROP}
+    single = e7.single_page_sources(Path(root) / cfg["rag"]["index_dir"])
+    _, missing = e7.run_generation(SERVED, questions, e7.cached_retriever(crops, ck.rows), llm, serve_config(sources),
+                                   Path(root) / WORK_REL / "generate", single, root, key=_generation_key(cfg, ck))
+    return missing
+
+
+def _generated(cfg: dict[str, Any], root: Path) -> list[dict[str, Any]]:
+    ck = _retrieval_checkpoint(cfg, root)
+    done = Checkpoint(Path(root) / WORK_REL / "generate" / f"generate-{SERVED}-{_generation_key(cfg, ck)}.jsonl")
+    rows = [done.rows.get(q.id) for q in rag_questions(root)]
+    if None in rows:
+        raise Refused("run rag-generate first: some questions have no answer")
+    return rows
+
+
+def stage_rag_judge_local(cfg: dict[str, Any], llm: Any, root: Path = ROOT, *, override_note: str = "") -> Path:
+    """Per-claim faithfulness by the local judge, through the code E7 used. Returns the judgments file."""
+    guard_rag_test(root, override_note)
+    _require_model(llm, cfg["rag"]["judge"], "local judge")
+    rows = _generated(cfg, root)
+    qmap = {q.id: q for q in rag_questions(root)}
+    judged = e7.run_judging(SERVED, rows, qmap, llm, Path(root) / WORK_REL / "judge", key=_judge_key(cfg, root))
+    return e7.write_judgments(Path(root) / WORK_REL / "local", judged)[0]
+
+
+def _judge_key(cfg: dict[str, Any], root: Path) -> str:
+    ck = _retrieval_checkpoint(cfg, root)
+    return e7.checkpoint_key(_generation_key(cfg, ck), cfg["rag"]["judge"], rubric())
+
+
+def _local_judgments(cfg: dict[str, Any], root: Path) -> tuple[list[dict[str, Any]], Path, dict[str, dict[str, Any]]]:
+    rows = _generated(cfg, root)
+    done = Checkpoint(Path(root) / WORK_REL / "judge" / f"judge-{SERVED}-{_judge_key(cfg, root)}.jsonl")
+    if any(r["id"] not in done.rows for r in rows):
+        raise Refused("run rag-judge-local first: some answers are not judged")
+    judged = [done.rows[r["id"]] for r in rows if done.rows[r["id"]]["claims"]]
+    full, blind = e7.write_judgments(Path(root) / WORK_REL / "local", judged)
+    return judged, full, {b["item"]: b for b in _jsonl(blind)}
+
+
+def _test_items(cfg: dict[str, Any], root: Path, judged: list[dict[str, Any]], rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    qmap = {q.id: q for q in rag_questions(root)}
+    crops, classes = index_crops(Path(root) / cfg["rag"]["index_dir"]), e7.load_classes(root)
+    text = {r["id"]: r["text"] for r in rows}
+    return [{"id": j["id"], "question": qmap[j["id"]].question, "diagnosis": diagnosis_for(qmap[j["id"]], crops, classes),
+             "answer": text[j["id"]]} for j in judged]
+
+
+def _claims_checkpoint(model: str, cfg14: dict[str, Any], root: Path) -> Checkpoint:
+    return Checkpoint(Path(root) / WORK_REL / "claims" / f"claims-{e14.run_key(cfg14, model)}.jsonl")
+
+
+def stage_rag_sonnet(cfg: dict[str, Any], llm: Any, root: Path = ROOT, *, override_note: str = "") -> None:
+    """Sonnet grades the same claims with the same rubric (E14's code), then runs the frozen wrong-disease check once per
+    answer. The cap and the stage limit are checked for both together before any call."""
+    guard_rag_test(root, override_note)
+    _require_model(llm, cfg["rag"]["grader"], "Sonnet grader")
+    judged, full, blind = _local_judgments(cfg, root)
+    limit = cfg["rag"]["max_sonnet_calls"]
+    sample = [{"item": e14.item_of(SERVED, j["id"]), "id": j["id"], "system": SERVED, "stratum": SERVED} for j in judged]
+    cfg14 = {"seed": 0, "sample_size": len(sample), "served_system": SERVED, "max_calls": limit,
+             "source": {"judgments_sha256": sha256_file(full)}}
+    items = _test_items(cfg, root, judged, _generated(cfg, root))
+    claims_done = _claims_checkpoint(llm.model, cfg14, root).rows
+    wd_path = Path(root) / WORK_REL / f"wd-test-{wd_key(items, llm.model, root)}.jsonl"
+    wd_done = Checkpoint(wd_path).rows
+    need = sum(f"{e['item']}:{k}" not in claims_done for e in sample for k in range(len(blind[e["item"]]["claims"])))
+    need += sum(i["id"] not in wd_done for i in items)
+    check_budget(llm, need, limit, len(claims_done) + len(wd_done))
+    e14.grade(sample, blind, llm, Path(root) / WORK_REL / "claims", cfg14)
+    wd_grade(items, llm, "test", root)
+
+
+def final_rows(cfg: dict[str, Any], llm_model: str, root: Path) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """(rows in question order, generation rows) with both judges' calls on every claim and the wrong-disease call."""
+    judged, full, _ = _local_judgments(cfg, root)
+    gen = _generated(cfg, root)
+    by_id = {j["id"]: j for j in judged}
+    cfg14 = {"seed": 0, "sample_size": len(judged), "served_system": SERVED, "max_calls": cfg["rag"]["max_sonnet_calls"],
+             "source": {"judgments_sha256": sha256_file(full)}}
+    claims = _claims_checkpoint(llm_model, cfg14, root).rows
+    items = _test_items(cfg, root, judged, gen)
+    wd = Checkpoint(Path(root) / WORK_REL / f"wd-test-{wd_key(items, llm_model, root)}.jsonl").rows
+    diagnosis = {i["id"]: i["diagnosis"] for i in items}
+    qmap = {q.id: q for q in rag_questions(root)}
+    crops, classes = index_crops(Path(root) / cfg["rag"]["index_dir"]), e7.load_classes(root)
+    rows = []
+    for g in gen:
+        j = by_id.get(g["id"], {"claims": []})
+        item = e14.item_of(SERVED, g["id"])
+        got = []
+        for k, c in enumerate(j["claims"]):
+            r = claims.get(f"{item}:{k}")
+            if r is None:
+                raise ValueError("some claims are not graded by Sonnet yet; run the rag-sonnet stage")
+            got.append({"claim": c["claim"], "cited": c["cited"], "local": bool(c["verdict"]), "sonnet": r["sonnet"],
+                        "sonnet_reply": r["reply"]})
+        check = wd.get(g["id"]) if got else None
+        if got and check is None:
+            raise ValueError("some answers are not wrong-disease checked yet; run the rag-sonnet stage")
+        rows.append({"id": g["id"], "answered": bool(g["answered"]), "state": g["state"],
+                     "diagnosis": diagnosis.get(g["id"]) or diagnosis_for(qmap[g["id"]], crops, classes), "text": g["text"],
+                     "claims": got, "wrong_disease": check["call"] if check else None,
+                     "wrong_disease_reply": check["reply"] if check else None,
+                     "sonnet_calls": len(got) + (1 if check else 0)})
+    return rows, gen
+
+
+def stage_rag_record(cfg: dict[str, Any], root: Path = ROOT, *, device: str, note: str = "",
+                     override_note: str = "") -> Path:
+    """Write the one rag_test record from the saved stages. Refuses unless every answer, claim and check is saved."""
+    frozen = guard_rag_test(root, override_note)
+    root = Path(root)
+    rows, gen = final_rows(cfg, cfg["rag"]["grader"], root)
+    info = split_info(RAG_TEST, root)
+    if [r["id"] for r in rows] != info.ids:
+        raise Refused("the saved answers do not cover rag_test in order")
+    answered = np.array([r["answered"] for r in rows])
+    scored = Scored(groups=info.ids, answered=answered, expected=info.expected)
+    metrics = {SERVED: {m: recompute_metric(m, scored) for m in e7.BEHAVIOUR_METRICS}}
+    calls = sum(r["sonnet_calls"] for r in rows)
+    ac = serve_config(None)
+    usage = {"rows": len(gen), "model_calls": sum(g.get("llm_calls", 0) for g in gen),
+             "rows_without_model_call": sum(g.get("llm_calls", 0) == 0 for g in gen),
+             "model_seconds": round(sum(g.get("llm_seconds", 0.0) for g in gen), 1)}
+    config = {
+        "stage": "final", "served": {"prompt_version": ac.prompt_version, "mode": ac.mode, "rerank": ac.rerank, "k": ac.k,
+                                     "query_mode": ac.query_mode, "floors": serving.FLOORS},
+        "judge": {"model": cfg["rag"]["judge"]},
+        "judges": {"local": {"model": cfg["rag"]["judge"], "role": ROLES["local"]},
+                   "sonnet": {"model": cfg["rag"]["grader"], "role": ROLES["sonnet"]},
+                   "same_claims_and_rubric": True},
+        "rubric": rubric(), **prompt_fields(root), "frozen_wrong_disease": {"file": FROZEN_REL, **frozen},
+        "diagnosis_source": DIAGNOSIS_RULE, "claude_calls": calls, "device": device, "writer_usage": usage,
+        "labels_reviewed": labels_reviewed(root, cfg["tasks_file"]),
+        "started_at": datetime.now(timezone.utc).isoformat(), "caveat": FINAL_CAVEAT,
+        **({"override_note": override_note.strip()} if override_note.strip() else {}),
+    }
+    models = {"writer": cfg["rag"]["writer"], "judge_upper_figure": cfg["rag"]["judge"],
+              "judge_conservative_figure": cfg["rag"]["grader"], "wrong_disease_grader": cfg["rag"]["grader"],
+              "embedder": EMBEDDER, "reranker": RERANKER}
+    attempts = [{"stage": "rag_test", "answers": len(rows), "claims": sum(len(r["claims"]) for r in rows),
+                 "claude_calls": calls}]
+    return write_run("E9", RAG_TEST, config, models, metrics, {SERVED: {}}, attempts, {SERVED: rows}, info.hash,
+                     root=root, judged=final_lists(rows), notes=FINAL_CAVEAT + (" " + note if note else ""))
+
+
+def report(rec: dict[str, Any], root: Path = ROOT) -> str:
+    """The figures of a rag_test record in words. The two judges are named as the upper and the conservative figure."""
+    sidecar = json.loads((Path(root) / rec["judged"]["file"]).read_text(encoding="utf-8"))
+    judges = rec["config"]["judges"]
+
+    def share(name: str, label: str) -> str:
+        v = sidecar[name]
+        return f"{label}: {sum(v)} of {len(v)} claims supported = {sum(v) / len(v):.3f}"
+
+    flagged = sidecar.get("answers_flagged_wrong_disease", [])
+    lines = [f"rag_test, {rec['n']} questions, one run, configurations frozen before it.",
+             share("claims_supported_by_local_judge",
+                   f"local judge {judges['local']['model']} ({judges['local']['role']})"),
+             share("claims_supported_by_sonnet", f"Sonnet ({judges['sonnet']['role']})"),
+             "The two read the same claims with the same rubric; the truth lies between the figures.",
+             f"wrong-disease check (Sonnet, prompt frozen before this run): {sum(flagged)} of {len(flagged)} checked "
+             "answers flagged as advice for the wrong disease or plant"]
+    lines += [f"{k}: {v:.3f}" if v is not None else f"{k}: undefined" for k, v in rec["metrics"][SERVED].items()]
+    return "\n".join(lines)

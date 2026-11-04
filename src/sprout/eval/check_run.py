@@ -746,6 +746,52 @@ def _e9_dev_problems(rec: dict[str, Any], root: Path, min_n: int) -> list[str]:
     return problems
 
 
+def _e9_final_problems(rec: dict[str, Any], root: Path) -> list[str]:
+    """E9 rag_test: the saved claims must be the answer's own claims, each verdict must follow from its reply, the judged
+    samples must be the rows' own claims, and the prompt must be the frozen one. Neither judge's figure may be called
+    accuracy."""
+    from sprout.experiments.e14_judge_check import parse_verdict
+    from sprout.rag.judge import split_claims
+
+    cfg, problems = rec["config"], _prompt_problems(rec, root)
+    shown = subprocess.run(["git", "show", f"{rec['git_commit']}:configs/e9_wrong_disease.json"], cwd=root,
+                           capture_output=True)
+    frozen = json.loads(shown.stdout) if shown.returncode == 0 else {}
+    if frozen.get("prompt_sha256") != cfg.get("prompt_sha256"):
+        problems.append("config.prompt_sha256 is not the frozen prompt's hash at the record's commit")
+    rows = _read_rows(root / rec["predictions"]["served"])
+    if any(set(r) != set(answer_checks.FINAL_ROW_KEYS) for r in rows) or any(
+            set(c) != set(answer_checks.CLAIM_KEYS) for r in rows for c in r["claims"]):
+        return problems + ["every row and claim must hold exactly the E9 fields"]
+    bad = {"claims": 0, "sonnet": 0, "check": 0, "calls": 0}
+    for r in rows:
+        want = [c.text for c in split_claims(r["text"])] if r["state"] in ("answered", "ungrounded") else []
+        bad["claims"] += [c["claim"] for c in r["claims"]] != want
+        bad["sonnet"] += any(c["sonnet"] != parse_verdict(str(c["sonnet_reply"])) for c in r["claims"])
+        reply = r["wrong_disease_reply"]
+        bad["check"] += (r["wrong_disease"] != answer_checks.parse_call(str(reply or ""))
+                         or (reply is None) != (not r["claims"]))
+        bad["calls"] += r["sonnet_calls"] != len(r["claims"]) + (reply is not None)
+    for key, what in (("claims", "claims do not follow from the answer text"),
+                      ("sonnet", "a Sonnet verdict does not match its reply"),
+                      ("check", "a wrong-disease call does not match its reply or its answer has no claim to check"),
+                      ("calls", "sonnet_calls is not one per claim plus one per check")):
+        if bad[key]:
+            problems.append(f"{bad[key]} rows: {what}")
+    if rec["claude_calls"] != sum(r["sonnet_calls"] for r in rows):
+        problems.append("claude_calls differs from the calls the rows record")
+    side = root / rec["judged"]["file"] if isinstance(rec["judged"], dict) and "file" in rec["judged"] else None
+    if side is None or not side.is_file() or json.loads(side.read_text(encoding="utf-8")) != answer_checks.final_lists(rows):
+        problems.append("the judged samples are not the rows' own claim verdicts and checks")
+    judges = cfg.get("judges")
+    if not (isinstance(judges, dict) and judges.get("local", {}).get("role") == "upper figure"
+            and judges.get("sonnet", {}).get("role") == "conservative figure"):
+        problems.append("config.judges must name the local judge as the upper figure and Sonnet as the conservative one")
+    if re.search("accuracy", json.dumps({k: rec[k] for k in ("config", "models", "notes", "judged", "metrics")}), re.I):
+        problems.append("a judge's figure is called accuracy; it is a share of claims judged supported")
+    return problems
+
+
 def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
     problems = [f"missing field {k}" for k in REQUIRED if k not in rec]
     if problems:
@@ -781,6 +827,9 @@ def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
     problems += _measurement_problems(rec["judged"], root, "judged")
     if rec["judged"]:
         problems += _judge_problems(rec["config"], rec["models"])
+    if rec["experiment"] == "E9" and rec["split"] == "rag_test":
+        problems += (_e9_final_problems(rec, root) if set(rec["predictions"]) == {"served"}
+                     else ["an E9 rag_test record holds one system, served"])
     return problems
 
 

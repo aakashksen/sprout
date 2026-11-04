@@ -88,3 +88,18 @@ def blind_intervals(rows: list[dict[str, Any]]) -> dict[str, list[float]]:
     if fits:
         out["missed_rate"] = wilson(sum(r["reader"] == "WRONG" for r in fits), len(fits))
     return out
+
+
+FINAL_ROW_KEYS = ("id", "answered", "state", "diagnosis", "text", "claims", "wrong_disease", "wrong_disease_reply",
+                  "sonnet_calls")
+CLAIM_KEYS = ("claim", "cited", "local", "sonnet", "sonnet_reply")
+
+
+def final_lists(rows: list[dict[str, Any]]) -> dict[str, list[bool]]:
+    """The per-claim and per-answer samples behind the figures of rag_test: the local judge's and Sonnet's call on the
+    same claims, and the wrong-disease check's flag per checked answer. An empty sample is left out."""
+    claims = [c for r in rows for c in r["claims"]]
+    out = {"claims_supported_by_local_judge": [bool(c["local"]) for c in claims],
+           "claims_supported_by_sonnet": [bool(c["sonnet"]) for c in claims if c["sonnet"] is not None],
+           "answers_flagged_wrong_disease": [r["wrong_disease"] == "WRONG" for r in rows if r["wrong_disease"] in CALLS]}
+    return {k: v for k, v in out.items() if v}

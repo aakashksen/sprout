@@ -688,3 +688,224 @@ def test_freeze_refuses_a_prompt_changed_after_the_dev_run(rag_repo):
         e9.stage_freeze(cfg, rag_repo)
     with pytest.raises(e9.Refused, match="changed since"):
         e9.stage_unblind(cfg, rag_repo, reader_file(rag_repo, cfg, name="again.jsonl"), "r")
+
+
+# ----------------------------------------------------------------------------------------------- rag_test
+
+from sprout.rag.retrieve import Passage  # noqa: E402
+
+
+class FakeRetriever:
+    """Returns the same two passages for any search; stands in for the GPU index."""
+
+    crops = {"apple", "tomato"}
+
+    def search(self, query, *, crop=None, k=5, mode="hybrid", rerank=True):
+        return [Passage("Apple scab spreads in wet weather.", "a.pdf", 1, "apple", 0.9),
+                Passage("Tomato blight needs removal of old leaves.", "b.pdf", 2, "tomato", 0.8)]
+
+
+def writer_reply(messages):
+    return "Apple scab spreads in wet weather [1]. Remove fallen leaves in autumn [1]. Spray in spring [2]."
+
+
+def local_reply(messages):  # the kinder grader: supports two of the three claims
+    claim = messages[-1]["content"].rsplit("Claim: ", 1)[1]
+    return "SUPPORTED" if ("Remove" in claim or "Apple scab" in claim) else "NOT_SUPPORTED"
+
+
+def sonnet_reply(messages):
+    body = messages[-1]["content"]
+    if body.startswith("Question:"):  # the wrong-disease check
+        return "WRONG" if "ferns" in body else "FITS"
+    return "SUPPORTED" if "Spray" in body.rsplit("Claim: ", 1)[1] else "NOT_SUPPORTED"
+
+
+@pytest.fixture
+def frozen(rag_repo):
+    frozen_repo(rag_repo)
+    cfg = e9.load_config(rag_repo)
+    e9.stage_freeze(cfg, rag_repo)
+    commit(rag_repo, "freeze the prompt")
+    return rag_repo
+
+
+def run_rag(root, sonnet=None, writer=None, judge=None, override=""):
+    cfg = e9.load_config(root)
+    e9.stage_rag_retrieve(cfg, FakeRetriever(), root, override_note=override)
+    missing = e9.stage_rag_generate(cfg, writer or FakeLLM(reply=writer_reply, model="writer-model"), root, None,
+                                    override_note=override)
+    assert missing == []
+    e9.stage_rag_judge_local(cfg, judge or FakeLLM(reply=local_reply, model="judge-model"), root, override_note=override)
+    e9.stage_rag_sonnet(cfg, sonnet or FakeLLM(reply=sonnet_reply, model="sonnet"), root, override_note=override)
+    return e9.stage_rag_record(cfg, root, device="none: fakes", override_note=override)
+
+
+def test_rag_test_runs_every_stage_and_check_run_recomputes_it(frozen):
+    sonnet = FakeLLM(reply=sonnet_reply, model="sonnet")
+    path = run_rag(frozen, sonnet=sonnet)
+    rec = json.loads(path.read_text())
+    assert rec["split"] == "rag_test" and rec["experiment"] == "E9" and rec["n"] == 6 and rec["subset"] is None
+    rows = read_rows(frozen, rec, "served")
+    claims = sum(len(r["claims"]) for r in rows)
+    checked = sum(r["wrong_disease"] is not None for r in rows)
+    assert claims > 0 and checked > 0 and rec["claude_calls"] == claims + checked == len(sonnet.calls)
+    assert all(r["sonnet_calls"] == len(r["claims"]) + (r["wrong_disease"] is not None) for r in rows)
+    assert check_file(path, frozen, min_n=6) == []
+    assert rec["labels_reviewed"] is False and rec["config"]["labels_reviewed"] is False
+    assert rec["models"]["writer"] == "writer-model" and rec["config"]["judge"]["model"] == "judge-model"
+    # Sonnet never saw the local judge's grade, its model name, or the system name
+    seen = json.dumps(sonnet.calls)
+    for secret in ("judge-model", "writer-model", "verdict", "judge_reply", "served"):
+        assert secret not in seen
+
+
+def test_both_judges_are_reported_and_neither_is_called_accuracy(frozen):
+    path = run_rag(frozen)
+    rec = json.loads(path.read_text())
+    rows = read_rows(frozen, rec, "served")
+    local = [c["local"] for r in rows for c in r["claims"]]
+    sonnet = [c["sonnet"] for r in rows for c in r["claims"] if c["sonnet"] is not None]
+    values = rec["judged"]["values"]
+    assert values["claims_supported_by_local_judge"] == pytest.approx(sum(local) / len(local))  # on the same claims
+    assert values["claims_supported_by_sonnet"] == pytest.approx(sum(sonnet) / len(sonnet))
+    assert len(local) == len(sonnet) and values["claims_supported_by_local_judge"] != values["claims_supported_by_sonnet"]
+    assert 0 < values["answers_flagged_wrong_disease"] < 1
+    judges = rec["config"]["judges"]
+    assert judges["local"]["role"] == "upper figure" and judges["sonnet"]["role"] == "conservative figure"
+    assert judges["sonnet"]["model"] == "sonnet" and judges["same_claims_and_rubric"] is True
+    report = e9.report(rec, frozen)
+    for text in (path.read_text(), report, json.dumps(json.loads((frozen / rec["judged"]["file"]).read_text()))):
+        assert "accuracy" not in text.lower()
+    assert "upper figure" in report and "conservative figure" in report and "local judge" in report and "Sonnet" in report
+    assert "Remove fallen leaves" not in report  # a report of numbers, not of answers
+
+
+def test_wrong_disease_check_refuses_rag_test_when_its_prompt_hash_differs_from_the_frozen_one(frozen):
+    cfg = e9.load_config(frozen)
+    e9.stage_rag_retrieve(cfg, FakeRetriever(), frozen)
+    e9.stage_rag_generate(cfg, FakeLLM(reply=writer_reply, model="writer-model"), frozen, None)
+    e9.stage_rag_judge_local(cfg, FakeLLM(reply=local_reply, model="judge-model"), frozen)
+    prompt = frozen / e9.PROMPT_REL
+    prompt.write_text(prompt.read_text().replace("FITS or WRONG", "FITS or WRONG now"))
+    commit(frozen, "tune the prompt after seeing rag_test")  # committed and clean, but not the frozen prompt
+    sonnet = FakeLLM(reply=sonnet_reply, model="sonnet")
+    with pytest.raises(e9.Refused, match="differs from the frozen"):
+        e9.stage_rag_sonnet(cfg, sonnet, frozen)
+    assert sonnet.calls == []
+    with pytest.raises(e9.Refused, match="differs from the frozen"):
+        e9.stage_rag_record(cfg, frozen, device="none")
+
+
+def test_rag_test_stages_refuse_after_use(frozen):
+    cfg = e9.load_config(frozen)
+    run_rag(frozen)
+    with pytest.raises(e9.Refused, match="already been used"):
+        e9.stage_rag_retrieve(cfg, FakeRetriever(), frozen)
+    again = FakeLLM(reply=sonnet_reply, model="sonnet")
+    with pytest.raises(e9.Refused, match="already been used"):
+        e9.stage_rag_sonnet(cfg, again, frozen)
+    assert again.calls == []
+
+
+def test_rag_test_refuses_before_the_prompt_is_frozen(rag_repo):
+    cfg = e9.load_config(rag_repo)
+    with pytest.raises(e9.Refused, match="not committed"):
+        e9.stage_rag_retrieve(cfg, FakeRetriever(), rag_repo)
+
+
+def test_rag_sonnet_calls_are_resumed_capped_and_two_at_a_time(frozen, tmp_path, monkeypatch):
+    cfg = e9.load_config(frozen)
+    e9.stage_rag_retrieve(cfg, FakeRetriever(), frozen)
+    e9.stage_rag_generate(cfg, FakeLLM(reply=writer_reply, model="writer-model"), frozen, None)
+    e9.stage_rag_judge_local(cfg, FakeLLM(reply=local_reply, model="judge-model"), frozen)
+    # the cap refuses before any call, counting claims and wrong-disease calls together
+    ran = []
+    real = subprocess.run
+    monkeypatch.setattr("shutil.which", lambda name: "C:/bin/claude.exe")
+    monkeypatch.setattr(subprocess, "run", lambda cmd, **kw: ran.append(cmd) if "claude" in str(cmd[0]) else real(cmd, **kw))
+    counter = tmp_path / "claude_calls.json"
+    counter.write_text(json.dumps({"calls": 990}))
+    client = ClaudeCodeClient(model="sonnet", cap=1000, counter_path=counter)
+    with pytest.raises(LLMError, match="cap"):
+        e9.stage_rag_sonnet(cfg, client, frozen)
+    assert ran == [] and json.loads(counter.read_text())["calls"] == 990
+    monkeypatch.setattr(subprocess, "run", real)
+    low = {**cfg, "rag": {**cfg["rag"], "max_sonnet_calls": 5}}
+    with pytest.raises(LLMError, match="limit"):
+        e9.stage_rag_sonnet(low, FakeLLM(reply=sonnet_reply, model="sonnet"), frozen)
+    assert not list((frozen / "results/e9/work").glob("wd-test-*.jsonl"))
+    # a failure keeps what arrived, and a rerun asks for the rest only
+    count = {"n": 0}
+
+    def flaky(messages):
+        count["n"] += 1
+        if count["n"] == 4:
+            raise LLMError("usage limit")
+        return sonnet_reply(messages)
+
+    with pytest.raises(LLMError, match="usage limit"):
+        e9.stage_rag_sonnet(cfg, FakeLLM(reply=flaky, model="sonnet"), frozen)
+    saved = sum(len(f.read_text().splitlines()) for f in (frozen / "results/e9/work").rglob("*.jsonl")
+                if f.name.startswith(("claims-", "wd-test")))
+    assert 3 <= saved <= 4
+    again = FakeLLM(reply=sonnet_reply, model="sonnet")
+    e9.stage_rag_sonnet(cfg, again, frozen)
+    done = FakeLLM(reply=sonnet_reply, model="sonnet")
+    e9.stage_rag_sonnet(cfg, done, frozen)
+    assert done.calls == [] and len(again.calls) > 0
+    live, peak, lock = [0], [0], threading.Lock()
+
+    def slow(messages):
+        with lock:
+            live[0] += 1
+            peak[0] = max(peak[0], live[0])
+        threading.Event().wait(0.02)
+        with lock:
+            live[0] -= 1
+        return "FITS"
+
+    shutil.rmtree(frozen / "results/e9/work/claims", ignore_errors=True)
+    for f in (frozen / "results/e9/work").glob("wd-test-*.jsonl"):
+        f.unlink()
+    e9.stage_rag_sonnet(cfg, FakeLLM(reply=slow, model="sonnet"), frozen)
+    assert peak[0] == 2
+
+
+def test_rag_record_tampering_is_caught(frozen):
+    path = run_rag(frozen)
+    rec = json.loads(path.read_text())
+    pred = frozen / rec["predictions"]["served"]
+    original = pred.read_text()
+    lines = original.splitlines()
+    withc = next(i for i, x in enumerate(lines) if json.loads(x)["claims"])
+
+    def change(mutate):
+        row = json.loads(lines[withc])
+        mutate(row)
+        pred.write_text("\n".join([*lines[:withc], json.dumps(row), *lines[withc + 1:]]) + "\n")
+        return check_file(path, frozen, min_n=6)
+
+    assert any("judged" in p for p in change(lambda r: r["claims"][0].update(local=not r["claims"][0]["local"])))
+    assert any("judged" in p for p in change(lambda r: r["claims"][0].update(sonnet=not r["claims"][0]["sonnet"])))
+    assert any("reply" in p for p in change(lambda r: r.update(wrong_disease="FITS" if r["wrong_disease"] == "WRONG" else "WRONG")))
+    assert any("claims" in p for p in change(lambda r: r.update(text=r["text"] + " Extra sentence about fungicide.")))
+    assert any("sonnet_calls" in p for p in change(lambda r: r.update(sonnet_calls=r["sonnet_calls"] + 1)))
+    assert any("answered" in p or "recompute" in p for p in change(lambda r: r.update(answered=not r["answered"])))
+    pred.write_text(original)
+    assert check_file(path, frozen, min_n=6) == []
+    saved = json.loads(path.read_text())
+    saved["claude_calls"] += 1
+    path.write_text(json.dumps(saved))
+    assert any("claude_calls" in p for p in check_file(path, frozen, min_n=6))
+    saved["claude_calls"] -= 1
+    saved["config"]["prompt_sha256"] = "0" * 64
+    path.write_text(json.dumps(saved))
+    assert any("prompt" in p for p in check_file(path, frozen, min_n=6))
+    saved["config"]["prompt_sha256"] = rec["config"]["prompt_sha256"]
+    sidecar = frozen / rec["judged"]["file"]
+    samples = json.loads(sidecar.read_text())
+    samples["claims_supported_by_sonnet"][0] = not samples["claims_supported_by_sonnet"][0]
+    sidecar.write_text(json.dumps(samples))
+    path.write_text(json.dumps(saved))
+    assert any("judged" in p for p in check_file(path, frozen, min_n=6))

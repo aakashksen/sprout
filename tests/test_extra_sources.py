@@ -467,3 +467,22 @@ def test_a_new_source_fills_only_the_room_the_cap_leaves(tmp_path):
     got = both[both["source"] == PP_SOURCE]["sha1"].tolist()
     assert got == sorted(got)
     assert removed["over the per-class cap"] == 6 - len(got)
+
+
+def test_plant_pathology_rows_in_the_real_manifest_are_single_label_and_mapped():
+    from sprout.data.extra_sources import CLASS_MAP_EXTRA_PATH, PP_MAP, PP_SOURCE
+
+    extra = load_manifest("extra_train")
+    pp = extra[extra["source"] == PP_SOURCE]
+    assert len(pp) > 0
+    for r in pp.itertuples():
+        cls = Path(r.path).parent.name
+        assert Path(r.path).parent.parent.name == "plantpathology2021"
+        assert PP_MAP[cls] == r.label
+    cmap = pd.read_csv(CLASS_MAP_EXTRA_PATH).fillna("")
+    cmap = cmap[cmap["source"] == PP_SOURCE]
+    assert cmap["n_images"].sum() == 18632  # every row of the mirror is accounted for
+    assert set(cmap[cmap["lab_class"] != ""]["source_class"]) == set(PP_MAP)
+    assert (cmap[cmap["lab_class"] == ""]["n_kept"] == 0).all()
+    assert (cmap[cmap["lab_class"] == ""]["reason"] != "").all()
+    assert cmap["n_kept"].sum() == len(pp)

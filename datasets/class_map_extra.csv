@@ -203,3 +203,15 @@ plantwild_v2,zucchini bacterial wilt,,excluded,no lab class for this plant or di
 plantwild_v2,zucchini downy mildew,,excluded,no lab class for this plant or disease,45,0
 plantwild_v2,zucchini powdery mildew,,excluded,no lab class for this plant or disease,223,0
 plantwild_v2,zucchini yellow mosaic virus,,excluded,no lab class for this plant or disease,95,0
+plantpathology2021,complex,,excluded,no lab class for this apple disease,1602,0
+plantpathology2021,complex+frog_eye_leaf_spot,,excluded,multi-label photo: no single lab class,165,0
+plantpathology2021,complex+frog_eye_leaf_spot+scab,,excluded,multi-label photo: no single lab class,200,0
+plantpathology2021,complex+powdery_mildew,,excluded,multi-label photo: no single lab class,87,0
+plantpathology2021,complex+rust,,excluded,multi-label photo: no single lab class,97,0
+plantpathology2021,frog_eye_leaf_spot,,excluded,no lab class for this apple disease,3181,0
+plantpathology2021,frog_eye_leaf_spot+rust,,excluded,multi-label photo: no single lab class,120,0
+plantpathology2021,frog_eye_leaf_spot+scab,,excluded,multi-label photo: no single lab class,686,0
+plantpathology2021,healthy,Apple___healthy,mapped,,4624,0
+plantpathology2021,powdery_mildew,,excluded,no lab class for this apple disease,1184,0
+plantpathology2021,rust,Apple___Cedar_apple_rust,mapped,,1860,31
+plantpathology2021,scab,Apple___Apple_scab,mapped,,4826,106

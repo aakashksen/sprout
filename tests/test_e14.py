@@ -226,6 +226,10 @@ def test_direction_counts_each_disagreement_once():
     other = [False, False, True, False, True, True]
     d = agreement.direction(local, other)
     assert d == {"local_kinder": 2, "local_stricter": 2}
+    assert agreement.direction([True, True, True, False], [False, False, True, True]) == {
+        "local_kinder": 2,
+        "local_stricter": 1,
+    }  # uneven, so swapped labels fail
     c = agreement._counts(local, other)
     assert d["local_kinder"] + d["local_stricter"] == len(local) - c[0] - c[3]  # every split claim, once
     rows = [{"id": "q", "system": "s", "local": local, "sonnet": [*other[:5], None]}]

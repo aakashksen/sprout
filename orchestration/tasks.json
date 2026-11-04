@@ -447,7 +447,9 @@
         "{py} -m pytest tests/test_extra_sources.py -q",
         "{py} -m pytest tests/test_extra_sources.py -q -m real"
       ],
-      "status": "pending"
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-04T01:35:43+00:00"
     },
     {
       "id": "T4.6",
@@ -628,9 +630,16 @@
         "{py} -m pytest tests/test_answer.py -q",
         "{py} -m sprout.eval.check_run E7 --min-n 50 --split rag_dev"
       ],
-      "status": "in_progress",
-      "worktree": "<local path>",
-      "started_at": "2026-11-03T20:06:43+00:00"
+      "status": "done",
+      "started_at": "2026-11-03T20:06:43+00:00",
+      "verified": {
+        "commit": "02c67e6f210f629712bd618001d7cd5648dabd60",
+        "passed": true,
+        "at": "2026-11-04T04:14:55+00:00"
+      },
+      "attempts": 1,
+      "reason": "chemical and disposal note: the word list misses bleach, chlorine, TSP, neem, sulfur and burning, and 'product label' alone suppresses the note, so local rules are omitted",
+      "done_at": "2026-11-04T07:56:09+00:00"
     },
     {
       "id": "T6.6",
@@ -644,7 +653,9 @@
         "{py} -m pytest tests/test_e14.py -q",
         "{py} -m sprout.eval.check_run E14 --min-n 200 --split rag_dev"
       ],
-      "status": "pending"
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-04T07:56:37+00:00"
     },
     {
       "id": "T7.1",

@@ -1,0 +1,61 @@
+{
+ "superseded": {
+  "E7-20261103T211314827721Z": {
+   "by": "E7-20261103T234741564452Z",
+   "reason": "method v1 (first pass): its selection rules were revised after seeing its numbers (docs/DECISIONS.md, method revised)"
+  },
+  "E7-20261103T211358771284Z": {
+   "by": "E7-20261103T235742665344Z",
+   "reason": "method v1 (first pass): its selection rules were revised after seeing its numbers (docs/DECISIONS.md, method revised)"
+  },
+  "E7-20261103T211442616430Z": {
+   "by": "E7-20261103T235854416532Z",
+   "reason": "method v1 (first pass): its selection rules were revised after seeing its numbers (docs/DECISIONS.md, method revised)"
+  },
+  "E7-20261103T211528498754Z": {
+   "by": "E7-20261104T000006095961Z",
+   "reason": "method v1 (first pass): its selection rules were revised after seeing its numbers (docs/DECISIONS.md, method revised)"
+  },
+  "E7-20261103T211620506065Z": {
+   "by": "E7-20261104T000146288157Z",
+   "reason": "method v1 (first pass): its selection rules were revised after seeing its numbers (docs/DECISIONS.md, method revised)"
+  },
+  "E7-20261103T211722141404Z": {
+   "by": "E7-20261104T000358595403Z",
+   "reason": "method v1 (first pass): its selection rules were revised after seeing its numbers (docs/DECISIONS.md, method revised)"
+  },
+  "E7-20261103T231812228057Z": {
+   "by": "E7-20261104T040010301317Z",
+   "reason": "method v1 (first pass): its selection rules were revised after seeing its numbers (docs/DECISIONS.md, method revised); prompt variants ran behind a dense floor, so 60 of 101 questions never reached the writer"
+  },
+  "E7-20261104T004412525032Z": {
+   "by": "E7-20261104T010519096337Z",
+   "reason": "adds the combined and served variants"
+  },
+  "E7-20261104T010519096337Z": {
+   "by": "E7-20261104T012545627616Z",
+   "reason": "same variants rerun; served still used the base prompt"
+  },
+  "E7-20261104T012545627616Z": {
+   "by": "E7-20261104T013649302918Z",
+   "reason": "served ran with the base prompt, not the chosen one"
+  },
+  "E7-20261104T011437447083Z": {
+   "by": "E7-20261104T012205498018Z",
+   "reason": "claude_calls read 0 after a resumed stage"
+  },
+  "E7-20261104T012205498018Z": {
+   "by": "E7-20261104T014326302860Z",
+   "reason": "the comparison used the base prompt, not the chosen one"
+  },
+  "E7-20261104T013649302918Z": {
+   "by": "E7-20261104T040010301317Z",
+   "reason": "made before the decline fixes: prose declines and a trailing NO_SUPPORT were counted as answers and kept their sources; rerun on the fixed code"
+  },
+  "E7-20261104T014326302860Z": {
+   "by": "E7-20261104T040723229114Z",
+   "reason": "made before the decline fixes: prose declines and a trailing NO_SUPPORT were counted as answers and kept their sources; rerun on the fixed code"
+  }
+ },
+ "needs_rerun": {}
+}

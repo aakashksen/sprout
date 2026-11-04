@@ -24,9 +24,10 @@ def build(env: dict[str, str]):
     retriever = None
     index = env.get("SPROUT_INDEX_DIR", "")
     if index and (Path(index) / "chunks.jsonl").exists():
+        from sprout.rag import serving
         from sprout.rag.retrieve import Retriever
 
-        retriever = Retriever(Path(index))
+        retriever = Retriever(Path(index), config=serving.retrieval_config())
     return create_app(cfg, identifier=identifier, retriever=retriever)
 
 

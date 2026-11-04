@@ -9,7 +9,7 @@ import os
 import re
 import threading
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
 
@@ -27,6 +27,11 @@ class RetrievalConfig:
     min_score: float = 0.3  # applied to the final score of each passage on its own
     rerank_pool: int = 3  # rerank k * rerank_pool candidates
     dense_weight: float = 0.5  # hybrid = dense_weight * dense + (1 - dense_weight) * bm25
+    floors: dict[str, float] = field(default_factory=dict)  # per "mode" or "mode+rerank"; absent means min_score
+    crops_from_title: bool = False  # a page whose title names several crops answers for each of them
+
+    def floor_for(self, mode: str, rerank: bool) -> float:
+        return self.floors.get(f"{mode}+rerank" if rerank else mode, self.min_score)
 
 
 @dataclass
@@ -77,6 +82,12 @@ def vectors_cache_path(index_dir: Path, model: str, texts: list[str]) -> Path:
     return Path(index_dir) / f"vectors-{key}.npy"
 
 
+def chunk_search_text(row: dict) -> str:
+    """What is embedded, matched and reranked for a chunk: its context header (when the index has one) and text."""
+    header = row.get("header")
+    return header + "\n" + row["text"] if header else row["text"]
+
+
 def _tokens(text: str) -> list[str]:
     return _TOKEN.findall(text.lower())
 
@@ -104,11 +115,25 @@ class Retriever:
         if path.exists():
             with path.open(encoding="utf-8") as f:
                 self._chunks = [json.loads(line) for line in f if line.strip()]
-        self._toks = [_tokens(c["text"]) for c in self._chunks]
+        self._texts = [chunk_search_text(c) for c in self._chunks]
+        self._toks = [_tokens(t) for t in self._texts]
+        self._crops_of = self._chunk_crops()
         self._df = Counter(t for toks in self._toks for t in set(toks))
         self._avg_len = (sum(map(len, self._toks)) / len(self._toks)) if self._toks else 0.0
         self._vectors: np.ndarray | None = None
         self._lock = threading.RLock()
+
+    def _chunk_crops(self) -> list[set[str]]:
+        """Crops each chunk answers for: its own, plus (when enabled) other crops its title or diseases name."""
+        own = [{c["crop"]} for c in self._chunks]
+        if not self.config.crops_from_title:
+            return own
+        names = {c["crop"] for c in self._chunks} - {GENERAL_CROP}
+        found = []
+        for crops, c in zip(own, self._chunks, strict=True):
+            label = " ".join([c.get("title", ""), *c.get("diseases", [])]).lower()
+            found.append(crops | {n for n in names if re.search(r'\b' + re.escape(n) + r'(?:s|es)?\b', label)})
+        return found
 
     def _get_embedder(self) -> Embedder:
         with self._lock:
@@ -126,9 +151,9 @@ class Retriever:
         """Embed every chunk once. With the default embedder the result is saved in the index
         folder, keyed by model and chunk text, so a new Retriever starts without re-embedding.
         An unreadable or wrong-sized cache file is ignored and rewritten."""
-        texts = [c["text"] for c in self._chunks]
+        texts = self._texts
         cache = None
-        if self._embedder is None:
+        if self._embedder is None or getattr(self._embedder, "cache_ok", False):
             cache = vectors_cache_path(self._index_dir, self.config.embedding_model, texts)
             try:
                 saved = np.load(cache)
@@ -204,10 +229,11 @@ class Retriever:
         order = sorted(idx, key=lambda i: scores[i], reverse=True)
         if rerank:
             order = order[: k * self.config.rerank_pool]
-            texts = [self._chunks[i]["text"] for i in order]
+            texts = [self._texts[i] for i in order]
             scores = dict(zip(order, self._get_reranker().score(query, texts), strict=True))
             order.sort(key=lambda i: scores[i], reverse=True)
-        kept = [i for i in order if scores[i] >= self.config.min_score][:k]
+        floor = self.config.floor_for(mode, rerank)
+        kept = [i for i in order if scores[i] >= floor][:k]
         return [
             Passage(
                 text=self._chunks[i]["text"],
@@ -247,7 +273,7 @@ class Retriever:
         if crop is None:
             idx = [i for i, c in enumerate(self._chunks) if has_disease(c)]
             return self._rank(query, idx, k, mode, rerank)
-        idx = [i for i, c in enumerate(self._chunks) if c["crop"] == crop and has_disease(c)]
+        idx = [i for i, c in enumerate(self._chunks) if crop in self._crops_of[i] and has_disease(c)]
         found = self._rank(query, idx, k, mode, rerank)
         if found:
             return found

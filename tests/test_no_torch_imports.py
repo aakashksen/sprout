@@ -34,7 +34,7 @@ def _modules(package: str) -> list[str]:
 
 
 def test_serving_modules_do_not_import_torch():
-    names = [*_modules("sprout.web"), *_modules("sprout.rag"), "sprout.serve.types"]
+    names = [*_modules("sprout.web"), *_modules("sprout.rag"), *_modules("sprout.llm"), "sprout.serve.types"]
     code = (
         "import importlib, sys\n"
         f"for n in {names!r}:\n    importlib.import_module(n)\n"

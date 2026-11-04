@@ -122,11 +122,13 @@ def _gate_or_rag_metric(name: str, s: Scored) -> object:
         return _rate(~s.accepted, s.is_plant)
     if name == "not_plant_acceptance_rate" and s.accepted is not None and s.is_plant is not None:
         return _rate(s.accepted, ~s.is_plant)
-    if name in ("answers_when_answerable", "declines_when_unanswerable") and s.answered is not None:
+    declines = {"declines_when_unanswerable": "abstain", "declines_when_crop_mismatch": "crop_mismatch",
+                "declines_when_ambiguous": "clarify"}
+    if (name == "answers_when_answerable" or name in declines) and s.answered is not None:
         gold = np.array(s.expected or [])
         if name == "answers_when_answerable":
             return _rate(s.answered, gold == "answer")
-        return _rate(~s.answered, gold == "abstain")
+        return _rate(~s.answered, gold == declines[name])
     if name == "median_iou" and s.iou is not None:
         return float(np.median(s.iou))
     return _OTHER
@@ -190,7 +192,7 @@ def recompute_comparison(
     a: Scored, b: Scored, metric: str, n: int = BOOTSTRAP_N, seed: int = BOOTSTRAP_SEED
 ) -> dict[str, Any] | None:
     """System a minus system b over the same resampled groups, as saved in a record's `comparisons`.
-    McNemar is always on per-image correctness (accuracy, or recall@k for retrieval)."""
+    McNemar is always on per-image correctness (accuracy, or recall@k for retrieval; for mrr, first-rank hits)."""
     if a.groups != b.groups:
         return None
     if metric == "macro_f1":
@@ -200,7 +202,7 @@ def recompute_comparison(
         diff, lo, hi = paired_macro_f1_diff(a.labels, pa, pb, a.groups, a.probs.shape[1], n, seed)
         p = mcnemar_exact(pa == a.labels, pb == b.labels)
         return {"diff": diff, "ci": [lo, hi], "mcnemar_p": p}
-    if metric != "accuracy" and not re.fullmatch(r"recall@\d+", metric):
+    if metric not in ("accuracy", "mrr") and not re.fullmatch(r"recall@\d+", metric):
         return None
     sa, sb = item_series(metric, a), item_series(metric, b)
     if sa is None or sb is None or len(sa) != len(sb):

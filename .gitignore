@@ -30,6 +30,7 @@ orchestration/.land.lock
 datasets/review/label_sheets/
 datasets/review/label_joined/
 results/e5/stages.log
+results/e7/work/
 datasets/review/label_sheets/
 datasets/review/label_joined/
 datasets/followup/sheets/

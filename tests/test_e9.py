@@ -290,3 +290,78 @@ def test_image_record_is_recomputed_and_tampering_is_caught(repo):
     f["subset"] = None
     fpath.write_text(json.dumps(f))
     assert check_file(fpath, repo, min_n=1) != []
+
+
+# ----------------------------------------------------------------------------------------------- real predictors, tiny
+
+
+def tiny_models(root):
+    """Real files of the kinds the config names, all tiny: two torch checkpoints, an XGBoost model, an ONNX export."""
+    import torch
+    import xgboost as xgb
+    from PIL import Image
+
+    from sprout.baselines.classic import classic_features
+    from sprout.serve.export import export_module
+    from sprout.train.config import TrainConfig
+    from sprout.train.loop import build_model
+
+    class_map = {n: i for i, n in enumerate(CLASSES)}
+    torch.manual_seed(0)
+    model = build_model("tiny_cnn", len(CLASSES), pretrained=False)
+    state = {"model": model.state_dict(), "class_map": class_map,
+             "config": TrainConfig(manifest="lab", out_dir="x", model="tiny_cnn").to_dict()}
+    for rel in ("models/e1/best.pt", "models/e4/dinov2_head/best.pt", "models/e4/convnext_joint/best.pt"):
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        torch.save(state, root / rel)
+    rng = np.random.default_rng(0)
+    for i in range(12):
+        Image.fromarray(rng.integers(0, 255, (40, 40, 3), dtype=np.uint8)).save(root / f"im{i}.png")
+    feats = np.stack([classic_features(Image.open(root / f"im{i}.png"), size=32) for i in range(12)])
+    booster = xgb.train({"objective": "multi:softprob", "num_class": 4, "max_depth": 2}, xgb.DMatrix(feats, label=np.arange(12) % 4), 3)
+    (root / "models/e3/xgboost").mkdir(parents=True)
+    booster.save_model(str(root / "models/e3/xgboost/model.ubj"))
+    export_module(model, class_map, root / "models/e6/model.dynamic.onnx", "tiny_cnn")
+    onnx_sha = e9.sha256_file(root / "models/e6/model.dynamic.onnx")
+    chosen_sha = e9.sha256_file(root / "models/e4/convnext_joint/best.pt")
+    write(root, "results/e6/export.json", {"checkpoint_sha256": chosen_sha, "files": {
+        "onnx_dynamic": {"file": "model.dynamic.onnx", "sha256": onnx_sha}}})
+    write(root, "results/e12/decision.json", {"chosen_model": "models/e4/convnext_joint/best.pt",
+                                              "chosen_model_sha256": chosen_sha, "class_names": CLASSES, "refit_e5": False})
+    return chosen_sha
+
+
+def test_real_predictors_run_tiny_models_of_every_kind(repo):
+    tiny_models(repo)
+    cfg = e9.load_config(repo)
+    decision = e9.load_decision(cfg, repo)
+    found = e9.build_predictors(cfg, decision, repo)
+    assert set(found) == set(SYSTEMS)
+    frame = pd.DataFrame({"path": [str(repo / f"im{i}.png") for i in range(5)], "label": [CLASSES[i % 4] for i in range(5)]})
+    for name, p in found.items():
+        assert p.class_names == CLASSES, name
+        out = p.run(frame)
+        assert out.shape == (5, 4) and np.allclose(out.sum(axis=1), 1.0, atol=1e-5), name
+        assert p.detail.get("sha256"), name  # each frozen file is identified by its hash
+    assert found["improved"].detail["sha256"] == decision["chosen_model_sha256"]
+
+
+def test_quantized_model_must_come_from_the_chosen_checkpoint(repo):
+    sha = tiny_models(repo)
+    cfg = e9.load_config(repo)
+    decision = e9.load_decision(cfg, repo)
+    other = json.loads((repo / "results/e6/export.json").read_text())
+    other["checkpoint_sha256"] = "b" * 64
+    write(repo, "results/e6/export.json", other)
+    with pytest.raises(e9.Refused, match="not exported from the chosen model"):
+        e9.build_predictors(cfg, decision, repo)
+    other["checkpoint_sha256"] = sha
+    other["files"]["onnx_dynamic"]["sha256"] = "c" * 64
+    write(repo, "results/e6/export.json", other)
+    with pytest.raises(e9.Refused, match="changed since"):
+        e9.build_predictors(cfg, decision, repo)
+    changed = {**decision, "chosen_model_sha256": "d" * 64}
+    other["files"]["onnx_dynamic"]["sha256"] = e9.sha256_file(repo / "models/e6/model.dynamic.onnx")
+    write(repo, "results/e6/export.json", other)
+    with pytest.raises(e9.Refused, match="differs from E12's decision"):
+        e9.build_predictors(cfg, changed, repo)

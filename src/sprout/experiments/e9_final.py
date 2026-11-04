@@ -283,3 +283,94 @@ def run_images(split: str, cfg: dict[str, Any], predictors: dict[str, Predictor]
         written.append(write_run("E9", split, config, models, metrics, intervals, attempts, rows, info.hash, root=root,
                                  subset=name, comparisons=comparisons, notes=notes))
     return written
+
+
+# ---------------------------------------------------------------- the real models
+
+def _torch_predictor(path: Path, label: str, batch_size: int, device: str) -> Predictor:
+    import torch
+
+    from sprout.eval.predict import predict
+    from sprout.train.checkpoint import load_checkpoint
+    from sprout.train.loop import build_model
+
+    ckpt = load_checkpoint(path)
+    class_map = ckpt["class_map"]
+    model = build_model(ckpt["config"].model, len(class_map), pretrained=False)
+    model.load_state_dict(ckpt["model"])
+
+    def run(frame: pd.DataFrame) -> np.ndarray:
+        model.to(torch.device(device))
+        try:
+            return predict(model, frame, class_map, batch_size).probs
+        finally:
+            model.cpu()
+
+    names = sorted(class_map, key=class_map.get)
+    return Predictor(f"{label}: {ckpt['config'].model} checkpoint {path.name}", names, run,
+                     {"kind": "torch_checkpoint", "model": ckpt["config"].model, "sha256": sha256_file(path)})
+
+
+def _xgboost_predictor(path: Path, features: dict[str, Any], names: list[str]) -> Predictor:
+    import xgboost as xgb
+    from PIL import Image
+
+    from sprout.baselines.classic import classic_features, xgboost_probs
+
+    booster = xgb.Booster()
+    booster.load_model(str(path))
+
+    def run(frame: pd.DataFrame) -> np.ndarray:
+        rows = []
+        for p in frame["path"]:
+            with Image.open(p) as img:
+                rows.append(classic_features(img, **features))
+        return xgboost_probs(booster, np.stack(rows))
+
+    return Predictor("HOG and colour histograms with XGBoost", names, run,
+                     {"kind": "xgboost", "features": features, "sha256": sha256_file(path)})
+
+
+def _onnx_predictor(cfg: dict[str, Any], decision: dict[str, Any], root: Path) -> Predictor:
+    """The quantized file E6 exported from the chosen checkpoint, checked against E6's export.json."""
+    from PIL import Image
+
+    from sprout.serve.export import OnnxModel
+
+    spec = cfg["systems"]["quantized"]
+    export = json.loads((root / spec["export_file"]).read_text(encoding="utf-8"))
+    if export["checkpoint_sha256"] != decision["chosen_model_sha256"]:
+        raise Refused(f"{spec['export_file']} was not exported from the chosen model; run E6 on it first")
+    info = export["files"].get(spec["variant"])
+    path = root / spec["model_dir"] / info["file"] if info else None
+    if path is None or not path.is_file() or sha256_file(path) != info["sha256"]:
+        raise Refused(f"{spec['variant']} is missing or changed since E6 exported it")
+    model = OnnxModel(path)
+
+    def run(frame: pd.DataFrame) -> np.ndarray:
+        out = []
+        for p in frame["path"]:
+            with Image.open(p) as img:
+                out.append(model.predict(img))
+        return np.stack(out)
+
+    return Predictor(f"{spec['variant']} export of the chosen model", model.class_names, run,
+                     {"kind": "onnx", "variant": spec["variant"], "sha256": info["sha256"]})
+
+
+def build_predictors(cfg: dict[str, Any], decision: dict[str, Any], root: Path = ROOT) -> dict[str, Predictor]:
+    """The five frozen systems from the config and E12's decision. The improved model is whatever E12 chose, and its
+    file must be the one the decision hashes."""
+    root, size, device = Path(root), cfg["batch_size"], cfg["torch_device"]
+    spec = cfg["systems"]
+    chosen = root / decision["chosen_model"]
+    if not chosen.is_file() or sha256_file(chosen) != decision["chosen_model_sha256"]:
+        raise Refused(f"{decision['chosen_model']} differs from E12's decision (sha256) or is missing")
+    return {
+        "baseline": _torch_predictor(root / spec["baseline"]["checkpoint"], "clean lab baseline", size, device),
+        "improved": _torch_predictor(chosen, "improved model chosen by E12", size, device),
+        "xgboost": _xgboost_predictor(root / spec["xgboost"]["model"], spec["xgboost"]["features"],
+                                      decision["class_names"]),
+        "dinov2": _torch_predictor(root / spec["dinov2"]["checkpoint"], "DINOv2 small", size, device),
+        "quantized": _onnx_predictor(cfg, decision, root),
+    }

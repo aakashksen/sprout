@@ -19,7 +19,7 @@ from sprout.train.augment import BACKGROUND_CHANCE, paste_background
 from sprout.train.config import TrainConfig
 from sprout.train.dataset import train_transform, val_transform
 
-TRAINING = ("lab_train", "field_train")
+TRAINING = ("lab_train", "field_train", "extra_train")
 SELECTION = "field_dev"
 MASK_SIZE = 320  # the size E10 predicts at; cached crop masks are stored at this size
 LEAF_FRACTION = (0.05, 0.98)  # a leaf mask outside this share of the photo is not trusted
@@ -33,13 +33,21 @@ def check_splits(config: TrainConfig) -> None:
         raise ValueError(f"only {TRAINING} may train; got {config.train_splits}")
     if config.select_split != SELECTION:
         raise ValueError(f"selection uses {SELECTION}, not {config.select_split!r}")
+    if "extra_train" in config.train_splits and not config.extra_manifest:
+        raise ValueError("train_splits names extra_train but extra_manifest is not set")
 
 
 def load_joint_manifest(config: TrainConfig) -> pd.DataFrame:
     """Lab and real rows in one table with a `source` column ('lab' for lab). Test rows are dropped here."""
     check_splits(config)
     lab = load_manifest(config.manifest).assign(source="lab")
-    both = pd.concat([lab, load_manifest(config.field_manifest)], ignore_index=True)
+    frames = [lab, load_manifest(config.field_manifest)]
+    if config.extra_manifest:
+        extra = load_manifest(config.extra_manifest)
+        if "source" not in extra or (extra["split"] != "extra_train").any():
+            raise ValueError(f"{config.extra_manifest} must have a source column and only extra_train rows")
+        frames.append(extra)
+    both = pd.concat(frames, ignore_index=True)
     return both[~both["split"].str.endswith("_test")].reset_index(drop=True)
 
 
@@ -56,14 +64,17 @@ def cap_per_class(rows: pd.DataFrame, cap: int, seed: int) -> pd.DataFrame:
 
 
 def select_rows(manifest: pd.DataFrame, config: TrainConfig) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """The training rows (lab capped per class) and the selection rows, minus any held-out source."""
+    """The training rows (lab capped per class) and the selection rows, minus any held-out source. Extra rows
+    that repeat a photo of the held-out source (same sha1 or same group) leave training with it."""
     check_splits(config)
     train = manifest[manifest["split"].isin(config.train_splits)]
     lab = cap_per_class(train[train["source"] == "lab"], config.lab_cap, config.seed)
     train = pd.concat([lab, train[train["source"] != "lab"]]).sort_index()
     sel = manifest[manifest["split"] == config.select_split]
     if config.held_out_source:
-        train = train[train["source"] != config.held_out_source]
+        held = manifest[manifest["source"] == config.held_out_source]
+        copies = (train["split"] == "extra_train") & (train["sha1"].isin(held["sha1"]) | train["group"].isin(held["group"]))
+        train = train[(train["source"] != config.held_out_source) & ~copies]
         sel = sel[sel["source"] != config.held_out_source]
     return train, sel
 

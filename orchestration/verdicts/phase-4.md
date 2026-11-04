@@ -10,7 +10,7 @@ Phase 4 (T4.0 to T4.8: E10, E4, E5, E11, E12, E13, extra sources). Reviewed on `
 - `results/e12/decision.json` `chosen_model_sha256` (362a11f3...) equals the sha256 of `models/e4/convnext_joint/best.pt`.
 - Train, evaluation and E5 all go through `sprout.preprocess.preprocess` (`src/sprout/train/dataset.py:10`, `src/sprout/eval/predict.py:21`, `src/sprout/experiments/e5_confidence.py:169`).
 - Every source in use has a section in `docs/datasets.md`: PlantVillage, PlantDoc, PlantSeg, COCO, segmented PlantVillage, PlantWild (CC BY-NC-ND 4.0, publishing needs the person), Plant Pathology 2021 (third-party, terms unconfirmed).
-- The phase's own tests: the run of `tests/test_e4.py test_e5.py test_e10.py test_e11.py test_e12.py test_e13.py test_label_review.py test_extra_sources.py` through one_test.py had not finished when this was written (the real-manifest copy test is slow). Treat the test status as unconfirmed by this review.
+- The phase's own tests: the run of the eight phase-4 test files (`-x`, one process) printed 109 passing dots (about 75% of the run, no F) and then ended with no summary line; the 900 s `timeout` most likely killed it in the slow real-manifest copy test. The exit code 0 was `tail`'s. So: no failure seen, but the run is incomplete and is not evidence that the suite passes.
 
 ## Defects
 

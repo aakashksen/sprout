@@ -1,0 +1,179 @@
+{
+ "run_id": "E7-20261104T004412525032Z",
+ "experiment": "E7",
+ "git_commit": "a834e934043bbebc8ed330be51387909a1222360",
+ "dirty": false,
+ "dataset_hash": "b6b3b168bfd8792f7311f47c457652657d82eb6e47e8a45e2a3aebaf9ba793f9",
+ "split": "rag_dev",
+ "subset": null,
+ "config": {
+  "writer": "qwen3.5:4b-q4_K_M",
+  "judge": {
+   "model": "gemma4:e4b-it-qat"
+  },
+  "retrieval": {
+   "index": "index",
+   "mode": "hybrid",
+   "rerank": true,
+   "query_mode": "question",
+   "crops_from_title": false
+  },
+  "floors": {
+   "dense": 0.732844,
+   "hybrid": 0.806462,
+   "hybrid+rerank": 0.73875
+  },
+  "prompts": {
+   "base": "base",
+   "faithful": "base+faithful",
+   "abstain": "base+abstain",
+   "ask": "base+ask"
+  },
+  "caches": {
+   "base": "answers-nofloor",
+   "faithful": "answers-nofloor",
+   "abstain": "answers-nofloor",
+   "ask": "answers-nofloor"
+  },
+  "answer_config": {
+   "prompt_version": "base",
+   "mode": "hybrid",
+   "rerank": true,
+   "k": 5,
+   "query_mode": "question",
+   "history_turns": 4,
+   "history_chars": 500,
+   "max_tokens": 400,
+   "timeout_s": 180.0
+  },
+  "device": "writer cuda; judge cuda",
+  "device_info": {
+   "writer": {
+    "model": "qwen3.5:4b-q4_K_M",
+    "size": 3130009844,
+    "size_vram": 3130009844
+   },
+   "judge": {
+    "model": "gemma4:e4b-it-qat",
+    "size": 3086242282,
+    "size_vram": 3086242282
+   }
+  },
+  "judgments_file": "E7-prompts-v2-20261103.judgments.jsonl",
+  "blind_file": "E7-prompts-v2-20261103.blind.jsonl",
+  "stage": "prompts",
+  "method_version": 2,
+  "labels_reviewed": false,
+  "gold_matching": "A passage is the gold hit when its source and page equal the question's gold source and page. A document the index holds as a single page (every HTML page and Markdown file is 'page 1') would match any of its chunks, so there the passage must also contain one of the question's answer terms.",
+  "crop_source": "The plant comes from the question text (or the question's stated crop), never from the gold label. A top disease is simulated from the class names of that plant that the question names; a plant with no such class has no photo diagnosis.",
+  "writer_usage": {
+   "base": {
+    "rows": 101,
+    "model_calls": 101,
+    "rows_without_model_call": 0,
+    "model_seconds": 367.9
+   },
+   "faithful": {
+    "rows": 101,
+    "model_calls": 101,
+    "rows_without_model_call": 0,
+    "model_seconds": 304.1
+   },
+   "abstain": {
+    "rows": 101,
+    "model_calls": 101,
+    "rows_without_model_call": 0,
+    "model_seconds": 300.4
+   },
+   "ask": {
+    "rows": 101,
+    "model_calls": 101,
+    "rows_without_model_call": 0,
+    "model_seconds": 258.0
+   }
+  }
+ },
+ "models": {
+  "writer": "qwen3.5:4b-q4_K_M",
+  "judge": "gemma4:e4b-it-qat"
+ },
+ "n": 101,
+ "metrics": {
+  "base": {
+   "answers_when_answerable": 1.0,
+   "declines_when_unanswerable": 0.0,
+   "declines_when_crop_mismatch": 0.07142857142857142,
+   "declines_when_ambiguous": 0.0
+  },
+  "faithful": {
+   "answers_when_answerable": 1.0,
+   "declines_when_unanswerable": 0.0,
+   "declines_when_crop_mismatch": 0.0,
+   "declines_when_ambiguous": 0.0
+  },
+  "abstain": {
+   "answers_when_answerable": 1.0,
+   "declines_when_unanswerable": 0.14285714285714285,
+   "declines_when_crop_mismatch": 0.5714285714285714,
+   "declines_when_ambiguous": 0.0
+  },
+  "ask": {
+   "answers_when_answerable": 0.8666666666666667,
+   "declines_when_unanswerable": 0.9285714285714286,
+   "declines_when_crop_mismatch": 1.0,
+   "declines_when_ambiguous": 0.6923076923076923
+  }
+ },
+ "measurements": {},
+ "judged": {
+  "file": "results/runs/E7-20261104T004412525032Z.judged.json",
+  "values": {
+   "faithfulness_base": 0.7215411558669002,
+   "faithfulness_faithful": 0.7799642218246869,
+   "faithfulness_abstain": 0.7629310344827587,
+   "faithfulness_ask": 0.8599221789883269
+  }
+ },
+ "intervals": {
+  "base": {},
+  "faithful": {},
+  "abstain": {},
+  "ask": {}
+ },
+ "per_class": {},
+ "confusion": {},
+ "bootstrap": {
+  "n": 10000,
+  "seed": 13
+ },
+ "comparisons": [],
+ "attempts": [
+  {
+   "system": "base",
+   "answers_graded": 101
+  },
+  {
+   "system": "faithful",
+   "answers_graded": 101
+  },
+  {
+   "system": "abstain",
+   "answers_graded": 95
+  },
+  {
+   "system": "ask",
+   "answers_graded": 59
+  }
+ ],
+ "claude_calls": 0,
+ "labels_reviewed": false,
+ "predictions": {
+  "base": "results/runs/E7-20261104T004412525032Z.base.predictions.jsonl",
+  "faithful": "results/runs/E7-20261104T004412525032Z.faithful.predictions.jsonl",
+  "abstain": "results/runs/E7-20261104T004412525032Z.abstain.predictions.jsonl",
+  "ask": "results/runs/E7-20261104T004412525032Z.ask.predictions.jsonl"
+ },
+ "started_at": "2026-11-04T00:44:12.525032+00:00",
+ "finished_at": "2026-11-04T00:44:12.525032+00:00",
+ "notes": "Faithfulness is the share of claims the judge model found supported by the cited passages."
+}

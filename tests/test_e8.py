@@ -328,7 +328,8 @@ def test_tampered_records_fail_the_check(root, measured):
     samples = root / rec["measurements"]["file"]
     saved = samples.read_text()
     data = json.loads(saved)
-    data["c20_end_to_end_ms"][0] += 1000.0  # a sample changed after the summary was written
+    lowest = data["c20_end_to_end_ms"].index(min(data["c20_end_to_end_ms"]))
+    data["c20_end_to_end_ms"][lowest] += 1000.0  # a sample changed after the summary was written (moves p50 and p95)
     samples.write_text(json.dumps(data))
     assert any("does not match its saved file" in p for p in check("E8", root=root, min_n=N, split="perf"))
     samples.write_text(saved)

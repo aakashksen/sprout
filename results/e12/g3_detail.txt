@@ -1,0 +1,8 @@
+seen E4 : n 1028 answered 522 (0.508) wrong-when-answered 28 (0.054) sick-called-healthy 0 healthy-called-sick 0
+seen E12: n 1028 answered 522 (0.508) wrong-when-answered 24 (0.046) sick-called-healthy 2 healthy-called-sick 0
+  omato leaf yellow virus/17fc47.jpg source plantdoc true Tomato___Tomato_Yellow_Leaf_Curl_Virus said Tomato___healthy conf 0.886
+  60bae9f613f360403943f108a03083.jpg source plantdoc true Tomato___Tomato_Yellow_Leaf_Curl_Virus said Tomato___healthy conf 0.922
+heldout_plantdoc E4  (thresholds fitted on the seen-source model, for context): n 610 answered 127 (0.208) wrong-when-answered 21 (0.165) sick-called-healthy 0 healthy-called-sick 3
+heldout_plantdoc E12 (thresholds fitted on the seen-source model, for context): n 610 answered 179 (0.293) wrong-when-answered 11 (0.061) sick-called-healthy 0 healthy-called-sick 0
+heldout_plantseg E4  (thresholds fitted on the seen-source model, for context): n 418 answered 129 (0.309) wrong-when-answered 12 (0.093) sick-called-healthy 1 healthy-called-sick 0
+heldout_plantseg E12 (thresholds fitted on the seen-source model, for context): n 418 answered 170 (0.407) wrong-when-answered 9 (0.053) sick-called-healthy 0 healthy-called-sick 0

@@ -81,6 +81,16 @@ class Gate(Sandbox):
         self.verdict("T1", "FAIL")
         self.assertIn("not passed this exact commit", self.ctl("done", "T1").stderr)
 
+    def test_only_an_exempt_task_skips_the_verifier(self):
+        self.ctl("start", "T1")
+        self.assertEqual(self.ctl("verify", "T1").returncode, 0)
+        self.assertIn("no verifier verdict", self.ctl("done", "T1").stderr)
+        path = self.root / "orchestration" / "tasks.json"
+        tasks = json.loads(path.read_text())["tasks"]
+        next(t for t in tasks if t["id"] == "T1")["verifier"] = False
+        self.write(tasks)
+        self.assertNotIn("verdict", self.ctl("done", "T1").stderr)
+
     def test_done_is_refused_when_a_commit_landed_after_verifying(self):
         self.ctl("start", "T1")
         self.ctl("verify", "T1")
@@ -563,6 +573,10 @@ class PlanMatchesState(unittest.TestCase):
         self.assertTrue(needs)
         self.assertTrue(set(needs) <= agent_tasks, set(needs) - agent_tasks)
         self.assertTrue(set(exclusive) <= agent_tasks)
+
+    def test_only_the_named_tasks_skip_the_verifier(self):
+        exempt = {t["id"] for t in self.tasks if t.get("verifier") is False}
+        self.assertEqual(exempt, {"T5.1", "T5.2", "T8.2"})
 
     def test_every_agent_declares_a_model(self):
         for path in (REPO / ".claude" / "agents").glob("*.md"):

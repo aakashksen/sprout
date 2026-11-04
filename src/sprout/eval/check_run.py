@@ -651,6 +651,10 @@ def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
         return problems
     if rec["experiment"] == "E14":
         return _judge_check_problems(rec, root, min_n)
+    if rec["experiment"] == "E14H":
+        from sprout.experiments.e14h_haiku_check import problems as haiku_check_problems
+
+        return haiku_check_problems(rec, root, min_n)
     problems = _header_problems(rec, root, min_n)
     scope = _scope(rec, root, problems)
     if scope is None:

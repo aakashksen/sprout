@@ -1,0 +1,43 @@
+{
+  "experiment": "E5",
+  "out_dir": "results/e12/e5_refit",
+  "field_split": "field_dev",
+  "not_plant_split": "not_plant_dev",
+  "seed": 0,
+  "fit_percent": 50,
+  "subset": "group_part:0:50",
+  "num_workers": 0,
+  "batch_size": 32,
+  "model": {
+    "name": "convnext_joint_extra",
+    "checkpoint": "models/e12/convnext_joint_extra/best.pt",
+    "e4_record": "E12-20261104T101951153850Z",
+    "field_dev_predictions_file": "models/e12/convnext_joint_extra/field_dev.predictions.jsonl",
+    "field_dev_predictions": "Read from the E12 seen-source run's saved probabilities for every field_dev photo (1,040 rows, written beside the checkpoint). The record named in e4_record (an E12 record, kept under this name so E5's code is unchanged) gives the class names and the field_dev manifest hash. No GPU is used for field_dev. Same log-of-probabilities rule as configs/e5.json.",
+    "not_plant_dev_predictions": "Computed by the probs-not-plant stage (GPU) with this checkpoint and sprout.preprocess."
+  },
+  "method": "Temperature, the abstention threshold and the gate settings are chosen on the fitting part of each dev split and scored on the scoring part. Each split is cut by near-duplicate group (field_dev by its group column, not_plant_dev one image per group) with sprout.eval.records.scoring_part, seed 0, 50% of the groups to fitting; the record's subset group_part:0:50 names the scoring part. The settings saved in results/e5/chosen.json come from the fitting part only. The final held-out estimate is T8.1's.",
+  "temperature": "Minimises negative log-likelihood of the fitting part of field_dev, searched between 0.05 and 20.",
+  "abstention": {
+    "min_coverage": 0.5,
+    "rule": "choose_threshold on the calibrated probabilities of the fitting part of field_dev: the threshold with the lowest confident error rate among those answering at least min_coverage of the rows; a tie goes to the lower threshold. The threshold is rounded to 6 decimals."
+  },
+  "gates": {
+    "green_rule": {
+      "green_threshold": 0.05,
+      "definition": "legacy/PlantProject/application.py: OpenCV HSV inside [35,40,40]..[85,255,255], reject under 5% green pixels. Not fitted."
+    },
+    "confidence": "Accept when the calibrated top probability is at or above a threshold: the highest threshold whose plant rejection rate on the fitting part of field_dev is at most plant_rejection_budget.",
+    "confidence_ood": "Accept when the top probability is at or above one threshold and the normalized entropy of the probabilities (the out-of-distribution score, 0 for one sure class and 1 for a flat spread) is at or below another. Both come from a grid of 26 candidates each, taken from the fitting part of field_dev quantiles within the budget; among pairs whose plant rejection rate on field_dev fitting rows is at most the budget, take the highest non-plant rejection rate on not_plant_dev fitting rows, then the lowest plant rejection, then the lower confidence threshold, then the lower entropy threshold.",
+    "plant_rejection_budget": 0.05,
+    "grid": 26,
+    "choice_rule": "Among green_rule, confidence and confidence_ood (in that order), keep those whose plant rejection rate on the fitting part of field_dev is at most plant_rejection_budget, then the highest non-plant rejection rate on the fitting part of not_plant_dev; a tie goes to the earlier one in the list."
+  },
+  "limits": [
+    "The model, convnext_joint, was selected on field_dev, so every number here is a development number.",
+    "field_dev is seen-source: E4's held-out-source runs scored far lower on unseen sources, so calibration and thresholds fitted here may not carry over to new photo sources.",
+    "The out-of-distribution score uses only the probabilities, because the serving check receives probabilities; scores built from logits or features were not tried.",
+    "not_plant_dev is COCO 2017 val images without potted plants; it measures rejection of everyday objects, not of every non-plant photo."
+  ],
+  "refit": "A refit of configs/e5.json on E12's seen-source model for the E12 gates (docs/DECISIONS.md). Every rule, seed, split and method value is the same as configs/e5.json; only out_dir and model differ. Outputs go to results/e12/e5_refit so results/e5/chosen.json stays E4's until the gates pass. Stages: probs-not-plant (GPU), green (CPU), fit (CPU). The record stage is not run for the refit."
+}

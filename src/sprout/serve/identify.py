@@ -5,6 +5,11 @@ Order of checks: bytes and header size, EXIF orientation, model, temperature, th
 `results/e5/chosen.json` shape E5 writes (`temperature`, `abstain_threshold`, `gate.settings`), plus `model_sha256`:
 the sha256 of the checkpoint the numbers were fitted for. The model file carries the sha256 of the checkpoint it was
 exported from, and the two must be equal, or nothing is loaded. There is no way around the check.
+
+The calibration also lists `classes`, the only labels that may be named. A model with more outputs has the others
+masked and the rest renormalized before calibration (the rule T4.9 scored by); a listed class the model lacks is
+refused. An optional `healthy_threshold` is a stricter bar for a top class ending in "healthy": never lower than
+`abstain_threshold`.
 """
 from __future__ import annotations
 
@@ -41,6 +46,9 @@ class Identifier:
         _require_same_checkpoint(self.model.source_sha256, calibration.get("model_sha256"), model_path, calibration_path)
         self.temperature = float(calibration["temperature"])
         self.threshold = float(calibration["abstain_threshold"])
+        self.healthy_threshold = max(self.threshold, float(calibration.get("healthy_threshold", 0.0)))
+        self.classes = _served_classes(calibration, self.model.class_names, calibration_path)
+        self._columns = [self.model.class_names.index(c) for c in self.classes]
         self.gate = load_settings(Path(calibration_path))
 
     def identify(self, image_bytes: bytes) -> Identification:
@@ -50,14 +58,17 @@ class Identifier:
             return Identification("invalid", guidance=TOO_LARGE)
         except Exception:
             return Identification("invalid", guidance=INVALID)
-        raw = self.model.predict(image)
+        raw = self.model.predict(image)[self._columns]
+        if not raw.sum() > 0:  # all the model's weight sat on dropped classes
+            return Identification("unsure", guidance=PHOTO_TIPS)
+        raw = raw / raw.sum()
         probs = apply_temperature(np.log(np.maximum(raw, FLOOR)), self.temperature)
         if not self.gate.accepts(green=green_ratio(image), probs=probs):
             return Identification("not_plant", guidance=NOT_PLANT)
         decision = decide(probs, self.threshold)
-        names = self.model.class_names
-        found = [Candidate(names[i], p) for i, p in decision.top_k]
-        if decision.status == "answered" and found:
+        found = [Candidate(self.classes[i], p) for i, p in decision.top_k]
+        healthy_unsure = bool(found) and found[0].label.endswith("healthy") and found[0].confidence < self.healthy_threshold
+        if decision.status == "answered" and found and not healthy_unsure:
             return Identification("answered", found[0], found[1:])
         return Identification("unsure", found[0] if found else None, found[1:], PHOTO_TIPS)
 
@@ -72,6 +83,16 @@ class Identifier:
                 raise _TooLarge
             image.load()
         return ImageOps.exif_transpose(image).convert("RGB")
+
+
+def _served_classes(calibration: dict, model_classes: list[str], calibration_path) -> list[str]:
+    classes = calibration.get("classes")
+    if not classes or len(set(classes)) != len(classes):
+        raise ValueError(f"the calibration {calibration_path} must list the `classes` that may be named, with no repeats")
+    missing = [c for c in classes if c not in model_classes]
+    if missing:
+        raise ValueError(f"the model has no output for listed classes {missing}")
+    return list(classes)
 
 
 def _require_same_checkpoint(model_sha: str | None, calibration_sha: str | None, model_path, calibration_path) -> None:

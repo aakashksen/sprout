@@ -14,7 +14,7 @@ Package `sprout` is in `src/sprout/`. Run Python with `PYTHONPATH=src` (pytest s
 | Serving | `src/sprout/serve/gate.py` | Input gate, calibration, shared result types |
 | RAG | `src/sprout/rag/retrieve.py` | Ingest (`ingest.py`), retrieval, benchmark questions (`evalset.py`) |
 | Web app | `deploy/wsgi.py`, `src/sprout/web/pages.py` | Flask pages, auth, uploads, database, templates and static files |
-| Experiments | `src/sprout/experiments/e1_lab.py` ... `e5_confidence.py`, `e10_segment.py`, `e14_judge_check.py` | One module per experiment, each with `main()`; settings in `configs/e*.json` |
+| Experiments | `src/sprout/experiments/e1_lab.py` ... `e5_confidence.py`, `e10_segment.py`, `e12_more_sources.py`, `e14_judge_check.py` | One module per experiment, each with `main()`; settings in `configs/e*.json` |
 | Records and checks | `src/sprout/eval/records.py` (`write_run`), `check_run.py` | Run records, metrics (`metrics.py`), bootstrap (`stats.py`), claims (`claims.py`), top-k baselines |
 | Grader agreement | `src/sprout/eval/agreement.py` | Cohen's kappa, direction of disagreement and bootstrap intervals for E14, shared with `check_run.py` |
 | Check cache | `src/sprout/eval/check_cache.py` | Which records already passed `check_run` |

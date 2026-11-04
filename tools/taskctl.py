@@ -352,6 +352,14 @@ def verdict_commit(task_id):
     return verdict.get("commit")
 
 
+def verifier_passed(task, commit):
+    """The independent verifier is required unless the person exempted the task in tasks.json."""
+    if task.get("verifier") is False:
+        return
+    if verdict_commit(task["id"]) != commit:
+        sys.exit("refused: the verifier has not passed this exact commit")
+
+
 def require_decision_entry(task_id, base):
     """A task is not finished until docs/DECISIONS.md names it, in an entry or as `<id>: no new decisions`.
     The id must stand alone, so T4.1 is not found inside T4.10 or T4.1.5."""
@@ -375,8 +383,7 @@ def cmd_done(args):
     verified = task.get("verified") or {}
     if not verified.get("passed") or verified.get("commit") != commit:
         sys.exit("refused: acceptance commands have not passed at this commit; run verify")
-    if verdict_commit(args.id) != commit:
-        sys.exit("refused: the verifier has not passed this exact commit")
+    verifier_passed(task, commit)
     require_decision_entry(args.id, ROOT)
     with editing() as plan:
         task = find(plan, args.id)
@@ -397,8 +404,7 @@ def cmd_land(args):
     verified = task.get("verified") or {}
     if not verified.get("passed") or verified.get("commit") != head(worktree):
         sys.exit("refused: acceptance commands have not passed at this commit; run verify")
-    if verdict_commit(args.id) != verified["commit"]:
-        sys.exit("refused: the verifier has not passed this exact commit")
+    verifier_passed(task, verified["commit"])
     require_decision_entry(args.id, worktree)
     with file_lock(LAND_LOCK, wait_s=3600, stale_s=7200):
         if dirty():

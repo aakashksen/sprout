@@ -1,0 +1,13 @@
+{
+ "first_judge": "haiku",
+ "record_id": "E14H-20261104T174311169630Z",
+ "model": "claude-haiku-5-5",
+ "rubric_sha256": "28df9a6a23ef529a23d469ccdad9683d3d892e0b3443b923bc45978ae32e7302",
+ "interval": {
+  "statistic": "kappa(Haiku, Sonnet) - kappa(local judge, Sonnet), answers resampled",
+  "low": -0.029246941830323406,
+  "high": 0.25800139104036957,
+  "point": 0.11738501956361191,
+  "level": 0.95
+ }
+}

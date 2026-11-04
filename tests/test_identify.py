@@ -21,20 +21,27 @@ ACCEPT_ALL = {"kind": "confidence", "confidence_threshold": 0.0}
 CHECKPOINT_SHA = "c" * 64
 
 
-def _model_path(tmp_path, source_sha256=CHECKPOINT_SHA):
+def _model_path(tmp_path, source_sha256=CHECKPOINT_SHA, class_map=CLASS_MAP, bias=None):
     torch.manual_seed(1)
     net = nn.Sequential(
-        nn.AdaptiveAvgPool2d(32), nn.Flatten(), nn.Linear(3 * 32 * 32, len(CLASS_MAP)), nn.Identity()
+        nn.AdaptiveAvgPool2d(32), nn.Flatten(), nn.Linear(3 * 32 * 32, len(class_map)), nn.Identity()
     ).eval()
     with torch.no_grad():
         net[2].weight.mul_(40)  # spread the logits so photos get different answers
-    return export_module(net, CLASS_MAP, tmp_path / "m.onnx", source_sha256=source_sha256)
+        if bias:
+            net[2].bias.copy_(torch.tensor(bias))
+    return export_module(net, class_map, tmp_path / "m.onnx", source_sha256=source_sha256)
 
 
-def _calibration(tmp_path, abstain=0.0, gate=ACCEPT_ALL, temperature=1.0, model_sha256=CHECKPOINT_SHA):
+def _calibration(tmp_path, abstain=0.0, gate=ACCEPT_ALL, temperature=1.0, model_sha256=CHECKPOINT_SHA,
+                 classes=tuple(CLASS_MAP), healthy=None):
     path = tmp_path / "chosen.json"
     body = {"temperature": temperature, "abstain_threshold": abstain,
             "gate": {"chosen": gate["kind"], "settings": gate}}
+    if classes is not None:
+        body["classes"] = list(classes)
+    if healthy is not None:
+        body["healthy_threshold"] = healthy
     if model_sha256 is not None:
         body["model_sha256"] = model_sha256
     path.write_text(json.dumps(body), encoding="utf-8")
@@ -125,9 +132,9 @@ def test_unsure_includes_specific_photo_guidance(tmp_path):
 
 
 def test_flat_distribution_is_unsure_without_candidates(tmp_path):
-    ident = _identifier(tmp_path, abstain=0.5)
+    twenty = {f"c{i}": i for i in range(20)}
+    ident = Identifier(_model_path(tmp_path, class_map=twenty), _calibration(tmp_path, abstain=0.5, classes=list(twenty)))
     ident.model.predict = lambda image: np.full(20, 0.05)
-    ident.model.class_names = [f"c{i}" for i in range(20)]
     result = ident.identify(_png(_photo()))
     assert result.status == "unsure" and result.top is None and result.alternatives == []
     assert Identification.from_json(result.to_json()) == result
@@ -171,3 +178,56 @@ def test_a_quantized_file_is_bound_to_the_same_checkpoint(tmp_path, mode):
     assert Identifier(quantized, _calibration(tmp_path)).identify(_png(_photo())).status == "answered"
     with pytest.raises(ValueError, match="another model"):
         Identifier(quantized, _calibration(tmp_path, model_sha256="e" * 64))
+
+
+WIDE_MAP = {**CLASS_MAP, "Grape___esca": 3}  # a model that still has an output for a class that was dropped
+
+
+def test_a_class_outside_the_list_is_never_named(tmp_path):
+    model = _model_path(tmp_path, class_map=WIDE_MAP, bias=[0, 0, 0, 30])  # the dropped class wins every row
+    ident = Identifier(model, _calibration(tmp_path))
+    result = ident.identify(_png(_photo()))
+    named = {result.top.label, *(a.label for a in result.alternatives)} if result.top else set()
+    assert named <= set(CLASS_MAP) and "Grape___esca" not in named
+    assert result.status == "answered"  # its probability went to the listed classes, renormalized
+
+
+def test_dropped_outputs_are_masked_then_renormalized(tmp_path):
+    ident = Identifier(_model_path(tmp_path, class_map=WIDE_MAP), _calibration(tmp_path))
+    ident.model.predict = lambda image: np.array([0.2, 0.2, 0.1, 0.5])
+    result = ident.identify(_png(_photo()))
+    assert result.top.label == "Apple___healthy" and result.top.confidence == pytest.approx(0.4)
+    assert [a.label for a in result.alternatives] == ["Apple___scab", "Tomato___blight"]
+    assert result.alternatives[1].confidence == pytest.approx(0.2) and result.alternatives[0].confidence == pytest.approx(0.4)
+
+
+def test_a_model_missing_a_listed_class_is_refused(tmp_path):
+    cal = _calibration(tmp_path, classes=[*CLASS_MAP, "Rose___rust"])
+    with pytest.raises(ValueError, match="Rose___rust"):
+        Identifier(_model_path(tmp_path), cal)
+
+
+def test_a_calibration_without_a_class_list_is_refused(tmp_path):
+    with pytest.raises(ValueError, match="classes"):
+        Identifier(_model_path(tmp_path), _calibration(tmp_path, classes=None))
+
+
+def test_healthy_threshold_is_stricter(tmp_path):
+    ident = Identifier(_model_path(tmp_path), _calibration(tmp_path, abstain=0.5, healthy=0.9))
+    ident.model.predict = lambda image: np.array([0.8, 0.1, 0.1])
+    assert ident.identify(_png(_photo())).status == "unsure"  # a healthy call at 0.8 is below its own bar
+    ident.model.predict = lambda image: np.array([0.1, 0.8, 0.1])
+    assert ident.identify(_png(_photo())).status == "answered"  # the same confidence for a disease answers
+    ident.model.predict = lambda image: np.array([0.95, 0.03, 0.02])
+    assert ident.identify(_png(_photo())).status == "answered"
+    # a healthy threshold below the abstention threshold never loosens it
+    loose = Identifier(_model_path(tmp_path), _calibration(tmp_path, abstain=0.85, healthy=0.5))
+    loose.model.predict = lambda image: np.array([0.8, 0.1, 0.1])
+    assert loose.identify(_png(_photo())).status == "unsure"
+
+
+def test_no_probability_left_after_masking_is_unsure(tmp_path):
+    ident = Identifier(_model_path(tmp_path, class_map=WIDE_MAP), _calibration(tmp_path))
+    ident.model.predict = lambda image: np.array([0.0, 0.0, 0.0, 1.0])
+    result = ident.identify(_png(_photo()))
+    assert result.status == "unsure" and result.top is None and result.guidance

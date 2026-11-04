@@ -424,16 +424,16 @@
         "{py} -m pytest tests/test_extra_sources.py -q",
         "{py} -m pytest tests/test_extra_sources.py -q -m real"
       ],
-      "status": "in_progress",
-      "worktree": "<local path>",
+      "status": "done",
       "started_at": "2026-11-03T16:45:43+00:00",
       "verified": {
         "commit": "d1b6c9b036fa270e5057782296e52855b752afef",
         "passed": true,
-        "at": "2026-11-04T01:12:38+00:00"
+        "at": "2026-11-04T01:27:35+00:00"
       },
       "attempts": 2,
-      "reason": "at least 7 kept extras are cropped or zoomed copies of field_dev or field_test photos; the full-frame check cannot see crops"
+      "reason": "at least 7 kept extras are cropped or zoomed copies of field_dev or field_test photos; the full-frame check cannot see crops",
+      "done_at": "2026-11-04T01:35:01+00:00"
     },
     {
       "id": "T4.8",
@@ -447,7 +447,9 @@
         "{py} -m pytest tests/test_extra_sources.py -q",
         "{py} -m pytest tests/test_extra_sources.py -q -m real"
       ],
-      "status": "pending"
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-04T01:35:43+00:00"
     },
     {
       "id": "T4.6",

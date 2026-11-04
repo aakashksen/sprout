@@ -512,7 +512,9 @@
         "{py} -m pytest tests/test_e6.py -q",
         "{py} -m sprout.eval.check_run E6 --min-n 200 --split field_dev"
       ],
-      "status": "pending"
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-04T17:44:55+00:00"
     },
     {
       "id": "T5.2",

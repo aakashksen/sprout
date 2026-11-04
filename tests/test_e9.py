@@ -534,3 +534,157 @@ def test_an_unusable_reply_is_counted_and_never_read_as_a_call(rag_repo):
     path = e9.stage_wrong_disease_dev(cfg, FakeLLM(["WRONG because it is a different plant", "FITS"], model="sonnet"), rag_repo)
     m = json.loads(path.read_text())["metrics"]["served"]
     assert m["unusable_replies"] == 1 and m["usable_calls"] == 7 and m["flagged_wrong_disease"] == 0
+
+
+# ----------------------------------------------------------------------------------------------- blind read, freeze
+
+
+def dev_record(rag_repo):
+    cfg = dev_cfg(rag_repo)
+    commit(rag_repo, "dev source")
+    path = e9.stage_wrong_disease_dev(cfg, FakeLLM(reply=grader_reply, model="sonnet"), rag_repo)
+    return cfg, path
+
+
+def reader_file(root, cfg, wrong_after_fits=1, fits_after_wrong=1, name="E9-wrong-disease-blind-read.jsonl"):
+    """What a reader returns for the blind file: agrees with the grader except for the stated number of answers."""
+    rec = json.loads(e9.latest_stage_record(root, "wrong_disease_dev")[0].read_text())
+    calls = {r["item"]: r["call"] for r in map(json.loads, (root / rec["predictions"]["served"]).read_text().splitlines())}
+    blind = [json.loads(x) for x in e9.blind_file(root).read_text().splitlines()]
+    out, flip = [], {"FITS": wrong_after_fits, "WRONG": fits_after_wrong}
+    for b in blind:
+        call = calls[b["item"]]
+        if flip[call]:
+            flip[call] -= 1
+            call = "WRONG" if call == "FITS" else "FITS"
+        out.append({"item": b["item"], "reader": call})
+    path = root / "results" / "runs" / name
+    path.write_text("".join(json.dumps(r) + "\n" for r in out))
+    return path
+
+
+def test_blind_file_hides_the_graders_call_and_is_the_same_every_time(rag_repo):
+    cfg, _ = dev_record(rag_repo)
+    path = e9.stage_blind_sample(cfg, rag_repo)
+    text = path.read_text()
+    rows = [json.loads(x) for x in text.splitlines()]
+    assert len(rows) == 5  # 3 of the 6 answers called FITS and both called WRONG
+    assert all(set(r) == {"item", "question", "diagnosis", "answer"} for r in rows)
+    for secret in ("FITS", "WRONG", "reply", "call", "grader", "sonnet", "served"):
+        assert secret not in text
+    assert sum("Tomato advice" in r["answer"] for r in rows) == 2  # both of the grader's WRONG calls are in it
+    path.unlink()
+    assert e9.stage_blind_sample(cfg, rag_repo).read_text() == text  # the seed fixes the draw and its order
+    assert len({r["item"] for r in rows}) == 5
+
+
+def test_unblind_reports_error_in_both_directions(rag_repo):
+    cfg, _ = dev_record(rag_repo)
+    e9.stage_blind_sample(cfg, rag_repo)
+    read = reader_file(rag_repo, cfg, wrong_after_fits=1, fits_after_wrong=1)
+    path = e9.stage_unblind(cfg, rag_repo, read, "second reader")
+    rec = json.loads(path.read_text())
+    m = rec["metrics"]["served"]
+    assert m["false_alarm_rate"] == 0.5 and m["missed_rate"] == pytest.approx(1 / 3)  # WRONG calls the reader passes; FITS calls it fails
+    assert m["estimated_disagreement_rate"] == pytest.approx((2 * 0.5 + 6 * (1 / 3)) / 8)  # weighted by the dev calls
+    assert m["reader_says_fits_after_wrong_call"] == 1 and m["reader_says_wrong_after_fits_call"] == 1
+    assert set(rec["intervals"]["served"]) == {"false_alarm_rate", "missed_rate"}
+    assert rec["config"]["strata"] == {"grader_wrong": 2, "grader_fits": 6} and rec["config"]["reader"] == "second reader"
+    assert rec["claude_calls"] == 0 and rec["models"]["reader"] == "second reader"
+    assert check_file(path, rag_repo, min_n=1) == []
+
+
+def test_unblind_refuses_a_reader_file_that_does_not_match_the_sample(rag_repo):
+    cfg, _ = dev_record(rag_repo)
+    e9.stage_blind_sample(cfg, rag_repo)
+    read = reader_file(rag_repo, cfg)
+    lines = read.read_text().splitlines()
+    read.write_text("\n".join(lines[:-1]) + "\n")
+    with pytest.raises(e9.Refused, match="every item"):
+        e9.stage_unblind(cfg, rag_repo, read, "r")
+    row = json.loads(lines[0])
+    read.write_text("\n".join([json.dumps({**row, "reader": "MAYBE"}), *lines[1:]]) + "\n")
+    with pytest.raises(e9.Refused, match="FITS or WRONG"):
+        e9.stage_unblind(cfg, rag_repo, read, "r")
+
+
+def test_blind_read_record_tampering_is_caught(rag_repo):
+    cfg, _ = dev_record(rag_repo)
+    e9.stage_blind_sample(cfg, rag_repo)
+    path = e9.stage_unblind(cfg, rag_repo, reader_file(rag_repo, cfg), "r")
+    rec = json.loads(path.read_text())
+    pred = rag_repo / rec["predictions"]["served"]
+    original = pred.read_text()
+    lines = original.splitlines()
+    for field, value, expect in (("reader", None, "do not recompute"), ("grader", None, "seeded sample")):
+        row = json.loads(lines[0])
+        row[field] = "WRONG" if row[field] == "FITS" else "FITS"
+        pred.write_text("\n".join([json.dumps(row), *lines[1:]]) + "\n")
+        assert any(expect in p for p in check_file(path, rag_repo, min_n=1)), field
+    pred.write_text(original)
+    assert check_file(path, rag_repo, min_n=1) == []
+    saved = json.loads(path.read_text())
+    saved["config"]["strata"] = {"grader_wrong": 5, "grader_fits": 3}
+    path.write_text(json.dumps(saved))
+    assert any("strata" in p for p in check_file(path, rag_repo, min_n=1))
+
+
+def test_dev_record_tampering_is_caught(rag_repo):
+    _, path = dev_record(rag_repo)
+    rec = json.loads(path.read_text())
+    pred = rag_repo / rec["predictions"]["served"]
+    original = pred.read_text()
+    lines = original.splitlines()
+    row = json.loads(lines[0])
+    pred.write_text("\n".join([json.dumps({**row, "call": "WRONG"}), *lines[1:]]) + "\n")
+    assert any("call is not what its reply says" in p for p in check_file(path, rag_repo, min_n=1))
+    pred.write_text("\n".join([json.dumps({**row, "reply": "WRONG", "call": "WRONG"}), *lines[1:]]) + "\n")
+    assert any("do not recompute" in p for p in check_file(path, rag_repo, min_n=1))
+    pred.write_text("\n".join([json.dumps({**row, "answer": "Different words."}), *lines[1:]]) + "\n")
+    assert any("differ from the source judgments" in p for p in check_file(path, rag_repo, min_n=1))
+    pred.write_text(original)
+    saved = json.loads(path.read_text())
+    saved["config"]["prompt_sha256"] = "0" * 64
+    path.write_text(json.dumps(saved))
+    assert any("prompt_sha256" in p for p in check_file(path, rag_repo, min_n=1))
+
+
+def frozen_repo(rag_repo):
+    cfg, _ = dev_record(rag_repo)
+    e9.stage_blind_sample(cfg, rag_repo)
+    e9.stage_unblind(cfg, rag_repo, reader_file(rag_repo, cfg), "r")
+    commit(rag_repo, "records")
+    return cfg
+
+
+def test_freeze_records_the_prompt_commit_and_hash_and_needs_the_blind_read(rag_repo):
+    cfg, _ = dev_record(rag_repo)
+    commit(rag_repo, "dev record")
+    with pytest.raises(e9.Refused, match="wrong_disease_blind_read"):
+        e9.stage_freeze(cfg, rag_repo)
+    e9.stage_blind_sample(cfg, rag_repo)
+    e9.stage_unblind(cfg, rag_repo, reader_file(rag_repo, cfg), "r")
+    commit(rag_repo, "records")
+    path = e9.stage_freeze(cfg, rag_repo)
+    frozen = json.loads(path.read_text())
+    assert frozen["prompt_sha256"] == e9.sha256_file(rag_repo / e9.PROMPT_REL)
+    assert frozen["prompt_commit"] == git(rag_repo, "log", "-1", "--format=%H", "--", e9.PROMPT_REL).stdout.strip()
+    assert frozen["rendered_sha256"] == e9.rendered_sha256(rag_repo)
+    assert {"dev_record", "blind_read_record", "frozen_at"} <= set(frozen)
+    with pytest.raises(e9.Refused, match="already frozen"):
+        e9.stage_freeze(cfg, rag_repo)
+    with pytest.raises(e9.Refused, match="not committed"):  # a frozen file is only usable once committed
+        e9.require_frozen(rag_repo)
+    commit(rag_repo, "freeze")
+    e9.require_frozen(rag_repo)
+
+
+def test_freeze_refuses_a_prompt_changed_after_the_dev_run(rag_repo):
+    cfg = frozen_repo(rag_repo)
+    prompt = rag_repo / e9.PROMPT_REL
+    prompt.write_text(prompt.read_text() + "Be strict.\n")
+    commit(rag_repo, "tuned the prompt")
+    with pytest.raises(e9.Refused, match="changed since"):
+        e9.stage_freeze(cfg, rag_repo)
+    with pytest.raises(e9.Refused, match="changed since"):
+        e9.stage_unblind(cfg, rag_repo, reader_file(rag_repo, cfg, name="again.jsonl"), "r")

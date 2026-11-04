@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
+import subprocess
 from collections.abc import Callable
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from dataclasses import dataclass, field
@@ -26,8 +26,19 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from sprout.atomic import atomic_write_text
 from sprout.data.label_review import read_log
-from sprout.eval.answer_checks import CALLS, dev_intervals, dev_metrics, parse_call
+from sprout.eval.answer_checks import (
+    CALLS,
+    blind_intervals,
+    blind_metrics,
+    dev_intervals,
+    dev_metrics,
+    draw_blind,
+    parse_call,
+    strata_sizes,
+)
+from sprout.eval.check_run import check_file, records_for
 from sprout.eval.predict import Predictions
 from sprout.eval.records import (
     ROOT,
@@ -50,7 +61,6 @@ CONFIG_REL = "configs/e9.json"
 FROZEN_REL = "configs/e9_wrong_disease.json"
 PROMPT_REL = "src/sprout/rag/prompts/wrong_disease.txt"
 IMAGE_TESTS = ("lab_test", "field_test")
-CALLS = ("FITS", "WRONG")
 
 
 class Refused(RuntimeError):
@@ -503,3 +513,114 @@ def stage_wrong_disease_dev(cfg: dict[str, Any], llm: Any, root: Path = ROOT, no
                      {"served": dev_intervals(rows)}, attempts, {"served": rows}, info.hash, root=root,
                      notes=("Development check of the wrong-disease grader on the final served rag_dev answers. "
                             "The prompt is frozen only after this and the blind read." + (" " + note if note else "")))
+
+
+# ---------------------------------------------------------------- blind read, freeze
+
+def latest_stage_record(root: Path, stage: str) -> tuple[Path, dict[str, Any]]:
+    """The newest E9 rag_dev record of this stage, which must pass check_run."""
+    for path in reversed(records_for("E9", root)):
+        rec = json.loads(path.read_text(encoding="utf-8"))
+        if rec["split"] == DEV_SPLIT and rec["config"].get("stage") == stage:
+            problems = check_file(path, root)
+            if problems:
+                raise Refused(f"{path.name} does not pass check_run: {problems[0]}")
+            return path, rec
+    raise Refused(f"there is no {stage} record yet; run its stage first")
+
+
+def _jsonl(path: Path) -> list[dict[str, Any]]:
+    return [json.loads(x) for x in Path(path).read_text(encoding="utf-8").splitlines() if x.strip()]
+
+
+def blind_file(root: Path) -> Path:
+    return Path(root) / "results" / "runs" / "E9-wrong-disease-blind.jsonl"
+
+
+def stage_blind_sample(cfg: dict[str, Any], root: Path = ROOT) -> Path:
+    """Write the file a reader judges: a seeded sample of the dev answers with only the question, diagnosis and answer.
+    The grader's call is not in it, and the order does not follow the call."""
+    _, rec = latest_stage_record(root, "wrong_disease_dev")
+    rows = _jsonl(Path(root) / rec["predictions"]["served"])
+    sample = draw_blind(rows, cfg["wrong_disease"]["blind_seed"], cfg["wrong_disease"]["blind_per_call"])
+    path = blind_file(root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    atomic_write_text(path, "".join(json.dumps({k: r[k] for k in ("item", "question", "diagnosis", "answer")}) + "\n"
+                                    for r in sample))
+    return path
+
+
+def stage_unblind(cfg: dict[str, Any], root: Path, read_file: Path, reader: str, note: str = "") -> Path:
+    """Join the reader's calls to the grader's, and record the error in both directions."""
+    root = Path(root)
+    require_clean(root)
+    dev_path, dev = latest_stage_record(root, "wrong_disease_dev")
+    fields = prompt_fields(root)
+    if any(fields[k] != dev["config"][k] for k in ("prompt_sha256", "rendered_sha256")):
+        raise Refused("the prompt has changed since the dev run; the blind read would measure a different prompt")
+    wd = cfg["wrong_disease"]
+    dev_rows = _jsonl(root / dev["predictions"]["served"])
+    sample = draw_blind(dev_rows, wd["blind_seed"], wd["blind_per_call"])
+    read = _jsonl(read_file)
+    items = [r.get("item") for r in read]
+    if len(set(items)) != len(items) or set(items) != {s["item"] for s in sample}:
+        raise Refused("the reader's file must hold every item of the blind file exactly once, and no other")
+    if any(r.get("reader") not in CALLS for r in read):
+        raise Refused("every reader call must be FITS or WRONG")
+    by_item = {r["item"]: r["reader"] for r in read}
+    rows = [{"id": s["id"], "item": s["item"], "grader": s["call"], "reader": by_item[s["item"]]} for s in sample]
+    strata = strata_sizes(dev_rows)
+    config = {"stage": "wrong_disease_blind_read", **{k: dev["config"][k] for k in ("prompt_file", "prompt_sha256", "rendered_sha256")},
+              "dev_record": dev["run_id"], "blind_seed": wd["blind_seed"], "blind_per_call": wd["blind_per_call"],
+              "strata": strata, "reader": reader, "read_file": Path(read_file).name,
+              "read_file_sha256": sha256_file(Path(read_file)), "claude_calls": 0, "device": WD_DEVICE,
+              "labels_reviewed": labels_reviewed(root, cfg["tasks_file"]),
+              "started_at": datetime.now(timezone.utc).isoformat()}
+    attempts = [{"stage": "wrong_disease_blind_read", "read_answers": len(rows), "reader": reader}]
+    return write_run("E9", DEV_SPLIT, config, {"reader": reader, "grader": dev["models"]["grader"]},
+                     {"served": blind_metrics(rows, strata)}, {"served": blind_intervals(rows)}, attempts,
+                     {"served": rows}, split_info(DEV_SPLIT, root).hash, root=root,
+                     notes=("A reader judged a seeded sample of the dev answers without the grader's call; the rates are "
+                            "how often the reader disagrees with it, in each direction. The reader is one reader, not truth."
+                            + (" " + note if note else "")))
+
+
+def stage_freeze(cfg: dict[str, Any], root: Path = ROOT) -> Path:
+    """Record the prompt's commit and sha256 in a config to be committed. Needs the dev run and the blind read, both
+    made with this very prompt."""
+    root = Path(root)
+    if (root / FROZEN_REL).exists():
+        raise Refused(f"{FROZEN_REL} already frozen; a frozen prompt is not changed")
+    require_committed(root, [PROMPT_REL])
+    require_clean(root)
+    _, dev = latest_stage_record(root, "wrong_disease_dev")
+    _, blind = latest_stage_record(root, "wrong_disease_blind_read")
+    if blind["config"]["dev_record"] != dev["run_id"]:
+        raise Refused("the blind read belongs to another dev run")
+    fields = prompt_fields(root)
+    if any(fields[k] != dev["config"][k] for k in ("prompt_sha256", "rendered_sha256")):
+        raise Refused("the prompt has changed since the dev run and the blind read measured it")
+    commit = git(root, "log", "-1", "--format=%H", "--", PROMPT_REL).stdout.strip()
+    frozen = {"experiment": "E9", **fields, "prompt_commit": commit, "grader_model": cfg["rag"]["grader"],
+              "dev_record": dev["run_id"], "blind_read_record": blind["run_id"],
+              "frozen_at": datetime.now(timezone.utc).isoformat(),
+              "rule": "rag_test runs the wrong-disease check only with this prompt; it is not tuned after rag_test"}
+    path = root / FROZEN_REL
+    atomic_write_text(path, json.dumps(frozen, indent=1) + "\n")
+    return path
+
+
+def require_frozen(root: Path = ROOT) -> dict[str, Any]:
+    """Refuse unless the frozen config and the prompt are committed, the prompt is the frozen one, and the frozen
+    commit holds it."""
+    root = Path(root)
+    require_committed(root, [FROZEN_REL, PROMPT_REL])
+    frozen = json.loads((root / FROZEN_REL).read_text(encoding="utf-8"))
+    now = prompt_fields(root)
+    for key in ("prompt_sha256", "rendered_sha256"):
+        if now[key] != frozen[key]:
+            raise Refused(f"the wrong-disease prompt ({key}) differs from the frozen one; it is not tuned after rag_test")
+    shown = subprocess.run(["git", "show", f"{frozen['prompt_commit']}:{PROMPT_REL}"], cwd=root, capture_output=True)
+    if shown.returncode != 0 or hashlib.sha256(shown.stdout).hexdigest() != frozen["prompt_sha256"]:
+        raise Refused("the frozen commit does not hold the frozen prompt")
+    return frozen

@@ -219,6 +219,7 @@ def results_dir(cfg: dict[str, Any], root: Path) -> Path:
 
 
 def write_json(path: Path, obj: Any) -> Path:
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
     atomic_write_text(path, json.dumps(obj, indent=1) + "\n")
     return path
 

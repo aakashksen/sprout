@@ -1,21 +1,27 @@
 """E8: how fast and how large the real photo-to-answer path is, in the serving container on the CPU.
 
 Two halves, because the serving image has no pandas:
-  - `measure` and `cold` run INSIDE the container with the serving dependencies only. They run the real `Identifier`
-    and the real `answer()` (a real index, the real reranker, the writer through Ollama on the host) and save raw
-    per-request numbers to a JSON file.
+  - `measure` and `cold` run INSIDE the container with the serving dependencies only. They build the real web app
+    (`create_app`, with the real `Identifier`, a real index and reranker, and the writer through Ollama on the host)
+    and drive its routes with the Flask test client: one upload (`POST /analyses`) and one question
+    (`POST /analyses/<id>/chat`) per photo. The end-to-end time is those two route calls, so it includes the app's
+    own work (upload checks, database, thread hand-off). Per-stage times come from hooks on the real objects. Raw
+    per-request numbers go to a JSON file.
   - `record` runs on the host. It turns that file into a run record with `write_run`, so `check_run E8` can check it.
 `floor-check` and `multi-citations` are host-side checks that call no model.
-Every request is timed by wrapping the real objects, never by replacing them. Nothing here uses a fake; tests do.
+Stages are timed by wrapping the real objects, never by replacing them. Nothing here uses a fake; tests do.
 """
 
 from __future__ import annotations
 
 import argparse
+import contextvars
+import io
 import json
 import os
 import platform
 import re
+import tempfile
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -27,8 +33,9 @@ from sprout.atomic import atomic_write_text
 SPLIT = "perf"
 LEVELS = (1, 5, 20)
 REQUEST_STAGES = ("preprocess_ms", "inference_ms", "retrieval_ms", "generation_ms", "end_to_end_ms")
-COLD_STAGES = ("identifier_load_ms", "retriever_warm_ms", "first_request_ms", "total_ms")
-FAILED_STATES = ("unavailable", "retrieval_failed")  # an outage is never recorded as a measurement
+COLD_STAGES = ("identifier_load_ms", "retriever_warm_ms", "app_build_ms", "first_request_ms", "total_ms")
+# A request that failed (writer or search unavailable, upload or chat error) is counted and kept out of the timings.
+FAILED_STATES = ("unavailable", "retrieval_failed", "upload_failed", "chat_failed")
 RSS_INTERVAL_S = 0.05
 QUESTIONS = (
     "What is wrong with my plant and how do I treat it?",
@@ -47,21 +54,28 @@ def now_ms() -> float:
 # ---------------------------------------------------------------- timing the real objects
 
 class StageTimers:
-    """Milliseconds per stage for the request the calling thread is running."""
+    """Milliseconds per stage for the request in the current context. The web app hands slow calls to pool threads
+    with a copy of the request's context, so their stages land in the same request's record."""
 
     def __init__(self) -> None:
-        self._local = threading.local()
+        self._var: contextvars.ContextVar = contextvars.ContextVar("e8_stages", default=None)
 
     def begin(self) -> None:
-        self._local.stages = {}
+        self._var.set({})
 
     def add(self, name: str, ms: float) -> None:
-        stages = getattr(self._local, "stages", None)
+        stages = self._var.get()
         if stages is not None:
             stages[name] = stages.get(name, 0.0) + ms
 
-    def end(self) -> dict[str, float]:
-        stages, self._local.stages = self._local.stages, None
+    def note(self, name: str, value) -> None:
+        stages = self._var.get()
+        if stages is not None:
+            stages[name] = value
+
+    def end(self) -> dict:
+        stages = self._var.get()
+        self._var.set(None)
         return stages
 
 
@@ -96,6 +110,13 @@ class TimedRetriever:
     def crops(self):
         return self._retriever.crops
 
+    @property
+    def warmed(self):
+        return self._retriever.warmed
+
+    def warm(self, *, rerank: bool = False) -> None:
+        self._retriever.warm(rerank=rerank)
+
 
 class TimedLLM:
     def __init__(self, llm, timers: StageTimers) -> None:
@@ -103,46 +124,48 @@ class TimedLLM:
         self.complete = _timed(timers, "generation_ms", llm.complete)
 
 
-def crop_for(ident, crops: set[str]) -> str | None:
-    """The plant the photo's top label names (a plant with no documents of its own maps to general guidance),
-    or None when the photo gave no diagnosis, so `answer()` reads the plant from the words instead."""
-    from sprout.rag.answer import GENERAL_CROP
-    from sprout.rag.query import crop_of_label
-
-    if ident.top is None:
-        return None
-    return crop_of_label(ident.top.label, crops) or GENERAL_CROP
-
-
-def serve_request(identifier, retriever, llm, cfg, image_bytes: bytes, question: str):
-    """The photo-to-answer path of one request: identify, then answer with the plant the photo named."""
-    from sprout.rag.answer import answer
-
-    ident = identifier.identify(image_bytes)
-    ans = answer(question, identification=ident, history=[], retriever=retriever, llm=llm, config=cfg,
-                 crop=crop_for(ident, retriever.crops))
-    return ident, ans
-
-
 class Stack:
-    """The real identifier, retriever and writer, wrapped so every request reports its stage times.
+    """The real web app around the real identifier, retriever and writer, each wrapped to report its stage times.
     Use as a context manager: the identifier is instrumented inside it and restored after."""
 
-    def __init__(self, identifier, retriever, llm, cfg) -> None:
+    def __init__(self, identifier, retriever, llm, data_dir: Path, manifest: str = "") -> None:
+        from sprout.web import create_app
+        from sprout.web.config import Config
+
         self.timers = StageTimers()
-        self.identifier, self.cfg = identifier, cfg
+        self.identifier = identifier
         self.retriever = TimedRetriever(retriever, self.timers)
         self.llm = TimedLLM(llm, self.timers)
+        limits = {k: (10**9, 60) for k in ("login", "signup", "upload", "chat")}
+        config = Config(ENV="development", SECRET_KEY="e8-perf-measurement-only", DATA_DIR=str(data_dir),
+                        MANIFEST=manifest, RATE_LIMITS=limits)
+        self.app = create_app(config, identifier=identifier, retriever=self.retriever, writer=self.llm)
+        deadline = time.time() + 120
+        while self.app.extensions["sprout_chat"]["state"] == "warming" and time.time() < deadline:
+            time.sleep(0.02)
+        if self.app.extensions["sprout_chat"]["state"] != "ready":
+            raise RuntimeError(f"chat is {self.app.extensions['sprout_chat']['state']}: the index did not warm")
+        self._local = threading.local()
+        self._users = 0
+        self._lock = threading.Lock()
         self._undo: list = []
 
     def __enter__(self) -> Stack:
         from sprout.serve import export
 
         model = self.identifier.model
-        before = (export.preprocess_array, model.session, getattr(self.identifier, "_decode"))
+        before = (export.preprocess_array, model.session, self.identifier._decode)
         export.preprocess_array = _timed(self.timers, "preprocess_ms", before[0])
         model.session = _TimedSession(before[1], self.timers)
         self.identifier._decode = _timed(self.timers, "preprocess_ms", before[2])
+        identify = self.identifier.identify
+
+        def identify_and_note(data: bytes):
+            ident = identify(data)
+            self.timers.note("_identification", ident.status)
+            return ident
+
+        self.identifier.identify = identify_and_note
         self._undo = [before]
         return self
 
@@ -150,15 +173,50 @@ class Stack:
         from sprout.serve import export
 
         export.preprocess_array, self.identifier.model.session, _ = self._undo.pop()
-        del self.identifier.__dict__["_decode"]  # the class's own method is back
+        del self.identifier.__dict__["_decode"]  # the class's own methods are back
+        del self.identifier.__dict__["identify"]
+
+    def _client(self):
+        """One signed-in client per worker thread, made before any timing starts."""
+        if not hasattr(self._local, "client"):
+            with self._lock:
+                self._users += 1
+                name = f"perf{self._users}"
+            client = self.app.test_client()
+
+            def token() -> str:
+                client.get("/login")
+                with client.session_transaction() as sess:
+                    return sess["csrf_token"]
+
+            client.post("/signup", data={"username": name, "password": "password123", "csrf_token": token()})
+            self._local.client, self._local.token = client, token()
+        return self._local.client, self._local.token
 
     def request(self, path: str, data: bytes, question: str) -> dict:
+        """One user action: upload the photo, then ask the question about it, through the app's own routes."""
+        client, token = self._client()
         self.timers.begin()
         start = now_ms()
-        ident, ans = serve_request(self.identifier, self.retriever, self.llm, self.cfg, data, question)
+        up = client.post("/analyses", data={"file": (io.BytesIO(data), Path(path).name), "csrf_token": token},
+                         content_type="multipart/form-data")
+        match = re.search(r"/analyses/(\d+)", up.headers.get("Location", "")) if up.status_code == 302 else None
+        chat = None
+        if match:
+            chat = client.post(f"/analyses/{match.group(1)}/chat", json={"message": question},
+                               headers={"X-CSRF-Token": token})
         total = now_ms() - start
         stages = self.timers.end()
-        row = {"path": path, "identification": ident.status, "answer_state": ans.state}
+        status = stages.pop("_identification", f"http_{up.status_code}")
+        if match is None:
+            state = "upload_failed"
+        else:
+            if chat.status_code == 200:
+                state = (chat.get_json(silent=True) or {}).get("state", "chat_failed")
+            else:
+                state = "refused" if chat.status_code == 409 else "chat_failed"  # 409: not a plant, nothing to ask
+            client.post(f"/analyses/{match.group(1)}/delete", data={"csrf_token": token})
+        row = {"path": path, "identification": status, "answer_state": state}
         for name in REQUEST_STAGES[:-1]:
             row[name] = round(stages[name], 3) if name in stages else None  # None: the stage did not run
         row["end_to_end_ms"] = round(total, 3)
@@ -244,10 +302,7 @@ def run_level(stack: Stack, level: int, work: list[tuple[str, str]], images_root
     with RssSampler(read_rss, interval) as sampler, ThreadPoolExecutor(level) as pool:
         rows = list(pool.map(one, work))
     wall = time.perf_counter() - start
-    failed = [r["path"] for r in rows if r["answer_state"] in FAILED_STATES]
-    if failed:
-        raise RuntimeError(f"{len(failed)} of {len(rows)} requests at concurrency {level} failed "
-                           f"(the writer or the search was unavailable), e.g. {failed[0]}; this is not a result")
+    # Failed requests stay in the rows and are counted by the record, but their (fast) times are not timings.
     return {"level": level, "wall_s": round(wall, 3), "rows": rows,
             "rss_mb": [round(x, 2) for x in sampler.samples], "peak_rss_mb": round(max(sampler.samples), 2)}
 
@@ -261,24 +316,25 @@ def measure(stack: Stack, work: list[tuple[str, str]], images_root: Path, *, lev
     return {str(level): run_level(stack, level, work, images_root, read_rss, interval) for level in levels}
 
 
-def cold_start(make_identifier, make_retriever, llm, cfg, first: tuple[str, str], images_root: Path,
-               read_rss=read_rss_mb) -> tuple[Stack, dict]:
-    """Build the identifier and the retriever (loading the index and the reranker) and answer one request, timing each.
-    Starts when called, so the Python start-up before it is not included."""
+def cold_start(make_identifier, make_retriever, llm, data_dir: Path, manifest: str, first: tuple[str, str],
+               images_root: Path, read_rss=read_rss_mb) -> tuple[Stack, dict]:
+    """Build the identifier and the retriever (loading the index and the reranker), build the app, and serve one
+    request through it, timing each. Starts when called, so the Python start-up before it is not included."""
     start = now_ms()
     identifier = make_identifier()
     loaded = now_ms()
     retriever = make_retriever()
     retriever.warm(rerank=True)
     warmed = now_ms()
-    stack = Stack(identifier, retriever, llm, cfg)
+    stack = Stack(identifier, retriever, llm, data_dir, manifest)
+    built = now_ms()
     with stack:
         row = stack.request(first[0], (images_root / first[0]).read_bytes(), first[1])
     done = now_ms()
     if row["answer_state"] in FAILED_STATES:
         raise RuntimeError(f"the first request failed ({row['answer_state']}); this is not a result")
-    cold = {"identifier_load_ms": loaded - start, "retriever_warm_ms": warmed - loaded,
-            "first_request_ms": done - warmed, "total_ms": done - start, "rss_mb": read_rss(), "first_request": row}
+    cold = {"identifier_load_ms": loaded - start, "retriever_warm_ms": warmed - loaded, "app_build_ms": built - warmed,
+            "first_request_ms": done - built, "total_ms": done - start, "rss_mb": read_rss(), "first_request": row}
     return stack, {k: round(v, 3) if isinstance(v, float) else v for k, v in cold.items()}
 
 
@@ -300,7 +356,6 @@ def run_measurement(args: argparse.Namespace, *, levels=LEVELS) -> dict:
     """Everything `measure` and `cold` do, with the real components. `levels` is empty for a cold-only run."""
     from sprout.llm.client import OllamaClient
     from sprout.rag import serving
-    from sprout.rag.answer import AnswerConfig, load_sources
     from sprout.rag.retrieve import Retriever
     from sprout.serve.identify import Identifier
 
@@ -309,12 +364,12 @@ def run_measurement(args: argparse.Namespace, *, levels=LEVELS) -> dict:
     paths = read_list(args.images)
     work = work_list(paths)
     llm = OllamaClient(args.writer, base_url=args.ollama_url, keep_alive="30m")
-    sources = load_sources(Path(args.manifest)) if args.manifest else None
-    cfg = AnswerConfig(sources=sources)
+    data_dir = Path(tempfile.mkdtemp(prefix="e8-"))  # the app's database and uploads for this run
     stack, cold = cold_start(
         lambda: Identifier(Path(args.model), Path(args.calibration)),
         lambda: Retriever(Path(args.index), config=serving.retrieval_config()),
-        llm, cfg, work[0], root)
+        llm, data_dir, args.manifest or "", work[0], root)
+    cfg = stack.app.extensions["sprout_answer_config"]
     out = {
         "format": 1, "started_at": started, "n_images": len(paths), "warmup": 1, "questions": list(QUESTIONS),
         "model_sha256": sha256_file(Path(args.model)), "calibration_sha256": sha256_file(Path(args.calibration)),
@@ -333,7 +388,8 @@ def run_measurement(args: argparse.Namespace, *, levels=LEVELS) -> dict:
 # ---------------------------------------------------------------- the record
 
 def _stage_samples(rows: list[dict], stage: str) -> list[float]:
-    return [r[stage] for r in rows if r[stage] is not None]
+    """Times of requests that did not fail and reached the stage."""
+    return [r[stage] for r in rows if r[stage] is not None and r["answer_state"] not in FAILED_STATES]
 
 
 def build_measurements(data: dict, cold_files: list[dict]) -> tuple[dict[str, list[float]], dict]:
@@ -345,7 +401,7 @@ def build_measurements(data: dict, cold_files: list[dict]) -> tuple[dict[str, li
     samples["cold_start_rss_mb"] = [c["rss_mb"] for c in [data["cold"], *(f["cold"] for f in cold_files)]]
     for key, block in data["levels"].items():
         rows = block["rows"]
-        ran[f"c{key}"] = {}
+        ran[f"c{key}"] = {"failed_requests": sum(r["answer_state"] in FAILED_STATES for r in rows)}
         for stage in REQUEST_STAGES:
             got = _stage_samples(rows, stage)
             if not got:
@@ -354,7 +410,7 @@ def build_measurements(data: dict, cold_files: list[dict]) -> tuple[dict[str, li
             ran[f"c{key}"][stage] = len(got)
         samples[f"c{key}_rss_mb"] = block["rss_mb"]
         samples[f"c{key}_peak_rss_mb"] = [block["peak_rss_mb"]]
-        samples[f"c{key}_requests_per_s"] = [round(len(rows) / block["wall_s"], 4)]
+        samples[f"c{key}_requests_per_s"] = [round((len(rows) - ran[f"c{key}"]["failed_requests"]) / block["wall_s"], 4)]
     return samples, ran
 
 
@@ -383,7 +439,7 @@ def build_record(data: dict, *, machine: str, image: str, variant: str, root=Non
     config = {
         "machine_stated": machine.strip(), "image": image.strip(), "variant": variant.strip(),
         "measured_inside": data["machine"], "levels": [int(k) for k in data["levels"]], "requests_per_level": data["n_images"],
-        "requests_that_ran_each_stage": ran, "warmup_requests": data["warmup"], "questions": data["questions"],
+        "requests_that_ran_each_stage_and_failed_requests": ran, "warmup_requests": data["warmup"], "questions": data["questions"],
         "model_sha256": data["model_sha256"], "calibration_sha256": data["calibration_sha256"],
         "answer": data["answer_config"], "ollama_url": data["ollama_url"], "ollama_placement": data["ollama_placement"],
         "cold_start_samples": 1 + len(cold_files or []),

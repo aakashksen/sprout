@@ -342,3 +342,11 @@ def test_the_request_context_reaches_the_threads_that_identify_and_write():
         c.post(f"/analyses/{aid}/chat", json={"message": "treatment?"}, headers={"X-CSRF-Token": t})
         assert Path(tmp).exists()
     assert seen == {"identify": "this request", "complete": "this request"}
+
+
+def test_an_unsure_photo_still_searches_the_plant_its_label_names(tmp_path):
+    unsure = Identification("unsure", Candidate("Potato___Late_blight", 0.3), [], "retake it")
+    retriever = Retriever()
+    app, c, aid, h = make(tmp_path, FakeLLM(["Remove infected leaves [1]."]), retriever, ident=unsure)
+    ask(c, aid, h, "Is it a tomato problem?")
+    assert retriever.searches[0]["crop"] == "potato"  # the photo's plant, not the "tomato" in the words

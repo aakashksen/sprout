@@ -16,7 +16,7 @@ from sprout.eval.records import split_info
 from sprout.experiments import e8_perf as e8
 from sprout.llm.client import FakeLLM, LLMError
 from sprout.rag import serving
-from sprout.rag.answer import LABEL_NOTE, AnswerConfig, answer
+from sprout.rag.answer import LABEL_NOTE, answer
 from sprout.rag.retrieve import Passage, RetrievalConfig, Retriever
 from sprout.serve.export import export_module
 from sprout.serve.identify import Identifier
@@ -142,22 +142,7 @@ class SlowLLM(FakeLLM):
 
 
 def stack_for(tmp_path, llm=None, retriever=None):
-    return e8.Stack(make_identifier(tmp_path), retriever or make_retriever(tmp_path), llm or SlowLLM(), AnswerConfig())
-
-
-def test_the_plant_comes_from_the_photo_label():
-    crops = {"tomato", "potato"}
-    assert e8.crop_for(Identification("unsure", Candidate("Tomato___Early_blight", 0.4)), crops) == "tomato"
-    assert e8.crop_for(Identification("answered", Candidate("Banana___black_sigatoka", 0.9)), crops) == "general"
-    assert e8.crop_for(Identification("unsure", None), crops) is None
-
-
-def test_the_request_passes_crop_to_answer_even_for_an_unsure_photo():
-    spy = FakeRetriever([P1])
-    unsure = Identification("unsure", Candidate("Potato___Late_blight", 0.3))
-    ident = type("I", (), {"identify": lambda self, b: unsure})()
-    e8.serve_request(ident, spy, FakeLLM([GOOD]), AnswerConfig(), b"", "Is it a tomato problem?")
-    assert spy.searches[0]["crop"] == "potato"  # the photo's plant, not the "tomato" the words name
+    return e8.Stack(make_identifier(tmp_path), retriever or make_retriever(tmp_path), llm or SlowLLM(), tmp_path / "app")
 
 
 def test_one_request_reports_each_stage_and_the_stages_fit_in_the_total(tmp_path):
@@ -173,7 +158,7 @@ def test_one_request_reports_each_stage_and_the_stages_fit_in_the_total(tmp_path
 def test_a_photo_that_cannot_be_read_skips_the_later_stages_instead_of_recording_zeros(tmp_path):
     with stack_for(tmp_path) as stack:
         row = stack.request("p/bad.png", b"not a picture", "What is wrong?")
-    assert row["identification"] == "invalid" and row["answer_state"] == "no_plant"
+    assert row["identification"] == "http_400" and row["answer_state"] == "upload_failed"  # the app refuses it
     assert row["inference_ms"] is None and row["retrieval_ms"] is None and row["generation_ms"] is None
     assert row["end_to_end_ms"] > 0
 
@@ -186,7 +171,7 @@ def test_the_identifier_is_put_back_after_measuring(tmp_path):
     with stack:
         assert export.preprocess_array is not original[0]
     assert (export.preprocess_array, stack.identifier.model.session) == original
-    assert "_decode" not in stack.identifier.__dict__
+    assert "_decode" not in stack.identifier.__dict__ and "identify" not in stack.identifier.__dict__
 
 
 # ---------------------------------------------------------------- levels, memory, failures
@@ -221,15 +206,24 @@ def test_the_number_in_flight_follows_the_level_and_rows_stay_in_order(tmp_path)
     assert peaks[1] == 1 and 2 <= peaks[5] <= 5
 
 
-def test_an_outage_stops_the_measurement_instead_of_recording_fast_failures(tmp_path):
+def test_failed_requests_are_counted_and_kept_out_of_the_timings(tmp_path):
     paths = photos(tmp_path, 3)
 
     class Down(SlowLLM):
         def complete(self, messages, *, max_tokens, timeout_s):
             raise LLMError("down")
 
-    with stack_for(tmp_path, Down()) as stack, pytest.raises(RuntimeError, match="not a result"):
-        e8.run_level(stack, 1, e8.work_list(paths), tmp_path / "imgs", read_rss=Counter())
+    with stack_for(tmp_path, Down()) as stack:
+        block = e8.run_level(stack, 1, e8.work_list(paths), tmp_path / "imgs", read_rss=Counter())
+    assert [r["answer_state"] for r in block["rows"]] == ["unavailable"] * 3
+    data = {"cold": {k: 1.0 for k in e8.COLD_STAGES} | {"rss_mb": 1.0}, "levels": {"1": block}}
+    with pytest.raises(ValueError, match="no request at concurrency 1 ran"):
+        e8.build_measurements(data, [])  # nothing but failures: no number to record
+    ok = {**block["rows"][0], "answer_state": "answered", "end_to_end_ms": 9.0, "retrieval_ms": 1.0, "generation_ms": 2.0,
+          "preprocess_ms": 3.0, "inference_ms": 4.0}
+    mixed = {**data, "levels": {"1": {**block, "rows": [ok, *block["rows"][1:]]}}}
+    samples, ran = e8.build_measurements(mixed, [])
+    assert samples["c1_end_to_end_ms"] == [9.0] and ran["c1"]["failed_requests"] == 2
 
 
 def test_memory_that_cannot_be_read_refuses_instead_of_inventing_a_number(tmp_path):
@@ -241,9 +235,10 @@ def test_memory_that_cannot_be_read_refuses_instead_of_inventing_a_number(tmp_pa
 def test_cold_start_times_the_loads_and_the_first_request(tmp_path):
     paths = photos(tmp_path, 1)
     stack, cold = e8.cold_start(lambda: make_identifier(tmp_path), lambda: make_retriever(tmp_path), SlowLLM(),
-                                AnswerConfig(), e8.work_list(paths)[0], tmp_path / "imgs", read_rss=Counter())
+                                tmp_path / "app", "", e8.work_list(paths)[0], tmp_path / "imgs", read_rss=Counter())
     assert all(cold[k] > 0 for k in e8.COLD_STAGES) and cold["rss_mb"] > 100
-    assert cold["total_ms"] >= cold["identifier_load_ms"] + cold["retriever_warm_ms"] + cold["first_request_ms"] - 1
+    parts = cold["identifier_load_ms"] + cold["retriever_warm_ms"] + cold["app_build_ms"] + cold["first_request_ms"]
+    assert cold["total_ms"] >= parts - 1
     assert stack.retriever._retriever.warmed and cold["first_request"]["answer_state"] == "answered"
 
 
@@ -276,7 +271,7 @@ def measured(tmp_path_factory):
     tmp = tmp_path_factory.mktemp("measured")
     paths = photos(tmp, N)
     stack, cold = e8.cold_start(lambda: make_identifier(tmp), lambda: make_retriever(tmp), SlowLLM(seconds=0.0),
-                                AnswerConfig(), e8.work_list(paths)[0], tmp / "imgs", read_rss=Counter())
+                                tmp / "app", "", e8.work_list(paths)[0], tmp / "imgs", read_rss=Counter())
     with stack:
         levels = e8.measure(stack, e8.work_list(paths), tmp / "imgs", read_rss=Counter(), interval=0.01)
     return {"format": 1, "started_at": 1.7e9, "n_images": N, "warmup": 1, "questions": list(e8.QUESTIONS),

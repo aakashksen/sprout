@@ -4,6 +4,7 @@ import time
 
 import pytest
 from playwright.sync_api import sync_playwright
+from test_frontend import ANSWER, LIMITS, ask, open_result
 from werkzeug.serving import make_server
 
 from sprout.llm.client import FakeLLM, LLMError
@@ -11,7 +12,6 @@ from sprout.rag.retrieve import Passage
 from sprout.serve.types import FakeIdentifier
 from sprout.web import create_app
 from sprout.web.config import Config
-from test_frontend import ANSWER, LIMITS, ask, open_result
 
 P1 = Passage("Remove infected leaves.", "tomato.pdf", 3, "tomato", 0.9)
 

@@ -1,0 +1,301 @@
+{
+ "experiment": "E12",
+ "decided_at": "2026-11-04T10:50:01.951229+00:00",
+ "records": {
+  "convnext_joint_extra": "E12-20261104T101951153850Z",
+  "heldout_plantdoc_extra": "E12-20261104T103235489613Z",
+  "heldout_plantseg_extra": "E12-20261104T104854427501Z"
+ },
+ "rule": "The extra rows clearly help if both hold. (1) On the seen-source run, scored on field_dev shared_classes+clean:1, the paired 95% interval of the macro-F1 difference (E12 minus E4 convnext_joint) lies wholly above zero. (2) On each held-out-source run, the macro-F1 difference (E12 held-out minus E4 held-out, same rows) is at least minus heldout_margin. Otherwise they do not clearly help, and E4's model stays.",
+ "metric": "macro_f1",
+ "seen": {
+  "diff": 0.012392878082302383,
+  "ci": [
+   -0.01682493421684959,
+   0.04042666420019742
+  ],
+  "ok": false
+ },
+ "heldout": {
+  "heldout_plantdoc_extra": {
+   "diff": 0.2890861470614564,
+   "ci": [
+    0.24513386429227993,
+    0.3299020508164539
+   ],
+   "ok": true
+  },
+  "heldout_plantseg_extra": {
+   "diff": 0.23410992040804823,
+   "ci": [
+    0.180006246911478,
+    0.292725663352658
+   ],
+   "ok": true
+  }
+ },
+ "heldout_margin": 0.02,
+ "clearly_helps": false,
+ "chosen_model": "models/e4/convnext_joint/best.pt",
+ "chosen_model_sha256": "362a11f30ebde348ccd35f579c44db556d43409299ac5d0292b531f6fbee8e91",
+ "class_names": [
+  "Apple___Apple_scab",
+  "Apple___Black_rot",
+  "Apple___Cedar_apple_rust",
+  "Apple___healthy",
+  "Blueberry___healthy",
+  "Cherry_(including_sour)___Powdery_mildew",
+  "Cherry_(including_sour)___healthy",
+  "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+  "Corn_(maize)___Common_rust_",
+  "Corn_(maize)___Northern_Leaf_Blight",
+  "Corn_(maize)___healthy",
+  "Grape___Black_rot",
+  "Grape___Esca_(Black_Measles)",
+  "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+  "Grape___healthy",
+  "Orange___Haunglongbing_(Citrus_greening)",
+  "Peach___Bacterial_spot",
+  "Peach___healthy",
+  "Pepper,_bell___Bacterial_spot",
+  "Pepper,_bell___healthy",
+  "Potato___Early_blight",
+  "Potato___Late_blight",
+  "Potato___healthy",
+  "Raspberry___healthy",
+  "Soybean___healthy",
+  "Squash___Powdery_mildew",
+  "Strawberry___Leaf_scorch",
+  "Strawberry___healthy",
+  "Tomato___Bacterial_spot",
+  "Tomato___Early_blight",
+  "Tomato___Late_blight",
+  "Tomato___Leaf_Mold",
+  "Tomato___Septoria_leaf_spot",
+  "Tomato___Spider_mites Two-spotted_spider_mite",
+  "Tomato___Target_Spot",
+  "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+  "Tomato___Tomato_mosaic_virus",
+  "Tomato___healthy"
+ ],
+ "refit_e5": false,
+ "refit_e5_how": "chosen_model stays models/e4/convnext_joint/best.pt and E5 is not refit.",
+ "e12_field_dev_probabilities": "models/e12/convnext_joint_extra/field_dev.predictions.jsonl",
+ "side_by_side": [
+  {
+   "model": "E4 seen-source",
+   "scored_on": "all",
+   "n": 1028,
+   "accuracy": 0.769455252918288,
+   "macro_f1": 0.7711989151722697
+  },
+  {
+   "model": "E4 seen-source",
+   "scored_on": "plantdoc",
+   "n": 610,
+   "accuracy": 0.7524590163934426,
+   "macro_f1": 0.7397677957353002
+  },
+  {
+   "model": "E4 seen-source",
+   "scored_on": "plantseg",
+   "n": 418,
+   "accuracy": 0.7942583732057417,
+   "macro_f1": 0.7756520691839115
+  },
+  {
+   "model": "E12 seen-source",
+   "scored_on": "all",
+   "n": 1028,
+   "accuracy": 0.7879377431906615,
+   "macro_f1": 0.7835917932545718
+  },
+  {
+   "model": "E12 seen-source",
+   "scored_on": "plantdoc",
+   "n": 610,
+   "accuracy": 0.7754098360655738,
+   "macro_f1": 0.7628628283739955
+  },
+  {
+   "model": "E12 seen-source",
+   "scored_on": "plantseg",
+   "n": 418,
+   "accuracy": 0.80622009569378,
+   "macro_f1": 0.8043198186638753
+  },
+  {
+   "model": "E4 held-out",
+   "scored_on": "plantdoc",
+   "n": 610,
+   "accuracy": 0.4377049180327869,
+   "macro_f1": 0.37889388407347196
+  },
+  {
+   "model": "E12 held-out",
+   "scored_on": "plantdoc",
+   "n": 610,
+   "accuracy": 0.6639344262295082,
+   "macro_f1": 0.6679800311349283
+  },
+  {
+   "model": "E4 held-out",
+   "scored_on": "plantseg",
+   "n": 418,
+   "accuracy": 0.5478468899521531,
+   "macro_f1": 0.5182356012483028
+  },
+  {
+   "model": "E12 held-out",
+   "scored_on": "plantseg",
+   "n": 418,
+   "accuracy": 0.7607655502392344,
+   "macro_f1": 0.7523455216563509
+  }
+ ],
+ "per_class_focus": [
+  {
+   "class": "Apple___Apple_scab",
+   "support": 63,
+   "e4": {
+    "precision": 0.8153846153846154,
+    "recall": 0.8412698412698413,
+    "f1": 0.8281250000000001
+   },
+   "e12": {
+    "precision": 0.8166666666666667,
+    "recall": 0.7777777777777778,
+    "f1": 0.7967479674796747
+   },
+   "f1_change": -0.03137703252032542,
+   "extra_rows": 200,
+   "extra_by_source": {
+    "plantpathology2021": 106,
+    "plantwild": 94
+   },
+   "field_train_rows": 126
+  },
+  {
+   "class": "Apple___Black_rot",
+   "support": 15,
+   "e4": {
+    "precision": 0.7142857142857143,
+    "recall": 0.6666666666666666,
+    "f1": 0.689655172413793
+   },
+   "e12": {
+    "precision": 0.7333333333333333,
+    "recall": 0.7333333333333333,
+    "f1": 0.7333333333333333
+   },
+   "f1_change": 0.04367816091954024,
+   "extra_rows": 84,
+   "extra_by_source": {
+    "plantwild": 84
+   },
+   "field_train_rows": 30
+  },
+  {
+   "class": "Apple___Cedar_apple_rust",
+   "support": 46,
+   "e4": {
+    "precision": 0.8837209302325582,
+    "recall": 0.8260869565217391,
+    "f1": 0.853932584269663
+   },
+   "e12": {
+    "precision": 0.8333333333333334,
+    "recall": 0.7608695652173914,
+    "f1": 0.7954545454545455
+   },
+   "f1_change": -0.058478038815117483,
+   "extra_rows": 200,
+   "extra_by_source": {
+    "plantwild": 169,
+    "plantpathology2021": 31
+   },
+   "field_train_rows": 90
+  },
+  {
+   "class": "Apple___healthy",
+   "support": 22,
+   "e4": {
+    "precision": 0.8888888888888888,
+    "recall": 0.7272727272727273,
+    "f1": 0.7999999999999999
+   },
+   "e12": {
+    "precision": 0.6333333333333333,
+    "recall": 0.8636363636363636,
+    "f1": 0.7307692307692307
+   },
+   "f1_change": -0.0692307692307692,
+   "extra_rows": 200,
+   "extra_by_source": {
+    "plantwild": 200
+   },
+   "field_train_rows": 44
+  },
+  {
+   "class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+   "support": 30,
+   "e4": {
+    "precision": 0.76,
+    "recall": 0.6333333333333333,
+    "f1": 0.6909090909090909
+   },
+   "e12": {
+    "precision": 0.8181818181818182,
+    "recall": 0.6,
+    "f1": 0.6923076923076923
+   },
+   "f1_change": 0.0013986013986013734,
+   "extra_rows": 17,
+   "extra_by_source": {
+    "plantwild": 17
+   },
+   "field_train_rows": 65
+  },
+  {
+   "class": "Corn_(maize)___Common_rust_",
+   "support": 57,
+   "e4": {
+    "precision": 0.9473684210526315,
+    "recall": 0.9473684210526315,
+    "f1": 0.9473684210526315
+   },
+   "e12": {
+    "precision": 0.9473684210526315,
+    "recall": 0.9473684210526315,
+    "f1": 0.9473684210526315
+   },
+   "f1_change": 0.0,
+   "extra_rows": 23,
+   "extra_by_source": {
+    "plantwild": 23
+   },
+   "field_train_rows": 115
+  },
+  {
+   "class": "Corn_(maize)___Northern_Leaf_Blight",
+   "support": 67,
+   "e4": {
+    "precision": 0.8493150684931506,
+    "recall": 0.9253731343283582,
+    "f1": 0.8857142857142857
+   },
+   "e12": {
+    "precision": 0.8243243243243243,
+    "recall": 0.9104477611940298,
+    "f1": 0.8652482269503546
+   },
+   "f1_change": -0.02046605876393104,
+   "extra_rows": 20,
+   "extra_by_source": {
+    "plantwild": 20
+   },
+   "field_train_rows": 132
+  }
+ ],
+ "label": "development numbers, field_dev only"
+}

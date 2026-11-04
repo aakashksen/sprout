@@ -92,11 +92,11 @@ Set `SPROUT_WORKERS` from measured memory. The default is 1 worker with 4 thread
 exists yet: it needs the real model and index, so it is measured at T7.4 and entered through a run record. Raw notes
 from a check made without a model (not a result, not citable) are in `results/baselines/T7.3-memory.json`.
 
-To size it, run E8 (`python -m sprout.experiments.e8_perf measure`, see docs/DECISIONS.md): it starts this image with its own
-entrypoint and `SPROUT_WORKERS` and `SPROUT_THREADS` as given by `--env`, sends real HTTP requests at 1, 5 and 20
-concurrent actions, and reads the container's memory from its cgroup. Run it once per worker setting (`--env SPROUT_WORKERS=1`,
-then `=2`). Each worker loads its own ONNX session and index, so memory grows by about one worker's size per worker.
-Choose workers so the total stays under the container limit with headroom, and record it in the E8 run record.
+E8 (`python -m sprout.experiments.e8_perf measure`, see docs/DECISIONS.md) starts this image with its own
+entrypoint, sends about 5 real HTTP requests one at a time and reads the container's memory from its cgroup. It shows the real
+parts answer together; it is too small to size workers or say how the app behaves under load. Each worker loads its own ONNX
+session and index, so memory grows by about one worker's size per worker. Choose workers so the total stays under the
+container limit with headroom.
 On Cloud Run the CPU count also caps useful workers.
 
 ## Google Cloud Run

@@ -1,0 +1,14 @@
+{
+ "experiment": "E9",
+ "prompt_file": "src/sprout/rag/prompts/wrong_disease.txt",
+ "prompt_sha256": "43929408ff4fdbfd7b9415858a8d7585a00f12f3da1a10833bf0e7f0f99e9271",
+ "rendered_sha256": "3e5be1e11685aff48f0c2d9dd27bb88cee99e462ed8edf47fcd45a2b4e76f4ff",
+ "prompt_commit": "016bb61f57f65adf84f877d8bf6fa37fdd4acf0f",
+ "grader_model": "sonnet",
+ "dev_record": "E9-20261104T235829058326Z",
+ "validated": false,
+ "validation": "The wrong-disease check was not validated: no one read a sample of its calls on rag_dev, so how often it flags a good answer or passes a wrong one is not known. Its rate is a count of the grader's calls.",
+ "dev_source_note": "The saved rag_dev answers this check was developed on (E7 run E7-20261104T040010301317Z) were written before T7.4 added the search with the diagnosed disease when the question finds nothing, so they do not reflect the retrieval served now; no saved set of served rag_dev answers with the fallback exists, and none was generated for this check. rag_test is answered with the fallback.",
+ "frozen_at": "2026-11-04T23:58:49.999496+00:00",
+ "rule": "rag_test runs the wrong-disease check only with this prompt; it is not tuned after rag_test"
+}

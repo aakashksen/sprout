@@ -105,7 +105,7 @@
   "decision": {
     "current": "convnext_joint",
     "metric": "macro_f1",
-    "rule": "convnextv2_final replaces the current model (E4's convnext_joint, which results/e12/decision.json kept) only if its macro-F1 on the compared rows is at least the current model's. Otherwise the model with the highest macro-F1 of E4, E12 and the new one is kept (a tie goes to the current one, then E12), and it serves the 29 classes. E12's G3 failure and the keep-E4 decision stay as history.",
+    "rule": "Keep the best of the three: the highest macro-F1 on the compared rows (final_classes+clean:1) among convnextv2_final, E4 (convnext_joint) and E12 (convnext_joint_extra). A tie goes to convnextv2_final, then E4, then E12. The chosen model serves the 29 classes. E12's G3 failure and the keep-E4 decision stay as history. Fixed before any convnextv2_final score existed; E4 and E12 rescored numbers had already been seen in a dry run.",
     "file": "results/e15/decision.json"
   },
   "refit": {

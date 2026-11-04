@@ -125,10 +125,14 @@ def test_healthy_threshold_is_stricter():
     assert e15.answered(cal, names, 0.88, 0.88, "___healthy").tolist() == [True, True, True]
 
 
-def test_new_model_replaces_current_only_if_at_least_as_good():
-    f1 = {"e1": 0.5, "convnext_joint": 0.78, "convnext_joint_extra": 0.80, e15.NEW: 0.78}
-    assert e15.choose(f1, "convnext_joint")[0] == e15.NEW  # a tie goes to the new model
-    f1[e15.NEW] = 0.77
-    assert e15.choose(f1, "convnext_joint")[0] == "convnext_joint_extra"  # best of the three
+def test_new_model_replaces_current_only_if_best_of_three():
+    f1 = {"e1": 0.5, "convnext_joint": 0.78, "convnext_joint_extra": 0.80, e15.NEW: 0.80}
+    assert e15.choose(f1, "convnext_joint")[0] == e15.NEW  # a tie with E12 goes to the new model
+    f1[e15.NEW] = 0.79
+    assert e15.choose(f1, "convnext_joint")[0] == "convnext_joint_extra"  # above E4, below E12
     f1["convnext_joint_extra"] = 0.78
-    assert e15.choose(f1, "convnext_joint")[0] == "convnext_joint"  # a tie keeps the current one
+    assert e15.choose(f1, "convnext_joint")[0] == e15.NEW
+    f1[e15.NEW] = 0.78
+    assert e15.choose(f1, "convnext_joint")[0] == e15.NEW  # all tied: the new model
+    f1[e15.NEW] = 0.70
+    assert e15.choose(f1, "convnext_joint")[0] == "convnext_joint"  # E4 before E12 on a tie

@@ -483,12 +483,11 @@ def newest_record(cfg: dict[str, Any], root: Path) -> tuple[Path, dict[str, Any]
 
 
 def choose(f1: dict[str, float], current: str) -> tuple[str, str]:
-    """(chosen system, why) by the rule of configs/e15.json."""
-    if f1[NEW] >= f1[current]:
-        return NEW, f"{NEW} macro-F1 {f1[NEW]:.4f} is at least {current}'s {f1[current]:.4f}"
-    order = [current, *(s for s in f1 if s not in (current, NEW, "e1")), NEW]
+    """(chosen system, why): the highest macro-F1 of the new model, E4 and E12; a tie goes to the new model, then
+    to `current` (E4), then E12."""
+    order = [NEW, current, *(s for s in f1 if s not in (current, NEW, "e1"))]
     best = max(order, key=lambda s: (f1[s], -order.index(s)))
-    return best, f"{NEW} macro-F1 {f1[NEW]:.4f} is below {current}'s {f1[current]:.4f}; the best of the three is {best} at {f1[best]:.4f}"
+    return best, f"highest macro-F1 of {order}: {best} at {f1[best]:.4f} ({NEW} {f1[NEW]:.4f}, {current} {f1[current]:.4f})"
 
 
 def stage_decide(cfg: dict[str, Any], root: Path) -> Path:

@@ -112,11 +112,13 @@ def load_decision(cfg: dict[str, Any], root: Path = ROOT) -> dict[str, Any]:
     path = Path(root) / cfg["decision_file"]
     if not path.is_file():
         raise Refused(f"{cfg['decision_file']} does not exist: no final model has been chosen, so E9 cannot start")
-    decision = json.loads(path.read_text(encoding="utf-8"))
-    missing = [k for k in ("chosen_model", "chosen_model_sha256", "class_names") if k not in decision]
-    if missing:
-        raise Refused(f"{cfg['decision_file']} lacks {missing}")
-    return decision
+    e15 = Path(root) / cfg["e15_config"]
+    if not e15.is_file():
+        raise Refused(f"{cfg['e15_config']} does not exist, so the refit calibration T4.9 defines cannot be located")
+    try:
+        return e9_roles.normalized(json.loads(path.read_text(encoding="utf-8")), json.loads(e15.read_text(encoding="utf-8")))
+    except ValueError as exc:
+        raise Refused(f"{cfg['decision_file']}: {exc}") from exc
 
 
 def sha256_file(path: Path) -> str:
@@ -192,13 +194,12 @@ def calibrations(cfg: dict[str, Any], decision: dict[str, Any], root: Path = ROO
     alternate's own, so every model is reported with and without abstention."""
     specs = specs_of(cfg, decision)
     primary, others = candidate_roles(cfg, decision)
-    prim = load_calibration(specs[primary]["calibration"], decision["chosen_model_sha256"], root,
-                            required=bool(decision.get("refit_e5") or decision.get("calibration")))
+    prim = load_calibration(specs[primary]["calibration"], decision["chosen_model_sha256"], root, required=True)
     out = {"improved": prim, "quantized": prim}
     for i, (key, sha) in enumerate(zip(others, (alternate_sha, alternate_2_sha), strict=False)):
         if scored is not None and e9_roles.system_of(i) not in scored:
             continue  # its saved model is not on disk and it is not scored, so its calibration is not needed
-        if (Path(root) / specs[key]["calibration"]).is_file():
+        if specs[key].get("calibration") and (Path(root) / specs[key]["calibration"]).is_file():
             out[e9_roles.system_of(i)] = load_calibration(specs[key]["calibration"], sha, root)
     return out
 
@@ -365,6 +366,7 @@ def run_images(split: str, cfg: dict[str, Any], predictors: dict[str, Predictor]
     require_committed(root, [CONFIG_REL])
     require_clean(root)
     decision = load_decision(cfg, root)
+    require_committed(root, [cfg["decision_file"], cfg["e15_config"], decision["calibration"]])
     primary, others = candidate_roles(cfg, decision)
     require_unused(root, split, override_note)
     if callable(predictors):  # built only after every guard has passed, so a refused run loads no model

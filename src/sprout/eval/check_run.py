@@ -480,7 +480,7 @@ def _scope(rec: dict[str, Any], root: Path, problems: list[str]) -> tuple[SplitI
     positions = list(range(len(info.ids)))
     if rec["subset"] is not None:
         try:
-            positions = subset_positions(rec["subset"], rec["split"], info, root)
+            positions = subset_positions(rec["subset"], rec["split"], info, root, rec.get("git_commit"))
         except ValueError as exc:
             problems.append(str(exc))
             return None
@@ -796,8 +796,9 @@ def _e9_roles_problems(rec: dict[str, Any], root: Path) -> list[str]:
     got = git(root, "show", f"{rec['git_commit']}:{read['frozen config'].get('decision_file')}")
     if got.returncode != 0:
         return ["the decision cannot be read at the record's commit, so primary and alternate cannot be re-derived"]
-    decision = json.loads(got.stdout)
+    e15 = git(root, "show", f"{rec['git_commit']}:{read['frozen config'].get('e15_config')}")
     try:
+        decision = e9_roles.normalized(json.loads(got.stdout), json.loads(e15.stdout) if e15.returncode == 0 else {})
         specs = e9_roles.candidate_specs(read["frozen config"].get("candidates", {}), decision)
         primary, others = e9_roles.roles(read["frozen config"].get("candidates", {}), decision)
     except (ValueError, StopIteration) as exc:
@@ -827,7 +828,7 @@ def _e9_exif_problems(rec: dict[str, Any], root: Path, info: SplitInfo) -> list[
     it is counted again from the headers of the set the subset names without that view."""
     parts = [x for x in (rec["subset"] or "").split("+") if x and x != "shared_classes"]
     try:
-        positions = subset_positions("+".join(parts), rec["split"], info, root) if parts else range(len(info.ids))
+        positions = subset_positions("+".join(parts), rec["split"], info, root, rec.get("git_commit")) if parts else range(len(info.ids))
         fresh = answer_checks.exif_counts([root / info.ids[i] for i in positions])
     except (OSError, ValueError):
         return ["config.exif cannot be recomputed: some scored photos are not on disk"]

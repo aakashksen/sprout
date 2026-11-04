@@ -1,6 +1,6 @@
 {
   "experiment": "E9",
-  "note": "Frozen before any test split is touched: commit this file, the decision file below, the Haiku decision (results/e14/haiku_decision.json), the E5 and E6 outputs and configs/e9_wrong_disease.json first. The primary model (system 'improved') is the one the decision file names, scored on the decision's class list; every other candidate whose saved checkpoint is on disk is scored beside it as 'alternate' (and 'alternate_2'), each with its own calibration. Older models are restricted to the class list by masking the outputs of dropped classes and renormalizing. The other systems are named here.",
+  "note": "Frozen before any test split is touched: commit this file, the decision file below, configs/e15.json, the Haiku decision (results/e14/haiku_decision.json), the E5 and E6 outputs and configs/e9_wrong_disease.json first. The primary model (system 'improved') is the one the decision file names, scored on the decision's class list; every other candidate whose saved checkpoint is on disk is scored beside it as 'alternate' (and 'alternate_2'), each with its own calibration. Older models are restricted to the class list by masking the outputs of dropped classes and renormalizing. The other systems are named here.",
   "exclusion_version": 1,
   "decision_file": "results/e15/decision.json",
   "candidates": {
@@ -11,6 +11,10 @@
     "e12": {
       "checkpoint": "models/e12/convnext_joint_extra/best.pt",
       "calibration": "results/e12/e5_refit/chosen.json"
+    },
+    "e15": {
+      "checkpoint": "models/e15/final/best.pt",
+      "calibration": null
     }
   },
   "batch_size": 32,
@@ -71,6 +75,7 @@
       "blind_sha256": "3e61c876e3e57eddd0aba9d5305a558f964ba15fef6733c6511e6d49ba8aa4dd"
     }
   },
-  "decision_schema": "ASSUMED, to be written by T4.9: chosen_model (checkpoint path), chosen_model_sha256, class_names (the 29 classes in output order) and calibration (path of an E5-style chosen.json that names model_sha256, temperature and abstain_threshold). If chosen_model is E4's or E12's checkpoint, that candidate is the primary and the decision's calibration replaces its own. E9 refuses if the file or a key is absent.",
-  "old_classes_file": "results/e12/decision.json"
+  "decision_schema": "T4.9's results/e15/decision.json, read as written: chosen, chosen_checkpoint, chosen_checkpoint_sha256 and classes (the 29, in output order). The chosen checkpoint is the primary and must be one of the candidates (convnext_joint is e4, convnext_joint_extra is e12, convnextv2_final is e15, models/e15/final/best.pt); the other two are scored beside it. Its calibration is not named in the decision: it is <refit.out_dir>/chosen.json of configs/e15.json (results/e15/refit/chosen.json), which names model_sha256. A candidate that is not chosen has no calibration of its own except E4's and E12's earlier files. E9 refuses if the decision, configs/e15.json or the refit is absent or uncommitted.",
+  "old_classes_file": "results/e12/decision.json",
+  "e15_config": "configs/e15.json"
 }

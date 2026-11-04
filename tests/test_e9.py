@@ -35,11 +35,12 @@ SHA12 = hashlib.sha256(E12_BYTES).hexdigest()
 SIGNOFF = {s: {"signed": False, "by": None, "at": None, "words": None}
            for s in ("lab_test", "field_test", "rag_test")}
 CONFIG = {
-    "experiment": "E9", "exclusion_version": 1, "decision_file": "results/e12/decision.json",
+    "experiment": "E9", "exclusion_version": 1, "decision_file": "results/e15/decision.json", "e15_config": "configs/e15.json",
     "candidates": {"e4": {"checkpoint": "models/e4/convnext_joint/best.pt", "calibration": "results/e5/chosen.json"},
                    "e12": {"checkpoint": "models/e12/convnext_joint_extra/best.pt",
-                           "calibration": "results/e12/e5_refit/chosen.json"}},
-    "batch_size": 4, "torch_device": "cpu",
+                           "calibration": "results/e12/e5_refit/chosen.json"},
+                   "e15": {"checkpoint": "models/e15/final/best.pt", "calibration": None}},
+    "batch_size": 4, "torch_device": "cpu", "old_classes_file": "results/e12/decision.json",
     "systems": {
         "baseline": {"kind": "torch_checkpoint", "checkpoint": "models/e1/best.pt"},
         "xgboost": {"kind": "xgboost", "model": "models/e3/xgboost/model.ubj", "features": {"size": 32}},
@@ -70,6 +71,21 @@ def write(root, rel, text):
     p.write_text(text if isinstance(text, str) else json.dumps(text), encoding="utf-8")
 
 
+WHICH = {"e4": ("convnext_joint", "models/e4/convnext_joint/best.pt", SHA, 1.5, 0.6),
+         "e12": ("convnext_joint_extra", "models/e12/convnext_joint_extra/best.pt", SHA12, 2.0, 0.7),
+         "e15": ("convnextv2_final", "models/e15/final/best.pt", hashlib.sha256(b"the T4.9 checkpoint").hexdigest(), 1.2, 0.8)}
+
+
+def decide(root, which="e4", classes=CLASSES, sha=None):
+    """T4.9's decision file as it writes it, and the refit it points to through configs/e15.json."""
+    name, ckpt, own, temperature, threshold = WHICH[which]
+    sha = sha or own
+    write(root, "results/e15/decision.json", {"chosen": name, "chosen_checkpoint": ckpt, "chosen_checkpoint_sha256": sha,
+                                              "classes": classes, "record": "E15-1"})
+    write(root, "results/e15/refit/chosen.json", {"temperature": temperature, "abstain_threshold": threshold,
+                                                  "model_sha256": sha})
+
+
 @pytest.fixture
 def repo(tmp_path):
     r = tmp_path / "repo"
@@ -81,8 +97,9 @@ def repo(tmp_path):
     write(r, "datasets/label_exclusions.csv", LOG)
     write(r, "orchestration/label_signoff.json", SIGNOFF)
     write(r, "configs/e9.json", CONFIG)
-    write(r, "results/e12/decision.json", {"chosen_model": "models/e4/convnext_joint/best.pt",
-                                           "chosen_model_sha256": SHA, "class_names": CLASSES, "refit_e5": False})
+    write(r, "results/e12/decision.json", {"class_names": CLASSES})  # E12's decision: the list older models use
+    write(r, "configs/e15.json", {"refit": {"out_dir": "results/e15/refit"}})
+    decide(r, "e4")
     write(r, "results/e5/chosen.json", {"temperature": 1.5, "abstain_threshold": 0.6})
     write(r, "results/e12/e5_refit/chosen.json", {"temperature": 2.0, "abstain_threshold": 0.7, "model_sha256": SHA12})
     for rel, data in (("models/e4/convnext_joint/best.pt", E4_BYTES), ("models/e12/convnext_joint_extra/best.pt", E12_BYTES)):
@@ -141,7 +158,7 @@ def test_refuses_when_config_not_committed(repo):
 
 
 def test_missing_decision_file_refuses(repo):
-    (repo / "results/e12/decision.json").unlink()
+    (repo / "results/e15/decision.json").unlink()
     commit(repo, "no decision")
     with pytest.raises(e9.Refused, match="decision.json"):
         e9.load_decision(e9.load_config(repo), repo)
@@ -221,7 +238,7 @@ def test_lab_test_gets_one_record_and_a_shared_class_view(repo):
     assert {"coverage@0.6", "selective_accuracy@0.6", "confident_error_rate@0.6"} <= set(c)
     assert not any(k.startswith("coverage@") for k in m)
     assert full["metrics"]["quantized"]["changed_vs@improved"] is not None
-    assert full["config"]["calibration"]["improved"] == {"file": "results/e5/chosen.json", "temperature": 1.5, "abstain_threshold": 0.6}
+    assert full["config"]["calibration"]["improved"] == {"file": "results/e15/refit/chosen.json", "temperature": 1.5, "abstain_threshold": 0.6}
     assert full["config"]["calibration"]["alternate"]["temperature"] == 2.0
     assert "coverage@0.7" in full["metrics"]["alternate_calibrated"]
     for p in paths:
@@ -278,16 +295,29 @@ def test_a_system_with_other_classes_than_the_decision_is_refused(repo):
 def test_calibration_must_belong_to_the_model_it_was_fitted_on(repo):
     cfg = e9.load_config(repo)
     decision = e9.load_decision(cfg, repo)
-    cal = e9.calibrations(cfg, decision, repo, alternate_sha=SHA12)
+    assert decision["calibration"] == "results/e15/refit/chosen.json"  # configs/e15.json's refit.out_dir, not a key
+    cal = e9.calibrations(cfg, decision, repo, alternate_sha=SHA12, scored=("alternate",))
     assert cal["improved"]["temperature"] == 1.5 and cal["quantized"] == cal["improved"]
-    assert cal["alternate"]["temperature"] == 2.0
-    with pytest.raises(e9.Refused, match="refit"):  # E12 says E5 was refit, but the primary's file names no model
-        e9.calibrations(cfg, {**decision, "refit_e5": True}, repo, alternate_sha=SHA12)
+    assert cal["alternate"]["temperature"] == 2.0 and "alternate_2" not in cal  # e15 is not chosen and has no refit
     with pytest.raises(e9.Refused, match="fitted on"):  # a file that names another model than the one scored
         e9.calibrations(cfg, decision, repo, alternate_sha=SHA)
-    write(repo, "results/e5/chosen.json", {"temperature": 1.5, "abstain_threshold": 0.6, "model_sha256": SHA})
-    refit = e9.calibrations(cfg, {**decision, "refit_e5": True}, repo, alternate_sha=SHA12)
-    assert refit["improved"]["abstain_threshold"] == 0.6
+    write(repo, "results/e15/refit/chosen.json", {"temperature": 1.5, "abstain_threshold": 0.6})
+    with pytest.raises(e9.Refused, match="refit"):  # the refit must name the model it was fitted on
+        e9.calibrations(cfg, decision, repo, alternate_sha=SHA12)
+    write(repo, "results/e15/refit/chosen.json", {"temperature": 1.5, "abstain_threshold": 0.6, "model_sha256": SHA12})
+    with pytest.raises(e9.Refused, match="fitted on"):  # and it must be the chosen one
+        e9.calibrations(cfg, decision, repo, alternate_sha=SHA12)
+
+
+def test_the_decision_is_read_as_t49_writes_it(repo):
+    cfg = e9.load_config(repo)
+    write(repo, "results/e15/decision.json", {"chosen_model": "models/e4/convnext_joint/best.pt", "class_names": CLASSES})
+    with pytest.raises(e9.Refused, match="lacks"):  # the old key names are not accepted
+        e9.load_decision(cfg, repo)
+    (repo / "configs/e15.json").unlink()
+    decide(repo, "e4")
+    with pytest.raises(e9.Refused, match="e15.json"):
+        e9.load_decision(cfg, repo)
 
 
 def test_the_primary_model_is_the_one_e12_chose_and_the_other_is_reported_beside_it(repo):
@@ -304,15 +334,14 @@ def test_the_primary_model_is_the_one_e12_chose_and_the_other_is_reported_beside
     assert "primary" in rec["models"]["improved"] and "alternate" in rec["models"]["alternate"]
     assert check_file(path, repo, min_n=1) == []
     # when E12's gates pass, the decision names E12's model and the roles swap
-    write(repo, "results/e12/decision.json", {"chosen_model": "models/e12/convnext_joint_extra/best.pt",
-                                              "chosen_model_sha256": SHA12, "class_names": CLASSES, "refit_e5": True})
+    decide(repo, "e12")
     commit(repo, "E12 chosen")
     swapped = e9.run_images("lab_test", cfg, predictors(alternate=SHA, quantized=SHA12), repo)[0]
     c = json.loads(swapped.read_text())["config"]
     assert c["primary"]["candidate"] == "e12" and c["alternate"]["candidate"] == "e4"
     assert c["calibration"]["improved"]["temperature"] == 2.0 and c["calibration"]["alternate"]["temperature"] == 1.5
     other = {"chosen_model": "models/elsewhere/best.pt", "chosen_model_sha256": SHA, "class_names": CLASSES}
-    with pytest.raises(e9.Refused, match="neither"):
+    with pytest.raises(e9.Refused, match="none of"):
         e9.candidate_roles(cfg, other)
 
 
@@ -399,8 +428,7 @@ def tiny_models(root):
     onnx_sha = e9.sha256_file(root / "models/e6/model.dynamic.onnx")
     write(root, "results/e6/export.json", {"checkpoint_sha256": chosen_sha, "files": {
         "onnx_dynamic": {"file": "model.dynamic.onnx", "sha256": onnx_sha}}})
-    write(root, "results/e12/decision.json", {"chosen_model": "models/e4/convnext_joint/best.pt",
-                                              "chosen_model_sha256": chosen_sha, "class_names": CLASSES, "refit_e5": False})
+    decide(root, "e4", sha=chosen_sha)
     return chosen_sha
 
 
@@ -1145,16 +1173,14 @@ def test_check_run_rederives_primary_and_alternate_from_the_committed_decision(r
     assert any("alternate" in x for x in with_roles(p, {**a, "checkpoint": p["checkpoint"]}))
     assert with_roles(p, a) == []
     # the decision is read where the run was made: a later change to it, committed or not, does not touch this record
-    write(repo, "results/e12/decision.json", {"chosen_model": "models/e12/convnext_joint_extra/best.pt",
-                                              "chosen_model_sha256": SHA12, "class_names": CLASSES, "refit_e5": True})
+    decide(repo, "e12")
     assert _ok(path, repo) == []
     commit(repo, "E12 chosen later")
     assert _ok(path, repo) == []
 
 
 def test_check_run_rederives_roles_when_e12_is_chosen(repo):
-    write(repo, "results/e12/decision.json", {"chosen_model": "models/e12/convnext_joint_extra/best.pt",
-                                              "chosen_model_sha256": SHA12, "class_names": CLASSES, "refit_e5": True})
+    decide(repo, "e12")
     commit(repo, "E12 chosen")
     (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(alternate=SHA, quantized=SHA12), repo)
     assert _ok(path, repo) == []
@@ -1242,7 +1268,7 @@ def test_every_calibration_is_bound_to_the_checkpoint_it_was_fitted_for_when_e4_
     rec = json.loads(path.read_text())
     b = rec["config"]["calibration_binding"]
     assert b["improved"]["sha256"] == SHA and b["improved"]["checkpoint"] == "models/e4/convnext_joint/best.pt"
-    assert "path" in b["improved"]["bound_by"] and b["improved"]["calibration_file"] == "results/e5/chosen.json"
+    assert "names" in b["improved"]["bound_by"] and b["improved"]["calibration_file"] == "results/e15/refit/chosen.json"
     assert b["quantized"]["sha256"] == SHA and "exported from" in b["quantized"]["bound_by"]
     assert b["alternate"]["sha256"] == SHA12 and "names" in b["alternate"]["bound_by"]
     assert check_file(path, repo, min_n=1) == []
@@ -1252,8 +1278,7 @@ def test_every_calibration_is_bound_to_the_checkpoint_it_was_fitted_for_when_e4_
 
 
 def test_every_calibration_is_bound_to_the_checkpoint_it_was_fitted_for_when_e12_is_chosen(repo):
-    write(repo, "results/e12/decision.json", {"chosen_model": "models/e12/convnext_joint_extra/best.pt",
-                                              "chosen_model_sha256": SHA12, "class_names": CLASSES, "refit_e5": True})
+    decide(repo, "e12")
     commit(repo, "E12 chosen")
     (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(alternate=SHA, quantized=SHA12), repo)
     b = json.loads(path.read_text())["config"]["calibration_binding"]
@@ -1268,19 +1293,18 @@ def test_a_calibration_fitted_for_another_checkpoint_is_refused(repo):
         e9.run_images("field_test", cfg, predictors(quantized=SHA12), repo)
     with pytest.raises(e9.Refused, match="quantized"):  # or carries no checkpoint hash at all
         e9.run_images("field_test", cfg, predictors(quantized=""), repo)
-    (repo / "models/e4/convnext_joint/best.pt").write_bytes(b"retrained")  # E4's file no longer the one E5 was fitted on
-    git(repo, "add", "-A")
-    commit(repo, "retrained")
-    with pytest.raises(e9.Refused, match="decision|fitted"):
+    decide(repo, "e4")
+    write(repo, "results/e15/refit/chosen.json", {"temperature": 1.5, "abstain_threshold": 0.6, "model_sha256": "0" * 64})  # another model's refit
+    commit(repo, "refit for another model")
+    with pytest.raises(e9.Refused, match="fitted on another"):
         e9.run_images("field_test", cfg, predictors(), repo)
-    # a sha-less file for a checkpoint E5 never used cannot be tied to it
+    # a sha-less file for a checkpoint E5 never used cannot be tied to it: E4 as an alternate loses its calibration
+    decide(repo, "e12")
     write(repo, "configs/e5.json", {"model": {"checkpoint": "models/e12/convnext_joint_extra/best.pt", "e4_record": "E4-1"}})
-    write(repo, "results/e12/decision.json", {"chosen_model": "models/e4/convnext_joint/best.pt",
-                                              "chosen_model_sha256": e9.sha256_file(repo / "models/e4/convnext_joint/best.pt"),
-                                              "class_names": CLASSES, "refit_e5": False})
     commit(repo, "e5 config moved")
-    with pytest.raises(e9.Refused, match="cannot be tied|not the checkpoint"):
-        e9.run_images("field_test", cfg, predictors(quantized=e9.sha256_file(repo / "models/e4/convnext_joint/best.pt")), repo)
+    (path,) = e9.run_images("field_test", cfg, predictors(alternate=SHA, quantized=SHA12), repo)
+    why = json.loads(path.read_text())["config"]["calibration_binding"]["alternate"]
+    assert why["calibration_file"] is None and "cannot be tied" in why["why"] or "another model" in why["why"]
 
 
 def test_without_a_refit_the_alternate_is_scored_plain_and_the_record_says_why(repo):
@@ -1372,17 +1396,14 @@ SHA15 = hashlib.sha256(E15_BYTES).hexdigest()
 CLASSES3 = CLASSES[:3]  # the class rule drops Tomato___healthy, a class lab_test holds
 
 
-def final_model(root, calibration=True):
-    """What T4.9 is assumed to leave: a checkpoint, an E5-style calibration naming it, and a decision file."""
-    write(root, "models/e15/best.pt", "x")
-    (root / "models/e15/best.pt").write_bytes(E15_BYTES)
-    write(root, "results/e15/calibration.json", {"temperature": 1.2, "abstain_threshold": 0.8, "model_sha256": SHA15})
+def final_model(root):
+    """What T4.9 leaves when its own model is chosen: the checkpoint, the decision and the refit it points to."""
+    write(root, "models/e15/final/best.pt", "x")
+    (root / "models/e15/final/best.pt").write_bytes(E15_BYTES)
     e6 = json.loads((root / "results/runs/E6-1.json").read_text())
     e6["run_id"], e6["config"]["checkpoint_sha256"] = "E6-3", SHA15
     write(root, "results/runs/E6-3.json", e6)
-    write(root, "results/e12/decision.json", {
-        "chosen_model": "models/e15/best.pt", "chosen_model_sha256": SHA15, "class_names": CLASSES3,
-        **({"calibration": "results/e15/calibration.json"} if calibration else {})})
+    decide(root, "e15", classes=CLASSES3)
     commit(root, "T4.9 decided")
 
 
@@ -1399,14 +1420,15 @@ def test_a_new_final_model_is_primary_and_e4_and_e12_are_scored_beside_it_on_its
     paths = e9.run_images("lab_test", e9.load_config(repo), three_class_predictors(), repo)
     full = json.loads(paths[0].read_text())
     c = full["config"]
-    assert c["primary"]["candidate"] == "e15" and c["primary"]["checkpoint"] == "models/e15/best.pt"
+    assert c["primary"]["candidate"] == "e15" and c["primary"]["checkpoint"] == "models/e15/final/best.pt"
     assert (c["alternate"]["candidate"], c["alternate_2"]["candidate"]) == ("e4", "e12")
-    assert c["calibration"]["improved"]["temperature"] == 1.2  # the decision's refit, not E4's or E12's own file
+    assert c["calibration"]["improved"]["file"] == "results/e15/refit/chosen.json"  # the refit T4.9 defines
+    assert c["calibration"]["improved"]["temperature"] == 1.2
     assert c["calibration"]["alternate"]["temperature"] == 1.5 and c["calibration"]["alternate_2"]["temperature"] == 2.0
     assert c["class_names"] == CLASSES3 and "alternate_2" in full["predictions"]
     assert ("improved", "alternate_2") in {(x["a"], x["b"]) for x in full["comparisons"]}
     # the rule: rows whose true class is outside the 29 (here 3) are not scored, by any system, and the record says so
-    assert full["subset"] == "classes_in:results/e12/decision.json" and full["n"] == 12
+    assert full["subset"] == "classes_in:results/e15/decision.json" and full["n"] == 12
     assert c["class_rule"]["rows_dropped"] == 4 and c["class_rule"]["labels_outside_the_list"] == ["Tomato___healthy"]
     assert "4 further photos" in c["basis"]
     assert [check_file(p, repo, min_n=1) for p in paths] == [[], []]
@@ -1417,10 +1439,22 @@ def test_a_new_final_model_is_primary_and_e4_and_e12_are_scored_beside_it_on_its
     assert any("alternate_2" in p for p in check_file(paths[0], repo, min_n=1))
 
 
-def test_a_chosen_model_that_is_none_of_the_candidates_needs_a_calibration_in_the_decision(repo):
-    final_model(repo, calibration=False)
-    with pytest.raises(e9.Refused, match="neither"):
-        e9.run_images("lab_test", e9.load_config(repo), three_class_predictors(), repo)
+def test_the_alternates_are_whichever_two_models_were_not_chosen(repo):
+    for which, others in (("e4", ["e12", "e15"]), ("e12", ["e4", "e15"]), ("e15", ["e4", "e12"])):
+        decide(repo, which)
+        cfg = e9.load_config(repo)
+        primary, alternates = e9.candidate_roles(cfg, e9.load_decision(cfg, repo))
+        assert primary == which and alternates == others
+
+
+def test_the_class_list_is_read_from_the_decision_at_the_records_commit(repo):
+    final_model(repo)
+    paths = e9.run_images("lab_test", e9.load_config(repo), three_class_predictors(), repo)
+    assert check_file(paths[0], repo, min_n=1) == []
+    write(repo, "results/e15/decision.json", {**json.loads((repo / "results/e15/decision.json").read_text()), "classes": CLASSES})
+    assert check_file(paths[0], repo, min_n=1) == []  # a later edit, committed or not, does not change this record
+    commit(repo, "classes changed later")
+    assert check_file(paths[0], repo, min_n=1) == []
 
 
 def test_an_alternate_whose_saved_model_is_missing_is_named_and_not_scored(repo):

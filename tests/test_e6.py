@@ -93,6 +93,18 @@ def test_class_map_travels_with_the_model(tmp_path):
         assert OnnxModel(quantize(onnx_path, mode, [_photo()])).class_map == CLASS_MAP
 
 
+def test_every_variant_carries_the_checkpoint_checksum(tmp_path):
+    import hashlib
+
+    ckpt, _ = _checkpoint(tmp_path)
+    want = hashlib.sha256(ckpt.read_bytes()).hexdigest()
+    base = export_onnx(ckpt, tmp_path / "m.onnx")
+    assert OnnxModel(base).source_sha256 == want
+    for mode in ("dynamic", "static"):
+        assert OnnxModel(quantize(base, mode, [_photo()])).source_sha256 == want
+    assert OnnxModel(export_module(_mlp(), CLASS_MAP, tmp_path / "bare.onnx")).source_sha256 is None
+
+
 def test_running_and_quantizing_a_model_loads_no_torch(tmp_path):
     import os
     import subprocess
@@ -160,6 +172,8 @@ def world(tmp_path):
     config = TrainConfig(manifest="m.csv", out_dir="o", model="tiny_cnn")
     torch.save({"model": model.state_dict(), "class_map": {"A": 0, "B": 1}, "config": config.to_dict()},
                root / "models/e4/best.pt")
+    (root / "results/e5").mkdir(parents=True)
+    (root / "results/e5/chosen.json").write_text(json.dumps({"temperature": 1.5, "abstain_threshold": 0.6}))
     _git(root, "init", "-q")
     _git(root, "config", "user.email", "t@t")
     _git(root, "config", "user.name", "t")
@@ -173,7 +187,7 @@ def cfg():
         "experiment": "E6", "split": "field_dev", "subset": "clean:1", "out_dir": "results/e6",
         "model_dir": "models/e6", "model": {"name": "tiny", "checkpoint": "models/e4/best.pt"},
         "crop_kept": False, "torch_device": "cpu", "threads": 1, "batch_size": 3, "chunk": 2,
-        "calibration": {"split": "lab_dev", "n": 3, "seed": 0},
+        "calibration": {"split": "lab_dev", "n": 3, "seed": 0}, "thresholds": "results/e5/chosen.json",
         "latency": {"images": 3, "warmup": 1},
     }
 
@@ -205,6 +219,53 @@ def test_stages_end_to_end_and_the_record_passes_check_run(world, cfg):
     assert {"latency_ms_onnx_static_p50", "latency_ms_onnx_static_p95"} <= set(rec["measurements"]["values"])
     assert {f"size_bytes_{s}_p50" for s in rec["predictions"]} <= set(rec["measurements"]["values"])
     assert check("E6", root=world, min_n=7, split="field_dev") == []
+
+
+def test_every_exported_file_carries_the_checkpoint_checksum(world, cfg):
+    _run_stages(cfg, world, ("export",))
+    state = json.loads((world / "results/e6/export.json").read_text())
+    for system, info in state["files"].items():
+        assert OnnxModel(world / "models/e6" / info["file"]).source_sha256 == state["checkpoint_sha256"], system
+
+
+def test_record_states_how_e5_thresholds_behave_on_every_system(world, cfg):
+    from sprout.experiments.e5_confidence import FLOOR
+    from sprout.serve.calibrate import apply_temperature
+
+    _run_stages(cfg, world)
+    rows = _rows(world, "pytorch")
+    top = apply_temperature(np.log(np.maximum([r["probs"] for r in rows], FLOOR)), 1.5).max(axis=1)
+    threshold = float(np.sort(top)[3])  # answers some photos and abstains on others
+    (world / "results/e5/chosen.json").write_text(json.dumps({"temperature": 1.5, "abstain_threshold": threshold}))
+    _commit(world)
+    rec = json.loads(e6.run_stage("record", cfg, world).read_text())
+    t = rec["config"]["e5_thresholds"]
+    assert t["file"] == "results/e5/chosen.json" and t["temperature"] == 1.5 and t["abstain_threshold"] == threshold
+    assert t["model_sha256"] is None and t["names_this_checkpoint"] is None  # this file names no model
+    assert set(t["systems"]) == {"pytorch", "onnx", "onnx_dynamic", "onnx_static"}
+    probs = apply_temperature(np.log(np.maximum([r["probs"] for r in rows], FLOOR)), 1.5)
+    answered = probs.max(axis=1) >= threshold
+    wrong = probs.argmax(axis=1) != np.array([r["label"] for r in rows])
+    assert 0 < answered.sum() < len(rows)
+    got = t["systems"]["pytorch"]
+    assert got["n"] == 7 and got["coverage"] == pytest.approx(answered.mean())
+    assert got["abstained"] == pytest.approx(1 - answered.mean())
+    assert got["confident_error_rate"] == pytest.approx(wrong[answered].mean())
+    assert "Coverage at E5's fitted abstention threshold" in rec["notes"]
+
+
+def test_record_says_whether_the_thresholds_name_this_checkpoint(world, cfg):
+    import hashlib
+
+    sha = hashlib.sha256((world / "models/e4/best.pt").read_bytes()).hexdigest()
+    for named, want in ((sha, True), ("0" * 64, False)):
+        (world / "results/e5/chosen.json").write_text(
+            json.dumps({"temperature": 1.5, "abstain_threshold": 0.6, "model_sha256": named}))
+        _commit(world)
+        _run_stages(cfg, world)
+        rec = json.loads(e6.run_stage("record", cfg, world).read_text())
+        assert rec["config"]["e5_thresholds"]["names_this_checkpoint"] is want
+        _commit(world)
 
 
 def test_record_refuses_without_latency(world, cfg):

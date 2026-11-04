@@ -125,10 +125,10 @@ def make_retriever(tmp_path, warm_delay=0.0):
 def model_files(tmp_path):
     torch.manual_seed(1)
     net = nn.Sequential(nn.AdaptiveAvgPool2d(8), nn.Flatten(), nn.Linear(3 * 8 * 8, 3), nn.Identity()).eval()
-    model = export_module(net, CLASS_MAP, tmp_path / "tiny.onnx")
+    model = export_module(net, CLASS_MAP, tmp_path / "tiny.onnx", source_sha256="b" * 64)
     calibration = tmp_path / "chosen.json"
     gate = {"kind": "confidence", "confidence_threshold": 0.0}
-    calibration.write_text(json.dumps({"temperature": 1.0, "abstain_threshold": 0.0,
+    calibration.write_text(json.dumps({"temperature": 1.0, "abstain_threshold": 0.0, "model_sha256": "b" * 64,
                                        "gate": {"chosen": "confidence", "settings": gate}}), encoding="utf-8")
     return model, calibration
 

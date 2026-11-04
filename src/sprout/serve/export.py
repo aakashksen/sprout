@@ -2,10 +2,12 @@
 
 `OnnxModel` and `quantize` import no torch, so the serving image does not need it. Only `export_module` and
 `export_onnx` do, and they import it inside the function. The class map and the preprocessing settings are
-written into the file's metadata, so a model file says which class each output column is.
+written into the file's metadata, so a model file says which class each output column is. So is the sha256 of the
+checkpoint the file came from (`SOURCE_KEY`), which the identifier compares with the one the calibration was fitted for.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Iterable
@@ -18,6 +20,7 @@ from sprout.preprocess_np import IMAGE_SIZE, MEAN, STD, preprocess_array
 INPUT, OUTPUT = "image", "logits"
 OPSET = 17
 MODES = ("dynamic", "static")
+SOURCE_KEY = "source_checkpoint_sha256"
 
 
 def _set_metadata(path: Path, props: dict[str, str]) -> None:
@@ -36,8 +39,9 @@ def _metadata(path: Path) -> dict[str, str]:
     return {p.key: p.value for p in onnx.load(str(path), load_external_data=False).metadata_props}
 
 
-def export_module(model, class_map: dict[str, int], path: Path, model_name: str = "") -> Path:
-    """Write a torch module that takes (batch, 3, 224, 224) and returns logits; the batch size stays open."""
+def export_module(model, class_map: dict[str, int], path: Path, model_name: str = "", source_sha256: str = "") -> Path:
+    """Write a torch module that takes (batch, 3, 224, 224) and returns logits; the batch size stays open.
+    `source_sha256` is stamped into the metadata when given."""
     import torch
 
     path = Path(path)
@@ -53,6 +57,7 @@ def export_module(model, class_map: dict[str, int], path: Path, model_name: str 
         "class_map": json.dumps(class_map),
         "preprocess": json.dumps({"size": IMAGE_SIZE, "mean": MEAN, "std": STD}),
         "model_name": model_name,
+        **({SOURCE_KEY: source_sha256} if source_sha256 else {}),
     })
     return path
 
@@ -66,7 +71,7 @@ def export_onnx(checkpoint: Path, path: Path) -> Path:
     name = ckpt["config"].model
     model = build_model(name, len(ckpt["class_map"]), pretrained=False)
     model.load_state_dict(ckpt["model"])
-    return export_module(model, ckpt["class_map"], path, name)
+    return export_module(model, ckpt["class_map"], path, name, hashlib.sha256(Path(checkpoint).read_bytes()).hexdigest())
 
 
 class _Calibration:
@@ -114,7 +119,7 @@ def quantize(path: Path, mode: str, calibration_images=None) -> Path:
             str(path), str(out), reader, quant_format=QuantFormat.QDQ,
             activation_type=QuantType.QUInt8, weight_type=QuantType.QInt8,
         )
-    _set_metadata(out, _metadata(path))
+    _set_metadata(out, _metadata(path))  # the quantizer drops metadata; put it back, source checksum included
     return out
 
 
@@ -131,6 +136,7 @@ class OnnxModel:
         if "class_map" not in meta:
             raise ValueError(f"{path} has no class map in its metadata")
         self.class_map: dict[str, int] = json.loads(meta["class_map"])
+        self.source_sha256: str | None = meta.get(SOURCE_KEY) or None
         self.class_names = [n for n, _ in sorted(self.class_map.items(), key=lambda kv: kv[1])]
 
     def predict(self, image: Image.Image) -> np.ndarray:

@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Result | SPROUT{% endblock %}
 {% block body %}
-<div id="analysis" data-base="{{ url_for('analyses.show', analysis_id=analysis.id) }}">
+{% set shown_label = analysis.selected_label or (ident.top.label if ident.top else "") %}
+<div id="analysis" data-base="{{ url_for('analyses.show', analysis_id=analysis.id) }}" data-healthy="{{ '1' if is_healthy(shown_label) else '0' }}">
 <h1 class="text-center mb-4">Analysis Results</h1>
 <div class="row justify-content-center">
 <div class="col-md-8">
@@ -13,7 +14,7 @@
       {% if ident.status == "answered" and ident.top %}
         {% set pct = (ident.top.confidence * 100)|round(0)|int %}
         <h2 class="card-title {{ 'text-healthy' if 'healthy' in ident.top.label else 'text-problem' }}">
-          <i class="bi {{ 'bi-check-circle' if 'healthy' in ident.top.label else 'bi-exclamation-triangle' }}"></i>
+          <i class="bi {{ 'bi-info-circle' if is_healthy(ident.top.label) else 'bi-exclamation-triangle' }}"></i>
           <span id="prediction">{{ pretty(ident.top.label) }}: {{ pct }}% confidence</span>
         </h2>
         <progress class="confidence" value="{{ pct }}" max="100" aria-label="Confidence"></progress>
@@ -25,6 +26,7 @@
         <h2 class="card-title"><i class="bi bi-exclamation-octagon"></i> <span id="prediction"><strong>Unusable image.</strong> The image could not be used.</span></h2>
       {% endif %}
       </div>
+      {% if ident.status == "answered" and is_healthy(shown_label) %}<p class="alert alert-warning" id="healthy-caution">{{ healthy_caution }}</p>{% endif %}
       {% if ident.guidance %}<p class="alert alert-warning" id="guidance">{{ ident.guidance }}</p>{% endif %}
       {% if ident.status != "answered" %}<p class="text-center">Try another photo: a close, well-lit view of one leaf works best.</p>{% endif %}
 

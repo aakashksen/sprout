@@ -10,6 +10,7 @@ from sprout.llm.client import LLMClient, LLMError
 from sprout.rag import serving
 from sprout.rag.query import build_query, crop_of_label, detect_crop
 from sprout.serve.types import Identification
+from sprout.serve.wording import HEALTHY_CAUTION, is_healthy
 
 GENERAL_CROP = "general"  # the crop name general-guidance documents carry in the index
 PROMPT_DIR = Path(__file__).parent / "prompts"
@@ -38,7 +39,9 @@ _PROSE_DECLINE = re.compile(
     r"|^\W*there\s+(?:is|are|was|were)\s+no\s+(?:information|evidence|mention|data|details?)\b"
     r"|^\W*(?:no|not\s+enough)\s+(?:information|evidence|mention|data|details?)\b", re.I)
 _TAGS = re.compile(r"</?\s*(diagnosis|history|evidence|question)\s*>", re.I)
-_MARK = re.compile(r"\[(\d+)\]")
+# `[2]` or a list of numbers in one bracket (`[1, 2]`, `[1,2]`, `[1; 2]`); ranges like `[1-2]` are not read.
+_MARK = re.compile(r"\[(\d+(?:\s*[,;]\s*\d+)*)\]")
+_NUM = re.compile(r"\d+")
 
 
 @dataclass(frozen=True)
@@ -126,6 +129,8 @@ def diagnosis_summary(ident: Identification | None) -> str:
     others = "; ".join(f"{_shown(a.label)} ({a.confidence:.0%})" for a in ident.alternatives)
     uncertain = ident.status == "unsure" or ident.top.confidence < CONFIDENT
     text = f"The photo suggests {top}." + (f" Other possibilities: {others}." if others else "")
+    if is_healthy(ident.top.label):
+        text += f" {HEALTHY_CAUTION} Never tell the user the plant is fine or free of disease."
     return text + (" This is uncertain; say it may be this, never that it is." if uncertain else "")
 
 
@@ -218,10 +223,18 @@ def answer(
         text = rest if _ONE_QUESTION.fullmatch(rest) else f"Could you tell me {wanted}?"
         return Answer(text, [], False, asks + items, "clarify", found, query, version)
     cited: list[int] = []
-    for n in map(int, _MARK.findall(reply)):
-        if 1 <= n <= len(found) and n not in cited:
-            cited.append(n)
-    text = _MARK.sub(lambda m: m.group(0) if 1 <= int(m.group(1)) <= len(found) else "", reply).strip()
+    for group in _MARK.findall(reply):
+        for n in map(int, _NUM.findall(group)):
+            if 1 <= n <= len(found) and n not in cited:
+                cited.append(n)
+
+    def shown(m: re.Match) -> str:
+        nums = [int(x) for x in _NUM.findall(m.group(1))]
+        if len(nums) > 1 and not any(1 <= n <= len(found) for n in nums):
+            return m.group(0)  # a prose list such as [10, 20] is not a citation
+        return "".join(f"[{n}]" for n in nums if 1 <= n <= len(found))
+
+    text = _MARK.sub(shown, reply).strip()
     citations = [_citation(found[n - 1], cfg.sources) for n in cited]
     state = "answered" if citations else "ungrounded"
     if not citations:
@@ -229,5 +242,9 @@ def answer(
     if _uncertain(identification):
         top = identification.top
         text = f"This is only a possible match from the photo, not a certain one ({_shown(top.label)}, {top.confidence:.0%}). " + text
-    text = f"{text.replace(LABEL_NOTE, '').replace(LEGACY_LABEL_NOTE, '').strip()}\n\n{LABEL_NOTE}"
+    notes = LABEL_NOTE
+    if identification is not None and identification.top is not None and is_healthy(identification.top.label):
+        notes = f"{HEALTHY_CAUTION} {LABEL_NOTE}"  # said once here, whatever the writer wrote
+        text = text.replace(HEALTHY_CAUTION, "")
+    text = f"{text.replace(LABEL_NOTE, '').replace(LEGACY_LABEL_NOTE, '').strip()}\n\n{notes}"
     return Answer(text, citations, bool(citations), asks, state, found, query, version)

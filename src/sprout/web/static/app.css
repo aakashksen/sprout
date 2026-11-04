@@ -53,3 +53,7 @@ form.inline { display: inline; }
 .modal-header.chat-head { background: #4caf50; color: #fff; }
 button[disabled] { cursor: progress; }
 .error { color: #9b1c1c; }
+
+.reply-unavailable, .reply-retrieval_failed { background: #fff3cd; color: #664d03; }
+.reply-no_document, .reply-ungrounded { background: #f1f3f4; color: #333; }
+.answer-text p { margin-bottom: .5rem; }

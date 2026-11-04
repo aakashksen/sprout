@@ -180,7 +180,8 @@
       if (busy) return;
       busy = true;
       send.disabled = true;
-      reply.replaceChildren(el('p', 'Searching the documents...'));
+      reply.className = 'reply';
+      reply.replaceChildren(el('p', 'Searching the documents and writing an answer...'));
       const r = await post(base + '/chat', {message});
       busy = false;
       send.disabled = false;
@@ -192,9 +193,26 @@
         return;
       }
       const nodes = [];
-      if (!r.data.passages.length) nodes.push(el('p', 'No supporting document found.', 'nosrc'));
-      nodes.push(el('p', r.data.note, 'note'));
-      r.data.passages.forEach(p => nodes.push(passageNode(p)));
+      if (r.data.text === undefined) {  // a server with no writer: the cited passages only
+        if (!r.data.passages.length) nodes.push(el('p', 'No supporting document found.', 'nosrc'));
+        nodes.push(el('p', r.data.note, 'note'));
+        r.data.passages.forEach(p => nodes.push(passageNode(p)));
+      } else {
+        const state = r.data.state;
+        reply.className = 'reply reply-' + state;
+        const text = el('div', undefined, 'answer-text');
+        text.innerHTML = r.data.html;  // rendered and sanitised by the server
+        nodes.push(text);
+        if (state === 'clarify') nodes.push(el('p', 'Answer in your next message.', 'note'));
+        if (r.data.note) nodes.push(el('p', r.data.note, 'note'));
+        r.data.passages.forEach(p => nodes.push(passageNode(p)));
+        if (state === 'unavailable' || state === 'retrieval_failed') {
+          const retry = el('button', 'Try again', 'btn btn-sm btn-outline-secondary');
+          retry.type = 'button';
+          retry.addEventListener('click', () => ask(message, reply));
+          nodes.push(retry);
+        }
+      }
       reply.replaceChildren(...nodes);
     }
 

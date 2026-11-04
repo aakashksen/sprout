@@ -918,3 +918,30 @@ def test_the_device_of_every_local_stage_must_be_recorded(tmp_path):
                        ("judge", {"model": "j", "size": 8, "size_vram": 8})):
         e9._remember_device(tmp_path, role, info)
     assert "retrieval on cuda" in e9.device_text(tmp_path) and "writer w with 10 of 10" in e9.device_text(tmp_path)
+
+
+def test_cleaned_counts_calibration_and_labels_reviewed_cannot_be_edited(repo):
+    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
+    good = json.loads(path.read_text())
+    assert check_file(path, repo, min_n=1) == []
+
+    def edited(mutate):
+        rec = json.loads(json.dumps(good))
+        mutate(rec)
+        path.write_text(json.dumps(rec))
+        return check_file(path, repo, min_n=1)
+
+    assert any("cleaned_rows" in p for p in edited(lambda r: r["config"]["cleaned_rows"].update(removed=2)))
+    assert any("cleaned_rows" in p for p in edited(lambda r: r["config"]["cleaned_rows"]["by_reason"].update(wrong_plant=1)))
+    assert any("cleaned_rows" in p for p in edited(lambda r: r["config"].pop("cleaned_rows")))
+    assert any("clean" in p for p in edited(lambda r: r.update(subset=None)))
+    assert any("labels_reviewed" in p for p in edited(lambda r: r.update(labels_reviewed=True)))
+    assert any("calibrat" in p for p in edited(lambda r: r["config"]["calibration"].update(temperature=3.0)))
+    assert any("calibrat" in p for p in edited(lambda r: r["config"]["calibration"].update(abstain_threshold=0.7)))
+    path.write_text(json.dumps(good))
+    cal = repo / good["predictions"]["quantized_calibrated"]
+    text = cal.read_text()
+    row = json.loads(text.splitlines()[0])
+    row["probs"] = row["probs"][::-1]
+    cal.write_text(chr(10).join([json.dumps(row), *text.splitlines()[1:]]) + chr(10))
+    assert any("calibrat" in p for p in check_file(path, repo, min_n=1))

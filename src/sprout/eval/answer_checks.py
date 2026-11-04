@@ -103,3 +103,13 @@ def final_lists(rows: list[dict[str, Any]]) -> dict[str, list[bool]]:
            "claims_supported_by_sonnet": [bool(c["sonnet"]) for c in claims if c["sonnet"] is not None],
            "answers_flagged_wrong_disease": [r["wrong_disease"] == "WRONG" for r in rows if r["wrong_disease"] in CALLS]}
     return {k: v for k, v in out.items() if v}
+
+
+def cleaned_rows(log: Any, version: int, before_ids: list[str], kept_ids: list[str]) -> dict[str, Any]:
+    """How many test rows the label cleaning removed and why, from the exclusion log (a DataFrame with `version`,
+    `path`, `reason_code` and `source`). E9 writes it and check_run recomputes it."""
+    gone = set(before_ids) - set(kept_ids)
+    hit = log[(log["version"] <= version) & log["path"].isin(gone)]
+    return {"version": version, "before": len(before_ids), "after": len(kept_ids), "removed": len(gone),
+            "by_reason": {k: int(v) for k, v in hit["reason_code"].value_counts().items()},
+            "by_source": {k: int(v) for k, v in hit["source"].value_counts().items()}}

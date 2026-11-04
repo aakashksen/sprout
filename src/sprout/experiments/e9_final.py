@@ -39,6 +39,7 @@ from sprout.eval.answer_checks import (
     parse_call,
     strata_sizes,
 )
+from sprout.eval.answer_checks import cleaned_rows as cleaned
 from sprout.eval.check_run import (
     Scored,
     check_file,
@@ -199,13 +200,8 @@ def device_name(cfg: dict[str, Any]) -> str:
 
 def cleaned_rows(split: str, cfg: dict[str, Any], info: SplitInfo, positions: list[int], root: Path) -> dict[str, Any]:
     """How many field_test rows the label cleaning removed, and why (counts by reason and source from the log)."""
-    version = cfg["exclusion_version"]
     log = read_log(Path(root) / "datasets" / "label_exclusions.csv")
-    gone = set(info.ids) - {info.ids[i] for i in positions}
-    hit = log[(log["version"] <= version) & log["path"].isin(gone)]
-    return {"version": version, "before": len(info.ids), "after": len(positions), "removed": len(gone),
-            "by_reason": {k: int(v) for k, v in hit["reason_code"].value_counts().items()},
-            "by_source": {k: int(v) for k, v in hit["source"].value_counts().items()}}
+    return cleaned(log, cfg["exclusion_version"], info.ids, [info.ids[i] for i in positions])
 
 
 def score_block(probs: dict[str, np.ndarray], labels: np.ndarray, groups: list[str], names: list[str],

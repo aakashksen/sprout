@@ -453,6 +453,8 @@ def _header_problems(rec: dict[str, Any], root: Path, min_n: int) -> list[str]:
     if rec["dirty"]:
         problems.append("record was made on a dirty tree")
     problems += _stamp_problems(rec)
+    if rec["experiment"] == "E9" and rec["labels_reviewed"] is not (rec["config"] or {}).get("labels_reviewed"):
+        problems.append("labels_reviewed differs from config.labels_reviewed, which E9 reads from H2's state")
     problems += _finite_problems(rec)
     if any(FAKE.search(s) for s in _strings(rec["models"])):
         problems.append("a model name matches fake or stub")
@@ -792,6 +794,43 @@ def _e9_final_problems(rec: dict[str, Any], root: Path) -> list[str]:
     return problems
 
 
+def _e9_image_problems(rec: dict[str, Any], root: Path, info: SplitInfo, positions: list[int]) -> list[str]:
+    """E9 lab_test and field_test: the cleaned-row counts recompute from the exclusion log, and each calibrated system is its plain system's saved probabilities at E5's temperature,
+    with E5's threshold in its metric names."""
+    from sprout.data.label_review import read_log
+    from sprout.serve.calibrate import apply_temperature
+
+    cfg, problems = rec["config"], []
+    if rec["split"] == "field_test":
+        saved = cfg.get("cleaned_rows")
+        version = saved.get("version") if isinstance(saved, dict) else None
+        if not isinstance(version, int) or rec["subset"] != f"clean:{version}":
+            problems.append("an E9 field_test record must be scored on its cleaned rows (subset clean:N) and state config.cleaned_rows")
+        elif saved != answer_checks.cleaned_rows(read_log(root / "datasets" / "label_exclusions.csv"), version, info.ids,
+                                                 [info.ids[i] for i in positions]):
+            problems.append("config.cleaned_rows does not recompute from the exclusion log")
+    cal = cfg.get("calibration")
+    if not (isinstance(cal, dict) and {"temperature", "abstain_threshold"} <= set(cal)):
+        return problems + ["config.calibration must hold temperature and abstain_threshold"]
+    t = f"{cal['abstain_threshold']:.6f}".rstrip("0").rstrip(".")
+    for name, rel in rec["predictions"].items():
+        base = name.removesuffix("_calibrated")
+        if base == name:
+            continue
+        if base not in rec["predictions"] or not (root / rel).is_file() or not (root / rec["predictions"][base]).is_file():
+            problems.append(f"{name}: calibrated system without its plain system's predictions")
+            continue
+        raw = {r["path"]: r["probs"] for r in _read_rows(root / rec["predictions"][base])}
+        got = {r["path"]: r["probs"] for r in _read_rows(root / rel)}
+        fresh = {k: apply_temperature(np.log(np.maximum(np.array(v, dtype=float), 1e-12)), cal["temperature"])
+                 for k, v in raw.items()}
+        if set(got) != set(fresh) or not all(np.allclose(got[k], fresh[k], atol=1e-9, rtol=0) for k in got):
+            problems.append(f"{name}: probabilities are not the plain system's at the calibration temperature")
+        if f"coverage@{t}" not in rec["metrics"].get(name, {}):
+            problems.append(f"{name}: metrics lack coverage@{t}, the calibration's abstention threshold")
+    return problems
+
+
 def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
     problems = [f"missing field {k}" for k in REQUIRED if k not in rec]
     if problems:
@@ -805,6 +844,8 @@ def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:
     if scope is None:
         return problems
     info, positions = scope
+    if rec["experiment"] == "E9" and rec["split"] in ("lab_test", "field_test"):
+        problems += _e9_image_problems(rec, root, info, positions)
 
     shape = _shape_problem(rec)
     if shape and not shape.startswith("bootstrap"):

@@ -105,6 +105,20 @@ def final_lists(rows: list[dict[str, Any]]) -> dict[str, list[bool]]:
     return {k: v for k, v in out.items() if v}
 
 
+def exif_counts(paths: list[Path]) -> dict[str, int]:
+    """How many of these photos carry an EXIF orientation tag, and how many of those serving would rotate (tag 2 to 8;
+    evaluation reads the pixels as stored). Reads file headers only, never a model's output."""
+    from PIL import Image
+
+    tagged = rotated = 0
+    for p in paths:
+        with Image.open(p) as img:
+            tag = img.getexif().get(0x0112)
+        tagged += tag is not None
+        rotated += tag in range(2, 9)
+    return {"rows": len(paths), "with_orientation_tag": tagged, "rotated_by_serving": rotated}
+
+
 def cleaned_rows(log: Any, version: int, before_ids: list[str], kept_ids: list[str]) -> dict[str, Any]:
     """How many test rows the label cleaning removed and why, from the exclusion log (a DataFrame with `version`,
     `path`, `reason_code` and `source`). E9 writes it and check_run recomputes it."""

@@ -843,6 +843,16 @@ def _e9_image_problems(rec: dict[str, Any], root: Path, info: SplitInfo, positio
                                                  [info.ids[i] for i in positions]):
             problems.append("config.cleaned_rows does not recompute from the exclusion log")
     cal = cfg.get("calibration")
+    bound = cfg.get("calibration_binding")
+    for system in ("improved", "alternate", "quantized") if git(root, "cat-file", "-e", f"{rec['git_commit']}:configs/e9.json").returncode == 0 else ():
+        role = cfg.get("alternate" if system == "alternate" else "primary")
+        have = bound.get(system) if isinstance(bound, dict) else None
+        fitted = cal.get(system) if isinstance(cal, dict) else None
+        if not (isinstance(have, dict) and isinstance(role, dict)):
+            problems.append(f"config.calibration_binding must say which checkpoint {system}'s calibration is bound to")
+        elif have.get("sha256") != role.get("sha256") or have.get("calibration_file") != (fitted or {}).get("file"):
+            problems.append(f"config.calibration_binding for {system} does not match the checkpoint it is scored on "
+                            "and the calibration file used")
     for name, rel in rec["predictions"].items():
         base = name.removesuffix("_calibrated")
         if base == name:

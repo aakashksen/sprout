@@ -36,6 +36,7 @@ from sprout.eval.answer_checks import (
     dev_metrics,
     draw_blind,
     final_lists,
+    exif_counts,
     parse_call,
     strata_sizes,
 )
@@ -48,6 +49,7 @@ from sprout.eval.check_run import (
     recompute_metric,
     records_for,
 )
+from sprout.eval.claims import signoff_problems
 from sprout.eval.predict import Predictions
 from sprout.eval.records import (
     RAG_REL,
@@ -188,8 +190,79 @@ def calibrations(cfg: dict[str, Any], decision: dict[str, Any], root: Path = ROO
     primary, alternate = candidate_roles(cfg, decision)
     prim = load_calibration(cfg["candidates"][primary]["calibration"], decision["chosen_model_sha256"], root,
                             required=bool(decision.get("refit_e5")))
-    alt = load_calibration(cfg["candidates"][alternate]["calibration"], alternate_sha, root)
-    return {"improved": prim, "alternate": alt, "quantized": prim}
+    out = {"improved": prim, "quantized": prim}
+    if (Path(root) / cfg["candidates"][alternate]["calibration"]).is_file():
+        out["alternate"] = load_calibration(cfg["candidates"][alternate]["calibration"], alternate_sha, root)
+    return out
+
+
+NO_OWN_CALIBRATION = ("the alternate has no calibration of its own (E5 was not refit on it, or the file cannot be tied to "
+                      "it), and another model's calibration is not applied to it, so it is scored without abstention only")
+
+
+def bindings(cfg: dict[str, Any], decision: dict[str, Any], calibration: dict[str, dict[str, Any]],
+             alternate_sha: str | None, quantized_source: str | None, root: Path = ROOT) -> dict[str, dict[str, Any]]:
+    """Which checkpoint each calibration is bound to, shown by the file's own hash or, for E5's file that carries none,
+    by sprout.serve.bind. A calibration fitted for another checkpoint than the one it is applied to is refused. The
+    alternate with no calibration of its own is dropped from `calibration` and says why. The quantized file goes the
+    way serving would take it: its stamped source checkpoint must be the one the primary's calibration is bound to."""
+    from sprout.serve.bind import bound_calibration
+
+    root = Path(root)
+    primary, alternate = candidate_roles(cfg, decision)
+    out: dict[str, dict[str, Any]] = {}
+    for role, key, scored in (("improved", primary, decision["chosen_model_sha256"]), ("alternate", alternate, alternate_sha)):
+        spec = cfg["candidates"][key]
+        if role not in calibration:
+            out[role] = {"calibration_file": None, "checkpoint": spec["checkpoint"], "sha256": scored,
+                         "why": NO_OWN_CALIBRATION}
+            continue
+        saved = json.loads((root / spec["calibration"]).read_text(encoding="utf-8"))
+        try:
+            if saved.get("model_sha256"):
+                found, by = saved["model_sha256"], "the file names this checkpoint's sha256"
+            else:
+                bound = bound_calibration(root / spec["checkpoint"], root, spec["calibration"])
+                found, by = bound["model_sha256"], bound["bound_by"]
+        except (ValueError, OSError) as exc:
+            if role == "alternate":
+                del calibration["alternate"]
+                out[role] = {"calibration_file": None, "checkpoint": spec["checkpoint"], "sha256": scored,
+                             "why": f"{NO_OWN_CALIBRATION}: {exc}"}
+                continue
+            raise Refused(f"{spec['calibration']} cannot be tied to {spec['checkpoint']}: {exc}") from exc
+        if found != scored:
+            raise Refused(f"{spec['calibration']} was fitted for checkpoint {found}, which is not the {role} model "
+                          f"scored ({scored})")
+        out[role] = {"calibration_file": spec["calibration"], "checkpoint": spec["checkpoint"], "sha256": found, "bound_by": by}
+    if quantized_source != out["improved"]["sha256"]:
+        raise Refused(f"the quantized file was exported from checkpoint {quantized_source or '(none stamped)'}, but the "
+                      f"calibration it is scored with is bound to {out['improved']['sha256']}")
+    out["quantized"] = {**out["improved"], "bound_by": f"the quantized file is stamped as exported from checkpoint "
+                                                       f"{quantized_source}, the one the calibration is bound to; "
+                                                       f"{out['improved']['bound_by']}"}
+    return out
+
+
+def e6_thresholds(cfg: dict[str, Any], decision: dict[str, Any], root: Path = ROOT) -> dict[str, Any]:
+    """E6's own account of how E5's temperature and threshold behave on the quantized variant scored here: read from the
+    latest E6 record made from the chosen checkpoint, not typed."""
+    variant = cfg["systems"]["quantized"]["variant"]
+    found = []
+    for path in sorted((Path(root) / "results" / "runs").glob("E6-*.json")):
+        rec = json.loads(path.read_text(encoding="utf-8"))
+        held = rec.get("config", {}).get("e5_thresholds")
+        if rec.get("experiment") == "E6" and rec["config"].get("checkpoint_sha256") == decision["chosen_model_sha256"] and held:
+            found.append((rec, held))
+    if not found:
+        raise Refused("no E6 record of the chosen checkpoint states how E5's thresholds behave on the quantized variant; "
+                      "run E6 on the chosen model first")
+    rec, held = found[-1]
+    if variant not in held["systems"]:
+        raise Refused(f"E6 record {rec['run_id']} has no e5_thresholds for the variant {variant}")
+    return {"e6_record": rec["run_id"], "variant": variant, "e6_split": rec["split"], "file": held["file"],
+            "temperature": held["temperature"], "abstain_threshold": held["abstain_threshold"],
+            "names_this_checkpoint": held["names_this_checkpoint"], "on_e6_rows": held["systems"][variant]}
 
 
 def prior_uses(root: Path, split: str) -> list[str]:
@@ -203,6 +276,23 @@ def require_unused(root: Path, split: str, override_note: str) -> None:
     used = prior_uses(root, split)
     if used and not override_note.strip():
         raise Refused(f"{split} has already been used ({used[0]}); a later run needs --override-note saying why")
+
+
+def statements(split: str, thresholds: dict[str, Any], exif: dict[str, int], root: Path, rows: str = "scored") -> str:
+    """What the record has to say besides its numbers, from data: how E5's thresholds behaved on the quantized variant in
+    E6, which side of the EXIF difference the rows fall on, and whether the labels are signed yet."""
+    on = thresholds["on_e6_rows"]
+    out = (f"Quantized variant {thresholds['variant']}: E6 record {thresholds['e6_record']} ({thresholds['e6_split']}) "
+           f"measured E5's threshold {thresholds['abstain_threshold']} on it as coverage {on['coverage']:.3f}, abstained "
+           f"{on['abstained']:.3f}, confident error rate "
+           f"{'undefined' if on['confident_error_rate'] is None else format(on['confident_error_rate'], '.3f')} "
+           f"on {on['n']} photos. Evaluation does not apply EXIF rotation and serving does: "
+           f"{exif['with_orientation_tag']} of {exif['rows']} {split} rows {rows} carry an orientation tag, "
+           f"{exif['rotated_by_serving']} of them one that serving would rotate.")
+    if signoff_problems(Path(root), split):
+        out += (f" Provisional: the {split} labels are not signed in {SIGNOFF_REL}, so these results are provisional "
+                "until the person signs.")
+    return out
 
 
 def calibrated(raw: np.ndarray, temperature: float) -> np.ndarray:
@@ -267,7 +357,11 @@ def run_images(split: str, cfg: dict[str, Any], predictors: dict[str, Predictor]
     absent = [n for n in SYSTEMS if n not in predictors]
     if absent:
         raise Refused(f"frozen systems missing: {absent}")
-    calibration = calibrations(cfg, decision, root, alternate_sha=predictors["alternate"].detail.get("sha256"))
+    alternate_sha = predictors["alternate"].detail.get("sha256")
+    calibration = calibrations(cfg, decision, root, alternate_sha=alternate_sha)
+    binding = bindings(cfg, decision, calibration, alternate_sha,
+                       predictors["quantized"].detail.get("source_checkpoint_sha256"), root)
+    cal_names = [n for n in cfg["calibrated"] if n in calibration]
     names = decision["class_names"]
     for n in SYSTEMS:
         if predictors[n].class_names != names:
@@ -290,8 +384,10 @@ def run_images(split: str, cfg: dict[str, Any], predictors: dict[str, Predictor]
         if out.shape != (len(paths), len(names)) or not np.isfinite(out).all():
             raise Refused(f"{n} returned probabilities of shape {out.shape}; expected {(len(paths), len(names))}")
         probs[n] = out
-    for n in cfg["calibrated"]:
+    for n in cal_names:
         probs[f"{n}_calibrated"] = calibrated(probs[n], calibration[n]["temperature"])
+    thresholds = e6_thresholds(cfg, decision, root)
+    exif = exif_counts([Path(p) for p in frame["path"]])
     order = [x for n in SYSTEMS for x in (n, f"{n}_calibrated") if x in probs]
     cleaned_info = cleaned_rows(split, cfg, info, positions, root) if subset else None
     basis = (f"cleaned rows: {cleaned_info['after']} of {cleaned_info['before']} field_test photos kept "
@@ -307,7 +403,8 @@ def run_images(split: str, cfg: dict[str, Any], predictors: dict[str, Predictor]
                       "checkpoint": cfg["candidates"][alternate]["checkpoint"],
                       "sha256": predictors["alternate"].detail.get("sha256"),
                       "why": "the other candidate, reported beside the primary on the same rows"},
-        "basis": basis, "calibration": calibration, "labels_reviewed": LABELS_REVIEWED, "label_signature": LABEL_SIGNATURE,
+        "basis": basis, "calibration": calibration, "calibration_binding": binding,
+        "quantized_thresholds": thresholds, "exif": exif, "labels_reviewed": LABELS_REVIEWED, "label_signature": LABEL_SIGNATURE,
         "device": device_name(cfg), "started_at": started,
         "systems": {n: {"description": predictors[n].description, **predictors[n].detail} for n in SYSTEMS},
         "abstention": "a *_calibrated system answers only when its calibrated top probability is at least the "
@@ -319,7 +416,7 @@ def run_images(split: str, cfg: dict[str, Any], predictors: dict[str, Predictor]
     models["improved"] = f"primary ({primary}): {models['improved']}"
     models["alternate"] = f"alternate ({alternate}): {models['alternate']}"
     models.update({f"{n}_calibrated": f"{models[n]}, temperature {calibration[n]['temperature']}"
-                   for n in cfg["calibrated"]})
+                   for n in cal_names})
     attempts = [{"system": n, "kind": "frozen, scored once", **predictors[n].detail} for n in SYSTEMS]
     views = [(subset, np.ones(len(paths), dtype=bool), "")]
     if split == "lab_test":
@@ -331,13 +428,14 @@ def run_images(split: str, cfg: dict[str, Any], predictors: dict[str, Predictor]
     for name, keep, extra in views:
         metrics, intervals, comparisons = score_block(
             {n: probs[n] for n in order}, labels, groups, names,
-            {n: calibration[n]["abstain_threshold"] for n in cfg["calibrated"]}, keep)
+            {n: calibration[n]["abstain_threshold"] for n in cal_names}, keep)
         rows = {n: Predictions([p for p, k in zip(paths, keep, strict=True) if k], labels[keep], probs[n][keep])
                 for n in order}
         notes = (f"Final test on {split}, scored once with configurations frozen before the run; every number is a "
                  f"held-out number on this basis: {basis}. The primary model ({primary}) is the one E12 chose; the "
                  f"alternate ({alternate}) is scored beside it on the same rows. Options per plant are in "
-                 f"config.options_per_plant (plant-given top-3 is easy). {LABEL_SIGNATURE}{extra}")
+                 f"config.options_per_plant (plant-given top-3 is easy). {LABEL_SIGNATURE}{extra} "
+                 f"{statements(split, thresholds, exif, root)}")
         written.append(write_run("E9", split, config, models, metrics, intervals, attempts, rows, info.hash, root=root,
                                  subset=name, comparisons=comparisons, notes=notes))
     return written
@@ -404,6 +502,9 @@ def _onnx_predictor(cfg: dict[str, Any], decision: dict[str, Any], root: Path) -
     if path is None or not path.is_file() or sha256_file(path) != info["sha256"]:
         raise Refused(f"{spec['variant']} is missing or changed since E6 exported it")
     model = OnnxModel(path)
+    if model.source_sha256 != decision["chosen_model_sha256"]:
+        raise Refused(f"{spec['variant']} is stamped as exported from checkpoint {model.source_sha256 or '(none)'}, not the "
+                      "chosen model; export it again with E6")
 
     def run(frame: pd.DataFrame) -> np.ndarray:
         out = []
@@ -413,7 +514,8 @@ def _onnx_predictor(cfg: dict[str, Any], decision: dict[str, Any], root: Path) -
         return np.stack(out)
 
     return Predictor(f"{spec['variant']} export of the chosen model", model.class_names, run,
-                     {"kind": "onnx", "variant": spec["variant"], "sha256": info["sha256"]})
+                     {"kind": "onnx", "variant": spec["variant"], "sha256": info["sha256"],
+                      "source_checkpoint_sha256": model.source_sha256})
 
 
 def build_predictors(cfg: dict[str, Any], decision: dict[str, Any], root: Path = ROOT) -> dict[str, Predictor]:

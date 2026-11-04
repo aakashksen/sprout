@@ -25,8 +25,10 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def bind_calibration(checkpoint: Path, root: Path, out: Path, chosen: str = "results/e5/chosen.json",
-                     e5_config: str = "configs/e5.json") -> Path:
+def bound_calibration(checkpoint: Path, root: Path, chosen: str = "results/e5/chosen.json",
+                      e5_config: str = "configs/e5.json") -> dict:
+    """The calibration file's contents with the checkpoint's name and hash added, or ValueError if the pairing cannot
+    be shown. Writes nothing."""
     checkpoint = Path(checkpoint).resolve()
     sha = _sha256(checkpoint)
     fitted = json.loads((root / chosen).read_text(encoding="utf-8"))
@@ -51,7 +53,12 @@ def bind_calibration(checkpoint: Path, root: Path, out: Path, chosen: str = "res
                              f"{chosen}, so the file cannot be tied to that model")
         bound_by = (f"path: {rel} is the checkpoint configs/e5.json names, and {shown[0].name} shows these numbers "
                     f"for E4 record {model['e4_record']}; E5 stored no checksum when it was fitted")
-    bound = {**fitted, "model_checkpoint": rel, "model_sha256": sha, "bound_by": bound_by}
+    return {**fitted, "model_checkpoint": rel, "model_sha256": sha, "bound_by": bound_by}
+
+
+def bind_calibration(checkpoint: Path, root: Path, out: Path, chosen: str = "results/e5/chosen.json",
+                     e5_config: str = "configs/e5.json") -> Path:
+    bound = bound_calibration(checkpoint, root, chosen, e5_config)
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     atomic_write_text(out, json.dumps(bound, indent=1) + "\n")

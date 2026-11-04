@@ -1,5 +1,6 @@
 """E9, the final test, with fakes and tiny fixtures only: no test photo, question or prediction is read, no GPU, no
 Ollama, no Claude call. The guards, the records check_run recomputes, and the answer-quality stages."""
+import hashlib
 import json
 import shutil
 import subprocess
@@ -28,8 +29,9 @@ LOG = (
     "1,s11,f/11.jpg,plantdoc,field_test,Apple___scab,wrong_plant,z,remove\n"
     "1,s2,f/2.jpg,plantseg,field_dev,Tomato___blight,wrong_plant,w,remove\n"
 )
-SHA = "a" * 64
-SHA12 = "b" * 64
+E4_BYTES, E12_BYTES = b"the E4 checkpoint", b"the E12 checkpoint"
+SHA = hashlib.sha256(E4_BYTES).hexdigest()
+SHA12 = hashlib.sha256(E12_BYTES).hexdigest()
 SIGNOFF = {s: {"signed": False, "by": None, "at": None, "words": None}
            for s in ("lab_test", "field_test", "rag_test")}
 CONFIG = {
@@ -84,6 +86,28 @@ def repo(tmp_path):
                                            "chosen_model_sha256": SHA, "class_names": CLASSES, "refit_e5": False})
     write(r, "results/e5/chosen.json", {"temperature": 1.5, "abstain_threshold": 0.6})
     write(r, "results/e12/e5_refit/chosen.json", {"temperature": 2.0, "abstain_threshold": 0.7, "model_sha256": SHA12})
+    for rel, data in (("models/e4/convnext_joint/best.pt", E4_BYTES), ("models/e12/convnext_joint_extra/best.pt", E12_BYTES)):
+        (r / rel).parent.mkdir(parents=True, exist_ok=True)
+        (r / rel).write_bytes(data)
+    write(r, "configs/e5.json", {"model": {"checkpoint": "models/e4/convnext_joint/best.pt", "e4_record": "E4-1"}})
+    write(r, "results/runs/E5-1.json", {"experiment": "E5", "config": {
+        "model_record": "E4-1", "temperature": 1.5, "abstain_threshold": 0.6}})
+    write(r, "results/runs/E6-1.json", {"run_id": "E6-1", "experiment": "E6", "split": "field_dev", "config": {
+        "checkpoint_sha256": SHA, "e5_thresholds": {"file": "results/e5/chosen.json", "temperature": 1.5,
+                                                    "abstain_threshold": 0.6, "model_sha256": None, "names_this_checkpoint": None,
+                                                    "systems": {"pytorch": {"n": 10, "coverage": 0.6, "abstained": 0.4, "confident_error_rate": 0.1},
+                                                                "onnx_dynamic": {"n": 10, "coverage": 0.5, "abstained": 0.5,
+                                                                                 "confident_error_rate": 0.2}}}}})
+    from PIL import Image
+
+    for line in (*LAB[1:], *FIELD[1:]):  # tiny photos; every fifth by number carries an EXIF orientation tag
+        rel = line.split(",")[0]
+        img = Image.new("RGB", (8, 8))
+        exif = img.getexif()
+        if int(rel.split("/")[1].split(".")[0]) % 5 == 0:
+            exif[0x0112] = 6
+        (r / rel).parent.mkdir(parents=True, exist_ok=True)
+        img.save(r / rel, exif=exif)
     prompt = e9.PROMPT_REL
     (r / prompt).parent.mkdir(parents=True, exist_ok=True)
     shutil.copy(REAL_ROOT / prompt, r / prompt)
@@ -160,8 +184,11 @@ def tiny(seed, hit=0.7, names=CLASSES, seen=None, sha=None):
     return e9.Predictor(f"tiny test model {seed}", list(names), run, {"seed": seed, **({"sha256": sha} if sha else {})})
 
 
-def predictors(seen=None):
-    return {n: tiny(i, 0.5 + 0.1 * i, seen=seen, sha=SHA12 if n == "alternate" else None) for i, n in enumerate(SYSTEMS)}
+def predictors(seen=None, alternate=SHA12, quantized=SHA):
+    """Fake systems; the alternate says which checkpoint it is, and the quantized file which one it was exported from."""
+    out = {n: tiny(i, 0.5 + 0.1 * i, seen=seen, sha=alternate if n == "alternate" else None) for i, n in enumerate(SYSTEMS)}
+    out["quantized"].detail["source_checkpoint_sha256"] = quantized
+    return out
 
 
 def read_rows(root, rec, system):
@@ -274,7 +301,7 @@ def test_the_primary_model_is_the_one_e12_chose_and_the_other_is_reported_beside
     write(repo, "results/e12/decision.json", {"chosen_model": "models/e12/convnext_joint_extra/best.pt",
                                               "chosen_model_sha256": SHA12, "class_names": CLASSES, "refit_e5": True})
     commit(repo, "E12 chosen")
-    swapped = e9.run_images("lab_test", cfg, predictors(), repo)[0]
+    swapped = e9.run_images("lab_test", cfg, predictors(alternate=SHA, quantized=SHA12), repo)[0]
     c = json.loads(swapped.read_text())["config"]
     assert c["primary"]["candidate"] == "e12" and c["alternate"]["candidate"] == "e4"
     assert c["calibration"]["improved"]["temperature"] == 2.0 and c["calibration"]["alternate"]["temperature"] == 1.5
@@ -352,18 +379,18 @@ def tiny_models(root):
         (root / rel).parent.mkdir(parents=True, exist_ok=True)
         torch.save(state, root / rel)
     other = {**state, "model": build_model("tiny_cnn", len(CLASSES), pretrained=False).state_dict()}
-    (root / "models/e12/convnext_joint_extra").mkdir(parents=True)
+    (root / "models/e12/convnext_joint_extra").mkdir(parents=True, exist_ok=True)
     torch.save(other, root / "models/e12/convnext_joint_extra/best.pt")
     rng = np.random.default_rng(0)
     for i in range(12):
         Image.fromarray(rng.integers(0, 255, (40, 40, 3), dtype=np.uint8)).save(root / f"im{i}.png")
     feats = np.stack([classic_features(Image.open(root / f"im{i}.png"), size=32) for i in range(12)])
     booster = xgb.train({"objective": "multi:softprob", "num_class": 4, "max_depth": 2}, xgb.DMatrix(feats, label=np.arange(12) % 4), 3)
-    (root / "models/e3/xgboost").mkdir(parents=True)
+    (root / "models/e3/xgboost").mkdir(parents=True, exist_ok=True)
     booster.save_model(str(root / "models/e3/xgboost/model.ubj"))
-    export_module(model, class_map, root / "models/e6/model.dynamic.onnx", "tiny_cnn")
-    onnx_sha = e9.sha256_file(root / "models/e6/model.dynamic.onnx")
     chosen_sha = e9.sha256_file(root / "models/e4/convnext_joint/best.pt")
+    export_module(model, class_map, root / "models/e6/model.dynamic.onnx", "tiny_cnn", chosen_sha)
+    onnx_sha = e9.sha256_file(root / "models/e6/model.dynamic.onnx")
     write(root, "results/e6/export.json", {"checkpoint_sha256": chosen_sha, "files": {
         "onnx_dynamic": {"file": "model.dynamic.onnx", "sha256": onnx_sha}}})
     write(root, "results/e12/decision.json", {"chosen_model": "models/e4/convnext_joint/best.pt",
@@ -389,7 +416,16 @@ def test_real_predictors_run_tiny_models_of_every_kind(repo):
     e12 = e9.sha256_file(repo / "models/e12/convnext_joint_extra/best.pt")
     swapped = {**decision, "chosen_model": "models/e12/convnext_joint_extra/best.pt", "chosen_model_sha256": e12}
     export = json.loads((repo / "results/e6/export.json").read_text())
-    write(repo, "results/e6/export.json", {**export, "checkpoint_sha256": e12})  # E6 re-exported from E12's model
+    from sprout.serve.export import OnnxModel, export_module
+    from sprout.train.loop import build_model
+
+    write(repo, "results/e6/export.json", {**export, "checkpoint_sha256": e12})  # E6 says it re-exported from E12's model
+    with pytest.raises(e9.Refused, match="stamped"):  # but the file is still stamped with E4's hash
+        e9.build_predictors(cfg, swapped, repo)
+    path = repo / "models/e6/model.dynamic.onnx"
+    export_module(build_model("tiny_cnn", len(CLASSES), pretrained=False), OnnxModel(path).class_map, path, "tiny_cnn", e12)
+    write(repo, "results/e6/export.json", {**export, "checkpoint_sha256": e12,
+                                           "files": {"onnx_dynamic": {"file": path.name, "sha256": e9.sha256_file(path)}}})
     again = e9.build_predictors(cfg, swapped, repo)
     assert again["improved"].detail["sha256"] == e12
     assert again["alternate"].detail["sha256"] == decision["chosen_model_sha256"]
@@ -1142,7 +1178,7 @@ def test_check_run_rederives_roles_when_e12_is_chosen(repo):
     write(repo, "results/e12/decision.json", {"chosen_model": "models/e12/convnext_joint_extra/best.pt",
                                               "chosen_model_sha256": SHA12, "class_names": CLASSES, "refit_e5": True})
     commit(repo, "E12 chosen")
-    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
+    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(alternate=SHA, quantized=SHA12), repo)
     assert _ok(path, repo) == []
     saved = json.loads(path.read_text())
     assert saved["config"]["primary"]["candidate"] == "e12"
@@ -1219,3 +1255,133 @@ def test_provisional_on_a_record_that_is_not_an_e9_test_split_is_refused(repo):
     path.write_text(json.dumps(rec))
     claim_with(repo, path, provisional=True, text="provisional")
     assert any("provisional" in p and "E9" in p for p in check_claims(repo))
+
+
+# ----------------------------------------------------------------------------------------------- calibration binding
+
+def test_every_calibration_is_bound_to_the_checkpoint_it_was_fitted_for_when_e4_is_kept(repo):
+    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
+    rec = json.loads(path.read_text())
+    b = rec["config"]["calibration_binding"]
+    assert b["improved"]["sha256"] == SHA and b["improved"]["checkpoint"] == "models/e4/convnext_joint/best.pt"
+    assert "path" in b["improved"]["bound_by"] and b["improved"]["calibration_file"] == "results/e5/chosen.json"
+    assert b["quantized"]["sha256"] == SHA and "exported from" in b["quantized"]["bound_by"]
+    assert b["alternate"]["sha256"] == SHA12 and "names" in b["alternate"]["bound_by"]
+    assert check_file(path, repo, min_n=1) == []
+    rec["config"]["calibration_binding"]["improved"]["sha256"] = SHA12  # a record that claims another pairing
+    path.write_text(json.dumps(rec))
+    assert any("calibration_binding" in p for p in check_file(path, repo, min_n=1))
+
+
+def test_every_calibration_is_bound_to_the_checkpoint_it_was_fitted_for_when_e12_is_chosen(repo):
+    write(repo, "results/e12/decision.json", {"chosen_model": "models/e12/convnext_joint_extra/best.pt",
+                                              "chosen_model_sha256": SHA12, "class_names": CLASSES, "refit_e5": True})
+    commit(repo, "E12 chosen")
+    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(alternate=SHA, quantized=SHA12), repo)
+    b = json.loads(path.read_text())["config"]["calibration_binding"]
+    assert b["improved"]["sha256"] == SHA12 and b["quantized"]["sha256"] == SHA12
+    assert b["alternate"]["sha256"] == SHA and "path" in b["alternate"]["bound_by"]  # E4's file, shown by path and record
+    assert check_file(path, repo, min_n=1) == []
+
+
+def test_a_calibration_fitted_for_another_checkpoint_is_refused(repo):
+    cfg = e9.load_config(repo)
+    with pytest.raises(e9.Refused, match="quantized"):  # the quantized file was exported from the other checkpoint
+        e9.run_images("field_test", cfg, predictors(quantized=SHA12), repo)
+    with pytest.raises(e9.Refused, match="quantized"):  # or carries no checkpoint hash at all
+        e9.run_images("field_test", cfg, predictors(quantized=""), repo)
+    (repo / "models/e4/convnext_joint/best.pt").write_bytes(b"retrained")  # E4's file no longer the one E5 was fitted on
+    git(repo, "add", "-A")
+    commit(repo, "retrained")
+    with pytest.raises(e9.Refused, match="decision|fitted"):
+        e9.run_images("field_test", cfg, predictors(), repo)
+    # a sha-less file for a checkpoint E5 never used cannot be tied to it
+    write(repo, "configs/e5.json", {"model": {"checkpoint": "models/e12/convnext_joint_extra/best.pt", "e4_record": "E4-1"}})
+    write(repo, "results/e12/decision.json", {"chosen_model": "models/e4/convnext_joint/best.pt",
+                                              "chosen_model_sha256": e9.sha256_file(repo / "models/e4/convnext_joint/best.pt"),
+                                              "class_names": CLASSES, "refit_e5": False})
+    commit(repo, "e5 config moved")
+    with pytest.raises(e9.Refused, match="cannot be tied|not the checkpoint"):
+        e9.run_images("field_test", cfg, predictors(quantized=e9.sha256_file(repo / "models/e4/convnext_joint/best.pt")), repo)
+
+
+def test_without_a_refit_the_alternate_is_scored_plain_and_the_record_says_why(repo):
+    (repo / "results/e12/e5_refit/chosen.json").unlink()
+    commit(repo, "no E5 refit on E12")
+    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
+    rec = json.loads(path.read_text())
+    assert "alternate" in rec["metrics"] and "alternate_calibrated" not in rec["metrics"]
+    assert "alternate" not in rec["config"]["calibration"]
+    why = rec["config"]["calibration_binding"]["alternate"]
+    assert why["calibration_file"] is None and "refit" in why["why"] and "another model" in why["why"]
+    assert check_file(path, repo, min_n=1) == []
+
+
+def test_the_exported_file_must_be_stamped_with_the_chosen_checkpoint(repo):
+    from sprout.serve.export import export_module
+
+    tiny_models(repo)
+    cfg = e9.load_config(repo)
+    decision = e9.load_decision(cfg, repo)
+    from sprout.serve.export import OnnxModel
+    from sprout.train.loop import build_model
+
+    net = build_model("tiny_cnn", len(CLASSES), pretrained=False)
+    path = repo / "models/e6/model.dynamic.onnx"
+    for stamp, match in (("", "stamped"), ("f" * 64, "stamped")):
+        export_module(net, OnnxModel(path).class_map, path, "tiny_cnn", stamp)
+        export = json.loads((repo / "results/e6/export.json").read_text())
+        export["files"]["onnx_dynamic"]["sha256"] = e9.sha256_file(path)  # E6's own file hash agrees: only the stamp is wrong
+        write(repo, "results/e6/export.json", export)
+        with pytest.raises(e9.Refused, match=match):
+            e9.build_predictors(cfg, decision, repo)
+
+
+# ----------------------------------------------------------------------------------------------- what E9 states, from data
+
+def test_every_model_is_scored_on_the_same_cleaned_rows_and_the_record_names_them(repo):
+    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
+    rec = json.loads(path.read_text())
+    rows = {n: [r["path"] for r in read_rows(repo, rec, n)] for n in rec["predictions"]}
+    assert len({tuple(v) for v in rows.values()}) == 1 and len(rows["baseline"]) == 21  # 24 test rows, 3 removed
+    assert not {"f/7.jpg", "f/10.jpg", "f/11.jpg"} & set(rows["baseline"])
+    assert rec["config"]["basis"].startswith("cleaned rows: 21 of 24") and rec["subset"] == "clean:1"
+    assert "cleaned rows: 21 of 24" in rec["notes"]
+
+
+def test_notes_state_the_quantized_thresholds_the_exif_difference_and_that_results_are_provisional(repo):
+    paths = e9.run_images("lab_test", e9.load_config(repo), predictors(), repo)
+    (field,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
+    lab = json.loads(paths[0].read_text())
+    rec = json.loads(field.read_text())
+    q = rec["config"]["quantized_thresholds"]
+    assert q["e6_record"] == "E6-1" and q["variant"] == "onnx_dynamic" and q["abstain_threshold"] == 0.6
+    assert q["on_e6_rows"] == {"n": 10, "coverage": 0.5, "abstained": 0.5, "confident_error_rate": 0.2}
+    assert "E6-1" in rec["notes"] and "onnx_dynamic" in rec["notes"] and "coverage 0.500" in rec["notes"]
+    # EXIF: evaluation reads pixels as stored, serving rotates by the tag; counted from the files, not from any output
+    assert lab["config"]["exif"] == {"rows": 16, "with_orientation_tag": 3, "rotated_by_serving": 3}
+    assert rec["config"]["exif"] == {"rows": 21, "with_orientation_tag": 3, "rotated_by_serving": 3}
+    assert "3 of 21" in rec["notes"] and "does not apply EXIF" in rec["notes"]
+    assert "provisional" in rec["notes"].lower() and "provisional" in lab["notes"].lower()  # both splits are unsigned
+    assert check_file(field, repo, min_n=1) == [] and check_file(paths[0], repo, min_n=1) == []
+    rec["config"]["exif"]["rotated_by_serving"] = 0  # counts that do not recompute from the files are caught
+    field.write_text(json.dumps(rec))
+    assert any("exif" in p for p in check_file(field, repo, min_n=1))
+    rec["config"]["exif"]["rotated_by_serving"] = 3
+    rec["config"]["quantized_thresholds"]["on_e6_rows"]["coverage"] = 0.9
+    field.write_text(json.dumps(rec))
+    assert any("quantized_thresholds" in p for p in check_file(field, repo, min_n=1))
+
+
+def test_a_signed_split_is_not_called_provisional_in_its_notes(repo):
+    sign(repo, "field_test")
+    commit(repo, "the person signs field_test")
+    (field,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
+    assert "provisional" not in json.loads(field.read_text())["notes"].lower()
+
+
+def test_no_e6_record_for_the_chosen_checkpoint_refuses_the_run(repo):
+    (repo / "results/runs/E6-1.json").unlink()
+    commit(repo, "no E6")
+    with pytest.raises(e9.Refused, match="E6"):
+        e9.run_images("field_test", e9.load_config(repo), predictors(), repo)

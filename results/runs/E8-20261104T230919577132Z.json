@@ -1,0 +1,161 @@
+{
+ "run_id": "E8-20261104T230919577132Z",
+ "experiment": "E8",
+ "git_commit": "a8752b529f142882460c818b341aff4abd555575",
+ "dirty": false,
+ "dataset_hash": "56b5054ce064599d0fae272c9ed4724cf053190f1deeacaf1aa80af8bcfec1c0",
+ "split": "perf",
+ "subset": null,
+ "config": {
+  "machine_stated": "AMD Ryzen AI 9 HX 370, 63 GB RAM, Windows 11, Docker Desktop with no CPU or memory limit on the container; the writer ran in Ollama on the host GPU",
+  "image": "sprout-app@sha256:44e7c2efe3b09cd6b4e2c9de25234576d26d0a97fc95b4380955891ad39a09ff",
+  "variant": "the 5-request check of the person's direction, with the diagnosis fallback",
+  "load_client": {
+   "machine": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python": "3.12.8",
+    "logical_cpus": 24,
+    "cpu_model": "AMD64 Family 26 Model 36 Stepping 0, AuthenticAMD",
+    "memory_total": null
+   },
+   "timeout_s": 120.0,
+   "memory_interval_s": 0.5
+  },
+  "server": {
+   "image": "sprout-app",
+   "entrypoint": [
+    "/app/deploy/entrypoint.sh"
+   ],
+   "env": {
+    "SPROUT_WRITER_MODEL": "qwen3.5:4b-q4_K_M",
+    "SPROUT_INDEX_DIR": "/models/index",
+    "SPROUT_MEASUREMENT": "1",
+    "SPROUT_OLLAMA_URL": "http://host.docker.internal:11434",
+    "SPROUT_ENV": "production",
+    "SPROUT_DATA_DIR": "/data",
+    "SPROUT_MANIFEST": "/app/knowledge/manifest.csv"
+   },
+   "workers": 1,
+   "threads": 4,
+   "gunicorn_timeout_s": 60,
+   "gunicorn_processes_running": 0,
+   "docker_limits": {
+    "NanoCpus": 0,
+    "CpuQuota": 0,
+    "CpuPeriod": 0,
+    "CpusetCpus": "",
+    "Memory": 0,
+    "MemorySwap": 0
+   }
+  },
+  "requests": 5,
+  "outcomes": {
+   "requests": 5,
+   "failed": 0,
+   "failed_share": 0.0,
+   "client_timeouts": 0,
+   "by_answer_state": {
+    "refused": 1,
+    "answered": 2,
+    "no_document": 2
+   },
+   "ran_stage": {
+    "preprocess_ms": 5,
+    "inference_ms": 5,
+    "retrieval_ms": 4,
+    "generation_ms": 2,
+    "end_to_end_ms": 5
+   }
+  },
+  "warmup_requests": 1,
+  "questions": [
+   "What is wrong with my plant and how do I treat it?",
+   "How can I stop this from spreading to my other plants?",
+   "What causes this and how do I prevent it next season?",
+   "Is it safe to eat the fruit from a plant with this?"
+  ],
+  "measurement_mode": "SPROUT_MEASUREMENT=1: rate limits lifted, Server-Timing header on the upload and chat routes",
+  "model_sha256": "c05e93dfc6b18c2a8c95ce44b6eaaf079d9d840009eddbc1cae5511c02f1798e",
+  "calibration_sha256": "b73ccc45882f290011efbd0de82b07534487b690eebfd492731e5c21413ee534",
+  "ollama_url": "http://host.docker.internal:11434",
+  "ollama_placement": {
+   "size": 3130009844,
+   "size_vram": 3130009844
+  },
+  "cold_start_samples": 1,
+  "device": "container on CPU (onnxruntime CPUExecutionProvider, no torch); the writer runs in Ollama on the host",
+  "claims": "none about concurrency or end-to-end speed: the requests run one at a time and there are too few for percentiles to mean anything. The record shows the real model, calibration, index and writer answered together through the deployed image.",
+  "memory": "the whole container's memory from its cgroup, sampled every 0.5 s, peak and samples over the requests",
+  "stage_times": "from the Server-Timing header (hooks on the real objects); failed and timed-out requests are counted in outcomes and request_failed_share, and kept out of every percentile",
+  "started_at": "2026-11-04T23:04:31.270182+00:00",
+  "labels_reviewed": false,
+  "claude_calls": 0
+ },
+ "models": {
+  "classifier": "model.dynamic.onnx sha256 c05e93dfc6b1",
+  "writer": "qwen3.5:4b-q4_K_M",
+  "embedder": "BAAI/bge-small-en-v1.5 (fastembed ONNX)",
+  "reranker": "Xenova/ms-marco-MiniLM-L-6-v2 (fastembed ONNX)"
+ },
+ "n": 5,
+ "metrics": {
+  "requests": {}
+ },
+ "measurements": {
+  "file": "results/runs/E8-20261104T230919577132Z.measurements.json",
+  "values": {
+   "cold_start_container_start_ms_p50": 620.01,
+   "cold_start_container_start_ms_p95": 620.01,
+   "cold_start_to_alive_ms_p50": 2411.182,
+   "cold_start_to_alive_ms_p95": 2411.182,
+   "cold_start_to_ready_ms_p50": 3645.83,
+   "cold_start_to_ready_ms_p95": 3645.83,
+   "cold_start_first_request_ms_p50": 430.177,
+   "cold_start_first_request_ms_p95": 430.177,
+   "cold_start_total_ms_p50": 4076.007,
+   "cold_start_total_ms_p95": 4076.007,
+   "cold_start_mem_mb_p50": 411.664,
+   "cold_start_mem_mb_p95": 411.664,
+   "request_preprocess_ms_p50": 4.307,
+   "request_preprocess_ms_p95": 17.377999999999997,
+   "request_inference_ms_p50": 178.662,
+   "request_inference_ms_p95": 194.7172,
+   "request_retrieval_ms_p50": 1606.6905,
+   "request_retrieval_ms_p95": 1696.0833,
+   "request_generation_ms_p50": 7312.949500000001,
+   "request_generation_ms_p95": 11017.30765,
+   "request_end_to_end_ms_p50": 1959.107,
+   "request_end_to_end_ms_p95": 11723.629399999998,
+   "request_mem_mb_p50": 744.82,
+   "request_mem_mb_p95": 946.884,
+   "request_peak_mem_mb_p50": 946.98,
+   "request_peak_mem_mb_p95": 946.98,
+   "request_failed_share_p50": 0.0,
+   "request_failed_share_p95": 0.0
+  }
+ },
+ "judged": {},
+ "intervals": {},
+ "per_class": {},
+ "confusion": {},
+ "bootstrap": {
+  "n": 10000,
+  "seed": 13
+ },
+ "comparisons": [],
+ "attempts": [
+  {
+   "setting": "the 5-request check of the person's direction, with the diagnosis fallback",
+   "result": "measured",
+   "requests": 5
+  }
+ ],
+ "claude_calls": 0,
+ "labels_reviewed": false,
+ "predictions": {
+  "requests": "results/runs/E8-20261104T230919577132Z.requests.predictions.jsonl"
+ },
+ "started_at": "2026-11-04T23:04:31.270182+00:00",
+ "finished_at": "2026-11-04T23:09:19.577132+00:00",
+ "notes": "Latency and memory of the deployed app (real Identifier, index and writer) in its container on the CPU, over HTTP, one request at a time. Requests are the perf list's photos with a fixed question each. Nothing here is accuracy, and the few requests support no concurrency or speed claim. Failed requests, kept out of the percentiles: 0 of 5 failed (0 client timeouts)."
+}

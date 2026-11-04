@@ -1,0 +1,5 @@
+{"path": "datasets/raw/plantdoc/Apple Scab Leaf/12-20_apple_scab1.jpg", "identification": "not_plant", "answer_state": "refused"}
+{"path": "datasets/raw/plantdoc/Potato leaf early blight/15hrt15a1f1.jpg", "identification": "answered", "answer_state": "answered"}
+{"path": "datasets/raw/plantdoc/Tomato leaf late blight/tomato_late-blight_05_zoom.jpg", "identification": "unsure", "answer_state": "no_document"}
+{"path": "datasets/raw/plantseg_field/corn rust/corn_rust_20.jpg", "identification": "answered", "answer_state": "no_document"}
+{"path": "datasets/raw/plantseg_field/tomato yellow leaf curl virus/tomato_yellow_leaf_curl_virus_google_0147.jpg", "identification": "answered", "answer_state": "answered"}

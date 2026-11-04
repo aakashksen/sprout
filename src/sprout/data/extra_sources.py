@@ -253,6 +253,25 @@ def drop_copies_of_eval_photos(
     return {p: split[r] for p, r in copies_of(todo, list(held["path"]), device).items()}
 
 
+def drop_crop_copies(
+    inv: pd.DataFrame, class_map: pd.DataFrame, field: pd.DataFrame, device: str
+) -> dict[str, str]:
+    """Mapped extras that are crops, zooms or captioned copies of a field_dev or field_test photo."""
+    from sprout.baselines.dino import load_dino_encoder
+    from sprout.data.crop_copies import crop_copies
+
+    mapped = class_map[class_map["lab_class"].fillna("") != ""]
+    keys = set(zip(mapped["source"], mapped["source_class"]))
+    todo = [
+        p for p, s, c in zip(inv["path"], inv["source"], inv["label"]) if (s, c) in keys
+    ]
+    held = field[field["split"].isin(["field_dev", "field_test"])].reset_index(
+        drop=True
+    )
+    encoder = load_dino_encoder().to(device).eval()
+    return crop_copies(todo, list(held["path"]), list(held["split"]), encoder, device)
+
+
 def main(device_scope=None) -> None:
     """device_scope: optional context manager that yields the device name (e.g. holds a GPU share)."""
     roots = {
@@ -265,9 +284,17 @@ def main(device_scope=None) -> None:
     field = load_manifest("field")
     with device_scope() if device_scope else contextlib.nullcontext("cpu") as device:
         copies = drop_copies_of_eval_photos(inv, cmap, field, device)
+        crops = drop_crop_copies(inv[~inv["path"].isin(copies)], cmap, field, device)
     out, cmap_out, removed = build_extra(
-        inv[~inv["path"].isin(copies)], cmap, load_manifest("lab"), field
+        inv[~inv["path"].isin(set(copies) | set(crops))],
+        cmap,
+        load_manifest("lab"),
+        field,
     )
+    for split in ("field_dev", "field_test"):
+        removed[f"crop or caption copy of {split}"] = sum(
+            v == split for v in crops.values()
+        )
     for split in ("field_dev", "field_test"):
         removed[f"correlation >= {COPY_SCORE} with {split}"] = sum(
             v == split for v in copies.values()

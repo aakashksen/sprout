@@ -1,9 +1,9 @@
 source,source_class,lab_class,status,reason,n_images,n_kept
-plantwild,apple black rot,Apple___Black_rot,mapped,,173,90
+plantwild,apple black rot,Apple___Black_rot,mapped,,173,84
 plantwild,apple leaf,Apple___healthy,mapped,,444,200
 plantwild,apple mosaic virus,,excluded,no lab class for this plant or disease,181,0
-plantwild,apple rust,Apple___Cedar_apple_rust,mapped,,308,185
-plantwild,apple scab,Apple___Apple_scab,mapped,,292,109
+plantwild,apple rust,Apple___Cedar_apple_rust,mapped,,308,169
+plantwild,apple scab,Apple___Apple_scab,mapped,,292,94
 plantwild,banana leaf,,excluded,no lab class for this plant or disease,243,0
 plantwild,banana panama disease,,excluded,no lab class for this plant or disease,216,0
 plantwild,basil downy mildew,,excluded,no lab class for this plant or disease,86,0
@@ -12,9 +12,9 @@ plantwild,bean halo blight,,excluded,no lab class for this plant or disease,115,
 plantwild,bean leaf,,excluded,no lab class for this plant or disease,258,0
 plantwild,bean mosaic virus,,excluded,no lab class for this plant or disease,125,0
 plantwild,bean rust,,excluded,no lab class for this plant or disease,165,0
-plantwild,bell pepper leaf,"Pepper,_bell___healthy",mapped,,240,188
-plantwild,bell pepper leaf spot,"Pepper,_bell___Bacterial_spot",mapped,,117,99
-plantwild,blueberry leaf,Blueberry___healthy,mapped,,281,188
+plantwild,bell pepper leaf,"Pepper,_bell___healthy",mapped,,240,151
+plantwild,bell pepper leaf spot,"Pepper,_bell___Bacterial_spot",mapped,,117,91
+plantwild,blueberry leaf,Blueberry___healthy,mapped,,281,158
 plantwild,blueberry rust,,excluded,no lab class for this plant or disease,117,0
 plantwild,broccoli downy mildew,,excluded,no lab class for this plant or disease,65,0
 plantwild,broccoli leaf,,excluded,no lab class for this plant or disease,269,0
@@ -26,17 +26,17 @@ plantwild,cauliflower leaf,,excluded,no lab class for this plant or disease,195,
 plantwild,celery anthracnose,,excluded,no lab class for this plant or disease,44,0
 plantwild,celery early blight,,excluded,no lab class for this plant or disease,55,0
 plantwild,celery leaf,,excluded,no lab class for this plant or disease,212,0
-plantwild,cherry leaf,Cherry_(including_sour)___healthy,mapped,,286,200
+plantwild,cherry leaf,Cherry_(including_sour)___healthy,mapped,,286,178
 plantwild,cherry leaf spot,,excluded,no lab class for this plant or disease,230,0
-plantwild,cherry powdery mildew,Cherry_(including_sour)___Powdery_mildew,mapped,,114,79
+plantwild,cherry powdery mildew,Cherry_(including_sour)___Powdery_mildew,mapped,,114,73
 plantwild,citrus canker,,excluded,no lab class for this plant or disease,535,0
-plantwild,citrus greening disease,Orange___Haunglongbing_(Citrus_greening),mapped,,237,140
+plantwild,citrus greening disease,Orange___Haunglongbing_(Citrus_greening),mapped,,237,124
 plantwild,coffee leaf,,excluded,no lab class for this plant or disease,138,0
 plantwild,coffee leaf rust,,excluded,no lab class for this plant or disease,190,0
-plantwild,corn gray leaf spot,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,mapped,,216,108
-plantwild,corn leaf,Corn_(maize)___healthy,mapped,,156,132
-plantwild,corn northern leaf blight,Corn_(maize)___Northern_Leaf_Blight,mapped,,224,82
-plantwild,corn rust,Corn_(maize)___Common_rust_,mapped,,237,96
+plantwild,corn gray leaf spot,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,mapped,,216,17
+plantwild,corn leaf,Corn_(maize)___healthy,mapped,,156,69
+plantwild,corn northern leaf blight,Corn_(maize)___Northern_Leaf_Blight,mapped,,224,20
+plantwild,corn rust,Corn_(maize)___Common_rust_,mapped,,237,23
 plantwild,corn smut,,excluded,no lab class for this plant or disease,293,0
 plantwild,cucumber angular leaf spot,,excluded,no lab class for this plant or disease,251,0
 plantwild,cucumber bacterial wilt,,excluded,no lab class for this plant or disease,143,0
@@ -50,9 +50,9 @@ plantwild,garlic rust,,excluded,no lab class for this plant or disease,160,0
 plantwild,ginger leaf,,excluded,no lab class for this plant or disease,177,0
 plantwild,ginger leaf spot,,excluded,no lab class for this plant or disease,87,0
 plantwild,ginger sheath blight,,excluded,no lab class for this plant or disease,87,0
-plantwild,grape black rot,Grape___Black_rot,mapped,,229,116
+plantwild,grape black rot,Grape___Black_rot,mapped,,229,87
 plantwild,grape downy mildew,,excluded,no lab class for this plant or disease,395,0
-plantwild,grape leaf,Grape___healthy,mapped,,201,145
+plantwild,grape leaf,Grape___healthy,mapped,,201,77
 plantwild,grape leaf spot,,excluded,no lab class for this plant or disease,106,0
 plantwild,grapevine leafroll disease,,excluded,no lab class for this plant or disease,138,0
 plantwild,lettuce downy mildew,,excluded,no lab class for this plant or disease,118,0
@@ -60,33 +60,33 @@ plantwild,lettuce leaf,,excluded,no lab class for this plant or disease,244,0
 plantwild,lettuce mosaic virus,,excluded,no lab class for this plant or disease,100,0
 plantwild,maple leaf,,excluded,no lab class for this plant or disease,316,0
 plantwild,maple tar spot,,excluded,no lab class for this plant or disease,139,0
-plantwild,peach leaf,Peach___healthy,mapped,,157,131
+plantwild,peach leaf,Peach___healthy,mapped,,157,114
 plantwild,peach leaf curl,,excluded,no lab class for this plant or disease,235,0
 plantwild,plum leaf,,excluded,no lab class for this plant or disease,325,0
 plantwild,plum pocket disease,,excluded,no lab class for this plant or disease,76,0
-plantwild,potato early blight,Potato___Early_blight,mapped,,227,108
-plantwild,potato late blight,Potato___Late_blight,mapped,,240,125
-plantwild,potato leaf,Potato___healthy,mapped,,249,197
-plantwild,raspberry leaf,Raspberry___healthy,mapped,,180,118
+plantwild,potato early blight,Potato___Early_blight,mapped,,227,77
+plantwild,potato late blight,Potato___Late_blight,mapped,,240,98
+plantwild,potato leaf,Potato___healthy,mapped,,249,178
+plantwild,raspberry leaf,Raspberry___healthy,mapped,,180,59
 plantwild,rice blast,,excluded,no lab class for this plant or disease,148,0
 plantwild,rice leaf,,excluded,no lab class for this plant or disease,252,0
 plantwild,rice sheath blight,,excluded,no lab class for this plant or disease,250,0
-plantwild,soybean leaf,Soybean___healthy,mapped,,242,200
+plantwild,soybean leaf,Soybean___healthy,mapped,,242,173
 plantwild,squash leaf,,excluded,no lab class for this plant or disease,410,0
-plantwild,squash powdery mildew,Squash___Powdery_mildew,mapped,,281,122
+plantwild,squash powdery mildew,Squash___Powdery_mildew,mapped,,281,87
 plantwild,strawberry anthracnose,,excluded,no lab class for this plant or disease,98,0
-plantwild,strawberry leaf,Strawberry___healthy,mapped,,199,136
-plantwild,strawberry leaf scorch,Strawberry___Leaf_scorch,mapped,,76,47
+plantwild,strawberry leaf,Strawberry___healthy,mapped,,199,85
+plantwild,strawberry leaf scorch,Strawberry___Leaf_scorch,mapped,,76,33
 plantwild,tobacco leaf,,excluded,no lab class for this plant or disease,71,0
 plantwild,tobacco mosaic virus,,excluded,no lab class for this plant or disease,91,0
-plantwild,tomato bacterial leaf spot,Tomato___Bacterial_spot,mapped,,280,134
-plantwild,tomato early blight,Tomato___Early_blight,mapped,,346,139
-plantwild,tomato late blight,Tomato___Late_blight,mapped,,295,132
-plantwild,tomato leaf,Tomato___healthy,mapped,,226,188
-plantwild,tomato leaf mold,Tomato___Leaf_Mold,mapped,,239,103
-plantwild,tomato mosaic virus,Tomato___Tomato_mosaic_virus,mapped,,189,117
-plantwild,tomato septoria leaf spot,Tomato___Septoria_leaf_spot,mapped,,220,84
-plantwild,tomato yellow leaf curl virus,Tomato___Tomato_Yellow_Leaf_Curl_Virus,mapped,,171,93
+plantwild,tomato bacterial leaf spot,Tomato___Bacterial_spot,mapped,,280,113
+plantwild,tomato early blight,Tomato___Early_blight,mapped,,346,116
+plantwild,tomato late blight,Tomato___Late_blight,mapped,,295,124
+plantwild,tomato leaf,Tomato___healthy,mapped,,226,141
+plantwild,tomato leaf mold,Tomato___Leaf_Mold,mapped,,239,74
+plantwild,tomato mosaic virus,Tomato___Tomato_mosaic_virus,mapped,,189,98
+plantwild,tomato septoria leaf spot,Tomato___Septoria_leaf_spot,mapped,,220,70
+plantwild,tomato yellow leaf curl virus,Tomato___Tomato_Yellow_Leaf_Curl_Virus,mapped,,171,77
 plantwild,zucchini yellow mosaic virus,,excluded,no lab class for this plant or disease,181,0
 plantwild_v2,apple black rot,Apple___Black_rot,mapped,,83,0
 plantwild_v2,apple mosaic virus,,excluded,no lab class for this plant or disease,89,0
@@ -102,7 +102,7 @@ plantwild_v2,basil downy mildew,,excluded,no lab class for this plant or disease
 plantwild_v2,bean halo blight,,excluded,no lab class for this plant or disease,56,0
 plantwild_v2,bean mosaic virus,,excluded,no lab class for this plant or disease,58,0
 plantwild_v2,bean rust,,excluded,no lab class for this plant or disease,115,0
-plantwild_v2,bell pepper bacterial spot,"Pepper,_bell___Bacterial_spot",mapped,,76,20
+plantwild_v2,bell pepper bacterial spot,"Pepper,_bell___Bacterial_spot",mapped,,76,15
 plantwild_v2,bell pepper blossom end rot,,excluded,no lab class for this plant or disease,112,0
 plantwild_v2,bell pepper frogeye leaf spot,,excluded,no lab class for this plant or disease,31,0
 plantwild_v2,bell pepper powdery mildew,,excluded,no lab class for this plant or disease,28,0

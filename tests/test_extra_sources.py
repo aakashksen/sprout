@@ -243,13 +243,25 @@ def test_extra_groups_have_their_own_namespace(tmp_path):
         assert not groups & set(load_manifest("lab")["group"])
 
 
+_P = "datasets/raw/plantwild/plantwild/images/"
+# The 13 leaks found by the two failed verifications (6, then 7), plus 3 more seen while checking.
 VERIFIER_PAIRS = [
-    "datasets/raw/plantwild/plantwild/images/strawberry leaf/google_0526.jpg",
-    "datasets/raw/plantwild/plantwild/images/soybean leaf/google_0562.jpg",
-    "datasets/raw/plantwild/plantwild/images/blueberry leaf/169.jpg",
-    "datasets/raw/plantwild/plantwild/images/raspberry leaf/61.jpg",
-    "datasets/raw/plantwild/plantwild/images/strawberry leaf/google_0201.jpg",
-    "datasets/raw/plantwild/plantwild/images/raspberry leaf/google_0075.jpg",
+    _P + "strawberry leaf/google_0526.jpg",
+    _P + "soybean leaf/google_0562.jpg",
+    _P + "blueberry leaf/169.jpg",
+    _P + "raspberry leaf/61.jpg",
+    _P + "strawberry leaf/google_0201.jpg",
+    _P + "raspberry leaf/google_0075.jpg",
+    _P + "tomato mosaic virus/google_0165.jpg",
+    _P + "tomato early blight/google_0068.jpg",
+    _P + "potato late blight/google_0313 - Copy (3) - Copy.jpg",
+    _P + "corn gray leaf spot/google_0175.jpg",
+    _P + "apple rust/google_0184.jpg",
+    _P + "bell pepper leaf spot/google_0071.jpg",
+    _P + "potato late blight/google_0097.jpg",
+    _P + "apple leaf/1.jpg",
+    _P + "apple scab/57 - Copy.jpg",
+    _P + "bell pepper leaf spot/google_0015.jpg",
 ]
 
 
@@ -267,3 +279,86 @@ def test_no_extra_is_a_near_copy_of_a_field_dev_or_field_test_photo():
     assert scores.max() < COPY_SCORE, (
         f"{int((scores >= COPY_SCORE).sum())} extras are copies"
     )
+
+
+def _zoomed_tokens(seed: int):
+    """Patch tokens of a photo and of a 2x zoom on its centre (each B cell copies the A cell it shows)."""
+    import torch
+
+    from sprout.data.crop_copies import GRID
+
+    rng = np.random.default_rng(seed)
+    a = torch.nn.functional.normalize(
+        torch.from_numpy(rng.normal(size=(GRID * GRID, 64))).float(), dim=1
+    )
+    b = torch.stack(
+        [
+            a[(y // 2 + GRID // 4) * GRID + x // 2 + GRID // 4]
+            for y in range(GRID)
+            for x in range(GRID)
+        ]
+    )
+    b = torch.nn.functional.normalize(b + 0.05 * torch.randn_like(b), dim=1)
+    return a, b
+
+
+def test_patch_matching_finds_a_zoomed_copy_and_not_an_unrelated_photo():
+    from sprout.data.crop_copies import INLIERS, mutual_matches, ransac_inliers
+
+    a, zoom = _zoomed_tokens(1)
+    other, _ = _zoomed_tokens(2)
+    ia, ib, _ = mutual_matches(a, zoom)
+    assert ransac_inliers(ia, ib) >= INLIERS
+    ia, ib, _ = mutual_matches(other, zoom)
+    assert ransac_inliers(ia, ib) < INLIERS
+
+
+_D = "datasets/raw/plantdoc/"
+KNOWN_COPY_REFS = {
+    VERIFIER_PAIRS[0]: _D
+    + "Strawberry leaf/stock-photo-strawberry-leaf-isolated-on-white-background-572055775.jpg",
+    VERIFIER_PAIRS[6]: _D
+    + "Tomato leaf mosaic virus/ill-tomato-of-tomato-mosaic-virus-DBE17N.jpg",
+    VERIFIER_PAIRS[7]: _D + "Tomato Early blight leaf/Tomato-blight-large.jpg",
+    VERIFIER_PAIRS[8]: _D + "Potato leaf late blight/fig1a_500.jpg",
+    VERIFIER_PAIRS[9]: _D + "Corn rust leaf/corn-diseases-fig-1-so-rust.jpg",
+    VERIFIER_PAIRS[11]: _D + "Bell_pepper leaf spot/pepper_V5a.jpg",
+    VERIFIER_PAIRS[12]: _D + "Potato leaf late blight/fig1a_500.jpg",
+}
+
+
+@pytest.mark.real
+def test_dino_crop_check_flags_known_cropped_and_captioned_copies():
+    from sprout.baselines.dino import load_dino_encoder
+    from sprout.data.crop_copies import crop_copies
+
+    field = load_manifest("field").set_index("path")
+    refs = sorted(set(KNOWN_COPY_REFS.values()))
+    if not Path(refs[0]).exists():
+        pytest.skip("raw images are not on this machine")
+    splits = [field.loc[r, "split"] for r in refs]
+    encoder = load_dino_encoder().eval()
+    found = crop_copies(list(KNOWN_COPY_REFS), refs, splits, encoder, "cpu")
+    assert set(found) == set(KNOWN_COPY_REFS)
+    lab = load_manifest("lab")["path"].iloc[0]
+    assert not crop_copies([lab], refs, splits, encoder, "cpu")
+
+
+@pytest.mark.real
+def test_dino_crop_check_flags_nothing_in_the_real_manifest():
+    import torch
+
+    from sprout.baselines.dino import load_dino_encoder
+    from sprout.data.crop_copies import crop_copies
+
+    extra = load_manifest("extra_train")
+    paths = list(extra["path"])
+    if not Path(paths[0]).exists() or not torch.cuda.is_available():
+        pytest.skip("needs the raw images and a GPU")
+    field = load_manifest("field")
+    held = field[field["split"].isin(["field_dev", "field_test"])]
+    encoder = load_dino_encoder().to("cuda").eval()
+    flagged = crop_copies(
+        paths, list(held["path"]), list(held["split"]), encoder, "cuda"
+    )
+    assert not flagged, f"{len(flagged)} extras look like crops of dev or test photos"

@@ -303,6 +303,7 @@ Built against `IdentifierProtocol` and `FakeIdentifier`, so it doesn't wait for 
 This is the integration point: it runs the real `Identifier` from T5.2 and the real answers from T6.4 in the container, and fixes any mismatch. No fakes.
 **Files:** `src/sprout/experiments/e8_perf.py`, `tests/test_e8.py`.
 **Do:** In the container, on CPU, measure cold start, preprocessing, inference, retrieval, generation, end-to-end p50 and p95, and memory, under 1, 5, and 20 concurrent requests. State the machine. Fix the top bottleneck if there's a clear one, then rerun, and report before and after (#82).
+**From phase review:** see `orchestration/verdicts/phase-6.md`. (1) The `hybrid+rerank` floor of 0.73875 was tuned on the torch reranker, but serving uses the fastembed ONNX one, and the rerank pool differs (30 candidates at k=10, 15 at k=5; floors were chosen at k=10, serving uses k=5). Compare per-passage scores near the floor on the real path, and report what happens to served decline rates. (2) `answer()` takes the first plant named when there is no photo or crop, so pass `crop=` from the photo label. (3) `[1,2]` citations lose their sources, so a grounded answer can show the no-document prefix. Count how often this happens on the served path and fix it if it does. (4) CPU rerank is about 600 ms per search.
 **Tests:** tiny fixture writes a valid record; `test_percentiles_by_stage_are_recorded`.
 **Accept:** `{py} -m pytest tests/test_e8.py -q`; `{py} -m sprout.eval.check_run E8 --min-n 100 --split perf`.
 

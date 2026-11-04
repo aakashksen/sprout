@@ -159,6 +159,9 @@ def _prose_decline(reply: str) -> bool:
     return bool(_PROSE_DECLINE.search(first))
 
 
+_ONE_QUESTION = re.compile(r"[^.!?\n]+\?")
+
+
 def _split_need(reply: str) -> tuple[list[str], str] | None:
     for i, line in enumerate(reply.splitlines()):
         if line.strip().upper().startswith("NEED:"):
@@ -210,8 +213,10 @@ def answer(
     need = _split_need(reply)
     if need is not None:
         items, rest = need
-        return Answer(rest or "Could you tell me " + " and ".join(items) + "?", [], False, asks + items, "clarify",
-                      found, query, version)
+        wanted = " and ".join(items) or "more about the plant and its symptoms"
+        # Only a lone question is kept: other text can be advice with no citation and no label note.
+        text = rest if _ONE_QUESTION.fullmatch(rest) else f"Could you tell me {wanted}?"
+        return Answer(text, [], False, asks + items, "clarify", found, query, version)
     cited: list[int] = []
     for n in map(int, _MARK.findall(reply)):
         if 1 <= n <= len(found) and n not in cited:

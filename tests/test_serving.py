@@ -44,9 +44,7 @@ def test_answer_with_no_config_uses_hybrid_rerank_and_the_chosen_prompt():
 
 def test_the_config_matches_the_e7_choice_on_record():
     chosen = ROOT / "results" / "e7" / "v2" / "chosen.json"
-    if not chosen.is_file():
-        return
-    data = json.loads(chosen.read_text(encoding="utf-8"))
+    data = json.loads(chosen.read_text(encoding="utf-8"))  # tracked, so a missing file fails rather than passes
     assert data["retrieval"]["mode"] == serving.MODE and data["retrieval"]["rerank"] is serving.RERANK
     assert data["retrieval"]["index"] == "index" and data["retrieval"]["query_mode"] == serving.QUERY_MODE
     assert data["floors"] == serving.FLOORS

@@ -223,9 +223,9 @@ def test_uncertain_diagnosis_is_not_stated_as_fact():
 
 def test_chemical_advice_says_check_the_label():
     out = ask(FakeLLM(["Spray a copper fungicide every 7 days [1]."]))
-    assert LABEL_NOTE in out.text
+    assert LABEL_NOTE in out.text and "local rules" in LABEL_NOTE
     again = ask(FakeLLM(["Spray copper [1]. Check the product label and local rules."]))
-    assert again.text.count("product label") == 1
+    assert again.text.endswith(LABEL_NOTE)  # the writer's own sentence does not replace the fixed note
 
 
 def test_answer_without_a_citation_is_labeled_not_grounded():
@@ -292,3 +292,129 @@ def test_ollama_placement_reports_gpu_share(monkeypatch):
     assert OllamaClient("m").placement() == {"size": 100, "size_vram": 80}
     assert OllamaClient("absent").placement() is None
     assert seen["url"] == "http://127.0.0.1:11434/api/ps"
+
+
+# ---- safety wording: nothing here may depend on the writer choosing the right words ----
+
+from sprout.rag.answer import LEGACY_LABEL_NOTE  # noqa: E402
+from sprout.rag.judge import judge_claim, split_claims  # noqa: E402
+
+
+@pytest.mark.parametrize("reply", [
+    "Soak the tools in a bleach solution for ten minutes [1].",
+    "Spray neem oil every week [1].",
+    "Burn the infected plants [1].",
+    "Mix trisodium phosphate (TSP) with water and wipe the benches [1].",
+    "Dust with sulfur [1].",
+    "Rotate crops every year [1].",  # no chemical at all: the note is still there
+    "Check the product label for the rate [1]. Follow your local rules.",  # the writer already says it
+    "Rings appear on leaves [1].\n\n" + LABEL_NOTE,  # the writer copied the note word for word
+])
+def test_every_grounded_answer_carries_the_fixed_label_note_exactly_once(reply):
+    out = ask(FakeLLM([reply]))
+    assert out.grounded and out.text.endswith(LABEL_NOTE) and out.text.count(LABEL_NOTE) == 1
+    assert "product label" in out.text and "local rules" in out.text and "disposing of plant material" in out.text
+
+
+def test_an_answer_without_a_citation_also_carries_the_note():
+    out = ask(FakeLLM(["Bleach the pots."]))
+    assert out.state == "ungrounded" and out.text.endswith(LABEL_NOTE)
+
+
+def test_declines_and_questions_back_do_not_carry_the_note():
+    declines = [
+        ask(FakeLLM(["NO_SUPPORT"])), ask(FakeLLM(["x"]), FakeRetriever([])),
+        ask(FakeLLM(["NEED: crop\nWhich plant?"]), ident=None),
+        ask(FakeLLM(["The provided evidence does not contain information about this. The passages cover rust [1]."])),
+    ]
+    assert all(LABEL_NOTE not in d.text and not d.grounded for d in declines)
+
+
+@pytest.mark.parametrize("reply", [
+    "The documents are silent on this. NO_SUPPORT",
+    "NO_SUPPORT.",
+    "no_support",
+    "I looked [1] and the answer is NO-SUPPORT",
+    "NO_SUPPORT because the passages [1] cover only rust.",
+])
+def test_no_support_token_anywhere_is_a_decline_and_never_shown(reply):
+    out = ask(FakeLLM([reply]))
+    assert out.text == NO_DOCUMENT and out.citations == [] and not out.grounded and "SUPPORT" not in out.text.upper().replace("SUPPORTING", "")
+
+
+@pytest.mark.parametrize("reply", [
+    "The provided evidence does not contain information about managing bananas. The passages cover tomato rust [1][2].",
+    "The passages don't mention this plant [1].",
+    "The documents do not address your question [2].",
+    "The sources lack any advice on this [1].",
+    "I cannot find anything about this in the evidence [1].",
+    "There is no information on this in the passages [1].",
+    "No information about this plant is given [1].",
+])
+def test_a_prose_decline_shows_no_sources(reply):
+    out = ask(FakeLLM([reply]))
+    assert out.text == NO_DOCUMENT and out.citations == [] and not out.grounded and out.state == "no_document"
+
+
+def test_an_answer_that_later_notes_a_gap_keeps_its_sources():
+    out = ask(FakeLLM(["Rings appear on leaves [1]. The passages do not give a spray rate [2]."]))
+    assert out.grounded and len(out.citations) == 2
+
+
+def test_with_no_diagnosis_and_no_crop_the_plant_is_read_from_the_question(tmp_path):
+    rows = [
+        {"text": "Early blight makes rings on tomato leaves.", "source": "tomato.pdf", "page": 1, "crop": "tomato"},
+        {"text": "Early blight makes rings on potato leaves.", "source": "potato.pdf", "page": 1, "crop": "potato"},
+    ]
+    (tmp_path / "chunks.jsonl").write_text("\n".join(json.dumps({"diseases": [], "title": "t", **r}) for r in rows))
+
+    class Same:
+        def embed_passages(self, texts):
+            import numpy as np
+            return np.ones((len(texts), 2))
+
+        def embed_query(self, text):
+            import numpy as np
+            return np.ones(2)
+
+    r = Retriever(tmp_path, config=RetrievalConfig(min_score=0.0), embedder=Same())
+    cfg = AnswerConfig(rerank=False)
+    out = answer("How do I stop early blight on my tomatoes?", identification=None, history=[], retriever=r,
+                 llm=FakeLLM(["Rings [1] and [2]."]), config=cfg)
+    assert {c.source for c in out.citations} == {"tomato.pdf"}
+    follow = answer("How does it spread?", identification=None, llm=FakeLLM(["Rings [1] and [2]."]), retriever=r, config=cfg,
+                    history=[{"role": "user", "content": "My potato leaves have rings"}, {"role": "assistant", "content": "tomato"}])
+    assert {c.source for c in follow.citations} == {"potato.pdf"}  # the user's own words, not the assistant's
+
+
+def test_the_note_wordings_are_skipped_by_the_claim_splitter_so_e7_numbers_do_not_change():
+    body = "Rings appear on potato leaves [1]. Water early in the day [2]."
+    plain = [c.text for c in split_claims(body)]
+    assert plain == ["Rings appear on potato leaves.", "Water early in the day."]
+    for note in (LABEL_NOTE, LEGACY_LABEL_NOTE):
+        assert [c.text for c in split_claims(f"{body}\n\n{note}")] == plain
+
+
+@pytest.mark.parametrize("reply,supported", [
+    ("SUPPORTED", True), ("Supported.", True), ("  supported\n", True),
+    ("NOT_SUPPORTED", False), ("not supported", False), ("NOT SUPPORTED", False), ("UNSUPPORTED", False),
+    ("Not_Supported.", False), ("SUPPORTED_NOT", False), ("I think so", False), ("", False),
+])
+def test_the_judge_verdict_is_read_strictly_and_odd_replies_count_as_not_supported(reply, supported):
+    from sprout.rag.answer import Answer  # noqa: F401
+
+    judge = FakeLLM([reply or " "])
+    got, _ = judge_claim(judge, split_claims("Rings appear on potato leaves [1].")[0], [P1])
+    assert got is supported
+
+
+@pytest.mark.parametrize("reply", ["Rings appear on leaves [1, 2].", "Rings appear (1).", "Rings appear [Passage 1].", "Rings appear [1-2]."])
+def test_citation_forms_we_do_not_parse_fall_on_the_safe_side_as_no_source(reply):
+    out = ask(FakeLLM([reply]))
+    assert out.citations == [] and not out.grounded and out.state == "ungrounded"
+    assert out.text.startswith("No supporting document") and out.text.endswith(LABEL_NOTE)
+
+
+def test_a_misspelled_need_line_is_an_ordinary_answer_not_a_question_back():
+    out = ask(FakeLLM(["NEEDS: crop\nWhich plant?"]))
+    assert out.state == "ungrounded" and out.asks_for == []

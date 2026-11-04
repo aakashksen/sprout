@@ -2,16 +2,24 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
 from dataclasses import dataclass
 
 from sprout.llm.client import LLMClient, LLMError
-from sprout.rag.answer import LABEL_NOTE, PROMPT_DIR, UNGROUNDED, Answer
+from sprout.rag.answer import (
+    LABEL_NOTE,
+    LEGACY_LABEL_NOTE,
+    PROMPT_DIR,
+    UNGROUNDED,
+    Answer,
+)
 
 RUBRIC_FILE = "judge.txt"
 _SENTENCE = re.compile(r"(?<=[.!?])\s+(?=[A-Z\[\d])")
 _MARK = re.compile(r"\s*\[(\d+)\]")
-_SKIP_PREFIXES = ("This is only a possible match", UNGROUNDED.strip(), LABEL_NOTE)
+_SKIP_PREFIXES = ("This is only a possible match", UNGROUNDED.strip(), LABEL_NOTE, LEGACY_LABEL_NOTE)
+_VERDICT = re.compile(r"\W*SUPPORTED\b", re.I)
 VERDICT_KEYS = ("verdict", "judge_reply")  # what a second grader is not shown
 
 
@@ -49,7 +57,7 @@ def judge_claim(llm: LLMClient, claim: Claim, passages: list, timeout_s: float =
         {"role": "user", "content": f"Passages:\n{shown}\n\nClaim: {claim.text}"},
     ]
     reply = llm.complete(messages, max_tokens=8, timeout_s=timeout_s).text.strip()
-    return reply.upper().startswith("SUPPORTED"), reply
+    return bool(_VERDICT.match(reply)), reply
 
 
 def judge_answer(llm: LLMClient, qid: str, system: str, question: str, ans: Answer) -> dict | None:
@@ -72,9 +80,12 @@ def judge_answer(llm: LLMClient, qid: str, system: str, question: str, ans: Answ
 
 
 def blind_view(row: dict) -> dict:
-    """The same row with the judge's verdicts and replies left out, for another grader."""
+    """The same row with the judge's verdicts and replies, the judge's name and the writer's system name left out, for
+    another grader. `item` is a short hash of the system and question, so rows can be matched back without the name."""
+    item = hashlib.sha1(f"{row['system']}|{row['id']}".encode()).hexdigest()[:10]
     return {
-        **{k: v for k, v in row.items() if k not in ("judge_model", "claims")},
+        **{k: v for k, v in row.items() if k not in ("judge_model", "claims", "system")},
+        "item": item,
         "claims": [{k: v for k, v in c.items() if k not in VERDICT_KEYS} for c in row["claims"]],
     }
 

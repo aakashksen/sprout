@@ -8,7 +8,7 @@ from pathlib import Path
 
 from sprout.llm.client import LLMClient, LLMError
 from sprout.rag import serving
-from sprout.rag.query import build_query, crop_of_label
+from sprout.rag.query import build_query, crop_of_label, detect_crop
 from sprout.serve.types import Identification
 
 GENERAL_CROP = "general"  # the crop name general-guidance documents carry in the index
@@ -23,10 +23,20 @@ NO_DOCUMENT = (
     "A local extension service can help with it."
 )
 UNGROUNDED = "No supporting document was cited for this; treat it as general care advice, not sourced advice. "
-LABEL_NOTE = "Check the product label and your local rules before using or disposing of any chemical."
-CHEMICAL = re.compile(
-    r"\b(fungicides?|pesticides?|insecticides?|herbicides?|bactericides?|miticides?|spray(?:s|ed|ing)?|"
-    r"copper|mancozeb|chlorothalonil|azoxystrobin|chemicals?|dispos\w+)\b", re.I)
+# Every answer that gives advice carries this note, whatever the text says: a list of chemical words always misses the
+# next product (bleach, TSP, neem oil, burning plants), and the cost of one extra sentence is small.
+LABEL_NOTE = "Check the product label and your local rules before using any chemical or disposing of plant material."
+LEGACY_LABEL_NOTE = "Check the product label and your local rules before using or disposing of any chemical."
+# The prompt asks for the bare token NO_SUPPORT; a model may add words around it, so it counts anywhere in the reply.
+_NO_SUPPORT = re.compile(r"\bno[_\-]support\b", re.I)
+# A prose decline opens the reply ("The provided evidence does not contain ..."). Only the first sentence is read, so a
+# useful answer that later notes a missing detail keeps its sources.
+_PROSE_DECLINE = re.compile(
+    r"^\W*(?:(?:the|these|this|those|all)\s+)?(?:provided\s+|given\s+|available\s+)?(?:evidence|passages?|documents?|sources?|excerpts?)\b"
+    r"[^.!?]*?\b(?:do(?:es)?\s+not|don't|doesn't|cannot|can't|never|fail(?:s)?\s+to|lack(?:s)?|no)\b"
+    r"|^\W*(?:i\s+)?(?:cannot|can't|could\s+not|couldn't|am\s+unable\s+to|was\s+unable\s+to)\s+(?:find|answer|say|tell)\b"
+    r"|^\W*there\s+(?:is|are|was|were)\s+no\s+(?:information|evidence|mention|data|details?)\b"
+    r"|^\W*(?:no|not\s+enough)\s+(?:information|evidence|mention|data|details?)\b", re.I)
 _TAGS = re.compile(r"</?\s*(diagnosis|history|evidence|question)\s*>", re.I)
 _MARK = re.compile(r"\[(\d+)\]")
 
@@ -144,6 +154,11 @@ def _citation(p, sources: dict[str, SourceInfo] | None) -> Citation:
     return Citation(p.source, p.page, title, url, note, " ".join(p.text.split())[:200])
 
 
+def _prose_decline(reply: str) -> bool:
+    first = re.split(r"(?<=[.!?])\s+", reply.strip(), maxsplit=1)[0]
+    return bool(_PROSE_DECLINE.search(first))
+
+
 def _split_need(reply: str) -> tuple[list[str], str] | None:
     for i, line in enumerate(reply.splitlines()):
         if line.strip().upper().startswith("NEED:"):
@@ -175,6 +190,8 @@ def answer(
         crop = crop if crop in retriever.crops else GENERAL_CROP
     elif identification is not None and identification.top is not None and not unsure:
         crop = crop_of_label(identification.top.label, retriever.crops) or GENERAL_CROP
+    if crop is None:  # no named plant and no diagnosis: read the plant from the question and the user's own turns
+        crop = detect_crop(" ".join([*(h["content"] for h in history if h["role"] == "user"), question]), retriever.crops)
     asks = ["clearer photo"] if unsure else []
     query = build_query(question, identification, history, cfg.query_mode)
     try:
@@ -188,7 +205,7 @@ def answer(
         reply = llm.complete(messages, max_tokens=cfg.max_tokens, timeout_s=cfg.timeout_s).text.strip()
     except LLMError:
         return Answer(UNAVAILABLE, [], False, asks, "unavailable", found, query, version)
-    if reply.upper().startswith("NO_SUPPORT"):
+    if _NO_SUPPORT.search(reply) or _prose_decline(reply):
         return Answer(NO_DOCUMENT, [], False, asks, "no_document", found, query, version)
     need = _split_need(reply)
     if need is not None:
@@ -207,6 +224,5 @@ def answer(
     if _uncertain(identification):
         top = identification.top
         text = f"This is only a possible match from the photo, not a certain one ({_shown(top.label)}, {top.confidence:.0%}). " + text
-    if CHEMICAL.search(text) and not re.search(r"product label", text, re.I):
-        text = f"{text}\n\n{LABEL_NOTE}"
+    text = f"{text.replace(LABEL_NOTE, '').replace(LEGACY_LABEL_NOTE, '').strip()}\n\n{LABEL_NOTE}"
     return Answer(text, citations, bool(citations), asks, state, found, query, version)

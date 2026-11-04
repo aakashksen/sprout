@@ -1,6 +1,7 @@
 """E7 stages with fakes: checkpoints, gold matching, floors, judging files, and records that check_run recomputes."""
 import json
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -379,3 +380,21 @@ def test_the_combined_decision_carries_the_gains_it_was_judged_on():
     combined = decisions[-1]
     assert version == "base+faithful+abstain" and combined["addition"] == "combined" and combined["kept"]
     assert round(combined["target_gains"]["faithful"], 3) == 0.096 and round(combined["target_gains"]["abstain"], 2) == 0.43
+
+
+def test_superseded_file_names_real_records_and_never_a_record_as_its_own_replacement():
+    marks = e7.superseded_records()
+    runs = Path(__file__).resolve().parents[1] / "results" / "runs"
+    ids = set(marks["superseded"]) | {m["by"] for m in marks["superseded"].values()} | set(marks["needs_rerun"])
+    assert ids and all((runs / f"{i}.json").is_file() for i in ids)
+    assert all(i != m["by"] for i, m in marks["superseded"].items())
+    assert not set(marks["needs_rerun"]) & set(marks["superseded"])  # a record still waiting for its rerun is current
+
+
+def test_the_blind_view_hides_the_writer_and_the_verdicts_but_rows_can_be_matched_back():
+    row = {"id": "supported-001", "system": "claude_sonnet", "question": "q", "passages": [], "answer": "a", "rubric": "r",
+           "judge_model": "j", "claims": [{"claim": "c", "cited": [1], "verdict": True, "judge_reply": "SUPPORTED"}]}
+    blind = blind_view(row)
+    assert "claude_sonnet" not in json.dumps(blind) and "system" not in blind and "judge_model" not in blind
+    assert blind["claims"] == [{"claim": "c", "cited": [1]}] and blind["id"] == "supported-001"
+    assert blind["item"] != blind_view({**row, "system": "served"})["item"] and blind["item"] == blind_view(row)["item"]

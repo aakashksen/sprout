@@ -404,7 +404,7 @@ def variant_version(chosen: e7.Chosen, variant: str) -> str:
 
 
 def gen_key(chosen: e7.Chosen, variant: str) -> str:
-    return e7.checkpoint_key(variant_version(chosen, variant), cache_file(chosen, cache_tag(variant)).name, WRITER)
+    return e7.checkpoint_key(variant_version(chosen, variant), cache_file(chosen, cache_tag(variant)).name, WRITER, e7.ANSWER_VERSION)
 
 
 def judge_key(chosen: e7.Chosen, variant: str) -> str:
@@ -580,7 +580,7 @@ def cmd_claude(args) -> None:
     questions = e7.dev_questions(ROOT)[:100]
     retriever, single = answer_retriever(chosen, "answers-floor")
     claude = ClaudeCodeClient(model="sonnet", counter_path=main_folder() / "results" / "claude_calls.json")
-    key = e7.checkpoint_key("claude", variant_version(chosen, "served"), cache_file(chosen, "answers-floor").name)
+    key = e7.checkpoint_key("claude", variant_version(chosen, "served"), cache_file(chosen, "answers-floor").name, e7.ANSWER_VERSION)
     rows, missing = e7.run_generation("claude_sonnet", questions, retriever, claude, answer_config(chosen, chosen.prompt),
                                       WORK / "generate", single, ROOT, key=key)
     if missing:
@@ -629,6 +629,8 @@ def cmd_status(_args) -> None:
     chosen = e7.Chosen.load(CHOSEN)
     print("chosen:", json.dumps({"retrieval": chosen.retrieval, "floors": chosen.floors, "prompt": chosen.prompt}))
     print("decisions so far:", [d["stage"] for d in chosen.decisions])
+    marks = e7.superseded_records(ROOT)
+    print(f"superseded records: {len(marks['superseded'])}; records needing a rerun: {sorted(marks['needs_rerun'])}")
     for folder in sorted(WORK.glob("*")) if WORK.is_dir() else []:
         for f in sorted(folder.glob("*.jsonl")):
             print(f"  {folder.name}/{f.name}: {sum(1 for _ in f.open(encoding='utf-8'))} rows")

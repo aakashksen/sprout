@@ -19,6 +19,21 @@ def crop_of_label(label: str, known_crops: set[str]) -> str | None:
     return crop if crop in known_crops else None
 
 
+def _forms(crop: str) -> str:
+    plural = crop[:-1] + "ies" if crop.endswith("y") else crop + "(?:s|es)?"
+    return rf"\b(?:{re.escape(crop)}(?:s|es)?|{plural})\b"
+
+
+def detect_crop(text: str, crops: set[str]) -> str | None:
+    """The plant named first in the text, among crops that have documents."""
+    best = None
+    for crop in crops:
+        m = re.search(_forms(crop), text.lower())
+        if m and (best is None or m.start() < best[0]):
+            best = (m.start(), crop)
+    return best[1] if best else None
+
+
 def disease_of_label(label: str) -> str:
     """'Tomato___Early_blight' -> 'early blight'; healthy and unlabeled classes give ''."""
     _, _, disease = label.partition("___")

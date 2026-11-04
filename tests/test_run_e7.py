@@ -222,3 +222,12 @@ def test_prompts_record_checks_the_tree_before_writing_and_never_rewrites_a_comm
     after = {p.name: p.read_bytes() for p in runs.glob("E7-prompts-v2-*")}
     assert all(after[name] == data for name, data in first.items())  # committed files are untouched
     assert len(after) == 4  # the new variant set got files of its own
+
+
+def test_rows_made_by_older_answer_code_are_not_reused(tool_env, monkeypatch):
+    prepare(tool_env, monkeypatch, ["base"])
+    chosen = e7.Chosen.load(tool.CHOSEN)
+    old = tool.gen_key(chosen, "base")
+    assert tool.present(chosen, "base")
+    monkeypatch.setattr(e7, "ANSWER_VERSION", e7.ANSWER_VERSION + 1)
+    assert tool.gen_key(chosen, "base") != old and not tool.present(chosen, "base")

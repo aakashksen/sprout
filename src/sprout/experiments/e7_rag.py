@@ -10,7 +10,6 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import re
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -36,7 +35,7 @@ from sprout.rag.answer import (
 )
 from sprout.rag.evalset import Question, index_rows, load_questions, normalize
 from sprout.rag.judge import blind_view, judge_answer
-from sprout.rag.query import build_query, crop_of_label, disease_of_label
+from sprout.rag.query import build_query, crop_of_label, detect_crop, disease_of_label
 from sprout.rag.retrieve import Passage
 from sprout.serve.types import Candidate, Identification
 
@@ -46,6 +45,9 @@ RETRIEVAL_METRICS = ("recall@1", "recall@3", "recall@5", "recall@10", "mrr")
 DECIDING_METRICS = ("recall@5", "mrr")
 METHOD_VERSION = 2  # bumped when a selection rule changes; checkpoints and work folders of older versions are not reused
 SERVED_K = 5
+# Bumped when what answer() does with a reply changes (notes, declines, plant reading). Generated rows are keyed by it,
+# so rows made by older code are never reused or mixed into a record.
+ANSWER_VERSION = 2
 FLOOR_MIN_ANSWERS = 0.80
 MIN_GRADED = 200  # graded answers one full run should yield (T6.6 re-checks 200 of them)
 BEHAVIOUR_METRICS = (
@@ -131,21 +133,6 @@ def load_classes(root: Path = ROOT) -> list[str]:
 
     with (root / "datasets" / "manifests" / "lab.csv").open(newline="", encoding="utf-8") as f:
         return sorted({r["label"] for r in csv.DictReader(f)})
-
-
-def _forms(crop: str) -> str:
-    plural = crop[:-1] + "ies" if crop.endswith("y") else crop + "(?:s|es)?"
-    return rf"\b(?:{re.escape(crop)}(?:s|es)?|{plural})\b"
-
-
-def detect_crop(text: str, crops: set[str]) -> str | None:
-    """The plant named first in the text, among crops that have documents."""
-    best = None
-    for crop in crops:
-        m = re.search(_forms(crop), text.lower())
-        if m and (best is None or m.start() < best[0]):
-            best = (m.start(), crop)
-    return best[1] if best else None
 
 
 def simulate_identification(q: Question, crops: set[str], classes: list[str]) -> tuple[str | None, Identification | None]:
@@ -630,6 +617,17 @@ def write_generation_record(
                      [{"system": n, "answers_graded": len(judged.get(n, []))} for n in rows], out_rows, info.hash,
                      root=root, subset=split_subset, judged=samples or None, allow_dirty=allow_dirty,
                      notes="Faithfulness is the share of claims the judge model found supported by the cited passages.")
+
+
+SUPERSEDED_REL = Path("results/e7/superseded.json")
+
+
+def superseded_records(root: Path = ROOT) -> dict[str, dict]:
+    """Records that a later one replaces (`superseded`: id -> {by, reason}), and records whose answers were produced by
+    code that has since changed and need a rerun (`needs_rerun`: id -> reason). Old records are never edited; reports
+    read this file to know which to leave out."""
+    path = root / SUPERSEDED_REL
+    return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {"superseded": {}, "needs_rerun": {}}
 
 
 @dataclass

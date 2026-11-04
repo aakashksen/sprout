@@ -6,6 +6,7 @@ separate column, and viewing a result never runs the model again.
 
 from __future__ import annotations
 
+import contextvars
 from concurrent.futures import TimeoutError as FutureTimeout
 from pathlib import Path
 
@@ -230,6 +231,7 @@ def _generated_reply(analysis_id: int, row, ident: Identification, message: str,
     history = [{"role": r["role"], "content": r["content"]} for r in reversed(recent)]
     shown = _as_selected(ident, row["selected_label"])
     future = current_app.extensions["sprout_pool"].submit(
+        contextvars.copy_context().run,
         lambda: answer(message, identification=shown, history=history, retriever=retriever, llm=writer,
                        config=cfg, crop=crop))
     try:

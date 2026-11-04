@@ -300,3 +300,45 @@ def test_the_writer_is_ollama_on_the_loopback_ip_with_the_served_config(wsgi, tm
 def test_a_localhost_writer_address_is_refused(wsgi, tmp_path):
     with pytest.raises(RuntimeError, match="127.0.0.1"):
         wsgi.build(env(tmp_path, SPROUT_OLLAMA_URL="http://localhost:11434"))
+
+
+def test_the_request_context_reaches_the_threads_that_identify_and_write():
+    """Timing hooks (E8) and logging read a context variable set by the request; the pool threads must see it."""
+    import contextvars
+    import tempfile
+    from pathlib import Path
+
+    var = contextvars.ContextVar("seen", default=None)
+    seen = {}
+
+    class Ident(FakeIdentifier):
+        def identify(self, image_bytes):
+            seen["identify"] = var.get()
+            return super().identify(image_bytes)
+
+    class Writer(FakeLLM):
+        def complete(self, messages, *, max_tokens, timeout_s):
+            seen["complete"] = var.get()
+            return super().complete(messages, max_tokens=max_tokens, timeout_s=timeout_s)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        app = create_app(Config(ENV="testing", SECRET_KEY="s", DATA_DIR=tmp, RATE_LIMITS=LIMITS),
+                         identifier=Ident([ANSWER]), retriever=Retriever(), writer=Writer(["Remove infected leaves [1]."]))
+        c = app.test_client()
+        c.get("/login")
+        with c.session_transaction() as s:
+            t = s["csrf_token"]
+        c.post("/signup", data={"username": "alice", "password": "password123", "csrf_token": t})
+        c.get("/login")
+        with c.session_transaction() as s:
+            t = s["csrf_token"]
+        var.set("this request")
+        r = c.post("/analyses", data={"file": (io.BytesIO(png()), "leaf.png"), "csrf_token": t},
+                   content_type="multipart/form-data")
+        aid = int(re.search(r"/analyses/(\d+)", r.headers["Location"]).group(1))
+        deadline = time.time() + 3
+        while app.extensions["sprout_chat"]["state"] != "ready" and time.time() < deadline:
+            time.sleep(0.01)
+        c.post(f"/analyses/{aid}/chat", json={"message": "treatment?"}, headers={"X-CSRF-Token": t})
+        assert Path(tmp).exists()
+    assert seen == {"identify": "this request", "complete": "this request"}

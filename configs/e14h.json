@@ -1,0 +1,14 @@
+{
+  "experiment": "E14H",
+  "split": "rag_dev",
+  "seed": 14,
+  "sample_size": 200,
+  "model": "claude-haiku-5-5",
+  "workers": 4,
+  "max_calls": 260,
+  "e14_config": "configs/e14.json",
+  "e14_run_id": "E14-20261104T085533959094Z",
+  "reads": "configs/e14h_reads.json",
+  "reference": "sonnet",
+  "device": "none: no GPU or local model is used; Haiku runs through the claude command and the local and Sonnet grades are read from E14's record"
+}

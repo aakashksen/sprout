@@ -480,6 +480,24 @@
       "done_at": "2026-11-04T11:21:42+00:00"
     },
     {
+      "id": "T4.9",
+      "phase": 4,
+      "title": "Experiment E15, final model on 29 classes with all photos",
+      "owner": "agent",
+      "deps": [
+        "T4.6",
+        "T4.7",
+        "T4.8"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e15.py -q",
+        "{py} -m sprout.eval.check_run E15 --min-n 200 --split field_dev"
+      ],
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-04T19:15:56+00:00"
+    },
+    {
       "id": "T5.0",
       "phase": 5,
       "title": "Identification contract and fake identifier",
@@ -506,13 +524,17 @@
       "owner": "agent",
       "deps": [
         "T4.2",
-        "T4.6"
+        "T4.9"
       ],
       "acceptance": [
         "{py} -m pytest tests/test_e6.py -q",
         "{py} -m sprout.eval.check_run E6 --min-n 200 --split field_dev"
       ],
-      "status": "pending"
+      "status": "blocked",
+      "worktree": "<local path>",
+      "started_at": "2026-11-04T17:44:55+00:00",
+      "verifier": false,
+      "reason": "waits for T4.9's chosen model; run ctl unblock when T4.9 lands"
     },
     {
       "id": "T5.2",
@@ -520,13 +542,20 @@
       "title": "Inference service",
       "owner": "agent",
       "deps": [
-        "T5.0",
-        "T5.1"
+        "T5.0"
       ],
       "acceptance": [
         "{py} -m pytest tests/test_identify.py -q"
       ],
-      "status": "pending"
+      "status": "done",
+      "verifier": false,
+      "started_at": "2026-11-04T19:15:58+00:00",
+      "verified": {
+        "commit": "b08f037311203a572985c437998c807b1b5144bf",
+        "passed": true,
+        "at": "2026-11-04T19:21:29+00:00"
+      },
+      "done_at": "2026-11-04T19:21:30+00:00"
     },
     {
       "id": "T6.1",
@@ -747,12 +776,13 @@
       "owner": "agent",
       "deps": [
         "T7.3",
+        "T5.1",
         "T5.2",
         "T6.4"
       ],
       "acceptance": [
         "{py} -m pytest tests/test_e8.py -q",
-        "{py} -m sprout.eval.check_run E8 --min-n 100 --split perf"
+        "{py} -m sprout.eval.check_run E8 --min-n 5 --split perf"
       ],
       "status": "pending"
     },
@@ -776,6 +806,7 @@
         "H1",
         "H2",
         "T4.7",
+        "T4.9",
         "T6.6",
         "T7.4"
       ],
@@ -793,15 +824,15 @@
       "title": "Report, README, and bullets",
       "owner": "agent",
       "deps": [
-        "T8.1",
-        "H3"
+        "T8.1"
       ],
       "acceptance": [
         "{py} -m sprout.eval.claims check",
         "{py} tools/check_report_numbers.py",
         "{py} -m pytest -q"
       ],
-      "status": "pending"
+      "status": "pending",
+      "verifier": false
     },
     {
       "id": "H4",

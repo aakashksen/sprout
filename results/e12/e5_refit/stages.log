@@ -1,0 +1,4 @@
+2026-11-04T17:36:07.522278+00:00 probs-not-plant: 1207 photos on cpu, workers 0
+2026-11-04T17:36:51.109829+00:00 probs-not-plant: done in 47.7s, peak GPU memory None bytes
+2026-11-04T17:40:07.085312+00:00 green: 2247 photos in 190.9s
+2026-11-04T17:40:12.659429+00:00 fit: T=1.3337 abstain>=0.877154 gate=confidence_ood in 0.7s

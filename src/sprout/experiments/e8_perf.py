@@ -1,42 +1,52 @@
-"""E8: how fast and how large the real photo-to-answer path is, in the serving container on the CPU.
+"""E8: how fast and how large the deployed photo-to-answer path is, over HTTP, in the serving container on the CPU.
 
-Two halves, because the serving image has no pandas:
-  - `measure` and `cold` run INSIDE the container with the serving dependencies only. They build the real web app
-    (`create_app`, with the real `Identifier`, a real index and reranker, and the writer through Ollama on the host)
-    and drive its routes with the Flask test client: one upload (`POST /analyses`) and one question
-    (`POST /analyses/<id>/chat`) per photo. The end-to-end time is those two route calls, so it includes the app's
-    own work (upload checks, database, thread hand-off). Per-stage times come from hooks on the real objects. Raw
-    per-request numbers go to a JSON file.
-  - `record` runs on the host. It turns that file into a run record with `write_run`, so `check_run E8` can check it.
+Two halves, because the load client needs nothing from the image and the record needs pandas:
+  - `measure` and `cold` run on the HOST (standard library only). They start the serving image exactly as
+    docs/deploy.md deploys it (its own entrypoint, gunicorn with its worker and thread counts), plus
+    `SPROUT_MEASUREMENT=1`, which lifts the rate limits and makes the upload and chat routes report stage times in a
+    `Server-Timing` header. The client sends real HTTP requests, each one user action: sign in once, then upload a photo
+    and ask a question about it. End-to-end time is taken on the client side, so gunicorn's thread queue is in it.
+    Memory is read from the container's cgroup. Raw per-request numbers go to a JSON file.
+  - `record` turns that file into a run record with `write_run`, so `check_run E8` can check it.
 `floor-check` and `multi-citations` are host-side checks that call no model.
-Stages are timed by wrapping the real objects, never by replacing them. Nothing here uses a fake; tests do.
 """
 
 from __future__ import annotations
 
 import argparse
-import contextvars
-import io
 import json
 import os
 import platform
+import queue
 import re
-import tempfile
+import secrets
+import socket
+import subprocess
 import threading
 import time
+import urllib.error
+import urllib.parse
+import urllib.request
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
+from http.cookiejar import CookieJar
 from pathlib import Path
 
 from sprout.atomic import atomic_write_text
+from sprout.serve import timing
 
 SPLIT = "perf"
 LEVELS = (1, 5, 20)
 REQUEST_STAGES = ("preprocess_ms", "inference_ms", "retrieval_ms", "generation_ms", "end_to_end_ms")
-COLD_STAGES = ("identifier_load_ms", "retriever_warm_ms", "app_build_ms", "first_request_ms", "total_ms")
-# A request that failed (writer or search unavailable, upload or chat error) is counted and kept out of the timings.
-FAILED_STATES = ("unavailable", "retrieval_failed", "upload_failed", "chat_failed")
-RSS_INTERVAL_S = 0.05
+# Measured from outside, from the moment `docker run` is issued.
+COLD_STAGES = ("container_start_ms", "to_alive_ms", "to_ready_ms", "first_request_ms", "total_ms")
+# A request that failed (writer or search unavailable, upload or chat error, a client timeout) is counted and kept out of
+# the percentiles, but stays in the record.
+FAILED_STATES = ("unavailable", "retrieval_failed", "upload_failed", "chat_failed", "client_timeout", "connection_failed")
+CLIENT_TIMEOUT_S = 120.0  # longer than the app's 50 s answer budget, so the app's own timeouts show up as its replies
+MEM_INTERVAL_S = 0.5
+WARN_FAILED_SHARE = 0.05
 QUESTIONS = (
     "What is wrong with my plant and how do I treat it?",
     "How can I stop this from spreading to my other plants?",
@@ -45,210 +55,212 @@ QUESTIONS = (
 )
 NEAR_FLOOR = 0.05  # a reranker score within this of the floor counts as near it
 SERVED_K, E7_K = 5, 10  # the k the app serves with, and the k E7 picked the floors at
+ENTRYPOINT_DEFAULTS = {"SPROUT_WORKERS": "1", "SPROUT_THREADS": "4", "SPROUT_TIMEOUT": "60"}  # deploy/entrypoint.sh
 
 
 def now_ms() -> float:
     return time.perf_counter() * 1000
 
 
-# ---------------------------------------------------------------- timing the real objects
+# ---------------------------------------------------------------- the load client
 
-class StageTimers:
-    """Milliseconds per stage for the request in the current context. The web app hands slow calls to pool threads
-    with a copy of the request's context, so their stages land in the same request's record."""
-
-    def __init__(self) -> None:
-        self._var: contextvars.ContextVar = contextvars.ContextVar("e8_stages", default=None)
-
-    def begin(self) -> None:
-        self._var.set({})
-
-    def add(self, name: str, ms: float) -> None:
-        stages = self._var.get()
-        if stages is not None:
-            stages[name] = stages.get(name, 0.0) + ms
-
-    def note(self, name: str, value) -> None:
-        stages = self._var.get()
-        if stages is not None:
-            stages[name] = value
-
-    def end(self) -> dict:
-        stages = self._var.get()
-        self._var.set(None)
-        return stages
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):
+        return None  # the upload's 302 carries the timing header and the new analysis id
 
 
-def _timed(timers: StageTimers, name: str, fn):
-    def run(*args, **kwargs):
-        start = now_ms()
+class HttpClient:
+    """One signed-in user talking to the server over HTTP, with its own cookies."""
+
+    def __init__(self, base: str, timeout: float = CLIENT_TIMEOUT_S) -> None:
+        self.base, self.timeout, self.token = base.rstrip("/"), timeout, ""
+        self._opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(CookieJar()), _NoRedirect())
+
+    def request(self, method: str, path: str, data: bytes | None = None, headers: dict | None = None):
+        """(status, headers, body). Status 0: nothing came back. Raises TimeoutError when the server did not answer in time."""
+        req = urllib.request.Request(self.base + path, data=data, method=method, headers=headers or {})
         try:
-            return fn(*args, **kwargs)
-        finally:
-            timers.add(name, now_ms() - start)
+            r = self._opener.open(req, timeout=self.timeout)
+        except urllib.error.HTTPError as e:  # includes the 302 the client refuses to follow
+            r = e
+        except (TimeoutError, socket.timeout) as e:
+            raise TimeoutError(str(e)) from e
+        except urllib.error.URLError as e:
+            if isinstance(e.reason, (TimeoutError, socket.timeout)):
+                raise TimeoutError(str(e)) from e
+            return 0, {}, b""
+        try:
+            body = r.read()
+        except (TimeoutError, socket.timeout) as e:
+            raise TimeoutError(str(e)) from e
+        return r.status, {k.lower(): v for k, v in r.headers.items()}, body
 
-    return run
+    def refresh_token(self, page: str = "/login") -> None:
+        _, _, body = self.request("GET", page)
+        found = re.search(rb'name="csrf-token" content="([^"]+)"', body)
+        if not found:
+            raise RuntimeError("the server's login page has no CSRF token")
+        self.token = found.group(1).decode()
 
+    def sign_up(self, name: str | None = None) -> None:
+        self.refresh_token()
+        form = urllib.parse.urlencode({"username": name or f"perf-{uuid.uuid4().hex[:12]}", "password": "password123",
+                                       "csrf_token": self.token}).encode()
+        status, _, _ = self.request("POST", "/signup", form, {"Content-Type": "application/x-www-form-urlencoded"})
+        if status not in (200, 302):
+            raise RuntimeError(f"sign-up answered {status}")
+        self.refresh_token("/upload")  # signing in rotates it, and /login now redirects
 
-class _TimedSession:
-    """The ONNX Runtime session, with `run` timed as inference."""
+    def _upload(self, filename: str, data: bytes):
+        boundary = uuid.uuid4().hex
+        body = (f'--{boundary}\r\nContent-Disposition: form-data; name="csrf_token"\r\n\r\n{self.token}\r\n'
+                f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{filename}"\r\n'
+                f"Content-Type: application/octet-stream\r\n\r\n").encode() + data + f"\r\n--{boundary}--\r\n".encode()
+        return self.request("POST", "/analyses", body, {"Content-Type": f"multipart/form-data; boundary={boundary}"})
 
-    def __init__(self, session, timers: StageTimers) -> None:
-        self._session = session
-        self.run = _timed(timers, "inference_ms", session.run)
-
-    def __getattr__(self, name):
-        return getattr(self._session, name)
-
-
-class TimedRetriever:
-    def __init__(self, retriever, timers: StageTimers) -> None:
-        self._retriever = retriever
-        self.search = _timed(timers, "retrieval_ms", retriever.search)
-
-    @property
-    def crops(self):
-        return self._retriever.crops
-
-    @property
-    def warmed(self):
-        return self._retriever.warmed
-
-    def warm(self, *, rerank: bool = False) -> None:
-        self._retriever.warm(rerank=rerank)
-
-
-class TimedLLM:
-    def __init__(self, llm, timers: StageTimers) -> None:
-        self.model = llm.model
-        self.complete = _timed(timers, "generation_ms", llm.complete)
-
-
-class Stack:
-    """The real web app around the real identifier, retriever and writer, each wrapped to report its stage times.
-    Use as a context manager: the identifier is instrumented inside it and restored after."""
-
-    def __init__(self, identifier, retriever, llm, data_dir: Path, manifest: str = "") -> None:
-        from sprout.web import create_app
-        from sprout.web.config import Config
-
-        self.timers = StageTimers()
-        self.identifier = identifier
-        self.retriever = TimedRetriever(retriever, self.timers)
-        self.llm = TimedLLM(llm, self.timers)
-        limits = {k: (10**9, 60) for k in ("login", "signup", "upload", "chat")}
-        config = Config(ENV="development", SECRET_KEY="e8-perf-measurement-only", DATA_DIR=str(data_dir),
-                        MANIFEST=manifest, RATE_LIMITS=limits)
-        self.app = create_app(config, identifier=identifier, retriever=self.retriever, writer=self.llm)
-        deadline = time.time() + 120
-        while self.app.extensions["sprout_chat"]["state"] == "warming" and time.time() < deadline:
-            time.sleep(0.02)
-        if self.app.extensions["sprout_chat"]["state"] != "ready":
-            raise RuntimeError(f"chat is {self.app.extensions['sprout_chat']['state']}: the index did not warm")
-        self._local = threading.local()
-        self._users = 0
-        self._lock = threading.Lock()
-        self._undo: list = []
-
-    def __enter__(self) -> Stack:
-        from sprout.serve import export
-
-        model = self.identifier.model
-        before = (export.preprocess_array, model.session, self.identifier._decode)
-        export.preprocess_array = _timed(self.timers, "preprocess_ms", before[0])
-        model.session = _TimedSession(before[1], self.timers)
-        self.identifier._decode = _timed(self.timers, "preprocess_ms", before[2])
-        identify = self.identifier.identify
-
-        def identify_and_note(data: bytes):
-            ident = identify(data)
-            self.timers.note("_identification", ident.status)
-            return ident
-
-        self.identifier.identify = identify_and_note
-        self._undo = [before]
-        return self
-
-    def __exit__(self, *exc) -> None:
-        from sprout.serve import export
-
-        export.preprocess_array, self.identifier.model.session, _ = self._undo.pop()
-        del self.identifier.__dict__["_decode"]  # the class's own methods are back
-        del self.identifier.__dict__["identify"]
-
-    def _client(self):
-        """One signed-in client per worker thread, made before any timing starts."""
-        if not hasattr(self._local, "client"):
-            with self._lock:
-                self._users += 1
-                name = f"perf{self._users}"
-            client = self.app.test_client()
-
-            def token() -> str:
-                client.get("/login")
-                with client.session_transaction() as sess:
-                    return sess["csrf_token"]
-
-            client.post("/signup", data={"username": name, "password": "password123", "csrf_token": token()})
-            self._local.client, self._local.token = client, token()
-        return self._local.client, self._local.token
-
-    def request(self, path: str, data: bytes, question: str) -> dict:
-        """One user action: upload the photo, then ask the question about it, through the app's own routes."""
-        client, token = self._client()
-        self.timers.begin()
+    def user_action(self, path: str, data: bytes, question: str) -> dict:
+        """Upload the photo, then ask the question about it. One row; its end-to-end time is the client's clock."""
         start = now_ms()
-        up = client.post("/analyses", data={"file": (io.BytesIO(data), Path(path).name), "csrf_token": token},
-                         content_type="multipart/form-data")
-        match = re.search(r"/analyses/(\d+)", up.headers.get("Location", "")) if up.status_code == 302 else None
-        chat = None
-        if match:
-            chat = client.post(f"/analyses/{match.group(1)}/chat", json={"message": question},
-                               headers={"X-CSRF-Token": token})
-        total = now_ms() - start
-        stages = self.timers.end()
-        status = stages.pop("_identification", f"http_{up.status_code}")
-        if match is None:
-            state = "upload_failed"
-        else:
-            if chat.status_code == 200:
-                state = (chat.get_json(silent=True) or {}).get("state", "chat_failed")
+        stages: dict[str, float] = {}
+        status_text, state = "unknown", "chat_failed"
+        analysis = None
+        try:
+            status, headers, _ = self._upload(Path(path).name, data)
+            first = timing.parse_header(headers.get("server-timing", ""))
+            status_text = first.pop("ident", f"http_{status}")
+            for k, v in first.items():
+                stages[k] = stages.get(k, 0.0) + v
+            match = re.search(r"/analyses/(\d+)", headers.get("location", "")) if status == 302 else None
+            if match is None:
+                state = "connection_failed" if status == 0 else "upload_failed"
             else:
-                state = "refused" if chat.status_code == 409 else "chat_failed"  # 409: not a plant, nothing to ask
-            client.post(f"/analyses/{match.group(1)}/delete", data={"csrf_token": token})
-        row = {"path": path, "identification": status, "answer_state": state}
+                analysis = match.group(1)
+                status, headers, body = self.request(
+                    "POST", f"/analyses/{analysis}/chat", json.dumps({"message": question}).encode(),
+                    {"Content-Type": "application/json", "X-CSRF-Token": self.token})
+                second = timing.parse_header(headers.get("server-timing", ""))
+                second.pop("ident", None)
+                for k, v in second.items():
+                    stages[k] = stages.get(k, 0.0) + v
+                if status == 200:
+                    state = json.loads(body or b"{}").get("state", "chat_failed")
+                else:
+                    state = "refused" if status == 409 else ("connection_failed" if status == 0 else "chat_failed")
+        except TimeoutError:
+            state = "client_timeout"
+        total = now_ms() - start
+        if analysis is not None:  # not part of the action; keeps the server's disk from filling
+            try:
+                self.request("POST", f"/analyses/{analysis}/delete",
+                             urllib.parse.urlencode({"csrf_token": self.token}).encode(),
+                             {"Content-Type": "application/x-www-form-urlencoded"})
+            except TimeoutError:
+                pass
+        row = {"path": path, "identification": status_text, "answer_state": state}
         for name in REQUEST_STAGES[:-1]:
-            row[name] = round(stages[name], 3) if name in stages else None  # None: the stage did not run
+            ms = stages.get(name.removesuffix("_ms"))
+            row[name] = round(ms, 3) if ms is not None else None  # None: the stage did not run
         row["end_to_end_ms"] = round(total, 3)
         return row
 
 
-# ---------------------------------------------------------------- memory and machine
+# ---------------------------------------------------------------- the container
 
-def read_rss_mb() -> float | None:
-    """Resident memory of this process, from /proc; None where there is no /proc (not Linux)."""
-    try:
-        for line in Path("/proc/self/status").read_text().splitlines():
-            if line.startswith("VmRSS:"):
-                return int(line.split()[1]) / 1024
-    except OSError:
+class DockerTarget:
+    """The serving image run with its own entrypoint, as deployed, plus the measurement setting."""
+
+    def __init__(self, image: str, *, port: int, env: dict[str, str], mounts: list[str], docker_args: list[str],
+                 run=subprocess.run, name: str | None = None) -> None:
+        self.image, self.port, self.env, self.mounts, self.docker_args = image, port, dict(env), mounts, docker_args
+        self.name = name or f"sprout-e8-{uuid.uuid4().hex[:8]}"
+        self._run = run
+        self.base_url = f"http://127.0.0.1:{port}"
+        self.started = False
+
+    def _docker(self, *args: str, check: bool = True):
+        out = self._run(["docker", *args], capture_output=True, text=True)
+        if check and out.returncode != 0:
+            raise RuntimeError(f"docker {args[0]} failed: {out.stderr.strip()[:300]}")
+        return out
+
+    def start(self) -> DockerTarget:
+        env = {**self.env, "SPROUT_MEASUREMENT": "1"}
+        cmd = ["run", "-d", "--rm", "--name", self.name, "-p", f"127.0.0.1:{self.port}:8080",
+               "--add-host", "host.docker.internal:host-gateway", *self.docker_args]
+        for k, v in env.items():
+            cmd += ["-e", f"{k}={v}"]
+        for m in self.mounts:
+            cmd += ["-v", m]
+        self._docker(*cmd, self.image)  # no --entrypoint: the image's own gunicorn entrypoint runs
+        self.started = True
+        return self
+
+    def _cgroup(self, *names: str) -> str | None:
+        for n in names:
+            out = self._docker("exec", self.name, "cat", n, check=False)
+            if out.returncode == 0 and out.stdout.strip().isdigit():
+                return out.stdout.strip()
         return None
-    return None
+
+    def mem_mb(self) -> float:
+        """The whole container's memory now (every gunicorn worker), from its cgroup."""
+        value = self._cgroup("/sys/fs/cgroup/memory.current", "/sys/fs/cgroup/memory/memory.usage_in_bytes")
+        if value is None:
+            raise RuntimeError("the container's memory cannot be read from its cgroup")
+        return int(value) / 1048576
+
+    def mem_peak_mb(self) -> float | None:
+        value = self._cgroup("/sys/fs/cgroup/memory.peak", "/sys/fs/cgroup/memory/memory.max_usage_in_bytes")
+        return int(value) / 1048576 if value else None
+
+    def info(self) -> dict:
+        """Docker limits and gunicorn's settings, as the container really has them."""
+        data = json.loads(self._docker("inspect", self.name).stdout)[0]
+        env = dict(e.split("=", 1) for e in data["Config"]["Env"] if "=" in e)
+        host = data["HostConfig"]
+        shown = {k: v for k, v in env.items() if k.startswith("SPROUT_") and "SECRET" not in k}
+        top = self._docker("top", self.name, "-eo", "args", check=False).stdout
+        return {
+            "image": data["Config"]["Image"], "entrypoint": data["Config"].get("Entrypoint"),
+            "env": shown, "workers": int(env.get("SPROUT_WORKERS", ENTRYPOINT_DEFAULTS["SPROUT_WORKERS"])),
+            "threads": int(env.get("SPROUT_THREADS", ENTRYPOINT_DEFAULTS["SPROUT_THREADS"])),
+            "gunicorn_timeout_s": int(env.get("SPROUT_TIMEOUT", ENTRYPOINT_DEFAULTS["SPROUT_TIMEOUT"])),
+            "gunicorn_processes_running": sum("gunicorn" in line for line in top.splitlines()),
+            "docker_limits": {k: host.get(k) for k in ("NanoCpus", "CpuQuota", "CpuPeriod", "CpusetCpus", "Memory", "MemorySwap")},
+        }
+
+    def stop(self) -> None:
+        if self.started:
+            self._docker("rm", "-f", self.name, check=False)
+            self.started = False
 
 
-class RssSampler:
+def free_port() -> int:
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+# ---------------------------------------------------------------- memory
+
+class MemorySampler:
+    """Memory of the container, sampled while a level runs. A failed read stops the run instead of making up a number."""
+
     def __init__(self, read, interval: float) -> None:
         self._read, self._interval = read, interval
         self.samples: list[float] = []
+        self._error: Exception | None = None
         self._stop = threading.Event()
         self._thread = threading.Thread(target=self._loop, daemon=True)
 
     def _loop(self) -> None:
-        while not self._stop.is_set():
-            self.samples.append(self._read())
-            self._stop.wait(self._interval)
+        try:
+            while not self._stop.wait(self._interval):
+                self.samples.append(self._read())
+        except Exception as exc:  # noqa: BLE001 - re-raised on exit
+            self._error = exc
 
-    def __enter__(self) -> RssSampler:
+    def __enter__(self) -> MemorySampler:
         self.samples.append(self._read())
         self._thread.start()
         return self
@@ -256,6 +268,8 @@ class RssSampler:
     def __exit__(self, *exc) -> None:
         self._stop.set()
         self._thread.join()
+        if self._error is not None:
+            raise RuntimeError(f"memory sampling failed: {self._error}") from self._error
         self.samples.append(self._read())
 
 
@@ -270,72 +284,84 @@ def _first_line(path: str, key: str | None = None) -> str | None:
 
 
 def machine_info() -> dict:
-    """What the measuring process can see: inside Docker Desktop this is its Linux VM, not the host."""
-    info = {
-        "platform": platform.platform(), "python": platform.python_version(), "logical_cpus": os.cpu_count(),
-        "cpu_model": _first_line("/proc/cpuinfo", "model name"),
-        "memory_total": _first_line("/proc/meminfo", "MemTotal"),
-        "cgroup_cpu_max": _first_line("/sys/fs/cgroup/cpu.max"),
-        "cgroup_memory_max": _first_line("/sys/fs/cgroup/memory.max"),
-    }
-    try:
-        import onnxruntime
-
-        info["onnxruntime"] = onnxruntime.__version__
-        info["onnxruntime_providers"] = onnxruntime.get_available_providers()
-    except ImportError:
-        pass
-    return info
+    """What the load client can see (the host, or a Linux VM). The person who ran the stage states the real machine."""
+    return {"platform": platform.platform(), "python": platform.python_version(), "logical_cpus": os.cpu_count(),
+            "cpu_model": _first_line("/proc/cpuinfo", "model name") or platform.processor(),
+            "memory_total": _first_line("/proc/meminfo", "MemTotal")}
 
 
 # ---------------------------------------------------------------- measuring
 
-def run_level(stack: Stack, level: int, work: list[tuple[str, str]], images_root: Path,
-              read_rss=read_rss_mb, interval: float = RSS_INTERVAL_S) -> dict:
+def run_level(target, level: int, work: list[tuple[str, str]], images_root: Path, *, interval: float = MEM_INTERVAL_S,
+              timeout: float = CLIENT_TIMEOUT_S) -> dict:
     """Every image once, with `level` requests in flight at a time. Rows come back in `work` order."""
+    clients: queue.Queue = queue.Queue()
+    for _ in range(level):  # signed in before the clock starts
+        client = HttpClient(target.base_url, timeout)
+        client.sign_up()
+        clients.put(client)
 
     def one(item: tuple[str, str]) -> dict:
         path, question = item
-        return stack.request(path, (images_root / path).read_bytes(), question)
+        data = (images_root / path).read_bytes()
+        client = clients.get()
+        try:
+            return client.user_action(path, data, question)
+        finally:
+            clients.put(client)
 
     start = time.perf_counter()
-    with RssSampler(read_rss, interval) as sampler, ThreadPoolExecutor(level) as pool:
+    with MemorySampler(target.mem_mb, interval) as sampler, ThreadPoolExecutor(level) as pool:
         rows = list(pool.map(one, work))
     wall = time.perf_counter() - start
-    # Failed requests stay in the rows and are counted by the record, but their (fast) times are not timings.
-    return {"level": level, "wall_s": round(wall, 3), "rows": rows,
-            "rss_mb": [round(x, 2) for x in sampler.samples], "peak_rss_mb": round(max(sampler.samples), 2)}
+    return {"level": level, "wall_s": round(wall, 3), "rows": rows, "mem_mb": [round(x, 2) for x in sampler.samples],
+            "peak_mem_mb": round(max(sampler.samples), 2), "cgroup_peak_mb": target.mem_peak_mb()}
 
 
-def measure(stack: Stack, work: list[tuple[str, str]], images_root: Path, *, levels=LEVELS, warmup: int = 1,
-            read_rss=read_rss_mb, interval: float = RSS_INTERVAL_S) -> dict[str, dict]:
-    if read_rss() is None:
-        raise RuntimeError("memory cannot be read here (there is no /proc); run the measurement in the Linux container")
-    for path, question in work[:warmup]:  # not recorded: the first request of the process is the cold start
-        stack.request(path, (images_root / path).read_bytes(), question)
-    return {str(level): run_level(stack, level, work, images_root, read_rss, interval) for level in levels}
+def measure(target, work: list[tuple[str, str]], images_root: Path, *, levels=LEVELS, warmup: int = 1,
+            interval: float = MEM_INTERVAL_S, timeout: float = CLIENT_TIMEOUT_S) -> dict[str, dict]:
+    client = HttpClient(target.base_url, timeout)
+    client.sign_up()
+    for path, question in work[:warmup]:  # not recorded: the first request after start-up is the cold start
+        client.user_action(path, (images_root / path).read_bytes(), question)
+    return {str(level): run_level(target, level, work, images_root, interval=interval, timeout=timeout) for level in levels}
 
 
-def cold_start(make_identifier, make_retriever, llm, data_dir: Path, manifest: str, first: tuple[str, str],
-               images_root: Path, read_rss=read_rss_mb) -> tuple[Stack, dict]:
-    """Build the identifier and the retriever (loading the index and the reranker), build the app, and serve one
-    request through it, timing each. Starts when called, so the Python start-up before it is not included."""
-    start = now_ms()
-    identifier = make_identifier()
-    loaded = now_ms()
-    retriever = make_retriever()
-    retriever.warm(rerank=True)
-    warmed = now_ms()
-    stack = Stack(identifier, retriever, llm, data_dir, manifest)
-    built = now_ms()
-    with stack:
-        row = stack.request(first[0], (images_root / first[0]).read_bytes(), first[1])
+def cold_start(start_target, first: tuple[str, str], images_root: Path, *, ready_timeout: float = 300.0,
+               poll: float = 0.05, timeout: float = CLIENT_TIMEOUT_S):
+    """From the moment `docker run` is issued to `/readyz` saying ready (the model loaded and the index warm), then the
+    first request. Everything is timed from outside the container."""
+    begin = now_ms()
+    target = start_target()
+    started = now_ms()
+    probe = HttpClient(target.base_url, 5.0)
+    alive = ready = None
+    last = "no answer"
+    while now_ms() - begin < ready_timeout * 1000:
+        try:
+            if alive is None and probe.request("GET", "/healthz")[0] == 200:
+                alive = now_ms()
+            if alive is not None:
+                status, _, body = probe.request("GET", "/readyz")
+                last = body.decode(errors="replace")[:200]
+                ready_body = json.loads(body or b"{}")
+                if status == 200 and ready_body.get("ready") and ready_body.get("chat") == "ready":
+                    ready = now_ms()
+                    break
+        except TimeoutError:
+            pass
+        time.sleep(poll)
+    if ready is None:
+        raise RuntimeError(f"the container was not ready after {ready_timeout:.0f} s; last /readyz: {last}")
+    client = HttpClient(target.base_url, timeout)
+    client.sign_up()
+    row = client.user_action(first[0], (images_root / first[0]).read_bytes(), first[1])
     done = now_ms()
     if row["answer_state"] in FAILED_STATES:
         raise RuntimeError(f"the first request failed ({row['answer_state']}); this is not a result")
-    cold = {"identifier_load_ms": loaded - start, "retriever_warm_ms": warmed - loaded, "app_build_ms": built - warmed,
-            "first_request_ms": done - built, "total_ms": done - start, "rss_mb": read_rss(), "first_request": row}
-    return stack, {k: round(v, 3) if isinstance(v, float) else v for k, v in cold.items()}
+    cold = {"container_start_ms": started - begin, "to_alive_ms": alive - begin, "to_ready_ms": ready - begin,
+            "first_request_ms": done - ready, "total_ms": done - begin, "mem_mb": target.mem_mb(), "first_request": row}
+    return target, {k: round(v, 3) if isinstance(v, float) else v for k, v in cold.items()}
 
 
 def work_list(paths: list[str]) -> list[tuple[str, str]]:
@@ -353,36 +379,38 @@ def read_list(path: Path) -> list[str]:
 
 
 def run_measurement(args: argparse.Namespace, *, levels=LEVELS) -> dict:
-    """Everything `measure` and `cold` do, with the real components. `levels` is empty for a cold-only run."""
-    from sprout.llm.client import OllamaClient
-    from sprout.rag import serving
-    from sprout.rag.retrieve import Retriever
-    from sprout.serve.identify import Identifier
+    """Start the container, measure its cold start, then each level; always stop the container this call started."""
+    from sprout.llm.client import LLMError, OllamaClient
 
     started = time.time()
     root = Path(args.images_root)
     paths = read_list(args.images)
     work = work_list(paths)
-    llm = OllamaClient(args.writer, base_url=args.ollama_url, keep_alive="30m")
-    data_dir = Path(tempfile.mkdtemp(prefix="e8-"))  # the app's database and uploads for this run
-    stack, cold = cold_start(
-        lambda: Identifier(Path(args.model), Path(args.calibration)),
-        lambda: Retriever(Path(args.index), config=serving.retrieval_config()),
-        llm, data_dir, args.manifest or "", work[0], root)
-    cfg = stack.app.extensions["sprout_answer_config"]
-    out = {
-        "format": 1, "started_at": started, "n_images": len(paths), "warmup": 1, "questions": list(QUESTIONS),
-        "model_sha256": sha256_file(Path(args.model)), "calibration_sha256": sha256_file(Path(args.calibration)),
-        "model_file": Path(args.model).name, "writer": args.writer, "ollama_url": args.ollama_url,
-        "machine": machine_info(), "cold": cold, "levels": {},
-        "answer_config": {"prompt_version": cfg.prompt_version, "mode": cfg.mode, "rerank": cfg.rerank, "k": cfg.k,
-                          "query_mode": cfg.query_mode, "max_tokens": cfg.max_tokens, "floors": serving.FLOORS},
-    }
-    if levels:
-        with stack:
-            out["levels"] = measure(stack, work, root, levels=levels)
-    out["ollama_placement"] = llm.placement()
-    return out
+    env = {"SPROUT_SECRET_KEY": secrets.token_urlsafe(32), "SPROUT_OLLAMA_URL": args.ollama_url,
+           "SPROUT_WRITER_MODEL": args.writer, "SPROUT_INDEX_DIR": "/models/index",
+           "FASTEMBED_CACHE_PATH": "/models/fastembed", **dict(e.split("=", 1) for e in args.env)}
+    mounts = [f"{Path(args.model).resolve()}:/models/model.onnx:ro", f"{Path(args.calibration).resolve()}:/models/chosen.json:ro",
+              f"{Path(args.index).resolve()}:/models/index:ro", f"{Path(args.fastembed).resolve()}:/models/fastembed:ro"]
+    target = DockerTarget(args.image, port=args.port or free_port(), env=env, mounts=mounts, docker_args=list(args.docker_arg))
+    try:
+        _, cold = cold_start(target.start, work[0], root)
+        out = {
+            "format": 2, "started_at": started, "n_images": len(paths), "warmup": 1, "questions": list(QUESTIONS),
+            "model_sha256": sha256_file(Path(args.model)), "calibration_sha256": sha256_file(Path(args.calibration)),
+            "model_file": Path(args.model).name, "writer": args.writer, "ollama_url": args.ollama_url,
+            "client": {"machine": machine_info(), "timeout_s": CLIENT_TIMEOUT_S, "memory_interval_s": MEM_INTERVAL_S},
+            "server": target.info(), "cold": cold, "levels": {},
+            "measurement_mode": "SPROUT_MEASUREMENT=1: rate limits lifted, Server-Timing header on the upload and chat routes",
+        }
+        if levels:
+            out["levels"] = measure(target, work, root, levels=levels)
+        try:
+            out["ollama_placement"] = OllamaClient(args.writer, base_url=args.ollama_host_url).placement()
+        except LLMError:
+            out["ollama_placement"] = None
+        return out
+    finally:
+        target.stop()
 
 
 # ---------------------------------------------------------------- the record
@@ -393,25 +421,38 @@ def _stage_samples(rows: list[dict], stage: str) -> list[float]:
 
 
 def build_measurements(data: dict, cold_files: list[dict]) -> tuple[dict[str, list[float]], dict]:
-    """Raw samples under the names `check_run` recomputes percentiles from, and how many requests ran each stage."""
+    """Raw samples under the names `check_run` recomputes percentiles from, and what happened to every request."""
     samples: dict[str, list[float]] = {}
-    ran: dict[str, dict[str, int]] = {}
+    outcomes: dict[str, dict] = {}
+    colds = [data["cold"], *(f["cold"] for f in cold_files)]
     for name in COLD_STAGES:
-        samples[f"cold_start_{name}"] = [c[name] for c in [data["cold"], *(f["cold"] for f in cold_files)]]
-    samples["cold_start_rss_mb"] = [c["rss_mb"] for c in [data["cold"], *(f["cold"] for f in cold_files)]]
+        samples[f"cold_start_{name}"] = [c[name] for c in colds]
+    samples["cold_start_mem_mb"] = [c["mem_mb"] for c in colds]
     for key, block in data["levels"].items():
         rows = block["rows"]
-        ran[f"c{key}"] = {"failed_requests": sum(r["answer_state"] in FAILED_STATES for r in rows)}
+        counts: dict[str, int] = {}
+        for r in rows:
+            counts[r["answer_state"]] = counts.get(r["answer_state"], 0) + 1
+        failed = sum(r["answer_state"] in FAILED_STATES for r in rows)
+        outcomes[f"c{key}"] = {"requests": len(rows), "failed": failed, "failed_share": round(failed / len(rows), 4),
+                               "client_timeouts": counts.get("client_timeout", 0), "by_answer_state": counts, "ran_stage": {}}
         for stage in REQUEST_STAGES:
             got = _stage_samples(rows, stage)
             if not got:
                 raise ValueError(f"no request at concurrency {key} ran the {stage} stage, so it has no number to record")
             samples[f"c{key}_{stage}"] = got
-            ran[f"c{key}"][stage] = len(got)
-        samples[f"c{key}_rss_mb"] = block["rss_mb"]
-        samples[f"c{key}_peak_rss_mb"] = [block["peak_rss_mb"]]
-        samples[f"c{key}_requests_per_s"] = [round((len(rows) - ran[f"c{key}"]["failed_requests"]) / block["wall_s"], 4)]
-    return samples, ran
+            outcomes[f"c{key}"]["ran_stage"][stage] = len(got)
+        samples[f"c{key}_mem_mb"] = block["mem_mb"]
+        samples[f"c{key}_peak_mem_mb"] = [block["peak_mem_mb"]]
+        samples[f"c{key}_requests_per_s"] = [round((len(rows) - failed) / block["wall_s"], 4)]
+        samples[f"c{key}_failed_share"] = [outcomes[f"c{key}"]["failed_share"]]
+    return samples, outcomes
+
+
+def failure_summary(outcomes: dict) -> str:
+    """One line per level, so a level that mostly failed cannot look fast."""
+    parts = [f"{lvl}: {o['failed']} of {o['requests']} failed ({o['client_timeouts']} client timeouts)" for lvl, o in outcomes.items()]
+    return "Failed requests, kept out of the percentiles: " + "; ".join(parts) + "."
 
 
 def build_record(data: dict, *, machine: str, image: str, variant: str, root=None, cold_files: list[dict] | None = None,
@@ -438,15 +479,18 @@ def build_record(data: dict, *, machine: str, image: str, variant: str, root=Non
                               for r in block["rows"]]
     config = {
         "machine_stated": machine.strip(), "image": image.strip(), "variant": variant.strip(),
-        "measured_inside": data["machine"], "levels": [int(k) for k in data["levels"]], "requests_per_level": data["n_images"],
-        "requests_that_ran_each_stage_and_failed_requests": ran, "warmup_requests": data["warmup"], "questions": data["questions"],
+        "load_client": data["client"], "server": data["server"], "levels": [int(k) for k in data["levels"]],
+        "requests_per_level": data["n_images"], "outcomes_per_level": ran, "warmup_requests": data["warmup"],
+        "questions": data["questions"], "measurement_mode": data["measurement_mode"],
         "model_sha256": data["model_sha256"], "calibration_sha256": data["calibration_sha256"],
-        "answer": data["answer_config"], "ollama_url": data["ollama_url"], "ollama_placement": data["ollama_placement"],
+        "ollama_url": data["ollama_url"], "ollama_placement": data["ollama_placement"],
         "cold_start_samples": 1 + len(cold_files or []),
         "device": "container on CPU (onnxruntime CPUExecutionProvider, no torch); the writer runs in Ollama on the host",
-        "concurrency": "N requests in flight at once as threads in one process, as one gunicorn worker serves them; "
-                       "HTTP and the web server's own queue are not included",
-        "memory": "resident memory of the measuring process, sampled every 50 ms",
+        "concurrency": "N user actions in flight at once over HTTP from the host, through the container's own gunicorn "
+                       "entrypoint, so its worker and thread queue is part of every time; the client's clock gives end-to-end",
+        "memory": "the whole container's memory from its cgroup, sampled every 0.5 s, peak and samples per level",
+        "stage_times": "from the Server-Timing header (hooks on the real objects); failed and timed-out requests are "
+                       "counted in outcomes_per_level and c<N>_failed_share, and kept out of every percentile",
         "started_at": datetime.fromtimestamp(data["started_at"], timezone.utc).isoformat(),
         "labels_reviewed": False, "claude_calls": 0,
     }
@@ -456,8 +500,9 @@ def build_record(data: dict, *, machine: str, image: str, variant: str, root=Non
         "E8", SPLIT, config, models, {s: {} for s in systems}, {},
         [{"setting": variant.strip(), "result": "measured", "levels": config["levels"]}], systems, info.hash,
         root=root, allow_dirty=allow_dirty, measurements=samples,
-        notes="Latency and memory of the real Identifier and the real answer in the container on the CPU. "
-              "Requests are the perf list's photos with a fixed question each. Nothing here is accuracy.")
+        notes="Latency and memory of the deployed app (real Identifier, index and writer) in its container on the CPU, "
+              "over HTTP. Requests are the perf list's photos with a fixed question each. Nothing here is accuracy. "
+              + failure_summary(ran))
 
 
 # ---------------------------------------------------------------- the image list
@@ -609,22 +654,27 @@ def _write_json(path: Path, data: dict) -> Path:
 
 
 def _container_args(ap: argparse.ArgumentParser) -> None:
-    ap.add_argument("--model", required=True, help="the ONNX classifier (E12 picks it)")
-    ap.add_argument("--calibration", required=True, help="results/e5/chosen.json")
-    ap.add_argument("--index", required=True, help="the retrieval index folder")
+    ap.add_argument("--image", required=True, help="the serving image, built by docker compose build app")
+    ap.add_argument("--model", required=True, help="the ONNX classifier (E12 picks it); mounted at /models/model.onnx")
+    ap.add_argument("--calibration", required=True, help="results/e5/chosen.json; mounted at /models/chosen.json")
+    ap.add_argument("--index", required=True, help="the retrieval index folder, with its vectors cache; /models/index")
+    ap.add_argument("--fastembed", required=True, help="a folder already holding the fastembed models; /models/fastembed")
     ap.add_argument("--images", required=True, help="datasets/perf/images.txt")
-    ap.add_argument("--images-root", required=True, help="folder the paths in --images are relative to")
-    ap.add_argument("--manifest", default=os.environ.get("SPROUT_MANIFEST"))
+    ap.add_argument("--images-root", required=True, help="folder the paths in --images are relative to (read on the host)")
     ap.add_argument("--writer", required=True, help="the Ollama model that writes answers")
-    ap.add_argument("--ollama-url", required=True, help="where the container reaches Ollama on the host")
+    ap.add_argument("--ollama-url", default="http://host.docker.internal:11434", help="where the container reaches Ollama")
+    ap.add_argument("--ollama-host-url", default="http://127.0.0.1:11434", help="where this host reaches Ollama")
+    ap.add_argument("--port", type=int, default=0, help="host port for the container (default: a free one)")
+    ap.add_argument("--env", action="append", default=[], metavar="KEY=VALUE", help="extra container setting, e.g. SPROUT_WORKERS=2")
+    ap.add_argument("--docker-arg", action="append", default=[], metavar="ARG", help="extra `docker run` argument, e.g. --docker-arg=--cpus=2")
     ap.add_argument("--out", required=True)
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="e8_perf")
     sub = ap.add_subparsers(dest="stage", required=True)
-    _container_args(sub.add_parser("measure", help="in the container: cold start, then every stage at 1, 5 and 20"))
-    _container_args(sub.add_parser("cold", help="in a fresh container: one more cold-start sample"))
+    _container_args(sub.add_parser("measure", help="start the container; cold start, then every stage at 1, 5 and 20 over HTTP"))
+    _container_args(sub.add_parser("cold", help="start a fresh container: one more cold-start sample"))
     rec = sub.add_parser("record", help="on the host: write the run record")
     rec.add_argument("--measured", required=True)
     rec.add_argument("--cold", nargs="*", default=[], help="files from `cold` runs")
@@ -647,8 +697,13 @@ def main(argv: list[str] | None = None) -> int:
         _write_json(a.out, run_measurement(a, levels=()))
     elif a.stage == "record":
         read = lambda p: json.loads(Path(p).read_text(encoding="utf-8"))  # noqa: E731
-        print(build_record(read(a.measured), machine=a.machine, image=a.image, variant=a.variant,
-                           cold_files=[read(p) for p in a.cold]))
+        path = build_record(read(a.measured), machine=a.machine, image=a.image, variant=a.variant,
+                            cold_files=[read(p) for p in a.cold])
+        rec = json.loads(path.read_text(encoding="utf-8"))
+        for lvl, o in rec["config"]["outcomes_per_level"].items():
+            flag = "  <-- MANY FAILURES: read these times with care" if o["failed_share"] > WARN_FAILED_SHARE else ""
+            print(f"{lvl}: {o['failed']} of {o['requests']} requests failed{flag}")
+        print(path)
     elif a.stage == "list":
         from sprout.eval.records import ROOT
 

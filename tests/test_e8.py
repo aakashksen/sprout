@@ -1,15 +1,19 @@
 """E8, end-to-end performance: fakes and a tiny exported model only. No GPU, no Ollama, no network, no Claude."""
 import io
 import json
+import os
 import subprocess
+import sys
 import threading
 import time
+from pathlib import Path
 
 import numpy as np
 import pytest
 import torch
 from PIL import Image
 from torch import nn
+from werkzeug.serving import make_server
 
 from sprout.eval.check_run import check
 from sprout.eval.records import split_info
@@ -19,8 +23,11 @@ from sprout.rag import serving
 from sprout.rag.answer import LABEL_NOTE, answer
 from sprout.rag.retrieve import Passage, RetrievalConfig, Retriever
 from sprout.serve.export import export_module
-from sprout.serve.identify import Identifier
 from sprout.serve.types import Candidate, Identification
+
+os.environ.setdefault("SPROUT_NO_AUTOBUILD", "1")
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "deploy"))
+import wsgi  # noqa: E402
 
 P1 = Passage("Rings appear on tomato leaves.", "tomato.pdf", 3, "tomato", 0.9)
 P2 = Passage("Remove infected leaves.", "tomato.pdf", 4, "tomato", 0.8)
@@ -67,7 +74,7 @@ def test_single_brackets_behave_as_before():
     assert [c.page for c in out.citations] == [3, 4] and "[7]" not in out.text
 
 
-# ---------------------------------------------------------------- a tiny real path
+# ---------------------------------------------------------------- a tiny real server
 
 CLASS_MAP = {"Tomato___healthy": 0, "Tomato___Early_blight": 1, "Potato___Late_blight": 2}
 CHUNKS = [
@@ -101,11 +108,21 @@ def make_index(tmp_path):
     return d
 
 
-def make_retriever(tmp_path):
-    return Retriever(make_index(tmp_path), config=serving.retrieval_config(), embedder=Embedder(), reranker=Reranker())
+class SlowWarm(Retriever):
+    delay = 0.0
+
+    def warm(self, *, rerank=False):
+        time.sleep(self.delay)
+        super().warm(rerank=rerank)
 
 
-def make_identifier(tmp_path):
+def make_retriever(tmp_path, warm_delay=0.0):
+    r = SlowWarm(make_index(tmp_path), config=serving.retrieval_config(), embedder=Embedder(), reranker=Reranker())
+    r.delay = warm_delay
+    return r
+
+
+def model_files(tmp_path):
     torch.manual_seed(1)
     net = nn.Sequential(nn.AdaptiveAvgPool2d(8), nn.Flatten(), nn.Linear(3 * 8 * 8, 3), nn.Identity()).eval()
     model = export_module(net, CLASS_MAP, tmp_path / "tiny.onnx")
@@ -113,7 +130,7 @@ def make_identifier(tmp_path):
     gate = {"kind": "confidence", "confidence_threshold": 0.0}
     calibration.write_text(json.dumps({"temperature": 1.0, "abstain_threshold": 0.0,
                                        "gate": {"chosen": "confidence", "settings": gate}}), encoding="utf-8")
-    return Identifier(model, calibration)
+    return model, calibration
 
 
 def png(size=(40, 30)):
@@ -141,40 +158,54 @@ class SlowLLM(FakeLLM):
                 self.now -= 1
 
 
-def stack_for(tmp_path, llm=None, retriever=None):
-    return e8.Stack(make_identifier(tmp_path), retriever or make_retriever(tmp_path), llm or SlowLLM(), tmp_path / "app")
+class Down(SlowLLM):
+    def complete(self, messages, *, max_tokens, timeout_s):
+        raise LLMError("down")
 
 
-def test_one_request_reports_each_stage_and_the_stages_fit_in_the_total(tmp_path):
-    with stack_for(tmp_path, SlowLLM(seconds=0.03)) as stack:
-        row = stack.request("p/0.png", png(), "What is wrong with my plant?")
-    assert row["identification"] == "answered" and row["answer_state"] == "answered"
-    for stage in e8.REQUEST_STAGES:
-        assert row[stage] is not None and row[stage] > 0, stage
-    assert row["generation_ms"] >= 30 and row["retrieval_ms"] >= 2
-    assert row["preprocess_ms"] + row["inference_ms"] + row["retrieval_ms"] + row["generation_ms"] <= row["end_to_end_ms"] + 1
+class LocalTarget:
+    """The real app, built by the container's own entry point with measurement mode on, behind a local HTTP server.
+    It stands in for the container (no Docker, and a threaded test server instead of gunicorn)."""
+
+    def __init__(self, tmp_path, llm=None, warm_delay=0.0, **env):
+        model, calibration = model_files(tmp_path)
+        full = {"SPROUT_SECRET_KEY": "x" * 32, "SPROUT_DATA_DIR": str(tmp_path / "data"), "SPROUT_MEASUREMENT": "1",
+                "SPROUT_MODEL_PATH": str(model), "SPROUT_CALIBRATION_PATH": str(calibration), **env}
+        self.app = wsgi.build(full, retriever=make_retriever(tmp_path, warm_delay), writer=llm or SlowLLM())
+        self.server = make_server("127.0.0.1", 0, self.app, threaded=True)
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+        self.base_url = f"http://127.0.0.1:{self.server.server_port}"
+        self.reads = 0
+
+    def mem_mb(self):
+        self.reads += 1
+        return 200.0 + self.reads
+
+    def mem_peak_mb(self):
+        return None
+
+    def info(self):
+        return {"workers": 1, "threads": 1}
+
+    def stop(self):
+        self.server.shutdown()
 
 
-def test_a_photo_that_cannot_be_read_skips_the_later_stages_instead_of_recording_zeros(tmp_path):
-    with stack_for(tmp_path) as stack:
-        row = stack.request("p/bad.png", b"not a picture", "What is wrong?")
-    assert row["identification"] == "http_400" and row["answer_state"] == "upload_failed"  # the app refuses it
-    assert row["inference_ms"] is None and row["retrieval_ms"] is None and row["generation_ms"] is None
-    assert row["end_to_end_ms"] > 0
+@pytest.fixture
+def target(tmp_path):
+    made = []
 
+    def make(**kw):
+        made.append(LocalTarget(tmp_path / f"t{len(made)}", **kw))
+        return made[-1]
 
-def test_the_identifier_is_put_back_after_measuring(tmp_path):
-    from sprout.serve import export
+    (tmp_path / "t0").mkdir()
+    for i in range(1, 4):
+        (tmp_path / f"t{i}").mkdir()
+    yield make
+    for t in made:
+        t.stop()
 
-    stack = stack_for(tmp_path)
-    original = (export.preprocess_array, stack.identifier.model.session)
-    with stack:
-        assert export.preprocess_array is not original[0]
-    assert (export.preprocess_array, stack.identifier.model.session) == original
-    assert "_decode" not in stack.identifier.__dict__ and "identify" not in stack.identifier.__dict__
-
-
-# ---------------------------------------------------------------- levels, memory, failures
 
 def photos(tmp_path, n):
     folder = tmp_path / "imgs" / "p"
@@ -184,62 +215,183 @@ def photos(tmp_path, n):
     return [f"p/{i}.png" for i in range(n)]
 
 
-class Counter:
-    def __init__(self):
-        self.n = 0
-
-    def __call__(self):
-        self.n += 1
-        return 100.0 + self.n
+def client_for(t):
+    c = e8.HttpClient(t.base_url, 30)
+    c.sign_up()
+    return c
 
 
-def test_the_number_in_flight_follows_the_level_and_rows_stay_in_order(tmp_path):
+def test_one_action_over_http_reports_each_stage_and_the_stages_fit_in_the_total(target):
+    t = target(llm=SlowLLM(seconds=0.03))
+    row = client_for(t).user_action("p/0.png", png(), "What is wrong with my plant?")
+    assert row["identification"] == "answered" and row["answer_state"] == "answered"
+    for stage in e8.REQUEST_STAGES:
+        assert row[stage] is not None and row[stage] > 0, stage
+    assert row["generation_ms"] >= 30 and row["retrieval_ms"] >= 2
+    assert row["preprocess_ms"] + row["inference_ms"] + row["retrieval_ms"] + row["generation_ms"] <= row["end_to_end_ms"] + 1
+
+
+def test_a_photo_the_server_refuses_is_a_failed_upload_with_no_later_stages(target):
+    row = client_for(target()).user_action("p/bad.png", b"not a picture", "What is wrong?")
+    assert row["identification"] == "http_400" and row["answer_state"] == "upload_failed"
+    assert row["inference_ms"] is None and row["retrieval_ms"] is None and row["generation_ms"] is None
+    assert row["end_to_end_ms"] > 0
+
+
+def test_without_measurement_mode_no_stage_times_come_back(tmp_path):
+    (tmp_path / "t").mkdir()
+    t = LocalTarget(tmp_path / "t", SPROUT_MEASUREMENT="0")
+    try:
+        row = client_for(t).user_action("p/0.png", png(), "What is wrong?")
+    finally:
+        t.stop()
+    assert row["answer_state"] == "answered" and row["retrieval_ms"] is None  # nothing is guessed
+
+
+def test_a_server_that_answers_too_slowly_is_a_client_timeout(target):
+    t = target(llm=SlowLLM(seconds=0.6))
+    c = e8.HttpClient(t.base_url, 0.2)
+    c.sign_up()
+    row = c.user_action("p/0.png", png(), "What is wrong?")
+    assert row["answer_state"] == "client_timeout" and row["answer_state"] in e8.FAILED_STATES
+
+
+def test_nothing_listening_is_a_failed_connection_not_a_crash():
+    c = e8.HttpClient(f"http://127.0.0.1:{e8.free_port()}", 6)  # Windows retries a refused connection for about 2 s
+    row = c.user_action("p/0.png", png(), "What is wrong?")
+    assert row["answer_state"] == "connection_failed"
+
+
+def test_the_number_in_flight_follows_the_level_and_rows_stay_in_order(tmp_path, target):
     paths = photos(tmp_path, 12)
     peaks = {}
     for level in (1, 5):
-        llm = SlowLLM(seconds=0.03)
-        with stack_for(tmp_path, llm) as stack:
-            out = e8.run_level(stack, level, e8.work_list(paths), tmp_path / "imgs", read_rss=Counter(), interval=0.005)
+        llm = SlowLLM(seconds=0.05)
+        out = e8.run_level(target(llm=llm), level, e8.work_list(paths), tmp_path / "imgs", interval=0.005)
         assert [r["path"] for r in out["rows"]] == paths
-        assert out["peak_rss_mb"] == max(out["rss_mb"]) and len(out["rss_mb"]) >= 2
+        assert out["peak_mem_mb"] == max(out["mem_mb"]) and len(out["mem_mb"]) >= 2
         peaks[level] = llm.peak
     assert peaks[1] == 1 and 2 <= peaks[5] <= 5
 
 
-def test_failed_requests_are_counted_and_kept_out_of_the_timings(tmp_path):
+def test_failed_requests_are_counted_and_kept_out_of_the_timings(tmp_path, target):
     paths = photos(tmp_path, 3)
-
-    class Down(SlowLLM):
-        def complete(self, messages, *, max_tokens, timeout_s):
-            raise LLMError("down")
-
-    with stack_for(tmp_path, Down()) as stack:
-        block = e8.run_level(stack, 1, e8.work_list(paths), tmp_path / "imgs", read_rss=Counter())
+    block = e8.run_level(target(llm=Down()), 1, e8.work_list(paths), tmp_path / "imgs")
     assert [r["answer_state"] for r in block["rows"]] == ["unavailable"] * 3
-    data = {"cold": {k: 1.0 for k in e8.COLD_STAGES} | {"rss_mb": 1.0}, "levels": {"1": block}}
+    data = {"cold": {k: 1.0 for k in e8.COLD_STAGES} | {"mem_mb": 1.0}, "levels": {"1": block}}
     with pytest.raises(ValueError, match="no request at concurrency 1 ran"):
         e8.build_measurements(data, [])  # nothing but failures: no number to record
     ok = {**block["rows"][0], "answer_state": "answered", "end_to_end_ms": 9.0, "retrieval_ms": 1.0, "generation_ms": 2.0,
           "preprocess_ms": 3.0, "inference_ms": 4.0}
     mixed = {**data, "levels": {"1": {**block, "rows": [ok, *block["rows"][1:]]}}}
-    samples, ran = e8.build_measurements(mixed, [])
-    assert samples["c1_end_to_end_ms"] == [9.0] and ran["c1"]["failed_requests"] == 2
+    samples, outcomes = e8.build_measurements(mixed, [])
+    assert samples["c1_end_to_end_ms"] == [9.0] and samples["c1_failed_share"] == [0.6667]
+    assert outcomes["c1"]["failed"] == 2 and outcomes["c1"]["by_answer_state"] == {"answered": 1, "unavailable": 2}
+    assert "c1: 2 of 3 failed" in e8.failure_summary(outcomes)
 
 
-def test_memory_that_cannot_be_read_refuses_instead_of_inventing_a_number(tmp_path):
+def test_memory_that_cannot_be_read_stops_the_run_instead_of_inventing_a_number(tmp_path, target):
     paths = photos(tmp_path, 2)
-    with stack_for(tmp_path) as stack, pytest.raises(RuntimeError, match="Linux container"):
-        e8.measure(stack, e8.work_list(paths), tmp_path / "imgs", read_rss=lambda: None)
+    t = target()
+    t.mem_mb = lambda: (_ for _ in ()).throw(RuntimeError("no cgroup"))
+    with pytest.raises(RuntimeError, match="no cgroup"):
+        e8.run_level(t, 1, e8.work_list(paths), tmp_path / "imgs")
+
+    ok = target()
+    calls = {"n": 0}
+
+    def flaky():
+        calls["n"] += 1
+        if calls["n"] > 1:
+            raise RuntimeError("cgroup vanished")
+        return 100.0
+
+    ok.mem_mb = flaky
+    with pytest.raises(RuntimeError, match="memory sampling failed"):
+        e8.run_level(ok, 1, e8.work_list(paths * 5), tmp_path / "imgs", interval=0.001)
 
 
-def test_cold_start_times_the_loads_and_the_first_request(tmp_path):
+def test_cold_start_is_timed_from_outside_up_to_ready_and_the_first_request(tmp_path):
     paths = photos(tmp_path, 1)
-    stack, cold = e8.cold_start(lambda: make_identifier(tmp_path), lambda: make_retriever(tmp_path), SlowLLM(),
-                                tmp_path / "app", "", e8.work_list(paths)[0], tmp_path / "imgs", read_rss=Counter())
-    assert all(cold[k] > 0 for k in e8.COLD_STAGES) and cold["rss_mb"] > 100
-    parts = cold["identifier_load_ms"] + cold["retriever_warm_ms"] + cold["app_build_ms"] + cold["first_request_ms"]
-    assert cold["total_ms"] >= parts - 1
-    assert stack.retriever._retriever.warmed and cold["first_request"]["answer_state"] == "answered"
+    made = []
+
+    def start():
+        (tmp_path / "t").mkdir(exist_ok=True)
+        time.sleep(0.05)  # `docker run` takes a moment
+        made.append(LocalTarget(tmp_path / "t", warm_delay=0.4))
+        return made[0]
+
+    try:
+        _, cold = e8.cold_start(start, e8.work_list(paths)[0], tmp_path / "imgs", poll=0.01)
+    finally:
+        made[0].stop()
+    assert cold["container_start_ms"] >= 50
+    assert cold["to_alive_ms"] >= cold["container_start_ms"] and cold["to_ready_ms"] >= cold["to_alive_ms"]
+    assert cold["to_ready_ms"] >= 400 - 1  # not ready while the index is still warming
+    assert cold["total_ms"] >= cold["to_ready_ms"] + cold["first_request_ms"] - 1
+    assert cold["first_request"]["answer_state"] == "answered" and cold["mem_mb"] > 200
+
+
+def test_a_container_that_never_becomes_ready_is_an_error_not_a_number(tmp_path):
+    class Never:
+        base_url = f"http://127.0.0.1:{e8.free_port()}"
+
+    with pytest.raises(RuntimeError, match="not ready"):
+        e8.cold_start(lambda: Never(), ("p/0.png", "q"), tmp_path, ready_timeout=0.3, poll=0.01)
+
+
+# ---------------------------------------------------------------- the docker commands
+
+class FakeRun:
+    def __init__(self, replies=None):
+        self.calls, self.replies = [], replies or {}
+
+    def __call__(self, cmd, capture_output=True, text=True):
+        self.calls.append(cmd)
+        for key, (code, out) in self.replies.items():
+            if key in " ".join(cmd):
+                return subprocess.CompletedProcess(cmd, code, out, "boom" if code else "")
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+
+INSPECT = json.dumps([{"Config": {"Image": "sprout-app", "Entrypoint": ["/app/deploy/entrypoint.sh"],
+                                  "Env": ["SPROUT_WORKERS=2", "SPROUT_SECRET_KEY=hunter2", "SPROUT_MEASUREMENT=1", "PATH=/x"]},
+                       "HostConfig": {"NanoCpus": 2000000000, "Memory": 4294967296, "CpuQuota": 0}}])
+
+
+def test_the_container_runs_with_its_own_entrypoint_and_the_measurement_setting():
+    run = FakeRun()
+    t = e8.DockerTarget("sprout-app", port=8123, env={"SPROUT_SECRET_KEY": "s"}, mounts=["/m/model.onnx:/models/model.onnx:ro"],
+                        docker_args=["--cpus=2"], run=run, name="e8-test")
+    t.start()
+    cmd = run.calls[0]
+    assert cmd[:3] == ["docker", "run", "-d"] and "--entrypoint" not in cmd and cmd[-1] == "sprout-app"
+    assert "SPROUT_MEASUREMENT=1" in cmd and "--cpus=2" in cmd and "127.0.0.1:8123:8080" in cmd
+    assert "host.docker.internal:host-gateway" in cmd and "/m/model.onnx:/models/model.onnx:ro" in cmd
+    t.stop()
+    assert run.calls[-1] == ["docker", "rm", "-f", "e8-test"]
+    t.stop()
+    assert len(run.calls) == 2  # only a container this object started is removed, once
+
+
+def test_container_memory_comes_from_its_cgroup_and_a_failed_read_is_an_error():
+    run = FakeRun({"memory.current": (0, "314572800\n"), "memory.peak": (0, "419430400\n")})
+    t = e8.DockerTarget("i", port=1, env={}, mounts=[], docker_args=[], run=run, name="n")
+    assert t.mem_mb() == 300.0 and t.mem_peak_mb() == 400.0
+    assert run.calls[0] == ["docker", "exec", "n", "cat", "/sys/fs/cgroup/memory.current"]
+    broken = e8.DockerTarget("i", port=1, env={}, mounts=[], docker_args=[], run=FakeRun({"cat": (1, "")}), name="n")
+    with pytest.raises(RuntimeError, match="cgroup"):
+        broken.mem_mb()
+    assert broken.mem_peak_mb() is None
+
+
+def test_server_settings_and_docker_limits_are_read_from_the_container_and_secrets_are_not_kept():
+    run = FakeRun({"inspect": (0, INSPECT), "top": (0, "ARGS\ngunicorn: master\ngunicorn: worker\ngunicorn: worker\n")})
+    info = e8.DockerTarget("i", port=1, env={}, mounts=[], docker_args=[], run=run, name="n").info()
+    assert (info["workers"], info["threads"], info["gunicorn_timeout_s"]) == (2, 4, 60)  # entrypoint defaults where unset
+    assert info["gunicorn_processes_running"] == 3
+    assert info["docker_limits"]["NanoCpus"] == 2000000000 and info["docker_limits"]["Memory"] == 4294967296
+    assert "SPROUT_SECRET_KEY" not in info["env"] and info["env"]["SPROUT_MEASUREMENT"] == "1" and "PATH" not in info["env"]
 
 
 # ---------------------------------------------------------------- the record
@@ -269,16 +421,19 @@ def root(tmp_path):
 @pytest.fixture(scope="module")
 def measured(tmp_path_factory):
     tmp = tmp_path_factory.mktemp("measured")
+    (tmp / "t").mkdir()
     paths = photos(tmp, N)
-    stack, cold = e8.cold_start(lambda: make_identifier(tmp), lambda: make_retriever(tmp), SlowLLM(seconds=0.0),
-                                tmp / "app", "", e8.work_list(paths)[0], tmp / "imgs", read_rss=Counter())
-    with stack:
-        levels = e8.measure(stack, e8.work_list(paths), tmp / "imgs", read_rss=Counter(), interval=0.01)
-    return {"format": 1, "started_at": 1.7e9, "n_images": N, "warmup": 1, "questions": list(e8.QUESTIONS),
+    t = LocalTarget(tmp / "t", llm=SlowLLM(seconds=0.0))
+    try:
+        _, cold = e8.cold_start(lambda: t, e8.work_list(paths)[0], tmp / "imgs", poll=0.01)
+        levels = e8.measure(t, e8.work_list(paths), tmp / "imgs", interval=0.01, timeout=30)
+    finally:
+        t.stop()
+    return {"format": 2, "started_at": 1.7e9, "n_images": N, "warmup": 1, "questions": list(e8.QUESTIONS),
             "model_sha256": "ab" * 32, "calibration_sha256": "cd" * 32, "model_file": "tiny.onnx", "writer": "tiny-writer",
-            "ollama_url": "http://host.docker.internal:11434", "machine": {"logical_cpus": 4}, "cold": cold,
-            "levels": levels, "ollama_placement": {"size": 1, "size_vram": 1},
-            "answer_config": {"prompt_version": serving.PROMPT_VERSION}}
+            "ollama_url": "http://host.docker.internal:11434", "client": {"machine": {"logical_cpus": 4}, "timeout_s": 30},
+            "server": {"workers": 1, "threads": 4, "docker_limits": {"NanoCpus": 0}}, "cold": cold, "levels": levels,
+            "ollama_placement": {"size": 1, "size_vram": 1}, "measurement_mode": "SPROUT_MEASUREMENT=1"}
 
 
 def record(root, data, **kw):
@@ -292,7 +447,8 @@ def test_a_tiny_run_writes_a_record_that_check_run_accepts(root, measured):
     assert check("E8", root=root, min_n=N, split="perf") == []
     rec = json.loads(path.read_text())
     assert rec["n"] == N and rec["split"] == "perf" and set(rec["predictions"]) == {"c1", "c5", "c20"}
-    assert rec["config"]["machine_stated"] == "test box, 4 cores"
+    assert rec["config"]["machine_stated"] == "test box, 4 cores" and rec["config"]["server"]["threads"] == 4
+    assert rec["config"]["outcomes_per_level"]["c20"]["failed"] == 0 and "Failed requests" in rec["notes"]
 
 
 def test_percentiles_by_stage_are_recorded(root, measured):
@@ -302,10 +458,23 @@ def test_percentiles_by_stage_are_recorded(root, measured):
         for stage in e8.REQUEST_STAGES:
             for q in (50, 95):
                 assert values[f"{level}_{stage}_p{q}"] == pytest.approx(float(np.percentile(samples[f"{level}_{stage}"], q)))
-        assert samples[f"{level}_peak_rss_mb"] and f"{level}_rss_mb_p95" in values
+        assert samples[f"{level}_peak_mem_mb"] and f"{level}_mem_mb_p95" in values and values[f"{level}_failed_share_p50"] == 0
     for stage in e8.COLD_STAGES:
         assert f"cold_start_{stage}_p50" in values
     assert values["c1_end_to_end_ms_p95"] >= values["c1_end_to_end_ms_p50"]
+
+
+def test_a_level_with_many_failures_is_visible_in_the_record_not_fast(root, measured):
+    twenty = measured["levels"]["20"]
+    rows = [{**r, "answer_state": "client_timeout"} if i % 2 else r for i, r in enumerate(twenty["rows"])]
+    data = {**measured, "levels": {**measured["levels"], "20": {**twenty, "rows": rows}}}
+    rec = json.loads(record(root, data).read_text())
+    out = rec["config"]["outcomes_per_level"]["c20"]
+    assert out["failed"] == 50 and out["client_timeouts"] == 50 and out["failed_share"] == 0.5
+    assert "c20: 50 of 100 failed (50 client timeouts)" in rec["notes"]
+    samples = json.loads((root / rec["measurements"]["file"]).read_text())
+    assert len(samples["c20_end_to_end_ms"]) == 50 and samples["c20_failed_share"] == [0.5]  # the failures are not timings
+    assert check("E8", root=root, min_n=N, split="perf") == []
 
 
 def test_extra_cold_start_samples_are_added(root, measured):
@@ -330,6 +499,12 @@ def test_tampered_records_fail_the_check(root, measured):
     data = json.loads(saved)
     lowest = data["c20_end_to_end_ms"].index(min(data["c20_end_to_end_ms"]))
     data["c20_end_to_end_ms"][lowest] += 1000.0  # a sample changed after the summary was written (moves p50 and p95)
+    samples.write_text(json.dumps(data))
+    assert any("does not match its saved file" in p for p in check("E8", root=root, min_n=N, split="perf"))
+    samples.write_text(saved)
+
+    data = json.loads(saved)
+    data["c20_failed_share"] = [0.5]  # a failure share changed after the summary was written
     samples.write_text(json.dumps(data))
     assert any("does not match its saved file" in p for p in check("E8", root=root, min_n=N, split="perf"))
     samples.write_text(saved)

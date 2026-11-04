@@ -29,6 +29,7 @@ Training dependencies live in `requirements/train.txt` and are never installed i
 | `SPROUT_MODEL_PATH`, `SPROUT_CALIBRATION_PATH` | The ONNX classifier and the E5 calibration file (`results/e5/chosen.json` shape). Default `/models/model.onnx` and `/models/chosen.json`. Both must exist or `/readyz` says "model missing". |
 | `SPROUT_OLLAMA_URL`, `SPROUT_WRITER_MODEL` | Where the writer runs and which model. Default `http://127.0.0.1:11434` and `qwen3.5:4b-q4_K_M`. `localhost` is refused (it adds about 2 s per call). In a container, 127.0.0.1 is the container itself, so `docker-compose.yml` sets `http://host.docker.internal:11434`; Ollama on the host must listen beyond loopback (`OLLAMA_HOST=0.0.0.0`). |
 | `SPROUT_CHAT_TIMEOUT_SECONDS`, `SPROUT_CHAT_LLM_TIMEOUT_SECONDS` | Budget for one generated answer (default 50 s) and for its model call (default 40 s). Chosen, not measured, and kept under gunicorn's 60 s timeout; revisit against E8's generation p95. |
+| `SPROUT_MEASUREMENT` | `1` only for E8 load tests: lifts the rate limits and adds a `Server-Timing` header to the upload and chat routes. `/readyz` reports `"measurement": true`. Never set it in a deployment. |
 | `SPROUT_HTTPS` | `1` makes cookies secure. Set it behind HTTPS (Cloud Run is). |
 | `SPROUT_WORKERS`, `SPROUT_THREADS`, `SPROUT_TIMEOUT` | gunicorn settings; see Workers. |
 
@@ -91,9 +92,10 @@ Set `SPROUT_WORKERS` from measured memory. The default is 1 worker with 4 thread
 exists yet: it needs the real model and index, so it is measured at T7.4 and entered through a run record. Raw notes
 from a check made without a model (not a result, not citable) are in `results/baselines/T7.3-memory.json`.
 
-To size it at T7.4, with the real model and index loaded, start with `SPROUT_WORKERS=1` and read
-`docker stats --no-stream` after warm-up and under 5 and 20 concurrent requests, then again with 2 workers. Each
-worker loads its own ONNX session and index, so memory grows by about one worker's resident size per worker.
+To size it, run E8 (`python -m sprout.experiments.e8_perf measure`, see docs/DECISIONS.md): it starts this image with its own
+entrypoint and `SPROUT_WORKERS` and `SPROUT_THREADS` as given by `--env`, sends real HTTP requests at 1, 5 and 20
+concurrent actions, and reads the container's memory from its cgroup. Run it once per worker setting (`--env SPROUT_WORKERS=1`,
+then `=2`). Each worker loads its own ONNX session and index, so memory grows by about one worker's size per worker.
 Choose workers so the total stays under the container limit with headroom, and record it in the E8 run record.
 On Cloud Run the CPU count also caps useful workers.
 

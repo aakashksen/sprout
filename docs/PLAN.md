@@ -15,7 +15,7 @@
 - `.venv/Scripts/python -m pytest -q` needs no GPU, network, or spending. Real calls use `@pytest.mark.real`.
 - Numbers come only from `results/runs/`.
 - 8 GB VRAM shared with other projects, one GPU job at a time, mixed precision on.
-- Product calls to Claude capped at 1,000, on Haiku, counted in `results/claude_calls.json`. No API keys. DeepSeek is removed.
+- Product calls to Claude use Sonnet, capped at 5,000 as a runaway guard, counted in `results/claude_calls.json`. No API keys. DeepSeek is removed.
 - Evaluation and the app share one preprocessing function. Class order comes from the saved class map, never a hardcoded list.
 - `legacy/` is read-only.
 
@@ -152,7 +152,7 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 ### T4.0: Experiment E10, disease-area segmentation
 **Files:** `src/sprout/segment/data.py`, `src/sprout/segment/model.py`, `src/sprout/segment/crop.py`, `src/sprout/experiments/e10_segment.py`, `configs/e10.json`, `datasets/manifests/seg.csv`, `tests/test_e10.py`.
 **Produces:** `predict_mask(model, image) -> mask`; `crop_to_disease(image, mask, margin) -> image`, which returns the full image when the predicted area is tiny.
-**Do:** Use `num_workers=4` at most in real training, and `num_workers=0` in tests. Train a small segmentation model on PlantSeg's masks, from the `plantseg.zip` already downloaded, with no new download. Use only images not in `field_dev` or `field_test`. Exclude by group as well, and check PlantSeg images outside `field.csv` for near-duplicates of `field_dev` and `field_test` with the rule in `docs/field-dedup.md`, so no held-out photo reaches training. Write `seg.csv` with splits `seg_train` and `seg_dev`, and teach `check_run` the `seg_dev` split, recomputing per-image IoU from saved rows. Keep only best and latest. Report IoU honestly, and that PlantSeg's masks mark disease on PlantSeg-style photos and may not carry over to PlantDoc.
+**Do:** Use `num_workers=8` at most in real training; tests use what they need. Train a small segmentation model on PlantSeg's masks, from the `plantseg.zip` already downloaded, with no new download. Use only images not in `field_dev` or `field_test`. Exclude by group as well, and check PlantSeg images outside `field.csv` for near-duplicates of `field_dev` and `field_test` with the rule in `docs/field-dedup.md`, so no held-out photo reaches training. Write `seg.csv` with splits `seg_train` and `seg_dev`, and teach `check_run` the `seg_dev` split, recomputing per-image IoU from saved rows. Keep only best and latest. Report IoU honestly, and that PlantSeg's masks mark disease on PlantSeg-style photos and may not carry over to PlantDoc.
 **Tests:** `test_no_field_dev_or_field_test_photo_in_seg_manifest`; `test_near_duplicate_of_held_out_photo_is_excluded`; `test_crop_includes_margin`; `test_tiny_mask_falls_back_to_full_image`; `test_saved_iou_is_recomputed`.
 **Accept:** `{py} -m pytest tests/test_e10.py -q`; `{py} -m sprout.eval.check_run E10 --min-n 50 --split seg_dev`.
 
@@ -194,7 +194,13 @@ Doesn't block the build; blocks T8.1. See `docs/HUMAN-GATES.md`.
 **Agent:** use the `researcher` for lookups. **Files:** `docs/datasets.md`, `src/sprout/data/extra_sources.py`, `datasets/manifests/extra_train.csv`, `datasets/class_map_extra.csv`, `docs/extra-sources.md`, `tests/test_extra_sources.py`.
 **Do:** Gather more real photos, starting with PlantWild, plus Plant Pathology 2021 if it's publicly downloadable without login. Use only data publicly accessible without login, paywall, or getting around a block. Record each source in `docs/datasets.md`. Raw content stays in the git-ignored `datasets/raw/`, and is never committed or published. Stop and tell the coordinator before any download over 40 GB, or under 40 GB free. Map classes to lab classes, with unmappable ones excluded and a reason recorded. Deduplicate against each other, against `lab`, and against every `field.csv` split with the rule in `docs/field-dedup.md`, so no `field_dev` or `field_test` photo or copy reaches training. Cap per class. All of it goes into training only: `field_dev` and `field_test` are frozen and don't change. Report what each source added per class, and which thin classes it helped.
 **Tests:** `test_no_extra_image_duplicates_a_field_dev_or_field_test_photo`; `test_extra_sources_only_add_training_rows`; `test_field_manifest_is_unchanged`; `test_cap_limits_every_class`; `test_unmapped_classes_excluded`.
-**Accept:** `{py} -m pytest tests/test_extra_sources.py -q`.
+**Accept:** `{py} -m pytest tests/test_extra_sources.py -q`; `{py} -m pytest tests/test_extra_sources.py -q -m real`.
+
+### T4.8: Plant Pathology 2021 as a further training source
+**Agent:** the T4.5 implementer's pipeline. **Files:** `src/sprout/data/extra_sources.py`, `tools/build_extra_sources.py`, `datasets/manifests/extra_train.csv`, `datasets/class_map_extra.csv`, `docs/extra-sources.md`, `docs/datasets.md`, `tests/test_extra_sources.py`.
+**Do:** The person approved fetching the public mirror `timm/plant-pathology-2021` on Hugging Face (about 16 GB, no login), recorded as third-party in `docs/datasets.md`, with what is known of its terms: the mirror's Apache-2.0 tag is the uploader's, and the Kaggle terms couldn't be confirmed. Raw content stays git-ignored and is never committed or published. Labels are multi-label: use only rows whose single label maps to a lab class (scab, healthy, rust; rust's mapping to `Apple___Cedar_apple_rust` is an inference, so check it by viewing samples), and exclude the rest with a recorded reason. Run the same copy checks as T4.5 against `field_dev` and `field_test`, and the same cap per class. Report what it adds per class after the cap, including if that's little. `field.csv` doesn't change. E12 waits for this because its data must stop changing first.
+**Tests:** `test_no_extra_is_a_near_copy_of_a_field_dev_or_field_test_photo` still holds with the new rows; `test_only_single_label_rows_that_map_are_used`; `test_extra_sources_only_add_training_rows`; `test_cap_limits_every_class`.
+**Accept:** `{py} -m pytest tests/test_extra_sources.py -q`; `{py} -m pytest tests/test_extra_sources.py -q -m real`.
 
 ### T4.6: Experiment E12, best configuration with more sources
 **Files:** `src/sprout/experiments/e12_more_sources.py`, `configs/e12.json`, `tests/test_e12.py`.
@@ -263,6 +269,12 @@ Uses `Identification` from T5.0 and a fake identifier, so it doesn't wait for tr
 **Tests:** `test_answer_cites_real_passages_only`; `test_no_passages_says_no_supporting_document`; `test_retrieval_failure_is_visible`; `test_llm_outage_returns_unavailable_not_invented_text`; `test_tomato_question_cannot_cite_apple`; `test_followup_gets_bounded_history`; `test_uncertain_diagnosis_is_not_stated_as_fact`; `test_chemical_advice_says_check_the_label`; `test_call_cap_refuses_and_makes_no_call`; `test_claude_command_has_no_tools` (stubbed process); `test_ollama_client_uses_loopback_ip_not_localhost`.
 **Accept:** `{py} -m pytest tests/test_answer.py -q`; `{py} -m sprout.eval.check_run E7 --min-n 50 --split rag_dev`.
 
+### T6.6: Experiment E14, is the local judge reliable?
+**Files:** `src/sprout/experiments/e14_judge_check.py`, `configs/e14.json`, `tests/test_e14.py`.
+**Do:** Have Sonnet, through the existing `ClaudeCodeClient(model="sonnet")`, grade a seeded random sample of at least 200 chatbot answers the local `gemma4` judge already graded in T6.4, from `rag_dev` only, never `rag_test`. Sonnet grades per claim on the same question, passages, and rubric, without seeing the local judge's grade. This check is what the rule that Claude is never the judge in T6.4 leaves open: Sonnet's grades here measure the judge and set no E7 number. Save rows as they arrive, inside the call cap, so a crash resumes. Report agreement, Cohen's kappa with an interval, and which direction disagreements lean, including whether the local judge flatters results. Add a `T6.6` entry to `docs/DECISIONS.md`. If agreement is poor, say so and propose using Sonnet as the judge for final numbers; that choice goes to the coordinator.
+**Tests:** `test_only_rag_dev_answers_are_sampled`; `test_sonnet_prompt_omits_the_local_grade`; `test_rows_are_saved_as_they_arrive_and_a_rerun_resumes`; `test_call_cap_refuses_and_makes_no_call`; `test_kappa_matches_a_worked_example`; `test_direction_counts_each_disagreement_once`.
+**Accept:** `{py} -m pytest tests/test_e14.py -q`; `{py} -m sprout.eval.check_run E14 --min-n 200 --split rag_dev`.
+
 ---
 
 ## Phase 7: The application
@@ -306,7 +318,7 @@ Optional for the build. See `docs/HUMAN-GATES.md`.
 **Do:** Freeze configurations chosen on dev, and commit them before touching test. Run once on `lab_test`, `field_test`, and `rag_test`, one record each: clean baseline, improved model, XGBoost, DINOv2, with and without abstention, and the quantized final model. Report lab and real-photo results separately, with `lab_test` also scored on shared classes, with top-1, top-3, top-5, macro-F1, calibration, and plant-given top-1 and top-3, stating the options per plant. RAG uses the local model; any Claude comparison stays within the call cap.
 `field_test` means its cleaned rows from T4.7, and the report states how many were removed and why. The record's `labels_reviewed` comes from H2's signed state in `orchestration/tasks.json`, never a hardcoded value, because `claims check` refuses a claim on a record without it.
 **Tests:** `test_refuses_when_config_not_committed`; `test_refuses_second_test_run_without_override_note`; `test_labels_reviewed_is_false_before_h2_and_true_after`.
-**Accept:** `{py} -m pytest tests/test_e9.py -q`; `{py} -m sprout.eval.check_run E9 --min-n 200 --split field_test`.
+**Accept:** `{py} -m pytest tests/test_e9.py -q`; `{py} -m sprout.eval.check_run E9 --min-n 200 --split field_test --all`; `{py} -m sprout.eval.check_run E9 --min-n 1000 --split lab_test --all`; `{py} -m sprout.eval.check_run E9 --min-n 50 --split rag_test --all`.
 
 ### T8.2: Report, README, and bullets
 **Files:** `docs/REPORT.md`, `README.md`, `results/claims.json`, `docs/RESUME-TARGETS.md`, `docs/interview-notes.md`, `tools/check_report_numbers.py`.

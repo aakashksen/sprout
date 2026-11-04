@@ -68,7 +68,7 @@ from sprout.train.joint import (
 from sprout.train.loop import build_model, train
 
 GIB = 1024**3
-MAX_WORKERS = 4
+MAX_WORKERS = 8
 MAX_TRAIN_ARMS = 6
 ENERGY_MODELS = ("convnext_tiny", "tiny_cnn")  # models with a convolutional Grad-CAM layer
 INTERVALS = ("accuracy", "macro_f1")

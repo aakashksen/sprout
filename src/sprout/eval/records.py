@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 
 from sprout.atomic import atomic_write_text
+from sprout.data.label_review import exclusion_paths, read_log
 from sprout.data.splits import COLUMNS, dataset_hash
 from sprout.eval import metrics as M
 from sprout.eval.mlflow_log import log_record
@@ -100,7 +101,23 @@ def scoring_part(groups: list[str], seed: int, fit_percent: int) -> np.ndarray:
 def subset_positions(name: str, split: str, info: SplitInfo, root: Path = ROOT) -> list[int]:
     """Positions within the split of a declared subset: `first_<N>` rows, `source:<name>` (field rows whose
     `source` column in field.csv is <name>), `shared_classes` (labels present in both lab.csv and field.csv),
-    `answerable` (RAG questions whose gold behaviour is to answer), or `group_part:<seed>:<fit_percent>` (the scoring part of `scoring_part`, for settings fitted on the rest)."""
+    `answerable` (RAG questions whose gold behaviour is to answer), `clean:<N>` (field rows not in datasets/label_exclusions.csv up to version N), or
+    `group_part:<seed>:<fit_percent>` (the scoring part of `scoring_part`, for settings fitted on the rest).
+    Parts joined with `+` must all hold."""
+    if "+" in name:
+        keep = None
+        for part in name.split("+"):
+            found = set(subset_positions(part, split, info, root))
+            keep = found if keep is None else keep & found
+        return sorted(keep)
+    clean = re.fullmatch(r"clean:(\d+)", name)
+    if clean and split.startswith("field_"):
+        version = int(clean.group(1))
+        log = read_log(root / "datasets" / "label_exclusions.csv")
+        if version > (int(log["version"].max()) if len(log) else 0):
+            raise ValueError(f"exclusion version {version} is not in label_exclusions.csv")
+        gone = exclusion_paths(log, version)
+        return [i for i, path in enumerate(info.ids) if path not in gone]
     part = re.fullmatch(r"group_part:(\d+):(\d+)", name)
     if part:
         return [int(i) for i in np.flatnonzero(scoring_part(info.groups, int(part.group(1)), int(part.group(2))))]

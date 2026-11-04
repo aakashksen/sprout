@@ -68,6 +68,7 @@ Dev experiments may run before the person reviews labels (H2), with `labels_revi
 | E11 | Do follow-up questions on top-3, answered from the photo by someone blind to its class, improve the answer? | T4.3 |
 | E12 | Does adding more real-photo sources to training help, on seen and held-out sources? | T4.6 |
 | E13 | What changes on `field_dev` once clearly bad photos and labels are removed? | T4.7 |
+| E14 | Does Sonnet agree with the local judge on `rag_dev` answers, and does the local judge flatter results? | T6.6 |
 | E5 | Does calibration plus abstention cut confident errors, and at what coverage? Which input gate works best? | T4.2 |
 | E6 | Does ONNX quantization keep accuracy while speeding up CPU? | T5.1 |
 | E7 | Which retrieval setup and prompts give faithful, cited answers? | T6.4 |

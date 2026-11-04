@@ -292,7 +292,7 @@ def e6_thresholds(cfg: dict[str, Any], decision: dict[str, Any], root: Path = RO
     found = []
     for path in sorted((Path(root) / "results" / "runs").glob("E6-*.json")):
         rec = json.loads(path.read_text(encoding="utf-8"))
-        held = rec.get("config", {}).get("e5_thresholds")
+        held = rec.get("config", {}).get("thresholds")
         if rec.get("experiment") == "E6" and rec["config"].get("checkpoint_sha256") == decision["chosen_model_sha256"] and held:
             found.append((rec, held))
     if not found:
@@ -300,10 +300,10 @@ def e6_thresholds(cfg: dict[str, Any], decision: dict[str, Any], root: Path = RO
                       "run E6 on the chosen model first")
     rec, held = found[-1]
     if variant not in held["systems"]:
-        raise Refused(f"E6 record {rec['run_id']} has no e5_thresholds for the variant {variant}")
+        raise Refused(f"E6 record {rec['run_id']} has no thresholds for the variant {variant}")
     return {"e6_record": rec["run_id"], "variant": variant, "e6_split": rec["split"], "file": held["file"],
             "temperature": held["temperature"], "abstain_threshold": held["abstain_threshold"],
-            "names_this_checkpoint": held["names_this_checkpoint"], "on_e6_rows": held["systems"][variant]}
+            "names_this_checkpoint": held["names_this_checkpoint"], "on_e6_rows": held["systems"][variant]["scoring_part"]}
 
 
 def prior_uses(root: Path, split: str) -> list[str]:
@@ -324,10 +324,9 @@ def statements(split: str, thresholds: dict[str, Any], exif: dict[str, int], roo
     E6, which side of the EXIF difference the rows fall on, and whether the labels are signed yet."""
     on = thresholds["on_e6_rows"]
     out = (f"Quantized variant {thresholds['variant']}: E6 record {thresholds['e6_record']} ({thresholds['e6_split']}) "
-           f"measured E5's threshold {thresholds['abstain_threshold']} on it as coverage {on['coverage']:.3f}, abstained "
-           f"{on['abstained']:.3f}, confident error rate "
-           f"{'undefined' if on['confident_error_rate'] is None else format(on['confident_error_rate'], '.3f')} "
-           f"on {on['n']} photos. Evaluation does not apply EXIF rotation and serving does: "
+           f"measured the abstention threshold {thresholds['abstain_threshold']} ({thresholds['file']}) on it, on E6's "
+           f"scoring part of {on['n']} photos: answered {on['answered']} (coverage {on['coverage']:.3f}), "
+           f"{on['confident_wrong']} of them wrong, {on['sick_called_healthy']} sick plants called healthy. Evaluation does not apply EXIF rotation and serving does: "
            f"{exif['with_orientation_tag']} of {exif['rows']} {split} rows {rows} carry an orientation tag, "
            f"{exif['rotated_by_serving']} of them one that serving would rotate.")
     if signoff_problems(Path(root), split):

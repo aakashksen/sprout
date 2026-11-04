@@ -44,7 +44,7 @@ def dev_intervals(rows: list[dict[str, Any]]) -> dict[str, list[float]]:
 
 
 FINAL_ROW_KEYS = ("id", "answered", "state", "diagnosis", "text", "claims", "wrong_disease", "wrong_disease_reply",
-                  "haiku_calls", "sonnet_calls")
+                  "haiku_calls", "sonnet_calls", "citations", "query", "fallback_fired", "generic_followup")
 CLAIM_KEYS = ("claim", "cited", "haiku", "haiku_reply", "sonnet", "sonnet_reply")
 
 

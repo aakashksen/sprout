@@ -109,11 +109,10 @@ def repo(tmp_path):
     write(r, "results/runs/E5-1.json", {"experiment": "E5", "config": {
         "model_record": "E4-1", "temperature": 1.5, "abstain_threshold": 0.6}})
     write(r, "results/runs/E6-1.json", {"run_id": "E6-1", "experiment": "E6", "split": "field_dev", "config": {
-        "checkpoint_sha256": SHA, "e5_thresholds": {"file": "results/e5/chosen.json", "temperature": 1.5,
+        "checkpoint_sha256": SHA, "thresholds": {"file": "results/e5/chosen.json", "temperature": 1.5,
                                                     "abstain_threshold": 0.6, "model_sha256": None, "names_this_checkpoint": None,
-                                                    "systems": {"pytorch": {"n": 10, "coverage": 0.6, "abstained": 0.4, "confident_error_rate": 0.1},
-                                                                "onnx_dynamic": {"n": 10, "coverage": 0.5, "abstained": 0.5,
-                                                                                 "confident_error_rate": 0.2}}}}})
+                                                    "systems": {"pytorch": {"scoring_part": E6_ROW, "all_rows": E6_ROW},
+                                                                "onnx_dynamic": {"scoring_part": E6_DYNAMIC, "all_rows": E6_DYNAMIC}}}}})
     e6 = json.loads((r / "results/runs/E6-1.json").read_text())
     e6["run_id"], e6["config"]["checkpoint_sha256"] = "E6-2", SHA12  # E6 on the other candidate, for the swapped roles
     write(r, "results/runs/E6-2.json", e6)
@@ -514,6 +513,10 @@ def judged_row(system, qid, answer=None):
             "passages": [{"n": 1, "source": "a.pdf", "page": 1, "text": "Passage one."},
                          {"n": 2, "source": "b.pdf", "page": 2, "text": "Passage two."}],
             "answer": answer, "claims": claims, "rubric": rubric(), "judge_model": "judge-model"}
+
+
+E6_ROW = {"n": 10, "answered": 6, "unsure": 4, "coverage": 0.6, "healthy_answers": 2, "sick_called_healthy": 0, "confident_wrong": 1}
+E6_DYNAMIC = {**E6_ROW, "answered": 5, "unsure": 5, "coverage": 0.5, "confident_wrong": 2}
 
 
 def add_rag_files(root):
@@ -1361,8 +1364,8 @@ def test_notes_state_the_quantized_thresholds_the_exif_difference_and_that_resul
     rec = json.loads(field.read_text())
     q = rec["config"]["quantized_thresholds"]
     assert q["e6_record"] == "E6-1" and q["variant"] == "onnx_dynamic" and q["abstain_threshold"] == 0.6
-    assert q["on_e6_rows"] == {"n": 10, "coverage": 0.5, "abstained": 0.5, "confident_error_rate": 0.2}
-    assert "E6-1" in rec["notes"] and "onnx_dynamic" in rec["notes"] and "coverage 0.500" in rec["notes"]
+    assert q["on_e6_rows"] == E6_DYNAMIC
+    assert "E6-1" in rec["notes"] and "onnx_dynamic" in rec["notes"] and "answered 5 (coverage 0.500)" in rec["notes"]
     # EXIF: evaluation reads pixels as stored, serving rotates by the tag; counted from the files, not from any output
     assert lab["config"]["exif"] == {"rows": 16, "with_orientation_tag": 3, "rotated_by_serving": 3}
     assert rec["config"]["exif"] == {"rows": 21, "with_orientation_tag": 3, "rotated_by_serving": 3}
@@ -1583,3 +1586,17 @@ def test_a_worktree_counts_into_the_main_folders_counter_and_uses_its_index(repo
     (repo / "knowledge/index/chunks.jsonl").unlink()
     with pytest.raises(e9.Refused, match="no index"):
         e9.index_path(cfg, tree)
+
+
+def test_check_run_catches_a_generic_followup_count_that_the_rows_do_not_give(frozen):
+    cfg = e9.load_config(frozen)
+    e9.stage_rag_retrieve(cfg, FallbackRetriever(), frozen)
+    e9.stage_rag_generate(cfg, FakeLLM(reply=writer_reply, model="writer-model"), frozen, None)
+    e9.stage_rag_haiku(cfg, haiku(), frozen)
+    e9.stage_rag_sonnet(cfg, FakeLLM(reply=sonnet_reply, model="sonnet"), frozen)
+    path = e9.stage_rag_record(cfg, frozen, device="none: fakes")
+    assert check_file(path, frozen, min_n=1) == []
+    rec = json.loads(path.read_text())
+    rec["config"]["generic_followup_coverage"]["generic_followups"] = 9
+    path.write_text(json.dumps(rec))
+    assert any("generic_followup_coverage" in p for p in check_file(path, frozen, min_n=1))

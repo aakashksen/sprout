@@ -759,6 +759,11 @@ def _e9_final_problems(rec: dict[str, Any], root: Path) -> list[str]:
     calls = {"haiku": sum(r["haiku_calls"] for r in rows), "sonnet": sum(r["sonnet_calls"] for r in rows)}
     if cfg.get("calls") != calls or rec["claude_calls"] != calls["haiku"] + calls["sonnet"]:
         problems.append("claude_calls or config.calls differ from the calls the rows record")
+    cov = cfg.get("generic_followup_coverage")
+    if not (isinstance(cov, dict) and cov.get("questions") == len(rows)
+            and cov.get("generic_followups") == sum(bool(r["generic_followup"]) for r in rows)
+            and cov.get("fallback_fired") == sum(bool(r["fallback_fired"]) for r in rows)):
+        problems.append("config.generic_followup_coverage does not recompute from the rows")
     side = root / rec["judged"]["file"] if isinstance(rec["judged"], dict) and "file" in rec["judged"] else None
     if side is None or not side.is_file() or json.loads(side.read_text(encoding="utf-8")) != answer_checks.final_lists(rows):
         problems.append("the judged samples are not the rows' own claim verdicts and checks")
@@ -843,8 +848,8 @@ def _e9_thresholds_problems(rec: dict[str, Any], root: Path) -> list[str]:
     if path is None or not path.is_file():
         return ["config.quantized_thresholds must name an E6 record that exists"]
     e6 = json.loads(path.read_text(encoding="utf-8"))
-    held = (e6.get("config") or {}).get("e5_thresholds") or {}
-    row = (held.get("systems") or {}).get(saved.get("variant"))
+    held = (e6.get("config") or {}).get("thresholds") or {}
+    row = ((held.get("systems") or {}).get(saved.get("variant")) or {}).get("scoring_part")
     if e6.get("experiment") != "E6" or e6["config"].get("checkpoint_sha256") != cfg.get("chosen_model_sha256") or row is None:
         return ["config.quantized_thresholds: the named record is not an E6 record of the chosen checkpoint for this variant"]
     want = {"e6_record": e6["run_id"], "variant": saved["variant"], "e6_split": e6["split"], "file": held["file"],

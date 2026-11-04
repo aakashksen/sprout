@@ -75,11 +75,32 @@ def signoff_problems(root: Path, split: str) -> list[str]:
             "a signature needs by, at and words"] if missing else []
 
 
-def check_claims(root: Path = ROOT) -> list[str]:
+def _provisional_problems(c: dict[str, Any], rec: dict[str, Any], unsigned: bool, final: bool) -> tuple[list[str], bool]:
+    """(problems, accepted as provisional). A claim is provisional only when it says so with the boolean true, on an
+    E9 test split that is unsigned, and its own text says "provisional". `--final` accepts none."""
+    flag = c.get("provisional")
+    if flag is None or flag is False:
+        return [], False
+    if flag is not True:
+        return ["provisional must be true or absent"], False
+    if rec.get("experiment") != "E9" or rec.get("split") not in SIGNED_SPLITS:
+        return ["provisional applies only to a claim on an E9 test split, whose label signature is unsigned"], False
+    if not unsigned:
+        return [f"provisional marking is stale: {rec['split']} is now signed, so remove it"], False
+    if "provisional" not in str(c.get("text") or "").lower():
+        return ["marked provisional, but the claim's own text does not say \"provisional\""], False
+    if final:
+        return ["provisional claim: --final accepts none, so sign the split and remove the marking"], False
+    return [], True
+
+
+def check(root: Path = ROOT, final: bool = False) -> tuple[list[str], list[dict[str, Any]]]:
+    """(problems, the claims accepted as provisional). `final` is for H4: no provisional claim, no unsigned split."""
     claims = json.loads((root / CLAIMS_REL).read_text(encoding="utf-8")).get("claims")
     if not isinstance(claims, list):
-        return ["claims.json must have a 'claims' key holding a list"]
+        return ["claims.json must have a 'claims' key holding a list"], []
     problems: list[str] = []
+    provisional: list[dict[str, Any]] = []
     once = None
     for c in claims:
         cid = c.get("id", "?")
@@ -99,22 +120,40 @@ def check_claims(root: Path = ROOT) -> list[str]:
             problems += [f"claim {cid}: {m}" for m in _review_problems(rec.get("config"))]
         if rec.get("experiment") == "E9":
             if rec.get("split") in SIGNED_SPLITS:
-                problems += [f"claim {cid}: {m}" for m in signoff_problems(root, rec["split"])]
-        elif not rec.get("labels_reviewed"):
-            problems.append(f"claim {cid}: run has labels_reviewed false")
+                unsigned = signoff_problems(root, rec["split"])
+                found, accepted = _provisional_problems(c, rec, bool(unsigned), final)
+                problems += [f"claim {cid}: {m}" for m in found]
+                if accepted:
+                    provisional.append({"id": cid, "split": rec["split"], "text": c["text"]})
+                else:
+                    problems += [f"claim {cid}: {m}" for m in unsigned]
+        else:
+            found, _ = _provisional_problems(c, rec, True, final)
+            problems += [f"claim {cid}: {m}" for m in found]
+            if not rec.get("labels_reviewed"):
+                problems.append(f"claim {cid}: run has labels_reviewed false")
         once = test_once_problems(root) if once is None else once
         problems += [f"claim {cid}: run: {m}" for m in check_file(path, root, once=once)]
-    return problems
+    return problems, provisional
 
 
-def main(argv: list[str] | None = None) -> int:
+def check_claims(root: Path = ROOT, final: bool = False) -> list[str]:
+    return check(root, final)[0]
+
+
+def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
     args = sys.argv[1:] if argv is None else argv
-    if args != ["check"]:
-        print("usage: python -m sprout.eval.claims check")
+    if args not in (["check"], ["check", "--final"]):
+        print("usage: python -m sprout.eval.claims check [--final]")
         return 2
-    problems = check_claims()
+    problems, provisional = check(root, final=len(args) == 2)
     for p in problems:
         print("FAIL", p)
+    for c in provisional:
+        print(f"provisional: {c['id']} ({c['split']}, labels unsigned): {c['text']}")
+    if provisional:
+        print(f"{len(provisional)} provisional claim{'s' if len(provisional) != 1 else ''}: "
+              "the labels of their splits are not signed")
     if not problems:
         print("claims ok")
     return 1 if problems else 0

@@ -1150,3 +1150,72 @@ def test_check_run_rederives_roles_when_e12_is_chosen(repo):
     path.write_text(json.dumps(saved))
     assert any("primary" in x and "decision" in x for x in _ok(path, repo))
 
+
+# ----------------------------------------------------------------------------------------------- provisional claims
+
+def claim_with(root, path, **extra):
+    rec = json.loads(path.read_text())
+    write(root, "results/claims.json", {"claims": [{
+        "id": "c1", "run_id": rec["run_id"], "system": "improved", "metric": "accuracy",
+        "value": rec["metrics"]["improved"]["accuracy"], **extra}]})
+
+
+def test_an_unmarked_claim_on_an_unsigned_split_still_fails(repo):
+    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
+    claim_with(repo, path, text="provisional: accuracy on field_test")  # saying it in words is not marking it
+    assert any("not signed" in p for p in check_claims(repo))
+    claim_with(repo, path, provisional=False, text="provisional: accuracy on field_test")
+    assert any("not signed" in p for p in check_claims(repo))
+
+
+def test_a_provisional_claim_passes_on_an_unsigned_split_only_if_its_text_says_so(repo, capsys):
+    from sprout.eval.claims import main as claims_main
+
+    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
+    claim_with(repo, path, provisional=True, text="Accuracy on field_test, provisional until the labels are signed")
+    assert check_claims(repo) == []
+    assert claims_main(["check"], repo) == 0
+    out = capsys.readouterr().out
+    assert "c1" in out and "provisional" in out and "1 provisional claim" in out
+    claim_with(repo, path, provisional=True, text="Accuracy on field_test")  # marked, but the words do not say it
+    assert any("provisional" in p and "text" in p for p in check_claims(repo))
+    claim_with(repo, path, provisional=True)  # no text at all
+    assert any("provisional" in p and "text" in p for p in check_claims(repo))
+    assert claims_main(["check"], repo) == 1
+    claim_with(repo, path, provisional="yes", text="provisional")  # only the boolean true marks a claim
+    assert any("provisional" in p for p in check_claims(repo))
+
+
+def test_a_provisional_claim_on_a_signed_split_is_a_stale_marking(repo):
+    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
+    claim_with(repo, path, provisional=True, text="provisional accuracy")
+    sign(repo, "field_test")
+    assert any("stale" in p and "field_test" in p for p in check_claims(repo))
+    claim_with(repo, path)
+    assert check_claims(repo) == []
+
+
+def test_final_refuses_every_provisional_claim_and_every_unsigned_split(repo, capsys):
+    from sprout.eval.claims import main as claims_main
+
+    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
+    claim_with(repo, path, provisional=True, text="provisional accuracy")
+    assert claims_main(["check"], repo) == 0 and claims_main(["check", "--final"], repo) == 1
+    assert any("provisional" in p for p in check_claims(repo, final=True))
+    sign(repo, "field_test")
+    assert any("provisional" in p for p in check_claims(repo, final=True))  # the marking itself must go
+    claim_with(repo, path)
+    assert check_claims(repo, final=True) == [] and claims_main(["check", "--final"], repo) == 0
+    sign(repo, "field_test", signed=False)
+    assert any("not signed" in p for p in check_claims(repo, final=True))
+    assert claims_main(["check", "--bogus"], repo) == 2
+
+
+
+def test_provisional_on_a_record_that_is_not_an_e9_test_split_is_refused(repo):
+    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
+    rec = json.loads(path.read_text())
+    rec["experiment"] = "E4"
+    path.write_text(json.dumps(rec))
+    claim_with(repo, path, provisional=True, text="provisional")
+    assert any("provisional" in p and "E9" in p for p in check_claims(repo))

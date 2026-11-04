@@ -453,8 +453,13 @@ def _header_problems(rec: dict[str, Any], root: Path, min_n: int) -> list[str]:
     if rec["dirty"]:
         problems.append("record was made on a dirty tree")
     problems += _stamp_problems(rec)
-    if rec["experiment"] == "E9" and rec["labels_reviewed"] is not (rec["config"] or {}).get("labels_reviewed"):
-        problems.append("labels_reviewed differs from config.labels_reviewed, which E9 reads from H2's state")
+    if rec["experiment"] == "E9":
+        saved = (rec["config"] or {}).get("labels_reviewed")
+        if rec["labels_reviewed"] is not saved:
+            problems.append("labels_reviewed differs from config.labels_reviewed")
+        if rec["labels_reviewed"] is not False or saved is not False:
+            problems.append("an E9 record holds no label signature (labels_reviewed must be false): the person signs "
+                            "each split in orchestration/label_signoff.json, which claims check reads")
     problems += _finite_problems(rec)
     if any(FAKE.search(s) for s in _strings(rec["models"])):
         problems.append("a model name matches fake or stub")
@@ -761,6 +766,7 @@ def _e9_final_problems(rec: dict[str, Any], root: Path) -> list[str]:
     frozen = json.loads(shown.stdout) if shown.returncode == 0 else {}
     if frozen.get("prompt_sha256") != cfg.get("prompt_sha256"):
         problems.append("config.prompt_sha256 is not the frozen prompt's hash at the record's commit")
+    problems += _frozen_record_problems(frozen, root)
     rows = _read_rows(root / rec["predictions"]["served"])
     if any(set(r) != set(answer_checks.FINAL_ROW_KEYS) for r in rows) or any(
             set(c) != set(answer_checks.CLAIM_KEYS) for r in rows for c in r["claims"]):
@@ -810,25 +816,60 @@ def _e9_image_problems(rec: dict[str, Any], root: Path, info: SplitInfo, positio
                                                  [info.ids[i] for i in positions]):
             problems.append("config.cleaned_rows does not recompute from the exclusion log")
     cal = cfg.get("calibration")
-    if not (isinstance(cal, dict) and {"temperature", "abstain_threshold"} <= set(cal)):
-        return problems + ["config.calibration must hold temperature and abstain_threshold"]
-    t = f"{cal['abstain_threshold']:.6f}".rstrip("0").rstrip(".")
     for name, rel in rec["predictions"].items():
         base = name.removesuffix("_calibrated")
         if base == name:
             continue
+        settings = cal.get(base) if isinstance(cal, dict) else None
+        if not (isinstance(settings, dict) and {"temperature", "abstain_threshold"} <= set(settings)):
+            problems.append(f"{name}: config.calibration must hold temperature and abstain_threshold for {base}")
+            continue
+        t = f"{settings['abstain_threshold']:.6f}".rstrip("0").rstrip(".")
         if base not in rec["predictions"] or not (root / rel).is_file() or not (root / rec["predictions"][base]).is_file():
             problems.append(f"{name}: calibrated system without its plain system's predictions")
             continue
         raw = {r["path"]: r["probs"] for r in _read_rows(root / rec["predictions"][base])}
         got = {r["path"]: r["probs"] for r in _read_rows(root / rel)}
-        fresh = {k: apply_temperature(np.log(np.maximum(np.array(v, dtype=float), 1e-12)), cal["temperature"])
+        fresh = {k: apply_temperature(np.log(np.maximum(np.array(v, dtype=float), 1e-12)), settings["temperature"])
                  for k, v in raw.items()}
         if set(got) != set(fresh) or not all(np.allclose(got[k], fresh[k], atol=1e-9, rtol=0) for k in got):
             problems.append(f"{name}: probabilities are not the plain system's at the calibration temperature")
         if f"coverage@{t}" not in rec["metrics"].get(name, {}):
             problems.append(f"{name}: metrics lack coverage@{t}, the calibration's abstention threshold")
     return problems
+
+
+def _frozen_record_problems(frozen: dict[str, Any], root: Path) -> list[str]:
+    """The frozen config's dev run and blind read must exist, have been made before the freeze, and name the frozen
+    prompt's hash; the blind read must belong to that dev run."""
+    out = []
+    try:
+        frozen_at = datetime.fromisoformat(frozen["frozen_at"])
+    except (KeyError, TypeError, ValueError):
+        return ["the frozen config has no valid frozen_at"]
+    made = {}
+    for key, stage in (("dev_record", "wrong_disease_dev"), ("blind_read_record", "wrong_disease_blind_read")):
+        rid = frozen.get(key)
+        path = root / RUNS_REL / f"{rid}.json"
+        if not path.is_file():
+            out.append(f"frozen {key} {rid} does not exist")
+            continue
+        rec = json.loads(path.read_text(encoding="utf-8"))
+        made[key] = rec
+        cfg = rec.get("config") or {}
+        if not (rec.get("experiment") == "E9" and rec.get("split") == "rag_dev" and cfg.get("stage") == stage):
+            out.append(f"{key} {rid} is not an E9 {stage} record on rag_dev")
+        if cfg.get("prompt_sha256") != frozen.get("prompt_sha256"):
+            out.append(f"{key} {rid}: its prompt_sha256 is not the frozen prompt's")
+        try:
+            if datetime.fromisoformat(rec["finished_at"]) >= frozen_at:
+                out.append(f"{key} {rid}: finished at or after the freeze; it must be made before the freeze")
+        except (KeyError, TypeError, ValueError):
+            out.append(f"{key} {rid}: has no valid finished_at to compare with the freeze")
+    blind = made.get("blind_read_record")
+    if blind is not None and (blind.get("config") or {}).get("dev_record") != frozen.get("dev_record"):
+        out.append("blind_read_record: its dev_record is not the frozen dev_record")
+    return out
 
 
 def check_record(rec: dict[str, Any], root: Path, min_n: int = 0) -> list[str]:

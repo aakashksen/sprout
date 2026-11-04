@@ -1,21 +1,56 @@
 {
   "experiment": "E9",
-  "note": "Frozen before any test split is touched: commit this file, results/e12/decision.json, the E5 and E6 outputs it names, and configs/e9_wrong_disease.json first. The improved model is whatever results/e12/decision.json chose; the other systems are named here.",
+  "note": "Frozen before any test split is touched: commit this file, results/e12/decision.json, the E5 and E6 outputs it names, and configs/e9_wrong_disease.json first. The primary model (system 'improved') is whichever candidate results/e12/decision.json chose (E12's gates; E4's stays unless they pass); the other candidate is scored beside it as 'alternate', each with its own calibration. The other systems are named here.",
   "exclusion_version": 1,
   "decision_file": "results/e12/decision.json",
-  "calibration": {"file": "results/e5/chosen.json"},
-  "tasks_file": "orchestration/tasks.json",
+  "candidates": {
+    "e4": {
+      "checkpoint": "models/e4/convnext_joint/best.pt",
+      "calibration": "results/e5/chosen.json"
+    },
+    "e12": {
+      "checkpoint": "models/e12/convnext_joint_extra/best.pt",
+      "calibration": "results/e12/e5_refit/chosen.json"
+    }
+  },
   "batch_size": 32,
   "torch_device": "cuda",
   "systems": {
-    "baseline": {"kind": "torch_checkpoint", "checkpoint": "models/e1/best.pt", "what": "E1, the clean lab baseline"},
-    "xgboost": {"kind": "xgboost", "model": "models/e3/xgboost/model.ubj", "what": "E3, HOG and colour histograms, trained on lab_train",
-                "features": {"size": 128, "orientations": 9, "pixels_per_cell": 16, "cells_per_block": 2, "bins": 32}},
-    "dinov2": {"kind": "torch_checkpoint", "checkpoint": "models/e4/dinov2_head/best.pt", "what": "E4, DINOv2 small with a linear head, trained on the joint set"},
-    "quantized": {"kind": "onnx", "export_file": "results/e6/export.json", "variant": "onnx_dynamic", "model_dir": "models/e6",
-                  "what": "E6's quantized export of the chosen model; set `variant` to the export E6's final numbers pick"}
+    "baseline": {
+      "kind": "torch_checkpoint",
+      "checkpoint": "models/e1/best.pt",
+      "what": "E1, the clean lab baseline"
+    },
+    "xgboost": {
+      "kind": "xgboost",
+      "model": "models/e3/xgboost/model.ubj",
+      "what": "E3, HOG and colour histograms, trained on lab_train",
+      "features": {
+        "size": 128,
+        "orientations": 9,
+        "pixels_per_cell": 16,
+        "cells_per_block": 2,
+        "bins": 32
+      }
+    },
+    "dinov2": {
+      "kind": "torch_checkpoint",
+      "checkpoint": "models/e4/dinov2_head/best.pt",
+      "what": "E4, DINOv2 small with a linear head, trained on the joint set"
+    },
+    "quantized": {
+      "kind": "onnx",
+      "export_file": "results/e6/export.json",
+      "variant": "onnx_dynamic",
+      "model_dir": "models/e6",
+      "what": "E6's quantized export of the chosen model; set `variant` to the export E6's final numbers pick"
+    }
   },
-  "calibrated": ["improved", "quantized"],
+  "calibrated": [
+    "improved",
+    "alternate",
+    "quantized"
+  ],
   "rag": {
     "index_dir": "knowledge/index",
     "device": "cuda",

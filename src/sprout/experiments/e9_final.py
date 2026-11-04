@@ -74,6 +74,12 @@ CONFIG_REL = "configs/e9.json"
 FROZEN_REL = "configs/e9_wrong_disease.json"
 PROMPT_REL = "src/sprout/rag/prompts/wrong_disease.txt"
 IMAGE_TESTS = ("lab_test", "field_test")
+SIGNOFF_REL = "orchestration/label_signoff.json"
+# E9 records never hold the label signature: `claims check` reads it per split from SIGNOFF_REL, so signing later needs no
+# rerun of a once-only test.
+LABELS_REVIEWED = False
+LABEL_SIGNATURE = (f"Not held in this record: the person's sign-off on this split's labels is the row for the split in "
+                   f"{SIGNOFF_REL}, which `claims check` reads. labels_reviewed is false here by design.")
 
 
 class Refused(RuntimeError):
@@ -94,13 +100,6 @@ def require_committed(root: Path, rels: list[str]) -> None:
 def require_clean(root: Path) -> None:
     if is_dirty(root):
         raise Refused("the working tree has uncommitted changes; commit first")
-
-
-def labels_reviewed(root: Path = ROOT, tasks_file: str = "orchestration/tasks.json") -> bool:
-    """True only when H2 is marked done in the task list, which is where the person's sign-off is recorded."""
-    path = Path(root) / tasks_file
-    tasks = json.loads(path.read_text(encoding="utf-8")).get("tasks", []) if path.is_file() else []
-    return any(t.get("id") == "H2" and t.get("status") == "done" for t in tasks)
 
 
 def load_config(root: Path = ROOT) -> dict[str, Any]:
@@ -139,10 +138,11 @@ def wd_messages(question: str, diagnosis: str, answer: str, root: Path = ROOT) -
 
 # ---------------------------------------------------------------- image test splits
 
-SYSTEMS = ("baseline", "improved", "xgboost", "dinov2", "quantized")
+SYSTEMS = ("baseline", "improved", "alternate", "xgboost", "dinov2", "quantized")
 FLOOR = 1e-12
 INTERVALS = ("accuracy", "macro_f1")
-COMPARED = (("improved", "baseline"), ("improved", "xgboost"), ("improved", "dinov2"), ("quantized", "improved"))
+COMPARED = (("improved", "baseline"), ("improved", "alternate"), ("improved", "xgboost"), ("improved", "dinov2"),
+            ("quantized", "improved"))
 
 
 @dataclass
@@ -156,17 +156,40 @@ class Predictor:
     detail: dict[str, Any] = field(default_factory=dict)
 
 
-def load_calibration(cfg: dict[str, Any], decision: dict[str, Any], root: Path = ROOT) -> dict[str, Any]:
-    """Temperature and abstention threshold from E5's chosen.json. When E12 refit E5, the file must name the model it
-    was refit on, and that must be the chosen one."""
-    rel = cfg["calibration"]["file"]
+def candidate_roles(cfg: dict[str, Any], decision: dict[str, Any]) -> tuple[str, str]:
+    """(primary, alternate) candidate keys: the primary is the model E12's decision chose, the other is reported beside it."""
+    found = [k for k, v in cfg["candidates"].items() if v["checkpoint"] == decision["chosen_model"]]
+    others = [k for k in cfg["candidates"] if k not in found]
+    if len(found) != 1 or len(others) != 1:
+        raise Refused(f"E12 chose {decision['chosen_model']!r}, which is neither of the config's candidates "
+                      f"{[v['checkpoint'] for v in cfg['candidates'].values()]}")
+    return found[0], others[0]
+
+
+def load_calibration(rel: str, model_sha: str | None, root: Path = ROOT, *, required: bool = False) -> dict[str, Any]:
+    """Temperature and abstention threshold from an E5-style chosen.json. When the file names the model it was fitted
+    on (`model_sha256`), that must be the model scored; `required` demands the name (E12 says E5 was refit)."""
     path = Path(root) / rel
     if not path.is_file():
         raise Refused(f"{rel} does not exist: the calibration and threshold are not chosen")
     saved = json.loads(path.read_text(encoding="utf-8"))
-    if decision.get("refit_e5") and saved.get("model_sha256") != decision["chosen_model_sha256"]:
+    named = saved.get("model_sha256")
+    if named is None and required:
         raise Refused(f"E12 says E5 was refit on the chosen model, but {rel} does not name that model (model_sha256)")
+    if named is not None and named != model_sha:
+        raise Refused(f"{rel} was fitted on another model than the one scored (model_sha256 differs)")
     return {"file": rel, "temperature": float(saved["temperature"]), "abstain_threshold": float(saved["abstain_threshold"])}
+
+
+def calibrations(cfg: dict[str, Any], decision: dict[str, Any], root: Path = ROOT, *,
+                 alternate_sha: str | None = None) -> dict[str, dict[str, Any]]:
+    """Calibration per calibrated system: the primary model's own (also used for the quantized copy of it) and the
+    alternate's own, so both models are reported with and without abstention."""
+    primary, alternate = candidate_roles(cfg, decision)
+    prim = load_calibration(cfg["candidates"][primary]["calibration"], decision["chosen_model_sha256"], root,
+                            required=bool(decision.get("refit_e5")))
+    alt = load_calibration(cfg["candidates"][alternate]["calibration"], alternate_sha, root)
+    return {"improved": prim, "alternate": alt, "quantized": prim}
 
 
 def prior_uses(root: Path, split: str) -> list[str]:
@@ -205,14 +228,14 @@ def cleaned_rows(split: str, cfg: dict[str, Any], info: SplitInfo, positions: li
 
 
 def score_block(probs: dict[str, np.ndarray], labels: np.ndarray, groups: list[str], names: list[str],
-                threshold: float, keep: np.ndarray) -> tuple[dict, dict, list]:
+                thresholds: dict[str, float], keep: np.ndarray) -> tuple[dict, dict, list]:
     """Metrics, intervals and paired comparisons of every system over the rows in `keep`, the way check_run recomputes."""
     scored = {n: Scored(groups=[g for g, k in zip(groups, keep, strict=True) if k], labels=labels[keep],
                         class_names=names, probs=p[keep]) for n, p in probs.items()}
     metrics = {n: standard_image_metrics(s.probs, s.labels, names) for n, s in scored.items()}
-    t = f"{threshold:.6f}".rstrip("0").rstrip(".")
     for n in scored:
         if n.endswith("_calibrated"):
+            t = f"{thresholds[n.removesuffix('_calibrated')]:.6f}".rstrip("0").rstrip(".")
             for m in ("coverage", "selective_accuracy", "confident_error_rate"):
                 metrics[n][f"{m}@{t}"] = recompute_metric(f"{m}@{t}", scored[n])
     metrics["quantized"]["changed_vs@improved"] = recompute_metric("changed_vs@improved", scored["quantized"], scored)
@@ -237,13 +260,14 @@ def run_images(split: str, cfg: dict[str, Any], predictors: dict[str, Predictor]
     require_committed(root, [CONFIG_REL])
     require_clean(root)
     decision = load_decision(cfg, root)
-    calibration = load_calibration(cfg, decision, root)
+    primary, alternate = candidate_roles(cfg, decision)
     require_unused(root, split, override_note)
     if callable(predictors):  # built only after every guard has passed, so a refused run loads no model
         predictors = predictors()
     absent = [n for n in SYSTEMS if n not in predictors]
     if absent:
         raise Refused(f"frozen systems missing: {absent}")
+    calibration = calibrations(cfg, decision, root, alternate_sha=predictors["alternate"].detail.get("sha256"))
     names = decision["class_names"]
     for n in SYSTEMS:
         if predictors[n].class_names != names:
@@ -267,22 +291,34 @@ def run_images(split: str, cfg: dict[str, Any], predictors: dict[str, Predictor]
             raise Refused(f"{n} returned probabilities of shape {out.shape}; expected {(len(paths), len(names))}")
         probs[n] = out
     for n in cfg["calibrated"]:
-        probs[f"{n}_calibrated"] = calibrated(probs[n], calibration["temperature"])
+        probs[f"{n}_calibrated"] = calibrated(probs[n], calibration[n]["temperature"])
     order = [x for n in SYSTEMS for x in (n, f"{n}_calibrated") if x in probs]
+    cleaned_info = cleaned_rows(split, cfg, info, positions, root) if subset else None
+    basis = (f"cleaned rows: {cleaned_info['after']} of {cleaned_info['before']} field_test photos kept "
+             f"({subset}); {cleaned_info['removed']} removed by the label cleaning" if subset else
+             "lab_test photos, all of them: the label cleaning covers real photos only")
     config = {
         "class_names": names, "split": split, "frozen_config": CONFIG_REL,
         "frozen_config_sha256": sha256_file(root / CONFIG_REL), "decision": cfg["decision_file"],
         "chosen_model": decision["chosen_model"], "chosen_model_sha256": decision["chosen_model_sha256"],
-        "calibration": calibration, "labels_reviewed": labels_reviewed(root, cfg["tasks_file"]),
+        "primary": {"system": "improved", "candidate": primary, "checkpoint": decision["chosen_model"],
+                    "sha256": decision["chosen_model_sha256"], "why": "the model E12's decision chose"},
+        "alternate": {"system": "alternate", "candidate": alternate,
+                      "checkpoint": cfg["candidates"][alternate]["checkpoint"],
+                      "sha256": predictors["alternate"].detail.get("sha256"),
+                      "why": "the other candidate, reported beside the primary on the same rows"},
+        "basis": basis, "calibration": calibration, "labels_reviewed": LABELS_REVIEWED, "label_signature": LABEL_SIGNATURE,
         "device": device_name(cfg), "started_at": started,
         "systems": {n: {"description": predictors[n].description, **predictors[n].detail} for n in SYSTEMS},
         "abstention": "a *_calibrated system answers only when its calibrated top probability is at least the "
                       "threshold; the other systems answer every photo",
-        **({"cleaned_rows": cleaned_rows(split, cfg, info, positions, root)} if subset else {}),
+        **({"cleaned_rows": cleaned_info} if subset else {}),
         **({"override_note": override_note.strip()} if override_note.strip() else {}),
     }
     models = {n: predictors[n].description for n in SYSTEMS}
-    models.update({f"{n}_calibrated": f"{predictors[n].description}, temperature {calibration['temperature']} from E5"
+    models["improved"] = f"primary ({primary}): {models['improved']}"
+    models["alternate"] = f"alternate ({alternate}): {models['alternate']}"
+    models.update({f"{n}_calibrated": f"{models[n]}, temperature {calibration[n]['temperature']}"
                    for n in cfg["calibrated"]})
     attempts = [{"system": n, "kind": "frozen, scored once", **predictors[n].detail} for n in SYSTEMS]
     views = [(subset, np.ones(len(paths), dtype=bool), "")]
@@ -294,11 +330,14 @@ def run_images(split: str, cfg: dict[str, Any], predictors: dict[str, Predictor]
     written = []
     for name, keep, extra in views:
         metrics, intervals, comparisons = score_block(
-            {n: probs[n] for n in order}, labels, groups, names, calibration["abstain_threshold"], keep)
+            {n: probs[n] for n in order}, labels, groups, names,
+            {n: calibration[n]["abstain_threshold"] for n in cfg["calibrated"]}, keep)
         rows = {n: Predictions([p for p, k in zip(paths, keep, strict=True) if k], labels[keep], probs[n][keep])
                 for n in order}
         notes = (f"Final test on {split}, scored once with configurations frozen before the run; every number is a "
-                 f"held-out number. Options per plant are in config.options_per_plant (plant-given top-3 is easy).{extra}")
+                 f"held-out number on this basis: {basis}. The primary model ({primary}) is the one E12 chose; the "
+                 f"alternate ({alternate}) is scored beside it on the same rows. Options per plant are in "
+                 f"config.options_per_plant (plant-given top-3 is easy). {LABEL_SIGNATURE}{extra}")
         written.append(write_run("E9", split, config, models, metrics, intervals, attempts, rows, info.hash, root=root,
                                  subset=name, comparisons=comparisons, notes=notes))
     return written
@@ -378,21 +417,53 @@ def _onnx_predictor(cfg: dict[str, Any], decision: dict[str, Any], root: Path) -
 
 
 def build_predictors(cfg: dict[str, Any], decision: dict[str, Any], root: Path = ROOT) -> dict[str, Predictor]:
-    """The five frozen systems from the config and E12's decision. The improved model is whatever E12 chose, and its
-    file must be the one the decision hashes."""
+    """The six frozen systems from the config and E12's decision. `improved` is the model E12 chose and `alternate` the
+    other candidate; the chosen file must be the one the decision hashes."""
     root, size, device = Path(root), cfg["batch_size"], cfg["torch_device"]
     spec = cfg["systems"]
+    primary, alternate = candidate_roles(cfg, decision)
     chosen = root / decision["chosen_model"]
     if not chosen.is_file() or sha256_file(chosen) != decision["chosen_model_sha256"]:
         raise Refused(f"{decision['chosen_model']} differs from E12's decision (sha256) or is missing")
+    other = root / cfg["candidates"][alternate]["checkpoint"]
+    if not other.is_file():
+        raise Refused(f"{cfg['candidates'][alternate]['checkpoint']} is missing: the alternate model must be scored too")
     return {
         "baseline": _torch_predictor(root / spec["baseline"]["checkpoint"], "clean lab baseline", size, device),
-        "improved": _torch_predictor(chosen, "improved model chosen by E12", size, device),
+        "improved": _torch_predictor(chosen, f"{primary} model chosen by E12", size, device),
+        "alternate": _torch_predictor(other, f"{alternate} model, the other candidate", size, device),
         "xgboost": _xgboost_predictor(root / spec["xgboost"]["model"], spec["xgboost"]["features"],
                                       decision["class_names"]),
         "dinov2": _torch_predictor(root / spec["dinov2"]["checkpoint"], "DINOv2 small", size, device),
         "quantized": _onnx_predictor(cfg, decision, root),
     }
+
+
+METRIC_LINES = (("accuracy", "accuracy"), ("macro_f1", "macro-F1"), ("ece", "calibration error (ECE)"),
+                ("top_3_accuracy", "top-3"), ("top_5_accuracy", "top-5"), ("plant_given_top_1", "plant-given top-1"),
+                ("plant_given_top_3", "plant-given top-3"))
+
+
+def image_report(rec: dict[str, Any]) -> str:
+    """The figures of an image record in words. Every line that holds a number names the rows it is on."""
+    c = rec["config"]
+    tag = "cleaned rows" if "cleaned_rows" in c else f"{rec['split']}" + (f" {rec['subset']}" if rec["subset"] else "")
+    role = {c["primary"]["system"]: f"primary ({c['primary']['candidate']})",
+            c["alternate"]["system"]: f"alternate ({c['alternate']['candidate']})"}
+    lines = [f"[{tag}] basis: {c['basis']}; n = {rec['n']}"]
+    if "cleaned_rows" in c:
+        r = c["cleaned_rows"]
+        lines.append(f"[{tag}] removed {r['removed']} of {r['before']}: by reason {r['by_reason']}, by source {r['by_source']}")
+    lines.append(f"[{tag}] Options per plant: {c['options_per_plant']}; label review is signed per split in {SIGNOFF_REL}, not here.")
+    for name, values in rec["metrics"].items():
+        shown = ", ".join(f"{label} {values[key]:.3f}" for key, label in METRIC_LINES if values.get(key) is not None)
+        base = name.removesuffix("_calibrated")
+        kind = (f"{role.get(base, base)}" + (" with abstention" if name.endswith("_calibrated") else ""))
+        extra = {k: v for k, v in values.items() if k.startswith(("coverage@", "selective_accuracy@", "confident_error_rate@"))}
+        if extra:
+            shown += "; " + ", ".join(f"{k} {v:.3f}" for k, v in extra.items() if v is not None)
+        lines.append(f"[{tag}] {kind}: {shown}")
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------- Sonnet calls, two at a time
@@ -514,7 +585,8 @@ def stage_wrong_disease_dev(cfg: dict[str, Any], llm: Any, root: Path = ROOT, no
     info = split_info(DEV_SPLIT, root)
     config = {"stage": "wrong_disease_dev", **prompt_fields(root), "source": wd["dev_source"],
               "served_system": wd["served_system"], "diagnosis_source": DIAGNOSIS_RULE, "claude_calls": len(rows),
-              "device": WD_DEVICE, "labels_reviewed": labels_reviewed(root, cfg["tasks_file"]), "started_at": started,
+              "device": WD_DEVICE, "labels_reviewed": LABELS_REVIEWED, "label_signature": LABEL_SIGNATURE,
+              "started_at": started,
               "grader_prompt": "question, diagnosis and answer; the reply is read strictly as FITS or WRONG"}
     attempts = [{"stage": "wrong_disease_dev", "answers": len(rows), "claude_calls": len(rows),
                  "replies_without_a_call": sum(r["call"] is None for r in rows)}]
@@ -583,7 +655,7 @@ def stage_unblind(cfg: dict[str, Any], root: Path, read_file: Path, reader: str,
               "dev_record": dev["run_id"], "blind_seed": wd["blind_seed"], "blind_per_call": wd["blind_per_call"],
               "strata": strata, "reader": reader, "read_file": Path(read_file).name,
               "read_file_sha256": sha256_file(Path(read_file)), "claude_calls": 0, "device": WD_DEVICE,
-              "labels_reviewed": labels_reviewed(root, cfg["tasks_file"]),
+              "labels_reviewed": LABELS_REVIEWED, "label_signature": LABEL_SIGNATURE,
               "started_at": datetime.now(timezone.utc).isoformat()}
     attempts = [{"stage": "wrong_disease_blind_read", "read_answers": len(rows), "reader": reader}]
     return write_run("E9", DEV_SPLIT, config, {"reader": reader, "grader": dev["models"]["grader"]},
@@ -838,7 +910,8 @@ def stage_rag_record(cfg: dict[str, Any], root: Path = ROOT, *, device: str, not
                    "same_claims_and_rubric": True},
         "rubric": rubric(), **prompt_fields(root), "frozen_wrong_disease": {"file": FROZEN_REL, **frozen},
         "diagnosis_source": DIAGNOSIS_RULE, "claude_calls": calls, "device": device, "writer_usage": usage,
-        "labels_reviewed": labels_reviewed(root, cfg["tasks_file"]),
+        "labels_reviewed": LABELS_REVIEWED, "label_signature": LABEL_SIGNATURE,
+        "basis": "rag_test questions as asked; the photo label cleaning does not apply to them",
         "started_at": datetime.now(timezone.utc).isoformat(), "caveat": FINAL_CAVEAT,
         **({"override_note": override_note.strip()} if override_note.strip() else {}),
     }
@@ -861,7 +934,9 @@ def report(rec: dict[str, Any], root: Path = ROOT) -> str:
         return f"{label}: {sum(v)} of {len(v)} claims supported = {sum(v) / len(v):.3f}"
 
     flagged = sidecar.get("answers_flagged_wrong_disease", [])
-    lines = [f"rag_test, {rec['n']} questions, one run, configurations frozen before it.",
+    tag = "[rag_test questions, no photo cleaning applies]"
+    lines = [f"{tag} {rec['n']} questions, one run, configurations frozen before it. Label review is signed in "
+             f"{SIGNOFF_REL}, not in this record.",
              share("claims_supported_by_local_judge",
                    f"local judge {judges['local']['model']} ({judges['local']['role']})"),
              share("claims_supported_by_sonnet", f"Sonnet ({judges['sonnet']['role']})"),
@@ -869,7 +944,7 @@ def report(rec: dict[str, Any], root: Path = ROOT) -> str:
              f"wrong-disease check (Sonnet, prompt frozen before this run): {sum(flagged)} of {len(flagged)} checked "
              "answers flagged as advice for the wrong disease or plant"]
     lines += [f"{k}: {v:.3f}" if v is not None else f"{k}: undefined" for k, v in rec["metrics"][SERVED].items()]
-    return "\n".join(lines)
+    return "\n".join(x if x.startswith(tag) else f"{tag} {x}" for x in lines)
 
 
 # ---------------------------------------------------------------- command line (wires in the real models)
@@ -954,6 +1029,7 @@ def main(argv: list[str] | None = None) -> int:
             paths = run_images(split, cfg, lambda: build_predictors(cfg, load_decision(cfg, root), root), root,
                                override_note=a.override_note)
             print("\n".join(str(p) for p in paths))
+            print(image_report(json.loads(paths[0].read_text(encoding="utf-8"))))
         elif stage == "wrong-disease-dev":
             print(stage_wrong_disease_dev(cfg, grader(), root, a.note))
         elif stage == "blind-sample":

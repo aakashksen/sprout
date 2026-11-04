@@ -28,11 +28,15 @@ LOG = (
     "1,s11,f/11.jpg,plantdoc,field_test,Apple___scab,wrong_plant,z,remove\n"
     "1,s2,f/2.jpg,plantseg,field_dev,Tomato___blight,wrong_plant,w,remove\n"
 )
-TASKS = {"tasks": [{"id": "H1", "status": "done"}, {"id": "H2", "status": "pending"}]}
 SHA = "a" * 64
+SHA12 = "b" * 64
+SIGNOFF = {s: {"signed": False, "by": None, "at": None, "words": None}
+           for s in ("lab_test", "field_test", "rag_test")}
 CONFIG = {
     "experiment": "E9", "exclusion_version": 1, "decision_file": "results/e12/decision.json",
-    "calibration": {"file": "results/e5/chosen.json"}, "tasks_file": "orchestration/tasks.json",
+    "candidates": {"e4": {"checkpoint": "models/e4/convnext_joint/best.pt", "calibration": "results/e5/chosen.json"},
+                   "e12": {"checkpoint": "models/e12/convnext_joint_extra/best.pt",
+                           "calibration": "results/e12/e5_refit/chosen.json"}},
     "batch_size": 4, "torch_device": "cpu",
     "systems": {
         "baseline": {"kind": "torch_checkpoint", "checkpoint": "models/e1/best.pt"},
@@ -41,7 +45,7 @@ CONFIG = {
         "quantized": {"kind": "onnx", "export_file": "results/e6/export.json", "variant": "onnx_dynamic",
                       "model_dir": "models/e6"},
     },
-    "calibrated": ["improved", "quantized"],
+    "calibrated": ["improved", "alternate", "quantized"],
     "rag": {"index_dir": "knowledge/index", "device": "cuda", "writer": "writer-model", "judge": "judge-model",
             "grader": "sonnet", "max_sonnet_calls": 400, "judge_in_flight": 2},
     "wrong_disease": {"dev_source": {}, "served_system": "served", "blind_seed": 5, "blind_per_call": 3,
@@ -74,11 +78,12 @@ def repo(tmp_path):
     write(r, "datasets/manifests/lab.csv", "\n".join(LAB) + "\n")
     write(r, "datasets/manifests/field.csv", "\n".join(FIELD) + "\n")
     write(r, "datasets/label_exclusions.csv", LOG)
-    write(r, "orchestration/tasks.json", TASKS)
+    write(r, "orchestration/label_signoff.json", SIGNOFF)
     write(r, "configs/e9.json", CONFIG)
     write(r, "results/e12/decision.json", {"chosen_model": "models/e4/convnext_joint/best.pt",
                                            "chosen_model_sha256": SHA, "class_names": CLASSES, "refit_e5": False})
     write(r, "results/e5/chosen.json", {"temperature": 1.5, "abstain_threshold": 0.6})
+    write(r, "results/e12/e5_refit/chosen.json", {"temperature": 2.0, "abstain_threshold": 0.7, "model_sha256": SHA12})
     prompt = e9.PROMPT_REL
     (r / prompt).parent.mkdir(parents=True, exist_ok=True)
     shutil.copy(REAL_ROOT / prompt, r / prompt)
@@ -86,21 +91,7 @@ def repo(tmp_path):
     return r
 
 
-def set_h2(root, status):
-    write(root, "orchestration/tasks.json", {"tasks": [{"id": "H1", "status": "done"}, {"id": "H2", "status": status}]})
-
-
 # ----------------------------------------------------------------------------------------------- guards
-
-
-def test_labels_reviewed_is_false_before_h2_and_true_after(repo):
-    assert e9.labels_reviewed(repo) is False  # H2 pending
-    set_h2(repo, "done")
-    assert e9.labels_reviewed(repo) is True
-    write(repo, "orchestration/tasks.json", {"tasks": [{"id": "H1", "status": "done"}]})
-    assert e9.labels_reviewed(repo) is False  # no H2 at all is not a signature
-    write(repo, "orchestration/tasks.json", {"tasks": [{"id": "H2", "status": "blocked"}]})
-    assert e9.labels_reviewed(repo) is False
 
 
 def test_refuses_when_config_not_committed(repo):
@@ -153,10 +144,10 @@ def test_the_wrong_disease_reading_is_strict():
 
 # ----------------------------------------------------------------------------------------------- image splits
 
-SYSTEMS = ("baseline", "improved", "xgboost", "dinov2", "quantized")
+SYSTEMS = ("baseline", "improved", "alternate", "xgboost", "dinov2", "quantized")
 
 
-def tiny(seed, hit=0.7, names=CLASSES, seen=None):
+def tiny(seed, hit=0.7, names=CLASSES, seen=None, sha=None):
     def run(frame):
         if seen is not None:
             seen.append(list(frame["path"]))
@@ -166,11 +157,11 @@ def tiny(seed, hit=0.7, names=CLASSES, seen=None):
             out[i, true if ((i * 7 + seed) % 10) < hit * 10 else (true + 1) % len(names)] = 0.85
         return out / out.sum(axis=1, keepdims=True)
 
-    return e9.Predictor(f"tiny test model {seed}", list(names), run, {"seed": seed})
+    return e9.Predictor(f"tiny test model {seed}", list(names), run, {"seed": seed, **({"sha256": sha} if sha else {})})
 
 
 def predictors(seen=None):
-    return {n: tiny(i, 0.5 + 0.1 * i, seen=seen) for i, n in enumerate(SYSTEMS)}
+    return {n: tiny(i, 0.5 + 0.1 * i, seen=seen, sha=SHA12 if n == "alternate" else None) for i, n in enumerate(SYSTEMS)}
 
 
 def read_rows(root, rec, system):
@@ -182,8 +173,8 @@ def test_lab_test_gets_one_record_and_a_shared_class_view(repo):
     full, view = (json.loads(p.read_text()) for p in paths)
     assert full["split"] == "lab_test" and full["subset"] is None and full["experiment"] == "E9"
     assert view["subset"] == "shared_classes" and view["split"] == "lab_test"
-    assert set(full["predictions"]) == {"baseline", "improved", "improved_calibrated", "xgboost", "dinov2",
-                                        "quantized", "quantized_calibrated"}
+    assert set(full["predictions"]) == {"baseline", "improved", "improved_calibrated", "alternate",
+                                        "alternate_calibrated", "xgboost", "dinov2", "quantized", "quantized_calibrated"}
     shared = {"Apple___rust", "Apple___scab", "Tomato___blight"}  # the classes both lab.csv and field.csv hold
     assert full["n"] == 16 and view["n"] == 12  # lab_test rows i=8..23; Tomato___healthy is lab only
     assert {CLASSES[r["label"]] for r in read_rows(repo, view, "baseline")} == shared
@@ -197,7 +188,9 @@ def test_lab_test_gets_one_record_and_a_shared_class_view(repo):
     assert {"coverage@0.6", "selective_accuracy@0.6", "confident_error_rate@0.6"} <= set(c)
     assert not any(k.startswith("coverage@") for k in m)
     assert full["metrics"]["quantized"]["changed_vs@improved"] is not None
-    assert full["config"]["calibration"] == {"file": "results/e5/chosen.json", "temperature": 1.5, "abstain_threshold": 0.6}
+    assert full["config"]["calibration"]["improved"] == {"file": "results/e5/chosen.json", "temperature": 1.5, "abstain_threshold": 0.6}
+    assert full["config"]["calibration"]["alternate"]["temperature"] == 2.0
+    assert "coverage@0.7" in full["metrics"]["alternate_calibrated"]
     for p in paths:
         assert check_file(p, repo, min_n=1) == []  # the view of the full record is not a second use
 
@@ -215,14 +208,14 @@ def test_field_test_scores_only_cleaned_rows_and_reports_why_others_went(repo):
     assert check_file(path, repo, min_n=21) == []
 
 
-def test_each_image_split_is_scored_once_per_system_and_labels_reviewed_comes_from_h2(repo):
-    set_h2(repo, "done")
-    commit(repo, "h2")
+def test_each_image_split_is_scored_once_per_system_and_the_record_holds_no_signature(repo):
     seen = []
     (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(seen), repo)
-    assert len(seen) == 5  # one pass over the rows per frozen system
-    assert json.loads(path.read_text())["labels_reviewed"] is True
-    assert json.loads(path.read_text())["config"]["labels_reviewed"] is True
+    assert len(seen) == 6  # one pass over the rows per frozen system
+    rec = json.loads(path.read_text())
+    assert rec["labels_reviewed"] is False and rec["config"]["labels_reviewed"] is False
+    assert "orchestration/label_signoff.json" in rec["config"]["label_signature"]
+    assert "orchestration/label_signoff.json" in rec["notes"]
 
 
 def test_refuses_second_test_run_without_override_note(repo):
@@ -249,14 +242,58 @@ def test_a_system_with_other_classes_than_the_decision_is_refused(repo):
         e9.run_images("lab_test", e9.load_config(repo), {"baseline": tiny(0)}, repo)
 
 
-def test_calibration_must_belong_to_the_chosen_model(repo):
+def test_calibration_must_belong_to_the_model_it_was_fitted_on(repo):
     cfg = e9.load_config(repo)
     decision = e9.load_decision(cfg, repo)
-    assert e9.load_calibration(cfg, decision, repo)["temperature"] == 1.5
-    with pytest.raises(e9.Refused, match="refit"):
-        e9.load_calibration(cfg, {**decision, "refit_e5": True}, repo)  # chosen.json names no model
+    cal = e9.calibrations(cfg, decision, repo, alternate_sha=SHA12)
+    assert cal["improved"]["temperature"] == 1.5 and cal["quantized"] == cal["improved"]
+    assert cal["alternate"]["temperature"] == 2.0
+    with pytest.raises(e9.Refused, match="refit"):  # E12 says E5 was refit, but the primary's file names no model
+        e9.calibrations(cfg, {**decision, "refit_e5": True}, repo, alternate_sha=SHA12)
+    with pytest.raises(e9.Refused, match="fitted on"):  # a file that names another model than the one scored
+        e9.calibrations(cfg, decision, repo, alternate_sha=SHA)
     write(repo, "results/e5/chosen.json", {"temperature": 1.5, "abstain_threshold": 0.6, "model_sha256": SHA})
-    assert e9.load_calibration(cfg, {**decision, "refit_e5": True}, repo)["abstain_threshold"] == 0.6
+    refit = e9.calibrations(cfg, {**decision, "refit_e5": True}, repo, alternate_sha=SHA12)
+    assert refit["improved"]["abstain_threshold"] == 0.6
+
+
+def test_the_primary_model_is_the_one_e12_chose_and_the_other_is_reported_beside_it(repo):
+    cfg = e9.load_config(repo)
+    (path,) = e9.run_images("field_test", cfg, predictors(), repo)
+    rec = json.loads(path.read_text())
+    c = rec["config"]
+    assert c["primary"]["candidate"] == "e4" and c["alternate"]["candidate"] == "e12"  # decision.json: E4 stays
+    assert c["primary"]["system"] == "improved" and c["alternate"]["system"] == "alternate"
+    assert c["primary"]["checkpoint"] == "models/e4/convnext_joint/best.pt"
+    assert c["alternate"]["checkpoint"] == "models/e12/convnext_joint_extra/best.pt"
+    assert set(rec["metrics"]["improved"]) == set(rec["metrics"]["alternate"])  # all the same measures, same rows
+    assert ("improved", "alternate") in {(x["a"], x["b"]) for x in rec["comparisons"]}
+    assert "primary" in rec["models"]["improved"] and "alternate" in rec["models"]["alternate"]
+    assert check_file(path, repo, min_n=1) == []
+    # when E12's gates pass, the decision names E12's model and the roles swap
+    write(repo, "results/e12/decision.json", {"chosen_model": "models/e12/convnext_joint_extra/best.pt",
+                                              "chosen_model_sha256": SHA12, "class_names": CLASSES, "refit_e5": True})
+    commit(repo, "E12 chosen")
+    swapped = e9.run_images("lab_test", cfg, predictors(), repo)[0]
+    c = json.loads(swapped.read_text())["config"]
+    assert c["primary"]["candidate"] == "e12" and c["alternate"]["candidate"] == "e4"
+    assert c["calibration"]["improved"]["temperature"] == 2.0 and c["calibration"]["alternate"]["temperature"] == 1.5
+    other = {"chosen_model": "models/elsewhere/best.pt", "chosen_model_sha256": SHA, "class_names": CLASSES}
+    with pytest.raises(e9.Refused, match="neither"):
+        e9.candidate_roles(cfg, other)
+
+
+def test_every_number_in_the_report_states_its_basis(repo):
+    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
+    rec = json.loads(path.read_text())
+    assert "cleaned rows" in rec["config"]["basis"] and "21 of 24" in rec["config"]["basis"]
+    text = e9.image_report(rec)
+    numbered = [x for x in text.splitlines() if any(ch.isdigit() for ch in x)]
+    assert numbered and all("cleaned rows" in x for x in numbered)
+    assert "primary" in text and "alternate" in text and "removed" in text
+    lab = json.loads(e9.run_images("lab_test", e9.load_config(repo), predictors(), repo)[0].read_text())
+    lines = [x for x in e9.image_report(lab).splitlines() if any(c.isdigit() for c in x)]
+    assert lines and all("lab_test" in x for x in lines)
 
 
 def test_image_record_is_recomputed_and_tampering_is_caught(repo):
@@ -314,6 +351,9 @@ def tiny_models(root):
     for rel in ("models/e1/best.pt", "models/e4/dinov2_head/best.pt", "models/e4/convnext_joint/best.pt"):
         (root / rel).parent.mkdir(parents=True, exist_ok=True)
         torch.save(state, root / rel)
+    other = {**state, "model": build_model("tiny_cnn", len(CLASSES), pretrained=False).state_dict()}
+    (root / "models/e12/convnext_joint_extra").mkdir(parents=True)
+    torch.save(other, root / "models/e12/convnext_joint_extra/best.pt")
     rng = np.random.default_rng(0)
     for i in range(12):
         Image.fromarray(rng.integers(0, 255, (40, 40, 3), dtype=np.uint8)).save(root / f"im{i}.png")
@@ -344,6 +384,15 @@ def test_real_predictors_run_tiny_models_of_every_kind(repo):
         assert out.shape == (5, 4) and np.allclose(out.sum(axis=1), 1.0, atol=1e-5), name
         assert p.detail.get("sha256"), name  # each frozen file is identified by its hash
     assert found["improved"].detail["sha256"] == decision["chosen_model_sha256"]
+    assert found["alternate"].detail["sha256"] == e9.sha256_file(repo / "models/e12/convnext_joint_extra/best.pt")
+    # E12's gates pass: the same files, with the roles swapped
+    e12 = e9.sha256_file(repo / "models/e12/convnext_joint_extra/best.pt")
+    swapped = {**decision, "chosen_model": "models/e12/convnext_joint_extra/best.pt", "chosen_model_sha256": e12}
+    export = json.loads((repo / "results/e6/export.json").read_text())
+    write(repo, "results/e6/export.json", {**export, "checkpoint_sha256": e12})  # E6 re-exported from E12's model
+    again = e9.build_predictors(cfg, swapped, repo)
+    assert again["improved"].detail["sha256"] == e12
+    assert again["alternate"].detail["sha256"] == decision["chosen_model_sha256"]
 
 
 def test_quantized_model_must_come_from_the_chosen_checkpoint(repo):
@@ -936,8 +985,8 @@ def test_cleaned_counts_calibration_and_labels_reviewed_cannot_be_edited(repo):
     assert any("cleaned_rows" in p for p in edited(lambda r: r["config"].pop("cleaned_rows")))
     assert any("clean" in p for p in edited(lambda r: r.update(subset=None)))
     assert any("labels_reviewed" in p for p in edited(lambda r: r.update(labels_reviewed=True)))
-    assert any("calibrat" in p for p in edited(lambda r: r["config"]["calibration"].update(temperature=3.0)))
-    assert any("calibrat" in p for p in edited(lambda r: r["config"]["calibration"].update(abstain_threshold=0.7)))
+    assert any("calibrat" in p for p in edited(lambda r: r["config"]["calibration"]["improved"].update(temperature=3.0)))
+    assert any("calibrat" in p for p in edited(lambda r: r["config"]["calibration"]["improved"].update(abstain_threshold=0.7)))
     path.write_text(json.dumps(good))
     cal = repo / good["predictions"]["quantized_calibrated"]
     text = cal.read_text()
@@ -945,3 +994,105 @@ def test_cleaned_counts_calibration_and_labels_reviewed_cannot_be_edited(repo):
     row["probs"] = row["probs"][::-1]
     cal.write_text(chr(10).join([json.dumps(row), *text.splitlines()[1:]]) + chr(10))
     assert any("calibrat" in p for p in check_file(path, repo, min_n=1))
+
+
+# ----------------------------------------------------------------------------------------------- the label signature
+
+import hashlib as _hashlib  # noqa: E402
+
+from sprout.eval.claims import check_claims  # noqa: E402
+
+
+def claim_on(root, path):
+    rec = json.loads(path.read_text())
+    write(root, "results/claims.json", {"claims": [{"id": "c1", "run_id": rec["run_id"], "system": "improved",
+                                                   "metric": "accuracy", "value": rec["metrics"]["improved"]["accuracy"]}]})
+    return rec
+
+
+def sign(root, split, signed=True):
+    book = json.loads((root / "orchestration/label_signoff.json").read_text())
+    book[split] = {"signed": signed, "by": "the person" if signed else None, "at": "2026-12-01" if signed else None,
+                   "words": "I checked the labels" if signed else None}
+    write(root, "orchestration/label_signoff.json", book)
+
+
+def test_a_false_signoff_row_refuses_a_claim(repo):
+    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
+    claim_on(repo, path)
+    problems = check_claims(repo)
+    assert any("field_test" in p and "not signed" in p for p in problems)
+    sign(repo, "lab_test")  # another split's signature does not count
+    assert any("field_test" in p and "not signed" in p for p in check_claims(repo))
+    (repo / "orchestration/label_signoff.json").unlink()  # no file is no signature
+    assert any("label_signoff.json" in p for p in check_claims(repo))
+    write(repo, "orchestration/label_signoff.json", {"field_test": {"signed": True}})  # a bare true says nobody, nothing
+    assert any("by" in p and "words" in p for p in check_claims(repo))
+
+
+def test_a_signed_row_passes_the_claim_without_touching_the_record(repo):
+    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
+    claim_on(repo, path)
+    before = _hashlib.sha256(path.read_bytes()).hexdigest()
+    assert check_claims(repo) != []
+    sign(repo, "field_test")
+    assert check_claims(repo) == []
+    assert _hashlib.sha256(path.read_bytes()).hexdigest() == before  # the record was not edited
+    assert json.loads(path.read_text())["labels_reviewed"] is False  # and never held the signature
+    sign(repo, "field_test", signed=False)  # taking it back refuses again, still without a rerun
+    assert check_claims(repo) != []
+
+
+def test_signing_needs_no_rerun_and_adds_no_record(repo):
+    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
+    claim_on(repo, path)
+    records = sorted(p.name for p in (repo / "results/runs").glob("E9-*.json"))
+    sign(repo, "field_test")
+    commit(repo, "the person signs the field_test labels")  # a tracked file: committing it is the whole step
+    assert check_claims(repo) == []
+    assert sorted(p.name for p in (repo / "results/runs").glob("E9-*.json")) == records
+    assert prior_stems(repo, "field_test") == [path.stem]  # still one use of the split: no rerun happened
+
+
+def prior_stems(root, split):
+    return e9.prior_uses(root, split)
+
+
+def test_a_record_that_claims_a_signature_is_refused_by_check_run(repo):
+    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
+    rec = json.loads(path.read_text())
+    rec["labels_reviewed"] = rec["config"]["labels_reviewed"] = True
+    path.write_text(json.dumps(rec))
+    assert any("no label signature" in p for p in check_file(path, repo, min_n=1))
+
+
+# ----------------------------------------------------------------------------------------------- the frozen records
+
+
+def test_the_frozen_config_must_name_a_dev_and_a_blind_record_made_before_it_with_its_prompt(frozen):
+    path = run_rag(frozen)
+    assert check_file(path, frozen, min_n=6) == []
+    runs = frozen / "results" / "runs"
+    frozen_cfg = json.loads((frozen / e9.FROZEN_REL).read_text())
+    dev, blind = runs / f"{frozen_cfg['dev_record']}.json", runs / f"{frozen_cfg['blind_read_record']}.json"
+    saved = {p: p.read_text() for p in (dev, blind)}
+
+    def with_edit(target, mutate):
+        rec = json.loads(saved[target])
+        mutate(rec)
+        target.write_text(json.dumps(rec))
+        problems = check_file(path, frozen, min_n=6)
+        target.write_text(saved[target])
+        return problems
+
+    assert any("dev_record" in p and "prompt" in p for p in with_edit(dev, lambda r: r["config"].update(prompt_sha256="0" * 64)))
+    assert any("blind_read_record" in p and "prompt" in p
+               for p in with_edit(blind, lambda r: r["config"].update(prompt_sha256="0" * 64)))
+    assert any("dev_record" in p and "before the freeze" in p
+               for p in with_edit(dev, lambda r: r.update(finished_at="2999-01-01T00:00:00+00:00")))
+    assert any("blind_read_record" in p and "dev_record" in p
+               for p in with_edit(blind, lambda r: r["config"].update(dev_record="E9-20200101T000000000000Z")))
+    blind.unlink()
+    assert any("blind_read_record" in p and "does not exist" in p for p in check_file(path, frozen, min_n=6))
+    blind.write_text(saved[blind])
+    assert check_file(path, frozen, min_n=6) == []

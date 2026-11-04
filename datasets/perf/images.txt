@@ -1,0 +1,5 @@
+datasets/raw/plantdoc/Apple Scab Leaf/12-20_apple_scab1.jpg
+datasets/raw/plantdoc/Potato leaf early blight/15hrt15a1f1.jpg
+datasets/raw/plantdoc/Tomato leaf late blight/tomato_late-blight_05_zoom.jpg
+datasets/raw/plantseg_field/corn rust/corn_rust_20.jpg
+datasets/raw/plantseg_field/tomato yellow leaf curl virus/tomato_yellow_leaf_curl_virus_google_0147.jpg

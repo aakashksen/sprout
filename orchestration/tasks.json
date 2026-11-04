@@ -796,7 +796,14 @@
         "{py} -m pytest tests/test_e8.py -q",
         "{py} -m sprout.eval.check_run E8 --min-n 5 --split perf"
       ],
-      "status": "pending"
+      "status": "done",
+      "started_at": "2026-11-04T22:27:40+00:00",
+      "verified": {
+        "commit": "2660df162f50b42547162b4da9436ca816293811",
+        "passed": true,
+        "at": "2026-11-04T23:10:01+00:00"
+      },
+      "done_at": "2026-11-04T23:23:09+00:00"
     },
     {
       "id": "H3",

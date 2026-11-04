@@ -39,6 +39,8 @@ from sprout.eval.records import (
     subset_positions,
     write_run,
 )
+from sprout.experiments.e5_confidence import FLOOR
+from sprout.serve.calibrate import apply_temperature
 from sprout.serve.export import OnnxModel, export_onnx, quantize
 
 SPLIT = "field_dev"
@@ -70,6 +72,11 @@ def load_config(path: Path) -> dict[str, Any]:
 
 def sha256_file(path: Path) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def stamped_with(path: Path, checkpoint_sha: str) -> bool:
+    """Does this model file say it came from the checkpoint with this checksum?"""
+    return OnnxModel(path).source_sha256 == checkpoint_sha
 
 
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -143,7 +150,8 @@ def stage_export(cfg: dict[str, Any], root: Path) -> None:
 
     def done(system: str) -> bool:
         info = state["files"].get(system)
-        return bool(info) and (p.models / info["file"]).is_file() and sha256_file(p.models / info["file"]) == info["sha256"]
+        file = p.models / info["file"] if info else None
+        return bool(info) and file.is_file() and sha256_file(file) == info["sha256"] and stamped_with(file, sha)
 
     def build(system: str, make) -> None:
         if done(system):
@@ -171,6 +179,8 @@ def exported(p: Paths) -> dict[str, Any]:
         info = state["files"].get(system)
         if not info or sha256_file(p.models / info["file"]) != info["sha256"]:
             raise RuntimeError(f"{system} is missing or changed since the export stage; run it again")
+        if not stamped_with(p.models / info["file"], state["checkpoint_sha256"]):
+            raise RuntimeError(f"{system} does not carry the checkpoint's checksum in its metadata; run export again")
     return state
 
 
@@ -313,6 +323,30 @@ def stage_latency(cfg: dict[str, Any], root: Path) -> None:
 # record
 
 
+def threshold_behaviour(cfg: dict[str, Any], root: Path, checkpoint_sha: str, preds: dict[str, Predictions]) -> dict[str, Any]:
+    """How the fitted temperature and abstention threshold behave on each system's probabilities: the share of
+    scored photos answered (coverage), the share abstained on, and the error rate among the answered ones.
+    E5 fitted them on PyTorch probabilities; the ONNX rows say whether they hold on the files that get served."""
+    path = root / cfg["thresholds"]
+    fitted = json.loads(path.read_text(encoding="utf-8"))
+    temperature, threshold = float(fitted["temperature"]), float(fitted["abstain_threshold"])
+    named = fitted.get("model_sha256")
+    systems = {}
+    for system, pr in preds.items():
+        top = apply_temperature(np.log(np.maximum(pr.probs, FLOOR)), temperature)
+        answered = top.max(axis=1) >= threshold
+        wrong = top.argmax(axis=1) != pr.label
+        systems[system] = {
+            "n": int(len(wrong)), "coverage": float(answered.mean()), "abstained": float(1 - answered.mean()),
+            "confident_error_rate": float(wrong[answered].mean()) if answered.any() else None,
+        }
+    return {
+        "file": cfg["thresholds"], "file_sha256": sha256_file(path), "temperature": temperature,
+        "abstain_threshold": threshold, "model_sha256": named,
+        "names_this_checkpoint": None if named is None else named == checkpoint_sha, "systems": systems,
+    }
+
+
 def stage_record(cfg: dict[str, Any], root: Path) -> Path:
     p = Paths(cfg, root)
     state = exported(p)
@@ -365,6 +399,7 @@ def stage_record(cfg: dict[str, Any], root: Path) -> Path:
         "probs_device": devices,
         "latency": {**machine, "measured": "one photo at a time on the CPU, decoded beforehand, from resize to "
                                            "probabilities, by the latency stage run alone"},
+        "e5_thresholds": threshold_behaviour(cfg, root, state["checkpoint_sha256"], preds),
         "label": "development number, field_dev only",
     }
     sizes = ", ".join(f"{s} {measurements[f'size_bytes_{s}'][0] / 1e6:.1f} MB" for s in SYSTEMS)
@@ -373,6 +408,8 @@ def stage_record(cfg: dict[str, Any], root: Path) -> Path:
     notes = (f"{CAVEAT} Sizes: {sizes}. Macro-F1 of pytorch minus each ONNX file: {loss}. Latency on {machine['cpu']}, "
              f"{machine['threads']} threads. Class probabilities were computed on {devices[REFERENCE]} (PyTorch) and the "
              "CPU (ONNX).")
+    held = "; ".join(f"{s} {v['coverage']:.3f}" for s, v in config["e5_thresholds"]["systems"].items())
+    notes += f" Coverage at E5's fitted abstention threshold on these photos (E5 aimed for 0.5 on its fitting part): {held}."
     attempts = [{"setting": s, "result": f"macro_f1 {metrics[s]['macro_f1']:.4f}", "device": devices[s]}
                 for s in SYSTEMS]
     models = {s: (f"{cfg['model']['name']} checkpoint {cfg['model']['checkpoint']}" if s == REFERENCE

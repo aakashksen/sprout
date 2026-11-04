@@ -682,3 +682,15 @@ These are workflow changes with no plan task of their own, filed under T0.1.
 - **Considered:** loosening the rule for apple, which would be tuning on the new data after seeing it and would risk leaked evaluation photos; the task says to report this cost.
 - **Evidence:** a seeded sample of 400 rows: 36.8% flagged, best inlier count 28 (the 30-inlier clause never fired), and the 12 highest-cosine flagged pairs viewed were all different leaves.
 - **Would change if:** a pair-specific check (inliers, not class-token cosine) were wanted for apple; that would be a new task.
+
+### T5.2 - The identifier reads E5's chosen.json, applies the gate before the abstention threshold (2026-11-04)
+- **Chose:** `Identifier(model_path, calibration_path)` takes the file `results/e5/chosen.json` has (`temperature`, `abstain_threshold`, `gate.settings`), so no new file format and no number is written in code. Probabilities are calibrated as E5 does (log with a 1e-12 floor, then temperature), then `gate.accepts` gives `not_plant`, then `decide` gives `answered` or `unsure`. The model path is also an argument; both depend on E12 and T5.1 outputs.
+- **Considered:** a separate calibration format (a second thing to keep in step with E5); abstaining before the gate (a non-plant photo would be told to "retake the leaf photo" instead of "this is not a plant").
+- **Evidence:** `tests/test_identify.py` with a tiny exported ONNX model; `FLOOR` is asserted equal to E5's.
+- **Would change if:** E5's selection puts the gate after abstention, or the chosen file's shape changes.
+
+### T5.2 - Input limits and edge cases (2026-11-04)
+- **Chose:** reject files over 20 MB and images over 60 megapixels from the header before `load()`; PIL's decompression-bomb warning and error also count as too large; any decode failure returns `invalid` with no exception. EXIF orientation is applied with `ImageOps.exif_transpose`. When `decide` returns no candidates (a flat spread), or answers with none above 10%, the reply is `unsure` with `top=None`. `unsure` carries fixed photo tips.
+- **Considered:** a side limit instead of a pixel count (rejects odd panoramas that are small in pixels); `answered` with `top=None` (breaks the contract).
+- **Evidence:** `test_oversize_image_is_rejected_before_decode_fully` (`load` is patched to fail), `test_flat_distribution_is_unsure_without_candidates`.
+- **Would change if:** real phone photos in T7.x exceed 60 MP, or the app wants a different message per failure.

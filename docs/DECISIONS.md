@@ -437,6 +437,81 @@ The first pass of E7 (records `E7-20261103T211314827721Z` to `E7-20261103T231812
 - **Considered:** keeping the first-pass rules and only rerunning (lost: they hid a clear reranking gain and starved the prompt stage).
 - **Evidence:** first-pass records above; `tests/test_e7.py` (the rule tests use the first pass's numbers), `tests/test_run_e7.py`.
 - **Would change if:** a pre-registered rule is wanted for a final claim; these numbers are not a claim.
+
+### T6.4 - Result: hybrid + rerank is the retrieval base (method v2, 2026-11-03)
+- **Chose:** hybrid search with the cross-encoder reranker over `knowledge/index` (237 documents), question as the query. The v2 rule (a paired interval of recall@5 or MRR excludes zero, and the other point estimate is not worse) kept it over dense.
+- **Considered:** dense and hybrid without reranking. Dense is the simpler setup and was kept by the first pass; hybrid without reranking was never better than dense in either pass.
+- **Evidence (v2, record `E7-20261103T234741564452Z`, 60 answerable rag_dev questions; recall@1 / @3 / @5 / @10 / MRR):** dense 0.417 / 0.617 / 0.717 / 0.817 / 0.543; hybrid 0.367 / 0.583 / 0.717 / 0.783 / 0.507; hybrid + rerank 0.600 / 0.800 / 0.833 / 0.933 / 0.712. Against dense, hybrid + rerank gains recall@5 +0.117 (95% CI 0.000 to +0.233, McNemar p=0.092) and MRR +0.170 (CI +0.084 to +0.262, p=0.007); hybrid alone is recall@5 +0.000 (CI -0.150 to +0.150) and MRR -0.036 (CI -0.154 to +0.078). The MRR interval is what keeps it under the revised rule. Hybrid without reranking is much worse on follow-up questions (recall@5 0.357 on the 14 multi-turn questions against 0.714 for dense and for hybrid + rerank). Cross-check with the lenient "any document holding an answer term" rank: dense 0.833, hybrid 0.733, hybrid + rerank 0.900 at recall@5.
+- **First pass, same numbers, other rule:** the recall@5 interval [0.000, +0.233] touched zero, so the old rule kept dense. The rule was revised after seeing this (see the method entry above); the numbers did not change, the rule did, and this result is therefore not independent of that choice.
+- **Would change if:** a larger or reviewed question set shows hybrid + rerank no better than dense on MRR.
+
+### T6.4 - Result: reranking costs about 30 ms on the GPU and about 600 ms on the CPU (2026-11-03)
+- **Chose:** nothing; a measurement for T7.4 (which measures the whole path end to end).
+- **Evidence (record `E7-20261103T235630916335Z`, 60 searches after 3 warm-up searches, 15 candidates reranked per search, k=5):** the reranker call takes p50 30.1 ms / p95 42.5 ms on CUDA (torch), p50 631.1 / p95 1063.4 ms on the CPU (torch) and p50 604.2 / p95 975.6 ms on the CPU through ONNX (the path serving uses). A whole search, including embedding the query on CUDA in every path, takes p50 57.7 / p95 79.5 ms on CUDA, p50 682.4 / p95 1085.9 ms on CPU torch and p50 630.0 / p95 1078.5 ms on CPU ONNX. All three paths reach the same recall@5 (0.833), so they agree on ranking. The laptop had 2,043 MiB of GPU memory in use by other work when the stage began; the CPU is a 24-thread AMD64. One machine, one run.
+- **Considered:** nothing else was timed. Serving on the CPU would add about 0.6 s to every chat search.
+- **Would change if:** another machine, a busier GPU, or a smaller candidate pool gives other numbers.
+
+### T6.4 - Result: structure-aware chunking dropped (method v2, 2026-11-03)
+- **Chose:** the plain chunker (base kept). `index-structured` (whole tables, paragraphs kept together) is not used.
+- **Evidence (record `E7-20261103T235742665344Z`, against hybrid + rerank):** base 0.600 / 0.800 / 0.833 / 0.933 / 0.712; structured 0.500 / 0.700 / 0.783 / 0.900 / 0.620. Structured minus base: recall@5 -0.050 (CI -0.117 to +0.017), MRR -0.092 (CI -0.185 to -0.002, p=0.180 for first-rank McNemar), so it is worse on MRR and does not help on recall. It is worse on follow-ups (recall@5 0.571 against 0.714) and slightly on single questions (0.848 against 0.870).
+- **First pass (against dense):** structured recall@5 0.683, MRR 0.425 against 0.717 and 0.543; the same conclusion.
+- **Considered:** keeping it because the questions rarely need a table; no gold question asks about a table, so this test cannot show a benefit for tables, only that chunking differently did not help these questions.
+- **Would change if:** questions that need whole tables (spray schedules, rates) are added and shown to benefit.
+
+### T6.4 - Result: context header dropped, borderline (method v2, 2026-11-03)
+- **Chose:** no header (base kept).
+- **Evidence (record `E7-20261103T235854416532Z`, against hybrid + rerank):** base 0.600 / 0.800 / 0.833 / 0.933 / 0.712; header 0.600 / 0.833 / 0.900 / 0.900 / 0.719. Header minus base: recall@5 +0.067 (CI 0.000 to +0.150, McNemar p=0.219) and MRR +0.007 (CI -0.070 to +0.083). The recall@5 interval has a lower bound of exactly 0.000, so under the rule (the lower bound must be above zero) it is dropped; it is the closest call in E7. By category the header helps single questions (recall@5 0.957 against 0.870) and not follow-ups (MRR 0.518 against 0.617). Recall@10 falls from 0.933 to 0.900.
+- **First pass (against dense):** header recall@5 0.767 against 0.717, recall@10 0.917 against 0.817, MRR 0.550 against 0.543: it looked promising there, and on the reranked base the gain shrinks.
+- **Considered:** keeping it on the point estimate (lost: the rule is the rule, and a +0.067 on 60 questions with MRR flat is not distinguishable from noise).
+- **Would change if:** a larger set puts the recall@5 interval above zero.
+
+### T6.4 - Result: shared-crop pages dropped (method v2, 2026-11-03)
+- **Chose:** `crops_from_title` stays off.
+- **Evidence (record `E7-20261104T000006095961Z`, against hybrid + rerank):** recall@5 -0.033 (CI -0.083 to 0.000), MRR -0.002 (CI -0.003 to 0.000). The option widens only 9 of 237 documents (a title naming a second crop), so it could change little. Two questions lost a hit. `test_tomato_question_cannot_cite_apple` still holds.
+- **First pass (against dense):** no change in recall@5 (0.717 for both) and MRR 0.533 against 0.543.
+- **Considered:** a `crops` list in the manifest (see the earlier crops entry).
+- **Would change if:** questions asked about a crop that only a mixed page covers are added.
+
+### T6.4 - Result: queries from the conversation and the top-3 diseases dropped (method v2, 2026-11-03)
+- **Chose:** the question alone is the query.
+- **Evidence (record `E7-20261104T000146288157Z`, against hybrid + rerank; recall@5 / MRR):** base 0.833 / 0.712; history 0.783 / 0.640; diseases 0.817 / 0.653; full (both) 0.750 / 0.618. Every variant is lower, and the MRR intervals of all three sit below zero (history -0.073, CI -0.136 to -0.021; diseases -0.059, CI -0.116 to -0.010; full -0.094, CI -0.164 to -0.033). Adding history lowers recall@5 on follow-ups from 0.714 to 0.500 and adding the diseases leaves it at 0.714 but lowers their MRR from 0.617 to 0.488.
+- **First pass (against dense):** history 0.683 / 0.528, diseases 0.700 / 0.507, full 0.667 / 0.456 against base 0.717 / 0.543: also at or below the base.
+- **Caveat:** the diagnosis here is simulated from the question text (see the method entry), a best case for the disease terms; it did not help even then. Whole earlier user turns pull the search toward the first question's topic, not the follow-up's.
+- **Considered:** a rewritten follow-up query (a language-model step); not built, since the plan asks for none.
+- **Would change if:** a real identifier's top-3 and a query-rewriting step are tested.
+
+### T6.4 - Result: score floor 0.73875 for hybrid + rerank (method v2, 2026-11-04)
+- **Chose:** floors per mode: dense 0.732844, hybrid 0.806462, hybrid + rerank 0.73875, replacing the single 0.3. They live in `sprout.rag.serving` and are picked on rag_dev, so the rates below are optimistic.
+- **Evidence (record `E7-20261104T000358595403Z`; answers when answerable / declines when not in documents / declines for a wrong crop / declines when ambiguous):** hybrid + rerank at 0.73875: 0.817 / 0.857 / 0.714 / 0.385. At the old 0.3 the same mode gives 0.833 / 0.643 / 0.571 / 0.154. Dense at 0.732844: 0.800 / 0.571 / 0.143 / 0.462; without reranking the floor cannot separate the classes (dense cosine scores overlap). Each floor is the rule's choice: the highest decline rate among floors answering at least 80% of answerable questions.
+- **Why answerable questions fall under the floor (hybrid + rerank, 11 of 60):** 10 follow-ups and 1 single question; for 7 the gold page was in the top 10 anyway, for 4 it was missing; 4 had no simulated diagnosis; the plant filter was applied to all 11 but only 3 would pass the floor without it. So most losses are short follow-ups scoring low on their own, not the plant filter or the diagnosis.
+- **First pass:** a dense floor of 0.801 answered 65% of answerable questions and declined every unanswerable one, and 21 of 60 answerable questions fell under it (13 follow-ups, 8 single). The rule was revised after seeing this.
+- **Considered:** a single floor for all modes (lost: the scales differ), and the first pass's balanced rule.
+- **Would change if:** the floors do not hold on new questions or on a real identifier's outputs.
+
+### T6.4 - Result: prompt `base+faithful+abstain`, direction only (method v2, 2026-11-04)
+- **Chose:** `base+faithful+abstain` as the default prompt (`sprout.rag.serving.PROMPT_VERSION`). **This is a direction-only choice: neither the faithful gain nor the abstain gain is distinguishable from noise.** `ask` was dropped.
+- **Evidence (record `E7-20261104T010519096337Z`; all 101 dev questions reach the writer with no score floor; writer `qwen3.5:4b-q4_K_M`, judge `gemma4:e4b-it-qat`; faithfulness / answers when answerable / declines when not in documents / declines when ambiguous):** base 0.722 / 1.000 / 0.000 / 0.000; faithful 0.780 / 1.000 / 0.000 / 0.000; abstain 0.763 / 1.000 / 0.143 / 0.000; ask 0.860 / 0.867 / 0.929 / 0.692; combined (faithful + abstain) 0.816 / 1.000 / 0.429 / 0.000. 506 graded answers across the six variants, so T6.6's 200 are available.
+  - **Faithful:** faithfulness +0.058 (95% CI -0.002 to +0.119): not distinguishable from noise.
+  - **Abstain:** declines when not in documents +0.143 (CI 0.000 to +0.357, n=14): not distinguishable from noise.
+  - **Ask:** declines when ambiguous +0.692 (CI +0.462 to +0.923, McNemar p=0.004, n=13) is a real effect on this set, but it costs answers when answerable -0.133 (CI -0.217 to -0.050, p=0.008): 8 of 60 answerable questions get a question back instead of an answer. It was dropped by the rule (answers may fall by at most 0.05), not because its target gain is noise. Its faithfulness (0.860) is computed on fewer answers (59) and is not comparable.
+  - **Combined:** the table line "combined: kept; target gain +0.000" in the stage's draft is wrong. The combined decision carried no target gain, so the draft printed a default zero. The real gains over base are faithfulness 0.816 against 0.722 (+0.094) and declines when not in documents 0.429 against 0.000 (+0.429), with answers unchanged at 1.000; that is why the combined line is kept. The stage's draft code is fixed (the decision now carries `target_gains`), but the first record's draft was not regenerated.
+- **First pass (behind the dense floor, about 41 answers a variant):** faithfulness 0.848 base, 0.867 faithful, 0.880 abstain, 0.844 ask; answers 0.65, 0.65, 0.65, 0.533. The faithful gain of +0.018 was noise, and the abstain and faithful rules could not show an effect because 60 of 101 questions never reached the writer.
+- **Served variant (chosen floors, 62 writer calls, 39 rows without a call because no passage passed the floor):** faithfulness 0.799, answers when answerable 0.800, declines when not in documents 0.929, declines when ambiguous 0.385. It ran with the `base` prompt, not the chosen one: `chosen.prompt` was not updated while `served` existed at the time of the record. The code is fixed (the chosen prompt is always set to the final choice), but the `served` rows and the Sonnet comparison below are for `base`.
+- **Device and time:** writer `cuda`, judge `cuda`; the writer took 230 to 368 s per variant for 101 calls.
+- **Considered:** `ask` in the default prompt (lost on answers); keeping the prompt at `base` (a coin flip on noise; the two rules cost nothing in answers, and the abstain rule moves the decline rate in the right direction).
+- **Would change if:** T6.6's second grader disagrees with the local judge, or a larger set separates the rules from noise.
+
+### T6.4 - Result: Sonnet against the local writer, 100 dev questions (method v2, 2026-11-04)
+- **Chose:** reported as a comparison only; the local writer stays the default.
+- **Evidence (record `E7-20261104T012205498018Z`, supersedes `E7-20261104T011437447083Z`; both writers served with the chosen floors and the `base` prompt over the first 100 dev questions, judged by `gemma4:e4b-it-qat`, never by Claude):** faithfulness 0.799 for the local writer and 0.671 for Sonnet; answers when answerable 0.800 for both; declines when not in documents 0.929 for both. Sonnet answered 62 of the 100 questions, the same rows as the local writer (the rest had no passage above the floor), so the comparison is on the same 62.
+- **Correction:** the earlier record's `claude_calls` read 0 because the stage was stopped (GPU busy) and resumed, and the count subtracted a before-count. The calls (62) were made in the first run. The new record counts them from the saved rows and was written from the saved rows with no new Sonnet calls (`results/claude_calls.json` was 63 before and after: 62 for this comparison and 1 for the smoke test). The earlier record is untouched; the new one is the one to use.
+- **Not interpreted:** Sonnet's lower faithfulness is a number from a local judge. T6.6 will have Sonnet check at least 200 of the judge's graded answers, including whether the judge favours the local writer's style.
+- **Would change if:** the person changes the model or the cap, or T6.6 shows the judge is biased.
+
+### T6.4 - Serving uses the chosen setup by default (2026-11-04)
+- **Chose:** `sprout/rag/serving.py` holds the retrieval mode (hybrid), reranking (on), k (5), the query mode (question), the floors and the prompt. `AnswerConfig` and `deploy/wsgi.py` read it, so `answer()` and the app use it with no arguments. `knowledge/index` stays the index. Reranking costs about 600 ms on the CPU and 30 ms on the GPU per search; T7.4 measures it end to end.
+- **Evidence:** `tests/test_serving.py` (defaults, an `answer()` call with no config, agreement with `results/e7/v2/chosen.json`, and the app's retriever config).
+- **Would change if:** serving cannot afford 600 ms per search on the CPU; the next step would be dropping reranking and using the dense floor, which separates far less.
 ### T6.4 - Not changed: navigation text in documents 241, 203, 239
 - **Chose:** left as they are. They are measured only through the stages (a navigation chunk that ranks high shows up as a lower recall); no cleaner was built, since the plan asks for none and the structured chunker's heading and table handling is the intended fix to test first.
 - **Would change if:** the answer reads show navigation text cited as evidence.

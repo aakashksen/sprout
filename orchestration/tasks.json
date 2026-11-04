@@ -632,7 +632,14 @@
       ],
       "status": "in_progress",
       "worktree": "<local path>",
-      "started_at": "2026-11-03T20:06:43+00:00"
+      "started_at": "2026-11-03T20:06:43+00:00",
+      "verified": {
+        "commit": "db53c80ef77eca32a7b285dcfd8c67484ea5bdc2",
+        "passed": true,
+        "at": "2026-11-04T01:47:32+00:00"
+      },
+      "attempts": 1,
+      "reason": "chemical and disposal note: the word list misses bleach, chlorine, TSP, neem, sulfur and burning, and 'product label' alone suppresses the note, so local rules are omitted"
     },
     {
       "id": "T6.6",

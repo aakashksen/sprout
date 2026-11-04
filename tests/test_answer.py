@@ -418,3 +418,13 @@ def test_citation_forms_we_do_not_parse_fall_on_the_safe_side_as_no_source(reply
 def test_a_misspelled_need_line_is_an_ordinary_answer_not_a_question_back():
     out = ask(FakeLLM(["NEEDS: crop\nWhich plant?"]))
     assert out.state == "ungrounded" and out.asks_for == []
+
+
+def test_a_clarifying_reply_cannot_carry_advice():
+    out = ask(FakeLLM(["NEED: photo\nSpray bleach on the plant weekly and burn it."]))
+    assert out.state == "clarify" and out.asks_for == ["photo"]
+    assert out.text == "Could you tell me photo?"
+    assert "bleach" not in out.text
+    assert ask(FakeLLM(["NEED:\nBurn it."])).text == "Could you tell me more about the plant and its symptoms?"
+    assert ask(FakeLLM(["NEED: crop\nSpray bleach. Which plant?"])).text == "Could you tell me crop?"
+    assert ask(FakeLLM(["NEED: crop\nWhich plant?"])).text == "Which plant?"

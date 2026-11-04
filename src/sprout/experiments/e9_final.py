@@ -229,7 +229,8 @@ def score_block(probs: dict[str, np.ndarray], labels: np.ndarray, groups: list[s
     return metrics, intervals, comparisons
 
 
-def run_images(split: str, cfg: dict[str, Any], predictors: dict[str, Predictor], root: Path = ROOT, *,
+def run_images(split: str, cfg: dict[str, Any], predictors: dict[str, Predictor] | Callable[[], dict[str, Predictor]],
+               root: Path = ROOT, *,
                override_note: str = "") -> list[Path]:
     """Score every frozen system once on `split` and write its record: lab_test gets a full record and a view on the
     shared classes, field_test gets one record on its cleaned rows. Refuses before any model runs unless the config
@@ -242,6 +243,8 @@ def run_images(split: str, cfg: dict[str, Any], predictors: dict[str, Predictor]
     decision = load_decision(cfg, root)
     calibration = load_calibration(cfg, decision, root)
     require_unused(root, split, override_note)
+    if callable(predictors):  # built only after every guard has passed, so a refused run loads no model
+        predictors = predictors()
     absent = [n for n in SYSTEMS if n not in predictors]
     if absent:
         raise Refused(f"frozen systems missing: {absent}")
@@ -871,3 +874,133 @@ def report(rec: dict[str, Any], root: Path = ROOT) -> str:
              "answers flagged as advice for the wrong disease or plant"]
     lines += [f"{k}: {v:.3f}" if v is not None else f"{k}: undefined" for k, v in rec["metrics"][SERVED].items()]
     return "\n".join(lines)
+
+
+# ---------------------------------------------------------------- command line (wires in the real models)
+
+STAGES = ("lab-test", "field-test", "wrong-disease-dev", "blind-sample", "unblind", "freeze", "rag-retrieve",
+          "rag-generate", "rag-judge-local", "rag-sonnet", "rag-record")
+EXIT_INCOMPLETE = 2
+
+
+def _device_file(root: Path) -> Path:
+    return Path(root) / WORK_REL / "device.json"
+
+
+def _remember_device(root: Path, role: str, info: dict[str, Any]) -> None:
+    path = _device_file(root)
+    known = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    atomic_write_text(path, json.dumps({**known, role: info}, indent=1) + "\n")
+
+
+def device_text(root: Path = ROOT) -> str:
+    """Where retrieval, the writer and the local judge ran, as recorded by their stages. Refuses if a stage left none."""
+    path = _device_file(root)
+    known = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    missing = [r for r in ("retrieval", "writer", "judge") if r not in known]
+    if missing:
+        raise Refused(f"no device was recorded for {missing}; run those stages first")
+    r, w, j = known["retrieval"], known["writer"], known["judge"]
+    return (f"retrieval on {r['device']}; writer {w['model']} with {w['size_vram']} of {w['size']} bytes in GPU memory; "
+            f"judge {j['model']} with {j['size_vram']} of {j['size']} bytes in GPU memory")
+
+
+def _on_gpu(client: Any, role: str, root: Path):
+    """Load the Ollama model with a tiny call, record where it sits (stopping if it is on the CPU), and unload it after."""
+    import contextlib
+
+    @contextlib.contextmanager
+    def held():
+        try:
+            client.complete([{"role": "user", "content": "Reply with the word ok."}], max_tokens=8, timeout_s=300)
+            place = client.placement()
+            if place is None or place["size_vram"] <= 0:
+                raise Refused(f"{client.model} is not on the GPU: {place}")
+            _remember_device(root, role, {"model": client.model, **place})
+            yield
+        finally:
+            with contextlib.suppress(LLMError):
+                client.unload()
+
+    return held()
+
+
+def _real_retriever(cfg: dict[str, Any], root: Path):
+    from sprout.rag.gpu_models import TorchEmbedder, TorchReranker
+    from sprout.rag.retrieve import Retriever
+
+    config = serving.retrieval_config()
+    embedder = TorchEmbedder(config.embedding_model, device=cfg["rag"]["device"])
+    reranker = TorchReranker(device=cfg["rag"]["device"])
+    _remember_device(root, "retrieval", {**embedder.info, **reranker.info})
+    return Retriever(Path(root) / cfg["rag"]["index_dir"], config=config, embedder=embedder, reranker=reranker)
+
+
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+    import sys
+
+    from sprout.llm.client import ClaudeCodeClient, OllamaClient
+
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("stage", choices=STAGES)
+    ap.add_argument("--override-note", default="", help="why a test split is run again (a later record needs one)")
+    ap.add_argument("--note", default="")
+    ap.add_argument("--read-file", help="unblind: the reader's file, one {item, reader} per line")
+    ap.add_argument("--reader", default="", help="unblind: who read the blind file")
+    a = ap.parse_args(argv)
+    try:
+        cfg, root, stage = load_config(ROOT), ROOT, a.stage
+        grader = lambda: ClaudeCodeClient(model=cfg["rag"]["grader"])  # noqa: E731
+        if stage in ("lab-test", "field-test"):
+            split = stage.replace("-", "_")
+            paths = run_images(split, cfg, lambda: build_predictors(cfg, load_decision(cfg, root), root), root,
+                               override_note=a.override_note)
+            print("\n".join(str(p) for p in paths))
+        elif stage == "wrong-disease-dev":
+            print(stage_wrong_disease_dev(cfg, grader(), root, a.note))
+        elif stage == "blind-sample":
+            print(stage_blind_sample(cfg, root))
+        elif stage == "unblind":
+            if not (a.read_file and a.reader.strip()):
+                raise Refused("unblind needs --read-file and --reader")
+            print(stage_unblind(cfg, root, Path(a.read_file), a.reader.strip(), a.note))
+        elif stage == "freeze":
+            print(stage_freeze(cfg, root))
+        elif stage == "rag-retrieve":
+            guard_rag_test(root, a.override_note)
+            print(f"{len(stage_rag_retrieve(cfg, _real_retriever(cfg, root), root, override_note=a.override_note).rows)} questions")
+        elif stage in ("rag-generate", "rag-judge-local"):
+            guard_rag_test(root, a.override_note)
+            role = "writer" if stage == "rag-generate" else "judge"
+            client = OllamaClient(cfg["rag"][role], keep_alive="10m")
+            with _on_gpu(client, role, root):
+                if role == "writer":
+                    from sprout.rag.answer import load_sources
+
+                    missing = stage_rag_generate(cfg, client, root, load_sources(root / "knowledge" / "manifest.csv"),
+                                                 override_note=a.override_note)
+                    print(f"{len(rag_questions(root)) - len(missing)} answers, {len(missing)} missing")
+                    if missing:
+                        print("Some questions got no model answer (Ollama down or timing out). Run it again to resume.")
+                        return EXIT_INCOMPLETE
+                else:
+                    print(stage_rag_judge_local(cfg, client, root, override_note=a.override_note))
+        elif stage == "rag-sonnet":
+            stage_rag_sonnet(cfg, grader(), root, override_note=a.override_note)
+            print("Sonnet judged the claims and ran the wrong-disease check")
+        else:
+            path = stage_rag_record(cfg, root, device=device_text(root), note=a.note, override_note=a.override_note)
+            print(path)
+            print(report(json.loads(path.read_text(encoding="utf-8")), root))
+    except (Refused, LLMError, RuntimeError, ValueError, OSError, KeyError) as exc:
+        print(f"refused: {exc}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    import sys
+
+    sys.exit(main())

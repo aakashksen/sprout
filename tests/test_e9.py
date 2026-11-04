@@ -114,8 +114,8 @@ def test_refuses_when_config_not_committed(repo):
         e9.require_committed(repo, ["configs/new.json"])  # never added
     write(repo, "configs/e9.json", {**CONFIG, "batch_size": 8})
     called = []
-    with pytest.raises(e9.Refused, match="not committed"):  # the stage itself refuses before any model runs
-        e9.run_images("lab_test", e9.load_config(repo), {"baseline": called.append}, repo)
+    with pytest.raises(e9.Refused, match="not committed"):  # the stage itself refuses before any model is built
+        e9.run_images("lab_test", e9.load_config(repo), lambda: called.append("built") or {}, repo)
     assert called == []
 
 
@@ -909,3 +909,12 @@ def test_rag_record_tampering_is_caught(frozen):
     sidecar.write_text(json.dumps(samples))
     path.write_text(json.dumps(saved))
     assert any("judged" in p for p in check_file(path, frozen, min_n=6))
+
+
+def test_the_device_of_every_local_stage_must_be_recorded(tmp_path):
+    with pytest.raises(e9.Refused, match="retrieval"):
+        e9.device_text(tmp_path)
+    for role, info in (("retrieval", {"device": "cuda"}), ("writer", {"model": "w", "size": 10, "size_vram": 10}),
+                       ("judge", {"model": "j", "size": 8, "size_vram": 8})):
+        e9._remember_device(tmp_path, role, info)
+    assert "retrieval on cuda" in e9.device_text(tmp_path) and "writer w with 10 of 10" in e9.device_text(tmp_path)

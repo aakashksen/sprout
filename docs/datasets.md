@@ -12,7 +12,8 @@ Classes: not applicable
 1. PlantVillage: official 38-class release, CC BY-SA 3.0.
 2. `not_plant`: COCO 2017 validation, local non-commercial evaluation, potted-plant images excluded, images never committed or redistributed.
 3. PlantDoc: local evaluation only, no redistribution. Updated 2026-11-02: T4.1 may also fine-tune on PlantDoc images for local use. The images are not republished, and the person checks before publishing any weights trained on them.
-4. H1 is not yet signed. The person signs it at the end.
+4. Plant Pathology 2021 (T4.8, third-party mirror): local, non-commercial, unpublished training use, approved 2026-11-03. The original terms are unconfirmed, so the person checks before publishing any weights trained on it.
+5. H1 is not yet signed. The person signs it at the end.
 Approved: yes, these are the person's recorded decisions
 
 ## PlantVillage (official 38-class release, used)
@@ -88,3 +89,21 @@ License: Apache-2.0 (Hugging Face API: `apache-2.0`, not gated).
 Classes: none; it's a language and vision model.
 Use: the local model through Ollama, as `qwen3.5:4b-q4_K_M`. See `docs/model-choice.md`.
 Approved: yes. Reason: Apache-2.0, ungated, no signed agreement.
+
+## PlantWild (extra real photos for training)
+
+URL: https://tqwei05.github.io/PlantWild ; files at https://huggingface.co/datasets/uqtwei2/PlantWild (`plantwild.zip` v1 and `plantwild_v2.zip` v2); paper https://arxiv.org/abs/2408.03120
+License: CC BY-NC-ND 4.0, as the authors state on https://tqwei05.github.io/PlantWild/access ; the Hugging Face repo metadata says `cc-by-nc-nd-4.0` (https://huggingface.co/api/datasets/uqtwei2/PlantWild). The images were collected from Google Images, Ecosia and Baidu Images (paper), and per-image rights were not checked. Non-commercial research use is allowed. The no-derivatives term is unresolved: whether a model trained on the images counts as a derivative was not decided, so weights trained on it need the person's check before publishing. The images are never committed or published.
+Size: `plantwild.zip` 2,708,493,416 bytes; `plantwild_v2.zip` 1,640,342,849 bytes (Hugging Face; both downloaded in full 2026-11-03 into the git-ignored `datasets/raw/plantwild_dl`).
+Classes: counted after download: v1 has 18,542 images in 89 class folders (56 diseased, 33 healthy-leaf); v2 has 11,488 images in 115 disease-only class folders. Class names match PlantSeg's style. Mapped to lab classes in `datasets/class_map_extra.csv`; per-class results in `docs/extra-sources.md`.
+Access: Public, repo not gated (`"gated": false`), no login. The UQRDM link on the authors' page is password protected and was not used. Each zip was extracted into its own new folder with a check that no member path escapes it.
+Approved: yes, under the person's rule for public data without login, paywall or block, for local non-commercial training only. Not for publishing
+
+## Plant Pathology 2021 (FGVC8), third-party mirror, used for training (T4.8)
+
+URL: third-party mirror https://huggingface.co/datasets/timm/plant-pathology-2021 (uploader: the Hugging Face account `timm`, "PyTorch Image Models"; the card is first-person and names no individual). Original source: https://www.kaggle.com/competitions/plant-pathology-2021-fgvc8 (not used).
+License: the mirror's card says `apache-2.0`. That is the uploader's own tag, not a statement by the dataset's authors. The Kaggle competition terms and the 2021 paper's terms could not be confirmed (the Kaggle pages return no text to anonymous requests, and the paper PDF failed TLS verification), so the original terms are unknown. There is no LICENSE file in the mirror.
+Classes: Apple foliar disease, 6 labels (complex, frog_eye_leaf_spot, healthy, powdery_mildew, rust, scab), multi-label. The mirror holds 18,632 images (train 16,768 and validation 1,864 as split by the uploader; the Kaggle test set is not in it), 34 parquet shards.
+Size: 16,094,435,250 bytes for the 34 parquet files; revision `ce9371685ebc24cf250bd02a8e0f6274b0c775d3`, downloaded one file at a time by `tools/download_plant_pathology.py` into the git-ignored `datasets/raw/plantpathology2021_dl`.
+Access: Public, repo not gated, no login used.
+Approved: yes, by the person through the coordinator on 2026-11-03, to fetch this mirror for local, non-commercial, unpublished training use. The images are never committed or published. Weights trained on them are added to the list needing the person's check before publishing, because the original terms are unconfirmed.

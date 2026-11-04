@@ -34,6 +34,9 @@ SHARED_OUTPUTS = ("models", "mlruns")
 DISPOSABLE = ("__pycache__", ".pytest_cache", ".ruff_cache", ".venv", "node_modules", ".egg-info", ".pyc", "dist", "build")
 GPU_BUDGET_MB = int(os.environ.get("CL_GPU_BUDGET_MB", "6400"))  # 8 GB less what the desktop keeps
 MAX_ATTEMPTS = 3
+INDEX_LOCK_STALE_S = 120
+INDEX_LOCK_TRIES = 12
+INDEX_LOCK_WAIT_S = 15
 TIMEOUT_S = int(os.environ.get("CL_VERIFY_TIMEOUT_S", "1800"))
 
 
@@ -97,6 +100,30 @@ def git(*args, cwd=None):
 
 def git_ok(*args, cwd=None):
     return subprocess.run(["git", *args], cwd=cwd or ROOT, capture_output=True, text=True)
+
+
+def clear_stale_index_lock(cwd=None, older_than_s=INDEX_LOCK_STALE_S):
+    """Git holds index.lock for moments, and a killed git leaves an empty one behind. An old empty one is stale."""
+    lock = Path(cwd or ROOT) / git("rev-parse", "--git-path", "index.lock", cwd=cwd).strip()
+    try:
+        info = lock.stat()
+        if info.st_size == 0 and time.time() - info.st_mtime > older_than_s:
+            lock.unlink()
+            return True
+    except OSError:
+        pass
+    return False
+
+
+def move_forward(ref, cwd=None, tries=INDEX_LOCK_TRIES, wait_s=INDEX_LOCK_WAIT_S):
+    """Fast-forwards to ref, waiting out index.lock: a land takes minutes, and shouldn't be lost to a lock at its end."""
+    for attempt in range(tries):
+        done = git_ok("merge", "--ff-only", "-q", ref, cwd=cwd)
+        if done.returncode == 0 or "index.lock" not in done.stderr or attempt == tries - 1:
+            return done
+        clear_stale_index_lock(cwd)
+        time.sleep(wait_s)
+    return done
 
 
 def head(cwd=None):
@@ -395,8 +422,9 @@ def cmd_land(args):
             sys.exit(f"refused: nothing landed, because these ignored files differ from the main folder's copies: {err}")
         if rescued:
             print(f"moved {rescued} git-ignored files from the worktree to the main folder")
-        forward = git_ok("merge", "--ff-only", "-q", f"task/{args.id}")
+        forward = move_forward(f"task/{args.id}")
         if forward.returncode:
+            link_shared(Path(worktree))
             sys.exit(f"refused: could not move {branch} forward: {forward.stderr.strip()}")
         with editing() as plan:
             task = find(plan, args.id)

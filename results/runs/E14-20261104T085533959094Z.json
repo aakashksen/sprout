@@ -1,0 +1,124 @@
+{
+ "run_id": "E14-20261104T085533959094Z",
+ "experiment": "E14",
+ "git_commit": "bf1210de79067b3814ae1132db7640bdc31f13b7",
+ "dirty": false,
+ "dataset_hash": "b6b3b168bfd8792f7311f47c457652657d82eb6e47e8a45e2a3aebaf9ba793f9",
+ "split": "rag_dev",
+ "subset": null,
+ "config": {
+  "experiment": "E14",
+  "split": "rag_dev",
+  "seed": 14,
+  "sample_size": 220,
+  "served_system": "served",
+  "max_calls": 1800,
+  "judge_model": "gemma4:e4b-it-qat",
+  "grader_model": "sonnet",
+  "source": {
+   "e7_run_id": "E7-20261104T040010301317Z",
+   "judgments": "E7-prompts-v2-1e90d37a.judgments.jsonl",
+   "judgments_sha256": "afb838d9291ce5c47c15ed859bb8ff0f2542a6faa071b6f75d7a2250e0895edb",
+   "blind": "E7-prompts-v2-1e90d37a.blind.jsonl",
+   "blind_sha256": "3e61c876e3e57eddd0aba9d5305a558f964ba15fef6733c6511e6d49ba8aa4dd"
+  },
+  "device": "none: no GPU or local model is used; Sonnet runs through the claude command and the local grades are read from a saved file",
+  "claude_calls": 1228,
+  "judge": {
+   "model": "gemma4:e4b-it-qat"
+  },
+  "started_at": "2026-11-04T08:55:33.889429+00:00",
+  "labels_reviewed": false,
+  "rubric": "You check one claim from a plant care answer against the evidence passages it cites.\nReply with SUPPORTED if the passages state the claim or clearly imply it, including its numbers and names.\nReply with NOT_SUPPORTED if the claim adds facts, numbers or names the passages lack, contradicts them, or is about a different plant or disease.\nReply with one word, SUPPORTED or NOT_SUPPORTED, and nothing else.",
+  "caveat": "These are grades of the judge, not E7 numbers. Sonnet's grades measure how far the local judge can be trusted; they set no E7 result, and Claude is still not the judge of E7."
+ },
+ "models": {
+  "judge_under_test": "gemma4:e4b-it-qat",
+  "grader": "sonnet"
+ },
+ "n": 220,
+ "metrics": {
+  "sample": {
+   "agreement": 0.8737785016286646,
+   "kappa": 0.6303733163479316,
+   "local_supported": 0.8379478827361564,
+   "sonnet_supported": 0.7345276872964169,
+   "claims_compared": 1228.0,
+   "claims_not_graded": 0.0,
+   "local_kinder": 141.0,
+   "local_stricter": 14.0,
+   "served_agreement": 0.9010238907849829,
+   "served_kappa": 0.6527726696906541,
+   "served_local_supported": 0.8771331058020477,
+   "served_sonnet_supported": 0.7849829351535836,
+   "served_claims_compared": 293.0,
+   "served_claims_not_graded": 0.0,
+   "served_local_kinder": 28.0,
+   "served_local_stricter": 1.0,
+   "served_answers": 54.0,
+   "served_answers_with_unsupported_local": 24.0,
+   "served_answers_with_unsupported_sonnet": 37.0
+  }
+ },
+ "measurements": {},
+ "judged": {},
+ "intervals": {
+  "sample": {
+   "agreement": [
+    0.849453122188471,
+    0.8970588235294118
+   ],
+   "kappa": [
+    0.57589836003873,
+    0.6835717830472612
+   ],
+   "local_supported": [
+    0.8068837846500211,
+    0.8670477979959651
+   ],
+   "sonnet_supported": [
+    0.6937382814286368,
+    0.773376179806859
+   ],
+   "served_agreement": [
+    0.8710801393728222,
+    0.9303803264246302
+   ],
+   "served_kappa": [
+    0.5528388049113285,
+    0.738685099279489
+   ],
+   "served_local_supported": [
+    0.8339343934643298,
+    0.9172419995038451
+   ],
+   "served_sonnet_supported": [
+    0.7293696607927941,
+    0.8362989323843416
+   ]
+  }
+ },
+ "per_class": {},
+ "confusion": {},
+ "bootstrap": {
+  "n": 10000,
+  "seed": 13
+ },
+ "comparisons": [],
+ "attempts": [
+  {
+   "stage": "grade",
+   "answers": 220,
+   "claude_calls": 1228,
+   "replies_without_a_verdict": 0
+  }
+ ],
+ "claude_calls": 1228,
+ "labels_reviewed": false,
+ "predictions": {
+  "sample": "results/runs/E14-20261104T085533959094Z.sample.predictions.jsonl"
+ },
+ "started_at": "2026-11-04T08:55:33.889429+00:00",
+ "finished_at": "2026-11-04T08:55:33.959094+00:00",
+ "notes": "These are grades of the judge, not E7 numbers. Sonnet's grades measure how far the local judge can be trusted; they set no E7 result, and Claude is still not the judge of E7."
+}

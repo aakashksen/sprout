@@ -1,0 +1,1 @@
+If no passage directly answers the question for this plant and condition, reply with exactly NO_SUPPORT and nothing else. A passage about a different plant or a different disease does not answer it.

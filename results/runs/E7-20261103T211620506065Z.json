@@ -1,0 +1,197 @@
+{
+ "run_id": "E7-20261103T211620506065Z",
+ "experiment": "E7",
+ "git_commit": "7a8e607b2051cde0fb4487c8dcf8879c290e8703",
+ "dirty": false,
+ "dataset_hash": "b6b3b168bfd8792f7311f47c457652657d82eb6e47e8a45e2a3aebaf9ba793f9",
+ "split": "rag_dev",
+ "subset": "answerable",
+ "config": {
+  "stage": "queries",
+  "base": "base",
+  "rank_k": 10,
+  "gold_matching": "A passage is the gold hit when its source and page equal the question's gold source and page. A document the index holds as a single page (every HTML page and Markdown file is 'page 1') would match any of its chunks, so there the passage must also contain one of the question's answer terms.",
+  "crop_source": "The plant comes from the question text (or the question's stated crop), never from the gold label. A top disease is simulated from the class names of that plant that the question names; a plant with no such class has no photo diagnosis.",
+  "device": {
+   "device": "cuda",
+   "torch": "2.11.0+cu128",
+   "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+   "cuda": "12.8",
+   "peak_gpu_mib": 137
+  },
+  "labels_reviewed": false
+ },
+ "models": {
+  "embedder": "BAAI/bge-small-en-v1.5",
+  "reranker": "cross-encoder/ms-marco-MiniLM-L6-v2"
+ },
+ "n": 60,
+ "metrics": {
+  "base": {
+   "recall@1": 0.4166666666666667,
+   "recall@3": 0.6166666666666667,
+   "recall@5": 0.7166666666666667,
+   "recall@10": 0.8166666666666667,
+   "mrr": 0.5428174603174604
+  },
+  "history": {
+   "recall@1": 0.4166666666666667,
+   "recall@3": 0.6,
+   "recall@5": 0.6833333333333333,
+   "recall@10": 0.7833333333333333,
+   "mrr": 0.5276785714285714
+  },
+  "diseases": {
+   "recall@1": 0.36666666666666664,
+   "recall@3": 0.55,
+   "recall@5": 0.7,
+   "recall@10": 0.8333333333333334,
+   "mrr": 0.5067328042328042
+  },
+  "full": {
+   "recall@1": 0.31666666666666665,
+   "recall@3": 0.5,
+   "recall@5": 0.6666666666666666,
+   "recall@10": 0.7833333333333333,
+   "mrr": 0.4561772486772487
+  }
+ },
+ "measurements": {},
+ "judged": {},
+ "intervals": {
+  "base": {
+   "recall@5": [
+    0.6,
+    0.8333333333333334
+   ],
+   "mrr": [
+    0.43793601190476195,
+    0.6450491071428569
+   ]
+  },
+  "history": {
+   "recall@5": [
+    0.5666666666666667,
+    0.8
+   ],
+   "mrr": [
+    0.42168452380952387,
+    0.6352827380952382
+   ]
+  },
+  "diseases": {
+   "recall@5": [
+    0.5833333333333334,
+    0.8166666666666667
+   ],
+   "mrr": [
+    0.4058062169312169,
+    0.6077787698412699
+   ]
+  },
+  "full": {
+   "recall@5": [
+    0.55,
+    0.7833333333333333
+   ],
+   "mrr": [
+    0.3572714947089947,
+    0.5585224867724867
+   ]
+  }
+ },
+ "per_class": {},
+ "confusion": {},
+ "bootstrap": {
+  "n": 10000,
+  "seed": 13
+ },
+ "comparisons": [
+  {
+   "a": "history",
+   "b": "base",
+   "metric": "recall@5",
+   "diff": -0.03333333333333333,
+   "ci": [
+    -0.1,
+    0.03333333333333333
+   ],
+   "mcnemar_p": 0.625
+  },
+  {
+   "a": "diseases",
+   "b": "base",
+   "metric": "recall@5",
+   "diff": -0.016666666666666666,
+   "ci": [
+    -0.05,
+    0.0
+   ],
+   "mcnemar_p": 1.0
+  },
+  {
+   "a": "full",
+   "b": "base",
+   "metric": "recall@5",
+   "diff": -0.05,
+   "ci": [
+    -0.13333333333333333,
+    0.016666666666666666
+   ],
+   "mcnemar_p": 0.375
+  }
+ ],
+ "attempts": [
+  {
+   "system": "base",
+   "setting": {
+    "index": "index",
+    "mode": "dense",
+    "rerank": false,
+    "query_mode": "question",
+    "crops_from_title": false
+   }
+  },
+  {
+   "system": "history",
+   "setting": {
+    "index": "index",
+    "mode": "dense",
+    "rerank": false,
+    "query_mode": "history",
+    "crops_from_title": false
+   }
+  },
+  {
+   "system": "diseases",
+   "setting": {
+    "index": "index",
+    "mode": "dense",
+    "rerank": false,
+    "query_mode": "diseases",
+    "crops_from_title": false
+   }
+  },
+  {
+   "system": "full",
+   "setting": {
+    "index": "index",
+    "mode": "dense",
+    "rerank": false,
+    "query_mode": "full",
+    "crops_from_title": false
+   }
+  }
+ ],
+ "claude_calls": 0,
+ "labels_reviewed": false,
+ "predictions": {
+  "base": "results/runs/E7-20261103T211620506065Z.base.predictions.jsonl",
+  "history": "results/runs/E7-20261103T211620506065Z.history.predictions.jsonl",
+  "diseases": "results/runs/E7-20261103T211620506065Z.diseases.predictions.jsonl",
+  "full": "results/runs/E7-20261103T211620506065Z.full.predictions.jsonl"
+ },
+ "started_at": "2026-11-03T21:16:20.506065+00:00",
+ "finished_at": "2026-11-03T21:16:20.506065+00:00",
+ "notes": "Retrieval only, on the answerable questions; the score floor is off."
+}

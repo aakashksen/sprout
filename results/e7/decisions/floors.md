@@ -1,0 +1,6 @@
+### T6.4 - Score floor per mode, picked on rag_dev (2026-11-03)
+- **Chose:** floors {'dense': 0.801127, 'hybrid': 0.886041, 'hybrid+rerank': 0.945975} (retrieval setup {'index': 'index', 'mode': 'dense', 'rerank': False, 'query_mode': 'question', 'crops_from_title': False}), replacing the single 0.3.
+- **Considered:** the single floor of 0.3 (the T6.5 verifier found it filters almost nothing without reranking).
+- **Evidence:** record `E7-20261103T211722141404Z`. Per system answers_when_answerable / declines_when_unanswerable / declines_when_crop_mismatch: floor_chosen_dense: 0.650 / 1.000 / 0.857; floor_default_dense: 1.000 / 0.000 / 0.000; floor_chosen_hybrid: 0.650 / 0.929 / 0.929; floor_default_hybrid: 1.000 / 0.000 / 0.000; floor_chosen_hybrid_rerank: 0.800 / 0.857 / 1.000; floor_default_hybrid_rerank: 0.833 / 0.643 / 0.571
+- **Would change if:** floors picked on rag_dev do not hold on new questions (they are optimistic here).
+- **Device:** {'device': 'cuda', 'torch': '2.11.0+cu128', 'gpu': 'NVIDIA GeForce RTX 4070 Laptop GPU', 'cuda': '12.8', 'peak_gpu_mib': 480}

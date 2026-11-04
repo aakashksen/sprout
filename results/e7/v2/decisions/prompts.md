@@ -1,0 +1,16 @@
+### T6.4 - Prompt versions, one rule at a time, on qwen3.5:4b-q4_K_M (method v2, 2026-11-03)
+- **Chose:** `base+faithful+abstain`
+- **Considered, direction rule (kept when the target rises and answers_when_answerable falls by at most 0.05), with intervals:**
+  - faithful: kept; target gain +0.077, answers change -0.000; target +0.077 (95% CI +0.014 to +0.140), distinguishable from noise; answers_when_answerable +0.000 (95% CI +0.000 to +0.000), McNemar p=1.000
+  - abstain: kept; target gain +0.643, answers change -0.033; target +0.643 (95% CI +0.357 to +0.857), distinguishable from noise; answers_when_answerable -0.033 (95% CI -0.083 to +0.000), McNemar p=0.500
+  - ask: dropped; target gain +0.692, answers change -0.117; target +0.692 (95% CI +0.462 to +0.923), distinguishable from noise; answers_when_answerable -0.117 (95% CI -0.200 to -0.050), McNemar p=0.016
+  - combined: kept; target gains over base faithful +0.108, abstain +0.643, answers change -0.017
+- **Evidence:** record `E7-20261104T040010301317Z` (n=101); judge gemma4:e4b-it-qat; 421 graded answers. Per variant faithfulness / answers_when_answerable / declines_when_unanswerable / declines_when_ambiguous:
+  - base: 0.743 / 0.983 / 0.357 / 0.000; writer calls 101, rows without a call 0, 346.5 s; graded answers 88
+  - faithful: 0.821 / 0.983 / 0.643 / 0.000; writer calls 101, rows without a call 0, 317.9 s; graded answers 79
+  - abstain: 0.825 / 0.950 / 1.000 / 0.000; writer calls 101, rows without a call 0, 275.4 s; graded answers 71
+  - ask: 0.859 / 0.867 / 1.000 / 0.692; writer calls 101, rows without a call 0, 262.2 s; graded answers 58
+  - combined: 0.851 / 0.967 / 1.000 / 0.077; writer calls 101, rows without a call 0, 275.5 s; graded answers 71
+  - served: 0.877 / 0.783 / 1.000 / 0.462; writer calls 62, rows without a call 39, 149.0 s; graded answers 54
+- **Device:** writer cuda; judge cuda
+- **Would change if:** a second grader (T6.6) disagrees with the local judge on the claims in the blind file.

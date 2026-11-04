@@ -1,0 +1,4 @@
+You check one claim from a plant care answer against the evidence passages it cites.
+Reply with SUPPORTED if the passages state the claim or clearly imply it, including its numbers and names.
+Reply with NOT_SUPPORTED if the claim adds facts, numbers or names the passages lack, contradicts them, or is about a different plant or disease.
+Reply with one word, SUPPORTED or NOT_SUPPORTED, and nothing else.

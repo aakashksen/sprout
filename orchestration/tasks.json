@@ -421,18 +421,19 @@
         "T4.1"
       ],
       "acceptance": [
-        "{py} -m pytest tests/test_extra_sources.py -q"
+        "{py} -m pytest tests/test_extra_sources.py -q",
+        "{py} -m pytest tests/test_extra_sources.py -q -m real"
       ],
-      "status": "in_progress",
-      "worktree": "<local path>",
+      "status": "done",
       "started_at": "2026-11-03T16:45:43+00:00",
       "verified": {
-        "commit": "ffca1d892d43edc8ee4210c9dddeb5cb2617268c",
+        "commit": "d1b6c9b036fa270e5057782296e52855b752afef",
         "passed": true,
-        "at": "2026-11-03T20:23:06+00:00"
+        "at": "2026-11-04T01:27:35+00:00"
       },
       "attempts": 2,
-      "reason": "at least 7 kept extras are cropped or zoomed copies of field_dev or field_test photos; the full-frame check cannot see crops"
+      "reason": "at least 7 kept extras are cropped or zoomed copies of field_dev or field_test photos; the full-frame check cannot see crops",
+      "done_at": "2026-11-04T01:35:01+00:00"
     },
     {
       "id": "T4.8",
@@ -443,9 +444,17 @@
         "T4.5"
       ],
       "acceptance": [
-        "{py} -m pytest tests/test_extra_sources.py -q"
+        "{py} -m pytest tests/test_extra_sources.py -q",
+        "{py} -m pytest tests/test_extra_sources.py -q -m real"
       ],
-      "status": "pending"
+      "status": "done",
+      "started_at": "2026-11-04T01:35:43+00:00",
+      "verified": {
+        "commit": "501acd975fc01fb91830f2df9c057aa7887d783f",
+        "passed": true,
+        "at": "2026-11-04T08:55:02+00:00"
+      },
+      "done_at": "2026-11-04T09:31:27+00:00"
     },
     {
       "id": "T4.6",
@@ -461,7 +470,9 @@
         "{py} -m pytest tests/test_e12.py -q",
         "{py} -m sprout.eval.check_run E12 --min-n 200 --split field_dev"
       ],
-      "status": "pending"
+      "status": "in_progress",
+      "worktree": "<local path>",
+      "started_at": "2026-11-04T09:31:48+00:00"
     },
     {
       "id": "T5.0",
@@ -626,9 +637,16 @@
         "{py} -m pytest tests/test_answer.py -q",
         "{py} -m sprout.eval.check_run E7 --min-n 50 --split rag_dev"
       ],
-      "status": "in_progress",
-      "worktree": "<local path>",
-      "started_at": "2026-11-03T20:06:43+00:00"
+      "status": "done",
+      "started_at": "2026-11-03T20:06:43+00:00",
+      "verified": {
+        "commit": "02c67e6f210f629712bd618001d7cd5648dabd60",
+        "passed": true,
+        "at": "2026-11-04T04:14:55+00:00"
+      },
+      "attempts": 1,
+      "reason": "chemical and disposal note: the word list misses bleach, chlorine, TSP, neem, sulfur and burning, and 'product label' alone suppresses the note, so local rules are omitted",
+      "done_at": "2026-11-04T07:56:09+00:00"
     },
     {
       "id": "T6.6",
@@ -642,7 +660,14 @@
         "{py} -m pytest tests/test_e14.py -q",
         "{py} -m sprout.eval.check_run E14 --min-n 200 --split rag_dev"
       ],
-      "status": "pending"
+      "status": "done",
+      "started_at": "2026-11-04T07:56:37+00:00",
+      "verified": {
+        "commit": "0c3734d6498f28b363963357896d7fb4a7d3b981",
+        "passed": true,
+        "at": "2026-11-04T08:56:35+00:00"
+      },
+      "done_at": "2026-11-04T09:10:49+00:00"
     },
     {
       "id": "T7.1",

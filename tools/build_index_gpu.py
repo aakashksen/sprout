@@ -1,6 +1,6 @@
 """Build a document index and embed its chunks on the GPU.
 
-    py -3.12 tools/build_index_gpu.py --index <dir> [--task T6.5]
+    py -3.12 tools/build_index_gpu.py --index <dir> [--task T6.5] [--chunker structured] [--header]
 
 Runs build_index on knowledge/manifest.csv and knowledge/raw (CPU, text only), then holds a GPU
 share from taskctl for the embedding stage only, embeds every chunk with the retrieval model on
@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from sprout.rag.ingest import build_index, load_manifest  # noqa: E402
-from sprout.rag.retrieve import RetrievalConfig, vectors_cache_path  # noqa: E402
+from sprout.rag.retrieve import RetrievalConfig, chunk_search_text, vectors_cache_path  # noqa: E402
 
 BATCH = 64
 MAX_LENGTH = 512
@@ -81,10 +81,14 @@ def embed_on_gpu(texts: list[str], model_name: str) -> tuple[np.ndarray, dict]:
     return out, info
 
 
-def build(index_dir: Path, *, task: str, manifest: Path, raw: Path, embed=embed_on_gpu, ctl=taskctl) -> dict:
+def build(
+    index_dir: Path, *, task: str, manifest: Path, raw: Path, embed=embed_on_gpu, ctl=taskctl,
+    chunker: str = "plain", header: bool = False,
+) -> dict:
     config = RetrievalConfig()
-    report = build_index(load_manifest(manifest), raw, index_dir)
-    texts = [json.loads(line)["text"] for line in (index_dir / "chunks.jsonl").read_text(encoding="utf-8").splitlines()]
+    report = build_index(load_manifest(manifest), raw, index_dir, chunker=chunker, header=header)
+    rows = [json.loads(line) for line in (index_dir / "chunks.jsonl").read_text(encoding="utf-8").splitlines()]
+    texts = [chunk_search_text(r) for r in rows]
     ctl("gpu-acquire", task)
     try:
         vectors, device_info = embed(texts, config.embedding_model)
@@ -100,6 +104,8 @@ def build(index_dir: Path, *, task: str, manifest: Path, raw: Path, embed=embed_
         "task": task,
         "chunks": report.chunks,
         "failures": len(report.failures),
+        "chunker": chunker,
+        "header": header,
         "embedding_model": config.embedding_model,
         "vectors_file": cache.name,
         **device_info,
@@ -114,8 +120,13 @@ def main() -> None:
     parser.add_argument("--task", default="T6.5")
     parser.add_argument("--manifest", type=Path, default=ROOT / "knowledge" / "manifest.csv")
     parser.add_argument("--raw", type=Path, default=ROOT / "knowledge" / "raw")
+    parser.add_argument("--chunker", choices=("plain", "structured"), default="plain")
+    parser.add_argument("--header", action="store_true")
     args = parser.parse_args()
-    print(json.dumps(build(args.index, task=args.task, manifest=args.manifest, raw=args.raw), indent=2))
+    if args.index.name in ("index", "index.old"):
+        sys.exit("refusing to build over knowledge/index; give a new name such as knowledge/index-structured")
+    print(json.dumps(build(args.index, task=args.task, manifest=args.manifest, raw=args.raw,
+                           chunker=args.chunker, header=args.header), indent=2))
 
 
 if __name__ == "__main__":

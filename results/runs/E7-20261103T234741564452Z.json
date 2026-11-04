@@ -1,0 +1,237 @@
+{
+ "run_id": "E7-20261103T234741564452Z",
+ "experiment": "E7",
+ "git_commit": "6711a5a93c421b4401e6d509d19071f257186e58",
+ "dirty": false,
+ "dataset_hash": "b6b3b168bfd8792f7311f47c457652657d82eb6e47e8a45e2a3aebaf9ba793f9",
+ "split": "rag_dev",
+ "subset": "answerable",
+ "config": {
+  "stage": "baseline",
+  "method_version": 2,
+  "base": "dense",
+  "rank_k": 10,
+  "gold_matching": "A passage is the gold hit when its source and page equal the question's gold source and page. A document the index holds as a single page (every HTML page and Markdown file is 'page 1') would match any of its chunks, so there the passage must also contain one of the question's answer terms.",
+  "crop_source": "The plant comes from the question text (or the question's stated crop), never from the gold label. A top disease is simulated from the class names of that plant that the question names; a plant with no such class has no photo diagnosis.",
+  "device": "cuda",
+  "device_info": {
+   "device": "cuda",
+   "torch": "2.11.0+cu128",
+   "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+   "cuda": "12.8",
+   "peak_gpu_mib": 480
+  },
+  "labels_reviewed": false,
+  "decision_rule": "keep when the paired interval of recall@5 or of MRR excludes zero and the other point estimate is not worse (version 2, revised after the first pass)"
+ },
+ "models": {
+  "embedder": "BAAI/bge-small-en-v1.5",
+  "reranker": "cross-encoder/ms-marco-MiniLM-L6-v2"
+ },
+ "n": 60,
+ "metrics": {
+  "dense": {
+   "recall@1": 0.4166666666666667,
+   "recall@3": 0.6166666666666667,
+   "recall@5": 0.7166666666666667,
+   "recall@10": 0.8166666666666667,
+   "mrr": 0.5428174603174604
+  },
+  "dense_terms": {
+   "recall@1": 0.5,
+   "recall@3": 0.7666666666666667,
+   "recall@5": 0.8333333333333334,
+   "recall@10": 0.9,
+   "mrr": 0.6481216931216931
+  },
+  "hybrid": {
+   "recall@1": 0.36666666666666664,
+   "recall@3": 0.5833333333333334,
+   "recall@5": 0.7166666666666667,
+   "recall@10": 0.7833333333333333,
+   "mrr": 0.5068915343915343
+  },
+  "hybrid_terms": {
+   "recall@1": 0.4666666666666667,
+   "recall@3": 0.65,
+   "recall@5": 0.7333333333333333,
+   "recall@10": 0.8833333333333333,
+   "mrr": 0.5910119047619048
+  },
+  "hybrid_rerank": {
+   "recall@1": 0.6,
+   "recall@3": 0.8,
+   "recall@5": 0.8333333333333334,
+   "recall@10": 0.9333333333333333,
+   "mrr": 0.7123544973544973
+  },
+  "hybrid_rerank_terms": {
+   "recall@1": 0.6666666666666666,
+   "recall@3": 0.8166666666666667,
+   "recall@5": 0.9,
+   "recall@10": 0.9666666666666667,
+   "mrr": 0.7655555555555557
+  }
+ },
+ "measurements": {},
+ "judged": {},
+ "intervals": {
+  "dense": {
+   "recall@5": [
+    0.6,
+    0.8333333333333334
+   ],
+   "mrr": [
+    0.43793601190476195,
+    0.6450491071428569
+   ]
+  },
+  "dense_terms": {
+   "recall@5": [
+    0.7333333333333333,
+    0.9166666666666666
+   ],
+   "mrr": [
+    0.5511051587301586,
+    0.7433373015873016
+   ]
+  },
+  "hybrid": {
+   "recall@5": [
+    0.6,
+    0.8333333333333334
+   ],
+   "mrr": [
+    0.4027374338624339,
+    0.6115932539682538
+   ]
+  },
+  "hybrid_terms": {
+   "recall@5": [
+    0.6166666666666667,
+    0.85
+   ],
+   "mrr": [
+    0.48809226190476196,
+    0.6922222222222222
+   ]
+  },
+  "hybrid_rerank": {
+   "recall@5": [
+    0.7333333333333333,
+    0.9166666666666666
+   ],
+   "mrr": [
+    0.6158108465608466,
+    0.8047619047619048
+   ]
+  },
+  "hybrid_rerank_terms": {
+   "recall@5": [
+    0.8166666666666667,
+    0.9666666666666667
+   ],
+   "mrr": [
+    0.6739791666666668,
+    0.8510185185185185
+   ]
+  }
+ },
+ "per_class": {},
+ "confusion": {},
+ "bootstrap": {
+  "n": 10000,
+  "seed": 13
+ },
+ "comparisons": [
+  {
+   "a": "hybrid",
+   "b": "dense",
+   "metric": "recall@5",
+   "diff": 0.0,
+   "ci": [
+    -0.15,
+    0.15
+   ],
+   "mcnemar_p": 1.0
+  },
+  {
+   "a": "hybrid",
+   "b": "dense",
+   "metric": "mrr",
+   "diff": -0.035925925925925924,
+   "ci": [
+    -0.15390013227513227,
+    0.07836160714285711
+   ],
+   "mcnemar_p": 0.6476058959960938
+  },
+  {
+   "a": "hybrid_rerank",
+   "b": "dense",
+   "metric": "recall@5",
+   "diff": 0.11666666666666667,
+   "ci": [
+    0.0,
+    0.23333333333333334
+   ],
+   "mcnemar_p": 0.09228515625
+  },
+  {
+   "a": "hybrid_rerank",
+   "b": "dense",
+   "metric": "mrr",
+   "diff": 0.16953703703703704,
+   "ci": [
+    0.08389517195767197,
+    0.2617194113756613
+   ],
+   "mcnemar_p": 0.00738525390625
+  }
+ ],
+ "attempts": [
+  {
+   "system": "dense",
+   "setting": {
+    "index": "index",
+    "mode": "dense",
+    "rerank": false,
+    "query_mode": "question",
+    "crops_from_title": false
+   }
+  },
+  {
+   "system": "hybrid",
+   "setting": {
+    "index": "index",
+    "mode": "hybrid",
+    "rerank": false,
+    "query_mode": "question",
+    "crops_from_title": false
+   }
+  },
+  {
+   "system": "hybrid_rerank",
+   "setting": {
+    "index": "index",
+    "mode": "hybrid",
+    "rerank": true,
+    "query_mode": "question",
+    "crops_from_title": false
+   }
+  }
+ ],
+ "claude_calls": 0,
+ "labels_reviewed": false,
+ "predictions": {
+  "dense": "results/runs/E7-20261103T234741564452Z.dense.predictions.jsonl",
+  "dense_terms": "results/runs/E7-20261103T234741564452Z.dense_terms.predictions.jsonl",
+  "hybrid": "results/runs/E7-20261103T234741564452Z.hybrid.predictions.jsonl",
+  "hybrid_terms": "results/runs/E7-20261103T234741564452Z.hybrid_terms.predictions.jsonl",
+  "hybrid_rerank": "results/runs/E7-20261103T234741564452Z.hybrid_rerank.predictions.jsonl",
+  "hybrid_rerank_terms": "results/runs/E7-20261103T234741564452Z.hybrid_rerank_terms.predictions.jsonl"
+ },
+ "started_at": "2026-11-03T23:47:41.564452+00:00",
+ "finished_at": "2026-11-03T23:47:41.564452+00:00",
+ "notes": "Retrieval only, on the answerable questions; the score floor is off."
+}

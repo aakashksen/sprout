@@ -1,0 +1,305 @@
+{
+ "run_id": "E7-20261104T000146288157Z",
+ "experiment": "E7",
+ "git_commit": "59454dad6632a13bf625e5ca4d3bdf566975fdd0",
+ "dirty": false,
+ "dataset_hash": "b6b3b168bfd8792f7311f47c457652657d82eb6e47e8a45e2a3aebaf9ba793f9",
+ "split": "rag_dev",
+ "subset": "answerable",
+ "config": {
+  "stage": "queries",
+  "method_version": 2,
+  "base": "base",
+  "rank_k": 10,
+  "gold_matching": "A passage is the gold hit when its source and page equal the question's gold source and page. A document the index holds as a single page (every HTML page and Markdown file is 'page 1') would match any of its chunks, so there the passage must also contain one of the question's answer terms.",
+  "crop_source": "The plant comes from the question text (or the question's stated crop), never from the gold label. A top disease is simulated from the class names of that plant that the question names; a plant with no such class has no photo diagnosis.",
+  "device": "cuda",
+  "device_info": {
+   "device": "cuda",
+   "torch": "2.11.0+cu128",
+   "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+   "cuda": "12.8",
+   "peak_gpu_mib": 479
+  },
+  "labels_reviewed": false,
+  "decision_rule": "keep when the paired interval of recall@5 or of MRR excludes zero and the other point estimate is not worse (version 2, revised after the first pass)"
+ },
+ "models": {
+  "embedder": "BAAI/bge-small-en-v1.5",
+  "reranker": "cross-encoder/ms-marco-MiniLM-L6-v2"
+ },
+ "n": 60,
+ "metrics": {
+  "base": {
+   "recall@1": 0.6,
+   "recall@3": 0.8,
+   "recall@5": 0.8333333333333334,
+   "recall@10": 0.9333333333333333,
+   "mrr": 0.7123544973544973
+  },
+  "base_terms": {
+   "recall@1": 0.6666666666666666,
+   "recall@3": 0.8166666666666667,
+   "recall@5": 0.9,
+   "recall@10": 0.9666666666666667,
+   "mrr": 0.7655555555555557
+  },
+  "history": {
+   "recall@1": 0.5333333333333333,
+   "recall@3": 0.7166666666666667,
+   "recall@5": 0.7833333333333333,
+   "recall@10": 0.8666666666666667,
+   "mrr": 0.6396957671957673
+  },
+  "history_terms": {
+   "recall@1": 0.6166666666666667,
+   "recall@3": 0.7333333333333333,
+   "recall@5": 0.8166666666666667,
+   "recall@10": 0.9,
+   "mrr": 0.6993253968253968
+  },
+  "diseases": {
+   "recall@1": 0.55,
+   "recall@3": 0.7,
+   "recall@5": 0.8166666666666667,
+   "recall@10": 0.8666666666666667,
+   "mrr": 0.6531216931216932
+  },
+  "diseases_terms": {
+   "recall@1": 0.65,
+   "recall@3": 0.7333333333333333,
+   "recall@5": 0.8333333333333334,
+   "recall@10": 0.9,
+   "mrr": 0.7175661375661375
+  },
+  "full": {
+   "recall@1": 0.5333333333333333,
+   "recall@3": 0.65,
+   "recall@5": 0.75,
+   "recall@10": 0.8166666666666667,
+   "mrr": 0.6183994708994709
+  },
+  "full_terms": {
+   "recall@1": 0.6166666666666667,
+   "recall@3": 0.7,
+   "recall@5": 0.8,
+   "recall@10": 0.8666666666666667,
+   "mrr": 0.6850661375661375
+  }
+ },
+ "measurements": {},
+ "judged": {},
+ "intervals": {
+  "base": {
+   "recall@5": [
+    0.7333333333333333,
+    0.9166666666666666
+   ],
+   "mrr": [
+    0.6158108465608466,
+    0.8047619047619048
+   ]
+  },
+  "base_terms": {
+   "recall@5": [
+    0.8166666666666667,
+    0.9666666666666667
+   ],
+   "mrr": [
+    0.6739791666666668,
+    0.8510185185185185
+   ]
+  },
+  "history": {
+   "recall@5": [
+    0.6833333333333333,
+    0.8833333333333333
+   ],
+   "mrr": [
+    0.5352248677248678,
+    0.7411795634920634
+   ]
+  },
+  "history_terms": {
+   "recall@5": [
+    0.7166666666666667,
+    0.9166666666666666
+   ],
+   "mrr": [
+    0.5962159391534391,
+    0.7979675925925925
+   ]
+  },
+  "diseases": {
+   "recall@5": [
+    0.7166666666666667,
+    0.9
+   ],
+   "mrr": [
+    0.5492063492063491,
+    0.7530555555555555
+   ]
+  },
+  "diseases_terms": {
+   "recall@5": [
+    0.7333333333333333,
+    0.9166666666666666
+   ],
+   "mrr": [
+    0.6143611111111112,
+    0.8162721560846562
+   ]
+  },
+  "full": {
+   "recall@5": [
+    0.6333333333333333,
+    0.85
+   ],
+   "mrr": [
+    0.5064527116402116,
+    0.7239292328042328
+   ]
+  },
+  "full_terms": {
+   "recall@5": [
+    0.7,
+    0.9
+   ],
+   "mrr": [
+    0.5763617724867725,
+    0.7891736111111111
+   ]
+  }
+ },
+ "per_class": {},
+ "confusion": {},
+ "bootstrap": {
+  "n": 10000,
+  "seed": 13
+ },
+ "comparisons": [
+  {
+   "a": "history",
+   "b": "base",
+   "metric": "recall@5",
+   "diff": -0.05,
+   "ci": [
+    -0.11666666666666667,
+    0.016666666666666666
+   ],
+   "mcnemar_p": 0.375
+  },
+  {
+   "a": "history",
+   "b": "base",
+   "metric": "mrr",
+   "diff": -0.07265873015873017,
+   "ci": [
+    -0.13611111111111113,
+    -0.021269841269841272
+   ],
+   "mcnemar_p": 0.125
+  },
+  {
+   "a": "diseases",
+   "b": "base",
+   "metric": "recall@5",
+   "diff": -0.016666666666666666,
+   "ci": [
+    -0.08333333333333333,
+    0.05
+   ],
+   "mcnemar_p": 1.0
+  },
+  {
+   "a": "diseases",
+   "b": "base",
+   "metric": "mrr",
+   "diff": -0.05923280423280423,
+   "ci": [
+    -0.11564880952380951,
+    -0.00972089947089949
+   ],
+   "mcnemar_p": 0.375
+  },
+  {
+   "a": "full",
+   "b": "base",
+   "metric": "recall@5",
+   "diff": -0.08333333333333333,
+   "ci": [
+    -0.16666666666666666,
+    0.0
+   ],
+   "mcnemar_p": 0.125
+  },
+  {
+   "a": "full",
+   "b": "base",
+   "metric": "mrr",
+   "diff": -0.09395502645502643,
+   "ci": [
+    -0.1644444444444444,
+    -0.03284358465608466
+   ],
+   "mcnemar_p": 0.21875
+  }
+ ],
+ "attempts": [
+  {
+   "system": "base",
+   "setting": {
+    "index": "index",
+    "mode": "hybrid",
+    "rerank": true,
+    "query_mode": "question",
+    "crops_from_title": false
+   }
+  },
+  {
+   "system": "history",
+   "setting": {
+    "index": "index",
+    "mode": "hybrid",
+    "rerank": true,
+    "query_mode": "history",
+    "crops_from_title": false
+   }
+  },
+  {
+   "system": "diseases",
+   "setting": {
+    "index": "index",
+    "mode": "hybrid",
+    "rerank": true,
+    "query_mode": "diseases",
+    "crops_from_title": false
+   }
+  },
+  {
+   "system": "full",
+   "setting": {
+    "index": "index",
+    "mode": "hybrid",
+    "rerank": true,
+    "query_mode": "full",
+    "crops_from_title": false
+   }
+  }
+ ],
+ "claude_calls": 0,
+ "labels_reviewed": false,
+ "predictions": {
+  "base": "results/runs/E7-20261104T000146288157Z.base.predictions.jsonl",
+  "base_terms": "results/runs/E7-20261104T000146288157Z.base_terms.predictions.jsonl",
+  "history": "results/runs/E7-20261104T000146288157Z.history.predictions.jsonl",
+  "history_terms": "results/runs/E7-20261104T000146288157Z.history_terms.predictions.jsonl",
+  "diseases": "results/runs/E7-20261104T000146288157Z.diseases.predictions.jsonl",
+  "diseases_terms": "results/runs/E7-20261104T000146288157Z.diseases_terms.predictions.jsonl",
+  "full": "results/runs/E7-20261104T000146288157Z.full.predictions.jsonl",
+  "full_terms": "results/runs/E7-20261104T000146288157Z.full_terms.predictions.jsonl"
+ },
+ "started_at": "2026-11-04T00:01:46.288157+00:00",
+ "finished_at": "2026-11-04T00:01:46.288157+00:00",
+ "notes": "Retrieval only, on the answerable questions; the score floor is off."
+}

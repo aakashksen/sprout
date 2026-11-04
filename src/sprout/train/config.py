@@ -19,6 +19,7 @@ class TrainConfig:
     select_split: str = "lab_dev"
     lab_cap: int = 0  # most lab photos per class in training; 0 means no cap
     held_out_source: str = ""  # a field `source` removed from training and selection
+    extra_manifest: str = ""  # E12: extra real-photo rows (split `extra_train`) that may join training, never selection
     crop_masks: str = ""  # mask cache file; when set, every photo is cut to the disease area
     unfreeze_blocks: int = 0  # DINOv2: transformer blocks trained besides the head
     backbone_lr: float = 0.0  # learning rate of those blocks; 0 means the same as `lr`

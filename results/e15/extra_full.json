@@ -1,0 +1,32 @@
+{
+ "rows": 10832,
+ "dataset_hash": "27f5f88cb84ee247f640da28b507599fc093c353eff71c7d8376acb9f76f29fe",
+ "capped_rows": 3484,
+ "removed": {
+  "unmapped class": 19834,
+  "exact copy of field_train": 994,
+  "exact copy of lab": 2,
+  "near copy of field_train": 50,
+  "near copy of lab": 23,
+  "same scene as field_train": 17,
+  "same scene as field_test": 1,
+  "close match to field_dev": 1,
+  "conflicting labels in one group": 218,
+  "duplicate of another extra image": 454,
+  "over the per-class cap": 0,
+  "crop or caption copy of field_dev": 1504,
+  "crop or caption copy of field_test": 4199,
+  "correlation >= 0.75 with field_dev": 1724,
+  "correlation >= 0.75 with field_test": 1487
+ },
+ "over_the_cap_now": 0,
+ "capped_plus_expected_cut": 10787,
+ "rows_not_in_capped": 7348,
+ "capped_rows_missing_now": 0,
+ "by_source": {
+  "plantpathology2021": 7440,
+  "plantwild": 3377,
+  "plantwild_v2": 15
+ },
+ "matches_7303": false
+}

@@ -1,0 +1,30 @@
+Using cache found in <local path>
+<local path> UserWarning: xFormers is not available (SwiGLU)
+  warnings.warn("xFormers is not available (SwiGLU)")
+<local path> UserWarning: xFormers is not available (Attention)
+  warnings.warn("xFormers is not available (Attention)")
+<local path> UserWarning: xFormers is not available (Block)
+  warnings.warn("xFormers is not available (Block)")
+{
+ "device": "cuda",
+ "inventory": 41340,
+ "kept": 10832,
+ "removed": {
+  "unmapped class": 19834,
+  "exact copy of field_train": 994,
+  "exact copy of lab": 2,
+  "near copy of field_train": 50,
+  "near copy of lab": 23,
+  "same scene as field_train": 17,
+  "same scene as field_test": 1,
+  "close match to field_dev": 1,
+  "conflicting labels in one group": 218,
+  "duplicate of another extra image": 454,
+  "over the per-class cap": 0,
+  "crop or caption copy of field_dev": 1504,
+  "crop or caption copy of field_test": 4199,
+  "correlation >= 0.75 with field_dev": 1724,
+  "correlation >= 0.75 with field_test": 1487
+ }
+}
+<local path>

@@ -493,9 +493,14 @@
         "{py} -m pytest tests/test_e15.py -q",
         "{py} -m sprout.eval.check_run E15 --min-n 200 --split field_dev"
       ],
-      "status": "in_progress",
-      "worktree": "<local path>",
-      "started_at": "2026-11-04T19:15:56+00:00"
+      "status": "done",
+      "started_at": "2026-11-04T19:15:56+00:00",
+      "verified": {
+        "commit": "25c24021b48e935aa6871e6c09daee2bb6b68f80",
+        "passed": true,
+        "at": "2026-11-04T22:07:30+00:00"
+      },
+      "done_at": "2026-11-04T22:08:52+00:00"
     },
     {
       "id": "T5.0",

@@ -1,0 +1,81 @@
+{
+  "experiment": "E12",
+  "base": "e12.json",
+  "fixed_before_any_gate_run": true,
+  "decided_in": "docs/DECISIONS.md, 'T4.6 - Gates for choosing E12's model, fixed before their runs' (2026-11-04); how they are computed: 'T4.6 - Gate runs and the gates stage'",
+  "gates_file": "results/e12/gates.json",
+  "min_n": 200,
+  "num_workers": {
+    "default": 4, "min": 4, "max": 4, "env": "SPROUT_NUM_WORKERS", "e4": 4,
+    "note": "All seven gate runs use 4 loader workers, the count E4 used, so the augmentation draws depend on the same count everywhere in G2. Any other count is refused. The count is written to every record. A resume must use the count the run started with."
+  },
+  "g1": {
+    "run": "heldout_plantdoc_extra_trim",
+    "baseline": "heldout_plantdoc",
+    "metric": "macro_f1",
+    "reference_gain": 0.289,
+    "min_gain": 0.1445,
+    "ci_lower_above": 0.0,
+    "trim": {
+      "threshold": 0.75,
+      "list": "results/e12/plantdoc_extra_trim.json",
+      "manifest": "extra_train_trim_plantdoc",
+      "cache": "models/e12/trim_cache",
+      "verifier": {"extra_rows": 3484, "against_evaluated": 434, "against_training": 716}
+    },
+    "note": "min_gain is half of the +0.289 PlantDoc macro-F1 gain of the first E12 held-out run. The gain is the trimmed run minus E4's held-out run, on the same 610 cleaned PlantDoc field_dev rows. Sick-only macro-F1 and healthy accuracy are reported, not gated (DECISIONS)."
+  },
+  "g2": {
+    "seed": 1,
+    "seed_reason": "E4 and E12's first runs used seed 0 (configs/e4.json seed; configs/e4.json rules do not say otherwise), so the second seed is seed + 1.",
+    "pairs": [
+      {"kind": "seen", "e12": "convnext_joint_extra_seed1", "e4": "convnext_joint_seed1"},
+      {"kind": "heldout_plantdoc", "e12": "heldout_plantdoc_extra_seed1", "e4": "heldout_plantdoc_seed1"},
+      {"kind": "heldout_plantseg", "e12": "heldout_plantseg_extra_seed1", "e4": "heldout_plantseg_seed1"}
+    ],
+    "metric": "macro_f1",
+    "heldout_ci_lower_above": 0.0,
+    "seen_point_at_least": 0.0,
+    "gpu_minutes_limit": 90
+  },
+  "g3": {
+    "e4_chosen": "results/e5/chosen.json",
+    "e12_chosen": "results/e12/e5_refit/chosen.json",
+    "e12_model": "models/e12/convnext_joint_extra/best.pt",
+    "e12_probabilities": "models/e12/convnext_joint_extra/field_dev.predictions.jsonl",
+    "e4_record": "E4-20261103T143743951448Z",
+    "seen_record": "convnext_joint_extra",
+    "heldout_records": ["heldout_plantdoc_extra", "heldout_plantseg_extra"],
+    "max_more_confident_errors_than_e4": 0,
+    "low_count_below": 5,
+    "note": "A confident sick-called-healthy answer is a photo whose true class is a sick class, whose calibrated top probability is at or above that model's own E5 abstain_threshold, and whose top class is any healthy class. Counted on the cleaned field_dev rows of the seen-source E12 record (the same photos for both models). E12 passes when its count is not above E4's."
+  },
+  "healthy_suffix": "___healthy",
+  "sick_only": "Rows whose true class is a sick class; macro-F1 over those classes (a sick photo called healthy counts as wrong, a healthy photo called sick is not in these rows). Healthy accuracy: the share of rows whose true class is a healthy class that get exactly that class. Intervals resample near-duplicate groups as check_run does.",
+  "runs": [
+    {"name": "heldout_plantdoc_extra_trim", "held_out_source": "plantdoc", "subset": "source:plantdoc",
+     "compare": ["e1", "convnext_joint", "heldout_plantdoc"], "e4_record": "E4-20261103T151651745350Z",
+     "extra": {"manifest": "extra_train_trim_plantdoc", "list": "results/e12/plantdoc_extra_trim.json"},
+     "change": "the first E12 PlantDoc held-out run with the extras at DINOv2 cosine 0.75 or above to PlantDoc's evaluated or training photos also removed"},
+    {"name": "convnext_joint_seed1", "seed": 1, "out_dir": "models/e4_seed1", "extras": false, "held_out_source": "",
+     "subset": "shared_classes", "compare": [], "change": "E4 convnext_joint again on seed 1"},
+    {"name": "heldout_plantdoc_seed1", "seed": 1, "out_dir": "models/e4_seed1", "extras": false, "held_out_source": "plantdoc",
+     "subset": "source:plantdoc", "compare": [], "change": "E4 heldout_plantdoc again on seed 1"},
+    {"name": "heldout_plantseg_seed1", "seed": 1, "out_dir": "models/e4_seed1", "extras": false, "held_out_source": "plantseg",
+     "subset": "source:plantseg", "compare": [], "change": "E4 heldout_plantseg again on seed 1"},
+    {"name": "convnext_joint_extra_seed1", "seed": 1, "out_dir": "models/e12/seed1", "held_out_source": "",
+     "subset": "shared_classes", "compare": [], "paired_with": "convnext_joint_seed1",
+     "change": "E12 convnext_joint_extra again on seed 1"},
+    {"name": "heldout_plantdoc_extra_seed1", "seed": 1, "out_dir": "models/e12/seed1", "held_out_source": "plantdoc",
+     "subset": "source:plantdoc", "compare": [], "paired_with": "heldout_plantdoc_seed1",
+     "change": "E12 heldout_plantdoc_extra again on seed 1"},
+    {"name": "heldout_plantseg_extra_seed1", "seed": 1, "out_dir": "models/e12/seed1", "held_out_source": "plantseg",
+     "subset": "source:plantseg", "compare": [], "paired_with": "heldout_plantseg_seed1",
+     "change": "E12 heldout_plantseg_extra again on seed 1"}
+  ],
+  "limits": [
+    "Development numbers on field_dev, as in configs/e12.json. field_test is never read.",
+    "Seed 1 changes the lab photos the cap keeps as well as the weights' start and the sample order; E4 and E12 on the same seed share them, so each pair stays comparable.",
+    "Two seeds are still few: the intervals resample photos, not training noise, and the gate looks at a second seed's point estimate and interval only."
+  ]
+}

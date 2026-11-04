@@ -6,6 +6,8 @@ committed before any run. One command per run, each on the GPU (train, then scor
     .venv/Scripts/python -m sprout.experiments.e12_more_sources run --run heldout_plantdoc_extra [--resume]
     .venv/Scripts/python -m sprout.experiments.e12_more_sources run --run heldout_plantseg_extra [--resume]
     .venv/Scripts/python -m sprout.experiments.e12_more_sources decide          # CPU: applies the rule
+The gate runs and the gates stage (configs/e12_gates.json, docs/DECISIONS.md) take the same commands with
+`--config configs/e12_gates.json`: `run --run <name>` for each of its seven runs, then `gates`.
 `--num-workers N` or SPROUT_NUM_WORKERS sets the loader workers (default 2, at most 4). A run that stops early
 writes no record; continue it with --resume (same worker count), which restarts from latest.pt and lists both
 attempts. Each run writes one record on field_dev scored on the rows kept by the label cleaning (clean:1), beside
@@ -64,6 +66,8 @@ CAVEAT = (
 
 def load_config(path: Path) -> dict[str, Any]:
     cfg = json.loads(Path(path).read_text(encoding="utf-8"))
+    if "base" in cfg:
+        return load_gates_config(Path(path), cfg)
     if cfg["split"] != SPLIT:
         raise ValueError(f"E12 scores {SPLIT} only, not {cfg['split']!r}")
     if any(s.endswith("_test") for s in (*cfg["settings"]["train_splits"], cfg["settings"]["select_split"])):
@@ -76,13 +80,32 @@ def load_config(path: Path) -> dict[str, Any]:
     return cfg
 
 
+def load_gates_config(path: Path, gates: dict[str, Any]) -> dict[str, Any]:
+    """configs/e12_gates.json on top of its base (configs/e12.json): the same settings and rules, the gate runs in
+    place of the three first runs, its loader worker rule, and the whole gate file under `gates`."""
+    cfg = load_config(path.with_name(gates["base"]))
+    names = [r["name"] for r in gates["runs"]]
+    if len(set(names)) != len(names):
+        raise ValueError("gate run names must be unique")
+    for r in gates["runs"]:
+        if r["compare"] and "e4_record" not in r:
+            raise ValueError(f"{r['name']} compares with E4's saved rows and needs an e4_record")
+        if r.get("paired_with") and r["paired_with"] not in names:
+            raise ValueError(f"{r['name']} is paired with {r['paired_with']!r}, which is not a gate run")
+    spec = gates["num_workers"]
+    if not spec["min"] <= spec["default"] <= spec["max"]:
+        raise ValueError("num_workers default must be between min and max")
+    return {**cfg, "runs": gates["runs"], "num_workers": spec, "gates": gates}
+
+
 def resolve_workers(cfg: dict[str, Any], flag: int | None = None, env: dict[str, str] | None = None) -> int:
     """The flag, else the environment variable, else the config default; never above the config's maximum."""
     spec = cfg["num_workers"]
     env = os.environ if env is None else env
     value = flag if flag is not None else int(env[spec["env"]]) if spec["env"] in env else spec["default"]
-    if not 0 <= value <= spec["max"]:
-        raise ValueError(f"num_workers is {value}; it must be between 0 and {spec['max']}")
+    low = spec.get("min", 0)
+    if not low <= value <= spec["max"]:
+        raise ValueError(f"num_workers is {value}; it must be between {low} and {spec['max']}")
     return value
 
 
@@ -93,21 +116,27 @@ def run_spec(cfg: dict[str, Any], name: str) -> dict[str, Any]:
     raise ValueError(f"unknown run {name!r}; runs are {[r['name'] for r in cfg['runs']]}")
 
 
+def run_dir(cfg: dict[str, Any], spec: dict[str, Any], root: Path) -> Path:
+    return root / spec.get("out_dir", cfg["out_dir"]) / spec["name"]
+
+
 def train_config(cfg: dict[str, Any], spec: dict[str, Any], root: Path, num_workers: int) -> TrainConfig:
+    """A run may set its own seed, out_dir and extra manifest, or train with no extras (E4's arm again)."""
     s = cfg["settings"]
+    extras = spec.get("extras", True)
     return TrainConfig(
         manifest=cfg["lab_manifest"],
-        out_dir=str(root / cfg["out_dir"] / spec["name"]),
+        out_dir=str(run_dir(cfg, spec, root)),
         model=s["model"],
-        seed=s["seed"],
+        seed=spec.get("seed", s["seed"]),
         lr=s["lr"],
         batch_size=s["batch_size"],
         epochs=s["epochs"],
         transforms=tuple(s["transforms"]),
         num_workers=num_workers,
         field_manifest=cfg["field_manifest"],
-        extra_manifest=cfg["extra"]["manifest"],
-        train_splits=tuple(s["train_splits"]),
+        extra_manifest=spec.get("extra", cfg["extra"])["manifest"] if extras else "",
+        train_splits=tuple(s["train_splits"]) if extras else tuple(x for x in s["train_splits"] if x != "extra_train"),
         select_split=s["select_split"],
         lab_cap=s["lab_cap"],
         held_out_source=spec["held_out_source"],
@@ -118,6 +147,27 @@ def check_extra_frozen(cfg: dict[str, Any]) -> None:
     extra = load_manifest(cfg["extra"]["manifest"])
     if len(extra) != cfg["extra"]["rows"] or dataset_hash(extra) != cfg["extra"]["dataset_hash"]:
         raise RuntimeError(f"{cfg['extra']['manifest']}.csv differs from the frozen extra rows in configs/e12.json")
+
+
+def check_run_extras(cfg: dict[str, Any], spec: dict[str, Any], root: Path) -> None:
+    """The frozen extras for a run that trains with them; for a trimmed run, also that its manifest is those extras
+    without the committed removal list, and that the list reproduced the verifier's counts."""
+    if not spec.get("extras", True):
+        return
+    check_extra_frozen(cfg)
+    if "extra" not in spec:
+        return
+    if not (root / spec["extra"]["list"]).is_file():
+        raise RuntimeError(f"{spec['extra']['list']} does not exist; make and commit it with tools/extra_trim.py first")
+    listed = json.loads((root / spec["extra"]["list"]).read_text(encoding="utf-8"))
+    trimmed = load_manifest(spec["extra"]["manifest"])
+    gone = {e["path"] for e in listed["remove"]}
+    whole = load_manifest(cfg["extra"]["manifest"])
+    if listed["extra_dataset_hash"] != cfg["extra"]["dataset_hash"] or not listed["reproduces_verifier"]:
+        raise RuntimeError(f"{spec['extra']['list']} was not made from the frozen extras or does not reproduce the verifier's counts")
+    if (len(trimmed) != listed["trimmed_rows"] or dataset_hash(trimmed) != listed["trimmed_dataset_hash"]
+            or set(whole["path"]) - gone != set(trimmed["path"])):
+        raise RuntimeError(f"{spec['extra']['manifest']}.csv is not the extras minus {spec['extra']['list']}")
 
 
 # ----------------------------------------------------------------------------------------------------------------
@@ -138,12 +188,30 @@ def dev_rows(cfg: dict[str, Any], spec: dict[str, Any], root: Path) -> tuple[pd.
 def saved_e4_rows(cfg: dict[str, Any], root: Path, spec: dict[str, Any], paths: list[str],
                   class_names: list[str]) -> tuple[dict[str, list[dict[str, Any]]], dict[str, Any]]:
     """E4's saved rows for exactly these photos: the systems this run is compared with."""
-    rec = json.loads((root / RUNS_REL / f"{cfg['e4']['records'][spec['name']]}.json").read_text(encoding="utf-8"))
+    record = spec.get("e4_record") or cfg["e4"]["records"][spec["name"]]
+    rec = json.loads((root / RUNS_REL / f"{record}.json").read_text(encoding="utf-8"))
     if rec["split"] != SPLIT or rec["dataset_hash"] != split_info(SPLIT, root).hash:
         raise RuntimeError(f"{rec['run_id']} is not a {SPLIT} record on the current field.csv")
     if rec["config"]["class_names"] != class_names:
         raise RuntimeError(f"{rec['run_id']} has different classes from the joint manifest with the extra rows")
     return {s: e4.saved_rows(root, rec["predictions"][s], paths) for s in spec["compare"]}, rec
+
+
+def paired_rows(cfg: dict[str, Any], root: Path, spec: dict[str, Any], paths: list[str], class_names: list[str],
+                tc: TrainConfig) -> tuple[dict[str, list[dict[str, Any]]], dict[str, Any]]:
+    """The saved rows of the E4 run this run is paired with (same seed, same photos), from its own record."""
+    other = spec["paired_with"]
+    found = newest_records(cfg, root).get(other)
+    if found is None:
+        raise RuntimeError(f"{other} has no record yet; run it before {spec['name']}")
+    rec = found[1]
+    if rec["config"]["class_names"] != class_names:
+        raise RuntimeError(f"{rec['run_id']} has different classes from this run")
+    theirs = rec["config"]["train"]
+    if (theirs["seed"], theirs["num_workers"]) != (tc.seed, tc.num_workers):
+        raise RuntimeError(f"{rec['run_id']} trained with seed {theirs['seed']} and {theirs['num_workers']} workers, "
+                           f"not {tc.seed} and {tc.num_workers}; a pair must match")
+    return {other: e4.saved_rows(root, rec["predictions"][other], paths)}, rec
 
 
 def score_run(name: str, spec: dict[str, Any], rows: pd.DataFrame, probs: np.ndarray, others: dict[str, list],
@@ -212,9 +280,10 @@ def run(cfg: dict[str, Any], name: str, root: Path = ROOT, *, resume: bool = Fal
     started = datetime.now(timezone.utc).isoformat()
     spec = run_spec(cfg, name)
     workers = resolve_workers(cfg, num_workers)
-    check_extra_frozen(cfg)
-    e4.check_disk(root / cfg["out_dir"], cfg["min_free_disk_gb"])
-    (root / cfg["out_dir"] / name).mkdir(parents=True, exist_ok=True)
+    check_run_extras(cfg, spec, root)
+    out_root = root / spec.get("out_dir", cfg["out_dir"])
+    e4.check_disk(out_root, cfg["min_free_disk_gb"])
+    (out_root / name).mkdir(parents=True, exist_ok=True)
 
     tc = train_config(cfg, spec, root, workers)
     joint = load_joint_manifest(tc)
@@ -222,8 +291,15 @@ def run(cfg: dict[str, Any], name: str, root: Path = ROOT, *, resume: bool = Fal
     class_names = sorted(class_map, key=class_map.get)
 
     all_rows, rows, all_name, subset = dev_rows(cfg, spec, root)
-    others, e4_rec = saved_e4_rows(cfg, root, spec, list(rows["path"]), class_names)
-    train_rows, sel_rows, out, attempts, history = _train(cfg, root, name, tc, joint, resume)
+    others, e4_rec = {}, None
+    if spec["compare"]:
+        others, e4_rec = saved_e4_rows(cfg, root, spec, list(rows["path"]), class_names)
+    pair = None
+    if spec.get("paired_with"):
+        paired, pair = paired_rows(cfg, root, spec, list(rows["path"]), class_names, tc)
+        others |= paired
+    train_rows, sel_rows, out, attempts, history = _train({**cfg, "out_dir": str(out_root.relative_to(root))}, root, name,
+                                                          tc, joint, resume)
 
     ckpt = load_checkpoint(out.best_path)
     if ckpt["class_map"] != class_map:
@@ -258,14 +334,18 @@ def run(cfg: dict[str, Any], name: str, root: Path = ROOT, *, resume: bool = Fal
     on_plantdoc = bool((train_rows["source"] == "plantdoc").any())
     config = {
         "run": name, "class_names": class_names, "e12": cfg, "train": tc.to_dict(), "subset_rule": subset,
-        "predicted_subset": all_name, "e4_record": e4_rec["run_id"], "e4_compared": spec["compare"],
-        "extra_dataset_hash": cfg["extra"]["dataset_hash"],
+        "predicted_subset": all_name, "e4_record": e4_rec["run_id"] if e4_rec else None, "e4_compared": spec["compare"],
+        "paired_record": pair["run_id"] if pair else None, "seed": tc.seed,
+        "extra_dataset_hash": cfg["extra"]["dataset_hash"] if tc.extra_manifest else None,
+        "extra_manifest": tc.extra_manifest,
         "extra_rows_in_training": int((train_rows["split"] == "extra_train").sum()),
         "trained_on_plantdoc": on_plantdoc, "device": device_info(device, workers, cfg["num_workers"]["e4"]),
         "field_test_read": False, "label": "development number, field_dev only", "selected_on": "field_dev (optimistic)",
         "started_at": started,
     }
     models = {s: f"{s}: saved predictions of E4 record {e4_rec['run_id']}, filtered to the cleaned rows" for s in spec["compare"]}
+    if pair:
+        models[spec["paired_with"]] = f"{spec['paired_with']}: seed {tc.seed} run of record {pair['run_id']}"
     models[name] = f"{name}: {tc.model} trained here ({spec['change']})"
     verdicts = "; ".join(e4.verdict(c) for c in comparisons)
     notes = (f"{CAVEAT} PlantDoc is cleared for local use only; weights trained on it: {on_plantdoc}. Scored on {subset} "
@@ -411,11 +491,18 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--num-workers", type=int, default=None)
     r.add_argument("--note", default="")
     sub.add_parser("decide")
+    sub.add_parser("gates", help="with --config configs/e12_gates.json: writes results/e12/gates.json")
     a = ap.parse_args(argv)
     try:
         cfg = load_config(ROOT / a.config)
         if a.stage == "run":
             print(run(cfg, a.run, ROOT, resume=a.resume, num_workers=a.num_workers, note=a.note))
+        elif a.stage == "gates":
+            if "gates" not in cfg:
+                raise ValueError("the gates stage needs --config configs/e12_gates.json")
+            from sprout.experiments.e12_gates import gates
+
+            print(gates(cfg, ROOT))
         else:
             print(decide(cfg, ROOT))
     except (RuntimeError, ValueError, OSError) as exc:

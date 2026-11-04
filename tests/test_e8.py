@@ -681,3 +681,57 @@ def test_docker_target_reports_an_exited_container_with_its_logs_and_keeps_it_un
     running = FakeRun({"inspect": (0, "true 0\n")})
     t2 = e8.DockerTarget("sprout-app", port=8124, env={}, mounts=[], docker_args=[], run=running, name="e8-ok")
     assert t2.failure() is None
+
+
+# ---------------------------------------------------------------- the disease-name fallback check
+
+from sprout.experiments import e8_fallback as fb  # noqa: E402
+
+
+def test_the_right_disease_rule_reads_the_passage_text_and_known_aliases():
+    assert fb.right_disease("Early-blight shows as rings.", "Potato___Early_blight")
+    assert not fb.right_disease("Late blight rots tubers.", "Potato___Early_blight")
+    assert fb.right_disease("Gray leaf spot of maize", "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot")
+    assert fb.right_disease("Huanglongbing is spread by psyllids", "Orange___Haunglongbing_(Citrus_greening)")
+    assert not fb.right_disease("anything", "Tomato___healthy")
+
+
+def test_the_follow_up_set_has_every_wording_for_every_disease_class_and_none_for_healthy():
+    rows = fb.followups(["Tomato___healthy", "Tomato___Early_blight", "Potato___Late_blight"])
+    assert len(rows) == 2 * len(fb.WORDINGS) and {r["label"] for r in rows} == {"Tomato___Early_blight", "Potato___Late_blight"}
+    assert len({r["id"] for r in rows}) == len(rows)
+
+
+def test_the_generic_follow_up_report_counts_only_passages_about_the_right_disease():
+    class Fake:
+        crops = {"tomato"}
+
+        def search(self, query, *, crop=None, **kw):
+            if "early blight" not in query:
+                return []
+            return [Passage("Early blight rings", "t.pdf", 1, "tomato", 0.9)]
+
+    rows = [{"id": "g1", "label": "Tomato___Early_blight", "question": "How do I treat it?"},
+            {"id": "g2", "label": "Tomato___Late_blight", "question": "How do I treat it?"}]
+    out = fb.generic_followup_report(Fake(), rows, fb.AnswerConfig())
+    s = out["summary"]
+    assert (s["found_any_before"], s["found_any_after"], s["right_disease_before"], s["right_disease_after"]) == (0, 1, 0, 1)
+    assert out["rows"][0]["searches"] == 2 and out["rows"][0]["crop"] == "tomato"
+
+
+def test_the_dev_report_lists_the_question_whose_decline_the_fallback_changes():
+    from sprout.rag.evalset import Question
+
+    class Fake:
+        crops = {"potato"}
+
+        def search(self, query, *, crop=None, **kw):
+            return [Passage("Late blight", "p.pdf", 1, "potato", 0.9)] if query.count("late blight") == 2 else []
+
+    qs = [Question(id="d1", category="answerable", split="dev", question="Is late blight bad?", expected="answer", crop="potato"),
+          Question(id="d2", category="unanswerable", split="dev", question="Why is my plant sad?", expected="decline")]
+    classes = ["Potato___Late_blight", "Potato___Early_blight"]
+    out = fb.dev_report(Fake(), qs, classes, fb.AnswerConfig())
+    assert [c["id"] for c in out["questions_whose_decline_changes"]] == ["d1"]
+    assert out["rates"]["question_only"]["answers_when_answerable"] == 0.0
+    assert out["rates"]["with_fallback"]["answers_when_answerable"] == 1.0

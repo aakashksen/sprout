@@ -550,13 +550,14 @@ def floor_check(retriever, recorder: RecordingReranker, torch_reranker, question
                 floor: float, near: float = NEAR_FLOOR) -> dict:
     """Score the very same candidate pools with the serving reranker (through `retriever`) and with `torch_reranker`,
     at the served k and at E7's k, and report what that does to the retrieval-level decline rates."""
+    from dataclasses import replace
+
     import numpy as np
 
     from sprout.eval.check_run import Scored, recompute_metric
     from sprout.experiments.e7_rag import BEHAVIOUR_METRICS, simulate_identification
     from sprout.rag import serving
-    from sprout.rag.answer import GENERAL_CROP, AnswerConfig, bounded_history
-    from sprout.rag.query import build_query
+    from sprout.rag.answer import AnswerConfig, bounded_history, retrieve
 
     cfg, crops = AnswerConfig(), retriever.crops
     torch_cache: dict[tuple[str, str], float] = {}
@@ -572,11 +573,11 @@ def floor_check(retriever, recorder: RecordingReranker, torch_reranker, question
     pairs: dict[int, list[tuple[float, float]]] = {SERVED_K: [], E7_K: []}
     for q in questions:
         crop, ident = simulate_identification(q, crops, classes)
-        searched = None if crop is None else (crop if crop in crops else GENERAL_CROP)
-        query = build_query(q.question, ident, bounded_history(q.history, cfg), cfg.query_mode)
         for k in (SERVED_K, E7_K):
             before = len(recorder.calls)
-            found = retriever.search(query, crop=searched, k=k, mode=serving.MODE, rerank=True)
+            # the same search answer() makes, including its disease-name second search
+            found, _, _ = retrieve(q.question, identification=ident, history=bounded_history(q.history, cfg),
+                                   retriever=retriever, cfg=replace(cfg, k=k, mode=serving.MODE, rerank=True), crop=crop)
             calls = recorder.calls[before:]
             onnx = [c["scores"] for c in calls]
             if _declined(onnx, floor) != (not found):

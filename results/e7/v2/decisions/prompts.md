@@ -4,8 +4,8 @@
   - faithful: kept; target gain +0.058, answers change -0.000; target +0.058 (95% CI -0.002 to +0.119), NOT distinguishable from noise; answers_when_answerable +0.000 (95% CI +0.000 to +0.000), McNemar p=1.000
   - abstain: kept; target gain +0.143, answers change -0.000; target +0.143 (95% CI +0.000 to +0.357), NOT distinguishable from noise; answers_when_answerable +0.000 (95% CI +0.000 to +0.000), McNemar p=1.000
   - ask: dropped; target gain +0.692, answers change -0.133; target +0.692 (95% CI +0.462 to +0.923), distinguishable from noise; answers_when_answerable -0.133 (95% CI -0.217 to -0.050), McNemar p=0.008
-  - combined: kept; target gain +0.000, answers change -0.000
-- **Evidence:** record `E7-20261104T010519096337Z` (n=101); judge gemma4:e4b-it-qat; 506 graded answers. Per variant faithfulness / answers_when_answerable / declines_when_unanswerable / declines_when_ambiguous:
+  - combined: kept; target gains over base faithful +0.095, abstain +0.429, answers change -0.000
+- **Evidence:** record `E7-20261104T012545627616Z` (n=101); judge gemma4:e4b-it-qat; 506 graded answers. Per variant faithfulness / answers_when_answerable / declines_when_unanswerable / declines_when_ambiguous:
   - base: 0.722 / 1.000 / 0.000 / 0.000; writer calls 101, rows without a call 0, 367.9 s; graded answers 101
   - faithful: 0.780 / 1.000 / 0.000 / 0.000; writer calls 101, rows without a call 0, 304.1 s; graded answers 101
   - abstain: 0.763 / 1.000 / 0.143 / 0.000; writer calls 101, rows without a call 0, 300.4 s; graded answers 95

@@ -350,3 +350,21 @@ def test_an_unsure_photo_still_searches_the_plant_its_label_names(tmp_path):
     app, c, aid, h = make(tmp_path, FakeLLM(["Remove infected leaves [1]."]), retriever, ident=unsure)
     ask(c, aid, h, "Is it a tomato problem?")
     assert retriever.searches[0]["crop"] == "potato"  # the photo's plant, not the "tomato" in the words
+
+
+def test_the_container_path_imports_no_torch_or_pandas():
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    code = (
+        "import os, sys; os.environ['SPROUT_NO_AUTOBUILD']='1'; sys.path.insert(0, 'deploy'); "
+        "import wsgi, sprout.serve.identify, sprout.llm.client, sprout.rag.answer, sprout.experiments.e8_perf; "
+        "print(sorted(m for m in sys.modules if m.split('.')[0] in ('torch', 'torchvision', 'pandas', 'scipy', 'sklearn')))"
+    )
+    out = subprocess.run([sys.executable, "-c", code], cwd=root, capture_output=True, text=True,
+                         env={**os.environ, "PYTHONPATH": str(root / "src")})
+    assert out.returncode == 0, out.stderr
+    assert out.stdout.strip() == "[]"

@@ -26,29 +26,39 @@ Training dependencies live in `requirements/train.txt` and are never installed i
 | `SPROUT_DATA_DIR` | Database and private uploads. `/data` in the image. |
 | `SPROUT_MANIFEST` | Source titles and links for chat. Defaults to the copied manifest. |
 | `SPROUT_INDEX_DIR` | Retrieval index (`chunks.jsonl`). `/models/index`. Without it chat answers "no supporting document". |
+| `SPROUT_MODEL_PATH`, `SPROUT_CALIBRATION_PATH` | The ONNX classifier and the E5 calibration file (`results/e5/chosen.json` shape). Default `/models/model.onnx` and `/models/chosen.json`. Both must exist or `/readyz` says "model missing". |
+| `SPROUT_OLLAMA_URL`, `SPROUT_WRITER_MODEL` | Where the writer runs and which model. Default `http://127.0.0.1:11434` and `qwen3.5:4b-q4_K_M`. `localhost` is refused (it adds about 2 s per call). In a container, 127.0.0.1 is the container itself, so `docker-compose.yml` sets `http://host.docker.internal:11434`; Ollama on the host must listen beyond loopback (`OLLAMA_HOST=0.0.0.0`). |
+| `SPROUT_CHAT_TIMEOUT_SECONDS`, `SPROUT_CHAT_LLM_TIMEOUT_SECONDS` | Budget for one generated answer (default 50 s) and for its model call (default 40 s). Chosen, not measured, and kept under gunicorn's 60 s timeout; revisit against E8's generation p95. |
 | `SPROUT_HTTPS` | `1` makes cookies secure. Set it behind HTTPS (Cloud Run is). |
 | `SPROUT_WORKERS`, `SPROUT_THREADS`, `SPROUT_TIMEOUT` | gunicorn settings; see Workers. |
 
 A bind-mounted `/data` (anything other than the compose named volume) must be writable by uid 10001, for example
 `chown 10001 <host folder>`; otherwise the app cannot write its database or uploads.
 
-`SPROUT_FAKE_IDENTIFIER=1` loads a test double that answers "tomato early blight" for every image. `deploy/wsgi.py`
-raises at start-up unless `SPROUT_ENV=testing`, so a production or development container cannot run it
-(`test_fake_identifier_refused_outside_testing`, `test_production_container_refuses_fake_and_missing_secret`).
-Without a model, a production container starts, `/healthz` is 200, and `/readyz` is 503 with "model missing".
+`SPROUT_FAKE_IDENTIFIER=1` loads a test double that answers "tomato early blight" for every image. It is off unless
+the variable is exactly `1`, and `deploy/wsgi.py` raises at start-up unless `SPROUT_ENV=testing`, so a production or
+development container cannot run it (`test_fake_identifier_refused_outside_testing`,
+`test_the_fake_identifier_is_never_on_by_default_and_never_replaces_a_real_model_silently`). Otherwise `wsgi.py` loads
+the real `Identifier` from the two paths above. Without them, a production container starts, `/healthz` is 200, and
+`/readyz` is 503 with "model missing".
+
+Chat answers through `sprout.rag.answer.answer()` with the served setup (`sprout.rag.serving`). An Ollama outage or a
+slow writer makes chat say the service is unavailable and stores nothing; it never makes `/readyz` fail (a restart
+would not fix it), but `/readyz` reports the writer's last known state (`unknown`, `ok`, `unavailable`).
 
 ## Providing the model and index
 
 Neither is baked into the image; both are mounted read-only at `/models`.
 
-- ONNX classifier: not built yet (T5.2 and the export are pending). `deploy/wsgi.py` does not load one yet; T7.4
-  wires the real `Identifier` in. Until then the container reports not ready.
+- ONNX classifier and calibration: mount them read-only at `/models/model.onnx` and `/models/chosen.json` (or point
+  `SPROUT_MODEL_PATH` and `SPROUT_CALIBRATION_PATH` elsewhere). The model comes from E12's choice; none exists yet,
+  so no container has been started with a real one.
 - Index: build with `sprout.rag.ingest` on the dev machine from `knowledge/raw`, which stays out of the image, then
   copy the index folder to `/models/index`. Retrieval caches passage vectors in that folder, so a read-only mount
   needs the cache file created before mounting, or each start re-embeds every chunk.
 - fastembed downloads its embedding and reranker models on first use into `FASTEMBED_CACHE_PATH`
   (`/models/fastembed`). A container with no network must have that folder filled beforehand. This has not been
-  exercised yet (T7.4).
+  exercised yet; the chain smoke test below needs it.
 
 ## Smoke test and what it proves
 
@@ -56,9 +66,12 @@ Neither is baked into the image; both are mounted read-only at `/models`.
 fresh container, and over HTTP does: sign up, upload, prediction page, a chat question, history, delete, and checks
 the stored file is gone, plus non-root, no `.env`/datasets/legacy in the image, and no `torch` package installed.
 
-What ran with a test double: the identifier (`FakeIdentifier`, under `SPROUT_ENV=testing`). No index was mounted, so
-the question step checks the "no supporting document" path, not retrieval or generated answers. Rerun at T7.4 with
-the real `Identifier`, a real index, and generated answers (T6.4), with no double.
+The full chain, with the real model, index, reranker and writer, is `tests/test_chain_smoke.py` (marked `real`; needs
+Docker, Ollama on the host and five environment variables it names). It has been written but not run.
+
+What ran with a test double in `test_smoke_in_clean_container`: the identifier (`FakeIdentifier`, under `SPROUT_ENV=testing`). No index was mounted, so
+the question step checks the "no supporting document" path, not retrieval or generated answers. The real chain
+(real `Identifier`, index and generated answers, no double) is `tests/test_chain_smoke.py`.
 
 ## PyTorch in the serving path
 
@@ -67,7 +80,8 @@ The serving import path (`deploy/wsgi.py`, `sprout.web`, `sprout.rag`, `sprout.s
 
 - `sprout.preprocess` imports `torch`, and `sprout.eval.predict` and `sprout.train.*` do too. The real
   `Identifier` (T5.2) must not import `sprout.preprocess` as it stands, or must get a numpy preprocessing twin
-  that matches it. T7.4 will fail at image start if it does not.
+  that matches it. `wsgi.py` now imports `sprout.serve.identify`, which does not import torch
+  (`test_the_container_path_imports_no_torch_or_pandas`).
 - `pyproject.toml` lists `torch` and `torchvision` as main dependencies. The Dockerfile avoids that with
   `pip install --no-deps .` after the pinned set; installing the package with its dependencies would pull torch in.
 

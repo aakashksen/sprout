@@ -16,6 +16,7 @@ Two halves, because the load client needs nothing from the image and the record 
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import os
 import platform
@@ -76,7 +77,7 @@ class HttpClient:
         self._opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(CookieJar()), _NoRedirect())
 
     def request(self, method: str, path: str, data: bytes | None = None, headers: dict | None = None):
-        """(status, headers, body). Status 0: nothing came back. Raises TimeoutError when the server did not answer in time."""
+        """(status, headers, body). Status 0: no usable answer came back (refused, reset or hung up). Raises TimeoutError when the server did not answer in time."""
         req = urllib.request.Request(self.base + path, data=data, method=method, headers=headers or {})
         try:
             r = self._opener.open(req, timeout=self.timeout)
@@ -88,10 +89,14 @@ class HttpClient:
             if isinstance(e.reason, (TimeoutError, socket.timeout)):
                 raise TimeoutError(str(e)) from e
             return 0, {}, b""
+        except (ConnectionError, http.client.HTTPException):  # port open but the server hung up (RemoteDisconnected)
+            return 0, {}, b""
         try:
             body = r.read()
         except (TimeoutError, socket.timeout) as e:
             raise TimeoutError(str(e)) from e
+        except (ConnectionError, http.client.HTTPException):
+            return 0, {}, b""
         return r.status, {k.lower(): v for k, v in r.headers.items()}, body
 
     def refresh_token(self, page: str = "/login") -> None:
@@ -184,7 +189,7 @@ class DockerTarget:
 
     def start(self) -> DockerTarget:
         env = {**self.env, "SPROUT_MEASUREMENT": "1"}
-        cmd = ["run", "-d", "--rm", "--name", self.name, "-p", f"127.0.0.1:{self.port}:8080",
+        cmd = ["run", "-d", "--name", self.name, "-p", f"127.0.0.1:{self.port}:8080",
                "--add-host", "host.docker.internal:host-gateway", *self.docker_args]
         for k, v in env.items():
             cmd += ["-e", f"{k}={v}"]
@@ -227,6 +232,17 @@ class DockerTarget:
             "gunicorn_processes_running": sum("gunicorn" in line for line in top.splitlines()),
             "docker_limits": {k: host.get(k) for k in ("NanoCpus", "CpuQuota", "CpuPeriod", "CpusetCpus", "Memory", "MemorySwap")},
         }
+
+    def failure(self) -> str | None:
+        """None while the container runs; otherwise what it died with, its last log lines read before `stop` removes it."""
+        state = self._docker("inspect", "-f", "{{.State.Running}} {{.State.ExitCode}}", self.name, check=False)
+        if state.returncode != 0:
+            return "the container is gone"
+        running, _, code = state.stdout.strip().partition(" ")
+        if running == "true":
+            return None
+        logs = self._docker("logs", "--tail", "30", self.name, check=False)
+        return f"the container exited with code {code}; last log lines:\n{(logs.stdout + logs.stderr).strip()}"
 
     def stop(self) -> None:
         if self.started:
@@ -317,6 +333,9 @@ def cold_start(start_target, first: tuple[str, str], images_root: Path, *, ready
     alive = ready = None
     last = "no answer"
     while now_ms() - begin < ready_timeout * 1000:
+        dead = getattr(target, "failure", lambda: None)()
+        if dead:
+            raise RuntimeError(dead)
         try:
             if alive is None and probe.request("GET", "/healthz")[0] == 200:
                 alive = now_ms()
@@ -327,7 +346,7 @@ def cold_start(start_target, first: tuple[str, str], images_root: Path, *, ready
                 if status == 200 and ready_body.get("ready") and ready_body.get("chat") == "ready":
                     ready = now_ms()
                     break
-        except TimeoutError:
+        except (TimeoutError, ValueError):  # no answer in time, or a body that is not the readiness JSON yet
             pass
         time.sleep(poll)
     if ready is None:

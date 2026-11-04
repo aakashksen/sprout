@@ -607,3 +607,77 @@ def test_floor_check_refuses_when_its_floor_rule_does_not_match_the_retriever(tm
     retriever, recorder = floor_retriever(tmp_path, {CHUNKS[0][0]: 0.9})
     with pytest.raises(RuntimeError, match="floor"):
         e8.floor_check(retriever, recorder, Scripted({}), [Q("q1", "tomato rings?", "answer")], list(CLASS_MAP), floor=0.95)
+
+
+# ---------------------------------------------------------------- start-up errors while waiting for readiness
+
+def test_a_port_that_accepts_and_hangs_up_means_not_ready_yet(tmp_path):
+    import socket
+
+    server = socket.socket()
+    server.bind(("127.0.0.1", 0))
+    server.listen(5)
+    stop = threading.Event()
+
+    def hang_up():
+        server.settimeout(0.05)
+        while not stop.is_set():
+            try:
+                conn, _ = server.accept()
+            except OSError:
+                continue
+            conn.close()  # Docker's port is open, the app is not: the client sees RemoteDisconnected
+
+    thread = threading.Thread(target=hang_up, daemon=True)
+    thread.start()
+
+    class Booting:
+        base_url = f"http://127.0.0.1:{server.getsockname()[1]}"
+
+    try:
+        with pytest.raises(RuntimeError, match="not ready"):
+            e8.cold_start(lambda: Booting(), ("p/0.png", "q"), tmp_path, ready_timeout=0.5, poll=0.01)
+    finally:
+        stop.set()
+        thread.join()
+        server.close()
+
+
+def test_a_request_that_loses_its_connection_is_a_counted_failure_not_an_exception():
+    import socket
+
+    server = socket.socket()
+    server.bind(("127.0.0.1", 0))
+    server.listen(1)
+    thread = threading.Thread(target=lambda: server.accept()[0].close(), daemon=True)
+    thread.start()
+    status, _, _ = e8.HttpClient(f"http://127.0.0.1:{server.getsockname()[1]}", 2.0).request("GET", "/x")
+    thread.join()
+    server.close()
+    assert status == 0
+
+
+def test_a_container_that_exited_fails_at_once_with_its_last_log_lines(tmp_path):
+    class Dead:
+        base_url = f"http://127.0.0.1:{e8.free_port()}"
+
+        def failure(self):
+            return "exited with 1; last log lines:\nValueError: model_sha256 does not match"
+
+    begin = time.time()
+    with pytest.raises(RuntimeError, match="(?s)exited.*model_sha256 does not match"):
+        e8.cold_start(lambda: Dead(), ("p/0.png", "q"), tmp_path, ready_timeout=60, poll=0.01)
+    assert time.time() - begin < 5
+
+
+def test_docker_target_reports_an_exited_container_with_its_logs_and_keeps_it_until_stopped():
+    run = FakeRun({"inspect": (0, "false 1\n"), "logs": (0, "boom line\n")})
+    t = e8.DockerTarget("sprout-app", port=8123, env={}, mounts=[], docker_args=[], run=run, name="e8-test")
+    t.start()
+    assert "--rm" not in run.calls[0]  # an auto-removed container would take its logs with it
+    message = t.failure()
+    assert "exited" in message and "boom line" in message
+    assert run.calls[-1][:2] == ["docker", "logs"]
+    running = FakeRun({"inspect": (0, "true 0\n")})
+    t2 = e8.DockerTarget("sprout-app", port=8124, env={}, mounts=[], docker_args=[], run=running, name="e8-ok")
+    assert t2.failure() is None

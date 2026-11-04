@@ -1,0 +1,78 @@
+{
+ "run_id": "E9-20261104T235829058326Z",
+ "experiment": "E9",
+ "git_commit": "d8524a33f710357efaf1f9bb49c4f89a6dddbbc4",
+ "dirty": false,
+ "dataset_hash": "b6b3b168bfd8792f7311f47c457652657d82eb6e47e8a45e2a3aebaf9ba793f9",
+ "split": "rag_dev",
+ "subset": null,
+ "config": {
+  "stage": "wrong_disease_dev",
+  "prompt_file": "src/sprout/rag/prompts/wrong_disease.txt",
+  "prompt_sha256": "43929408ff4fdbfd7b9415858a8d7585a00f12f3da1a10833bf0e7f0f99e9271",
+  "rendered_sha256": "3e5be1e11685aff48f0c2d9dd27bb88cee99e462ed8edf47fcd45a2b4e76f4ff",
+  "source": {
+   "e7_run_id": "E7-20261104T040010301317Z",
+   "judgments": "E7-prompts-v2-1e90d37a.judgments.jsonl",
+   "judgments_sha256": "afb838d9291ce5c47c15ed859bb8ff0f2542a6faa071b6f75d7a2250e0895edb",
+   "blind": "E7-prompts-v2-1e90d37a.blind.jsonl",
+   "blind_sha256": "3e61c876e3e57eddd0aba9d5305a558f964ba15fef6733c6511e6d49ba8aa4dd"
+  },
+  "served_system": "served",
+  "diagnosis_source": "The diagnosis is the text the writer was given for the same question: the simulated photo diagnosis of E7 (sprout.experiments.e7_rag.simulate_identification, which names the plant's class that the question mentions, never the gold label) written by answer.diagnosis_summary. With no such class it says no photo diagnosis is available, plus the plant when the question states or names one. rag_dev and rag_test questions have no photos and use the same rule.",
+  "claude_calls": 54,
+  "device": "none: no GPU or local model is used; Sonnet runs through the claude command",
+  "labels_reviewed": false,
+  "label_signature": "Not held in this record: the person's sign-off on this split's labels is the row for the split in orchestration/label_signoff.json, which `claims check` reads. labels_reviewed is false here by design.",
+  "started_at": "2026-11-04T23:57:17.437265+00:00",
+  "source_predates_fallback": true,
+  "source_note": "The saved rag_dev answers this check was developed on (E7 run E7-20261104T040010301317Z) were written before T7.4 added the search with the diagnosed disease when the question finds nothing, so they do not reflect the retrieval served now; no saved set of served rag_dev answers with the fallback exists, and none was generated for this check. rag_test is answered with the fallback.",
+  "grader_prompt": "question, diagnosis and answer; the reply is read strictly as FITS or WRONG"
+ },
+ "models": {
+  "grader": "sonnet"
+ },
+ "n": 54,
+ "metrics": {
+  "served": {
+   "answers_checked": 54.0,
+   "usable_calls": 54.0,
+   "unusable_replies": 0.0,
+   "flagged_wrong_disease": 1.0,
+   "flagged_rate": 0.018518518518518517
+  }
+ },
+ "measurements": {},
+ "judged": {},
+ "intervals": {
+  "served": {
+   "flagged_rate": [
+    0.0032764033153519848,
+    0.09771665358487208
+   ]
+  }
+ },
+ "per_class": {},
+ "confusion": {},
+ "bootstrap": {
+  "n": 10000,
+  "seed": 13
+ },
+ "comparisons": [],
+ "attempts": [
+  {
+   "stage": "wrong_disease_dev",
+   "answers": 54,
+   "claude_calls": 54,
+   "replies_without_a_call": 0
+  }
+ ],
+ "claude_calls": 54,
+ "labels_reviewed": false,
+ "predictions": {
+  "served": "results/runs/E9-20261104T235829058326Z.served.predictions.jsonl"
+ },
+ "started_at": "2026-11-04T23:57:17.437265+00:00",
+ "finished_at": "2026-11-04T23:58:29.058326+00:00",
+ "notes": "Development check of the wrong-disease grader on the final served rag_dev answers. The prompt is frozen only after this. The wrong-disease check was not validated: no one read a sample of its calls on rag_dev, so how often it flags a good answer or passes a wrong one is not known. Its rate is a count of the grader's calls. the cheap check on rag_dev, per the person's direction; answers predate the fallback"
+}

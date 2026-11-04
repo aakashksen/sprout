@@ -238,7 +238,7 @@ def model_files(folder):
     calibration = folder / "chosen.json"
     gate = {"kind": "confidence", "confidence_threshold": 0.0}
     calibration.write_text(json.dumps({"temperature": 1.0, "abstain_threshold": 0.0, "model_sha256": "b" * 64,
-                                       "gate": {"chosen": "confidence", "settings": gate}}), encoding="utf-8")
+                                       "classes": list(CLASS_MAP), "gate": {"chosen": "confidence", "settings": gate}}), encoding="utf-8")
     return model, calibration
 
 

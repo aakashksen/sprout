@@ -129,7 +129,7 @@ def model_files(tmp_path):
     calibration = tmp_path / "chosen.json"
     gate = {"kind": "confidence", "confidence_threshold": 0.0}
     calibration.write_text(json.dumps({"temperature": 1.0, "abstain_threshold": 0.0, "model_sha256": "b" * 64,
-                                       "gate": {"chosen": "confidence", "settings": gate}}), encoding="utf-8")
+                                       "classes": list(CLASS_MAP), "gate": {"chosen": "confidence", "settings": gate}}), encoding="utf-8")
     return model, calibration
 
 
@@ -262,32 +262,29 @@ def test_nothing_listening_is_a_failed_connection_not_a_crash():
     assert row["answer_state"] == "connection_failed"
 
 
-def test_the_number_in_flight_follows_the_level_and_rows_stay_in_order(tmp_path, target):
-    paths = photos(tmp_path, 12)
-    peaks = {}
-    for level in (1, 5):
-        llm = SlowLLM(seconds=0.05)
-        out = e8.run_level(target(llm=llm), level, e8.work_list(paths), tmp_path / "imgs", interval=0.005)
-        assert [r["path"] for r in out["rows"]] == paths
-        assert out["peak_mem_mb"] == max(out["mem_mb"]) and len(out["mem_mb"]) >= 2
-        peaks[level] = llm.peak
-    assert peaks[1] == 1 and 2 <= peaks[5] <= 5
+def test_requests_run_one_at_a_time_and_rows_stay_in_order(tmp_path, target):
+    paths = photos(tmp_path, 5)
+    llm = SlowLLM(seconds=0.05)
+    out = e8.measure(target(llm=llm), e8.work_list(paths), tmp_path / "imgs", interval=0.005)
+    assert [r["path"] for r in out["rows"]] == paths
+    assert out["peak_mem_mb"] == max(out["mem_mb"]) and len(out["mem_mb"]) >= 2
+    assert llm.peak == 1  # no concurrency: the record makes no claim about it
 
 
 def test_failed_requests_are_counted_and_kept_out_of_the_timings(tmp_path, target):
     paths = photos(tmp_path, 3)
-    block = e8.run_level(target(llm=Down()), 1, e8.work_list(paths), tmp_path / "imgs")
+    block = e8.measure(target(llm=Down()), e8.work_list(paths), tmp_path / "imgs")
     assert [r["answer_state"] for r in block["rows"]] == ["unavailable"] * 3
-    data = {"cold": {k: 1.0 for k in e8.COLD_STAGES} | {"mem_mb": 1.0}, "levels": {"1": block}}
-    with pytest.raises(ValueError, match="no request at concurrency 1 ran"):
+    data = {"cold": {k: 1.0 for k in e8.COLD_STAGES} | {"mem_mb": 1.0}, "run": block}
+    with pytest.raises(ValueError, match="no request ran the"):
         e8.build_measurements(data, [])  # nothing but failures: no number to record
     ok = {**block["rows"][0], "answer_state": "answered", "end_to_end_ms": 9.0, "retrieval_ms": 1.0, "generation_ms": 2.0,
           "preprocess_ms": 3.0, "inference_ms": 4.0}
-    mixed = {**data, "levels": {"1": {**block, "rows": [ok, *block["rows"][1:]]}}}
+    mixed = {**data, "run": {**block, "rows": [ok, *block["rows"][1:]]}}
     samples, outcomes = e8.build_measurements(mixed, [])
-    assert samples["c1_end_to_end_ms"] == [9.0] and samples["c1_failed_share"] == [0.6667]
-    assert outcomes["c1"]["failed"] == 2 and outcomes["c1"]["by_answer_state"] == {"answered": 1, "unavailable": 2}
-    assert "c1: 2 of 3 failed" in e8.failure_summary(outcomes)
+    assert samples["request_end_to_end_ms"] == [9.0] and samples["request_failed_share"] == [0.6667]
+    assert outcomes["failed"] == 2 and outcomes["by_answer_state"] == {"answered": 1, "unavailable": 2}
+    assert "2 of 3 failed" in e8.failure_summary(outcomes)
 
 
 def test_memory_that_cannot_be_read_stops_the_run_instead_of_inventing_a_number(tmp_path, target):
@@ -295,7 +292,7 @@ def test_memory_that_cannot_be_read_stops_the_run_instead_of_inventing_a_number(
     t = target()
     t.mem_mb = lambda: (_ for _ in ()).throw(RuntimeError("no cgroup"))
     with pytest.raises(RuntimeError, match="no cgroup"):
-        e8.run_level(t, 1, e8.work_list(paths), tmp_path / "imgs")
+        e8.measure(t, e8.work_list(paths), tmp_path / "imgs")
 
     ok = target()
     calls = {"n": 0}
@@ -308,7 +305,7 @@ def test_memory_that_cannot_be_read_stops_the_run_instead_of_inventing_a_number(
 
     ok.mem_mb = flaky
     with pytest.raises(RuntimeError, match="memory sampling failed"):
-        e8.run_level(ok, 1, e8.work_list(paths * 5), tmp_path / "imgs", interval=0.001)
+        e8.measure(ok, e8.work_list(paths * 5), tmp_path / "imgs", interval=0.001)
 
 
 def test_cold_start_is_timed_from_outside_up_to_ready_and_the_first_request(tmp_path):
@@ -396,7 +393,7 @@ def test_server_settings_and_docker_limits_are_read_from_the_container_and_secre
 
 # ---------------------------------------------------------------- the record
 
-N = 100
+N = 5
 
 
 def sh(root, *args):
@@ -426,13 +423,13 @@ def measured(tmp_path_factory):
     t = LocalTarget(tmp / "t", llm=SlowLLM(seconds=0.0))
     try:
         _, cold = e8.cold_start(lambda: t, e8.work_list(paths)[0], tmp / "imgs", poll=0.01)
-        levels = e8.measure(t, e8.work_list(paths), tmp / "imgs", interval=0.01, timeout=30)
+        run = e8.measure(t, e8.work_list(paths), tmp / "imgs", interval=0.01, timeout=30)
     finally:
         t.stop()
     return {"format": 2, "started_at": 1.7e9, "n_images": N, "warmup": 1, "questions": list(e8.QUESTIONS),
             "model_sha256": "ab" * 32, "calibration_sha256": "cd" * 32, "model_file": "tiny.onnx", "writer": "tiny-writer",
             "ollama_url": "http://host.docker.internal:11434", "client": {"machine": {"logical_cpus": 4}, "timeout_s": 30},
-            "server": {"workers": 1, "threads": 4, "docker_limits": {"NanoCpus": 0}}, "cold": cold, "levels": levels,
+            "server": {"workers": 1, "threads": 4, "docker_limits": {"NanoCpus": 0}}, "cold": cold, "run": run,
             "ollama_placement": {"size": 1, "size_vram": 1}, "measurement_mode": "SPROUT_MEASUREMENT=1"}
 
 
@@ -446,35 +443,29 @@ def test_a_tiny_run_writes_a_record_that_check_run_accepts(root, measured):
     assert path.name.startswith("E8-")
     assert check("E8", root=root, min_n=N, split="perf") == []
     rec = json.loads(path.read_text())
-    assert rec["n"] == N and rec["split"] == "perf" and set(rec["predictions"]) == {"c1", "c5", "c20"}
+    assert rec["n"] == N and rec["split"] == "perf" and set(rec["predictions"]) == {"requests"}
     assert rec["config"]["machine_stated"] == "test box, 4 cores" and rec["config"]["server"]["threads"] == 4
-    assert rec["config"]["outcomes_per_level"]["c20"]["failed"] == 0 and "Failed requests" in rec["notes"]
+    assert rec["config"]["outcomes"]["failed"] == 0 and "Failed requests" in rec["notes"]
+    assert "no concurrency or speed claim" in rec["notes"] and rec["config"]["requests"] == N
 
 
 def test_percentiles_by_stage_are_recorded(root, measured):
     rec = json.loads(record(root, measured).read_text())
     values, samples = rec["measurements"]["values"], json.loads((root / rec["measurements"]["file"]).read_text())
-    for level in ("c1", "c5", "c20"):
-        for stage in e8.REQUEST_STAGES:
-            for q in (50, 95):
-                assert values[f"{level}_{stage}_p{q}"] == pytest.approx(float(np.percentile(samples[f"{level}_{stage}"], q)))
-        assert samples[f"{level}_peak_mem_mb"] and f"{level}_mem_mb_p95" in values and values[f"{level}_failed_share_p50"] == 0
+    for stage in e8.REQUEST_STAGES:
+        for q in (50, 95):
+            assert values[f"request_{stage}_p{q}"] == pytest.approx(float(np.percentile(samples[f"request_{stage}"], q)))
+    assert samples["request_peak_mem_mb"] and "request_mem_mb_p95" in values and values["request_failed_share_p50"] == 0
     for stage in e8.COLD_STAGES:
         assert f"cold_start_{stage}_p50" in values
-    assert values["c1_end_to_end_ms_p95"] >= values["c1_end_to_end_ms_p50"]
+    assert values["request_end_to_end_ms_p95"] >= values["request_end_to_end_ms_p50"]
 
 
-def test_a_level_with_many_failures_is_visible_in_the_record_not_fast(root, measured):
-    twenty = measured["levels"]["20"]
-    rows = [{**r, "answer_state": "client_timeout"} if i % 2 else r for i, r in enumerate(twenty["rows"])]
-    data = {**measured, "levels": {**measured["levels"], "20": {**twenty, "rows": rows}}}
-    rec = json.loads(record(root, data).read_text())
-    out = rec["config"]["outcomes_per_level"]["c20"]
-    assert out["failed"] == 50 and out["client_timeouts"] == 50 and out["failed_share"] == 0.5
-    assert "c20: 50 of 100 failed (50 client timeouts)" in rec["notes"]
-    samples = json.loads((root / rec["measurements"]["file"]).read_text())
-    assert len(samples["c20_end_to_end_ms"]) == 50 and samples["c20_failed_share"] == [0.5]  # the failures are not timings
-    assert check("E8", root=root, min_n=N, split="perf") == []
+def test_a_run_with_a_failed_request_is_refused_not_recorded(root, measured):
+    run = measured["run"]
+    rows = [{**r, "answer_state": "client_timeout"} if i == 0 else r for i, r in enumerate(run["rows"])]
+    with pytest.raises(ValueError, match="1 of 5 failed.*every request to answer"):
+        record(root, {**measured, "run": {**run, "rows": rows}})
 
 
 def test_extra_cold_start_samples_are_added(root, measured):
@@ -488,7 +479,7 @@ def test_tampered_records_fail_the_check(root, measured):
     path = record(root, measured)
     original = path.read_text()
     rec = json.loads(original)
-    rec["measurements"]["values"]["c20_end_to_end_ms_p95"] = 1.0  # a faster number than the samples give
+    rec["measurements"]["values"]["request_end_to_end_ms_p95"] = 1.0  # a faster number than the samples give
     path.write_text(json.dumps(rec))
     assert any("does not match its saved file" in p for p in check("E8", root=root, min_n=N, split="perf"))
     path.write_text(original)
@@ -497,19 +488,19 @@ def test_tampered_records_fail_the_check(root, measured):
     samples = root / rec["measurements"]["file"]
     saved = samples.read_text()
     data = json.loads(saved)
-    lowest = data["c20_end_to_end_ms"].index(min(data["c20_end_to_end_ms"]))
-    data["c20_end_to_end_ms"][lowest] += 1000.0  # a sample changed after the summary was written (moves p50 and p95)
+    lowest = data["request_end_to_end_ms"].index(min(data["request_end_to_end_ms"]))
+    data["request_end_to_end_ms"][lowest] += 1000.0  # a sample changed after the summary was written (moves p50 and p95)
     samples.write_text(json.dumps(data))
     assert any("does not match its saved file" in p for p in check("E8", root=root, min_n=N, split="perf"))
     samples.write_text(saved)
 
     data = json.loads(saved)
-    data["c20_failed_share"] = [0.5]  # a failure share changed after the summary was written
+    data["request_failed_share"] = [0.5]  # a failure share changed after the summary was written
     samples.write_text(json.dumps(data))
     assert any("does not match its saved file" in p for p in check("E8", root=root, min_n=N, split="perf"))
     samples.write_text(saved)
 
-    rows = root / rec["predictions"]["c5"]
+    rows = root / rec["predictions"]["requests"]
     kept = rows.read_text().splitlines()
     rows.write_text("\n".join(kept[:-1]) + "\n")  # a request dropped
     assert any("rows" in p or "exactly once" in p for p in check("E8", root=root, min_n=N, split="perf"))
@@ -525,18 +516,18 @@ def test_a_record_refuses_what_it_cannot_state_or_what_is_not_real(root, measure
         record(root, measured, machine=" ")
     with pytest.raises(ValueError, match="fake or stub"):
         record(root, {**measured, "writer": "fake-llm"})
-    with pytest.raises(ValueError, match="every concurrency level"):
-        record(root, {**measured, "levels": {"1": measured["levels"]["1"]}})
-    five = measured["levels"]["5"]
-    shuffled = {**measured, "levels": {**measured["levels"], "5": {**five, "rows": five["rows"][::-1]}}}
+    with pytest.raises(ValueError, match="cold-start file"):
+        record(root, {**measured, "run": None})
+    run = measured["run"]
+    shuffled = {**measured, "run": {**run, "rows": run["rows"][::-1]}}
     with pytest.raises(ValueError, match="once each, in order"):
         record(root, shuffled)
 
 
 def test_a_stage_that_never_ran_is_refused_not_recorded_as_empty(root, measured):
-    twenty = measured["levels"]["20"]
-    rows = [{**r, "generation_ms": None} for r in twenty["rows"]]
-    broken = {**measured, "levels": {**measured["levels"], "20": {**twenty, "rows": rows}}}
+    run = measured["run"]
+    rows = [{**r, "generation_ms": None} for r in run["rows"]]
+    broken = {**measured, "run": {**run, "rows": rows}}
     with pytest.raises(ValueError, match="generation_ms stage"):
         record(root, broken)
 
@@ -547,13 +538,13 @@ def test_the_image_list_is_spread_over_the_dev_photos(tmp_path):
     rows = ["path,label,group,split,sha1,source"] + [
         f"raw/{i:03d}.jpg,A,g{i},field_{'dev' if i % 2 else 'test'},s{i},x" for i in range(400)]
     (manifests / "field.csv").write_text("\n".join(rows) + "\n")
-    out = e8.write_image_list(tmp_path, 100)
+    out = e8.write_image_list(tmp_path, 5)
     lines = out.read_text().splitlines()
-    assert len(lines) == 100 and len(set(lines)) == 100 and lines == sorted(lines)
+    assert len(lines) == 5 and len(set(lines)) == 5 and lines == sorted(lines)
     assert all(int(x[4:7]) % 2 == 1 for x in lines)  # dev photos only
     assert split_info("perf", tmp_path).ids == lines
-    with pytest.raises(ValueError, match="at least 100"):
-        e8.write_image_list(tmp_path, 50)
+    with pytest.raises(ValueError, match="at least 5"):
+        e8.write_image_list(tmp_path, 4)
 
 
 # ---------------------------------------------------------------- list citations in saved answers

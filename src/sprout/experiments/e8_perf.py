@@ -1,12 +1,14 @@
-"""E8: how fast and how large the deployed photo-to-answer path is, over HTTP, in the serving container on the CPU.
+"""E8: a handful of real requests (about 5) through the serving container on the CPU, to show the parts work together.
+
+This proves the real model, calibration, index and writer answer through the deployed image. The record keeps the stage
+times it saw, but with so few requests it supports no concurrency claim and no end-to-end speed claim.
 
 Two halves, because the load client needs nothing from the image and the record needs pandas:
   - `measure` and `cold` run on the HOST (standard library only). They start the serving image exactly as
     docs/deploy.md deploys it (its own entrypoint, gunicorn with its worker and thread counts), plus
     `SPROUT_MEASUREMENT=1`, which lifts the rate limits and makes the upload and chat routes report stage times in a
-    `Server-Timing` header. The client sends real HTTP requests, each one user action: sign in once, then upload a photo
-    and ask a question about it. End-to-end time is taken on the client side, so gunicorn's thread queue is in it.
-    Memory is read from the container's cgroup. Raw per-request numbers go to a JSON file.
+    `Server-Timing` header. The client sends real HTTP requests one after another, each one user action: upload a photo
+    and ask a question about it. Memory is read from the container's cgroup. Raw per-request numbers go to a JSON file.
   - `record` turns that file into a run record with `write_run`, so `check_run E8` can check it.
 `floor-check` and `multi-citations` are host-side checks that call no model.
 """
@@ -17,7 +19,6 @@ import argparse
 import json
 import os
 import platform
-import queue
 import re
 import secrets
 import socket
@@ -28,7 +29,6 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from http.cookiejar import CookieJar
 from pathlib import Path
@@ -37,7 +37,7 @@ from sprout.atomic import atomic_write_text
 from sprout.serve import timing
 
 SPLIT = "perf"
-LEVELS = (1, 5, 20)
+MIN_REQUESTS = 5
 REQUEST_STAGES = ("preprocess_ms", "inference_ms", "retrieval_ms", "generation_ms", "end_to_end_ms")
 # Measured from outside, from the moment `docker run` is issued.
 COLD_STAGES = ("container_start_ms", "to_alive_ms", "to_ready_ms", "first_request_ms", "total_ms")
@@ -46,7 +46,6 @@ COLD_STAGES = ("container_start_ms", "to_alive_ms", "to_ready_ms", "first_reques
 FAILED_STATES = ("unavailable", "retrieval_failed", "upload_failed", "chat_failed", "client_timeout", "connection_failed")
 CLIENT_TIMEOUT_S = 120.0  # longer than the app's 50 s answer budget, so the app's own timeouts show up as its replies
 MEM_INTERVAL_S = 0.5
-WARN_FAILED_SHARE = 0.05
 QUESTIONS = (
     "What is wrong with my plant and how do I treat it?",
     "How can I stop this from spreading to my other plants?",
@@ -244,7 +243,7 @@ def free_port() -> int:
 # ---------------------------------------------------------------- memory
 
 class MemorySampler:
-    """Memory of the container, sampled while a level runs. A failed read stops the run instead of making up a number."""
+    """Memory of the container, sampled while the requests run. A failed read stops the run instead of making up a number."""
 
     def __init__(self, read, interval: float) -> None:
         self._read, self._interval = read, interval
@@ -292,39 +291,19 @@ def machine_info() -> dict:
 
 # ---------------------------------------------------------------- measuring
 
-def run_level(target, level: int, work: list[tuple[str, str]], images_root: Path, *, interval: float = MEM_INTERVAL_S,
-              timeout: float = CLIENT_TIMEOUT_S) -> dict:
-    """Every image once, with `level` requests in flight at a time. Rows come back in `work` order."""
-    clients: queue.Queue = queue.Queue()
-    for _ in range(level):  # signed in before the clock starts
-        client = HttpClient(target.base_url, timeout)
-        client.sign_up()
-        clients.put(client)
-
-    def one(item: tuple[str, str]) -> dict:
-        path, question = item
-        data = (images_root / path).read_bytes()
-        client = clients.get()
-        try:
-            return client.user_action(path, data, question)
-        finally:
-            clients.put(client)
-
-    start = time.perf_counter()
-    with MemorySampler(target.mem_mb, interval) as sampler, ThreadPoolExecutor(level) as pool:
-        rows = list(pool.map(one, work))
-    wall = time.perf_counter() - start
-    return {"level": level, "wall_s": round(wall, 3), "rows": rows, "mem_mb": [round(x, 2) for x in sampler.samples],
-            "peak_mem_mb": round(max(sampler.samples), 2), "cgroup_peak_mb": target.mem_peak_mb()}
-
-
-def measure(target, work: list[tuple[str, str]], images_root: Path, *, levels=LEVELS, warmup: int = 1,
-            interval: float = MEM_INTERVAL_S, timeout: float = CLIENT_TIMEOUT_S) -> dict[str, dict]:
+def measure(target, work: list[tuple[str, str]], images_root: Path, *, warmup: int = 1,
+            interval: float = MEM_INTERVAL_S, timeout: float = CLIENT_TIMEOUT_S) -> dict:
+    """Every image once, one request at a time, after `warmup` unrecorded requests. Rows come back in `work` order."""
     client = HttpClient(target.base_url, timeout)
     client.sign_up()
     for path, question in work[:warmup]:  # not recorded: the first request after start-up is the cold start
         client.user_action(path, (images_root / path).read_bytes(), question)
-    return {str(level): run_level(target, level, work, images_root, interval=interval, timeout=timeout) for level in levels}
+    start = time.perf_counter()
+    with MemorySampler(target.mem_mb, interval) as sampler:
+        rows = [client.user_action(path, (images_root / path).read_bytes(), question) for path, question in work]
+    wall = time.perf_counter() - start
+    return {"wall_s": round(wall, 3), "rows": rows, "mem_mb": [round(x, 2) for x in sampler.samples],
+            "peak_mem_mb": round(max(sampler.samples), 2), "cgroup_peak_mb": target.mem_peak_mb()}
 
 
 def cold_start(start_target, first: tuple[str, str], images_root: Path, *, ready_timeout: float = 300.0,
@@ -378,8 +357,8 @@ def read_list(path: Path) -> list[str]:
     return [x.strip() for x in Path(path).read_text(encoding="utf-8").splitlines() if x.strip()]
 
 
-def run_measurement(args: argparse.Namespace, *, levels=LEVELS) -> dict:
-    """Start the container, measure its cold start, then each level; always stop the container this call started."""
+def run_measurement(args: argparse.Namespace, *, requests: bool = True) -> dict:
+    """Start the container, measure its cold start, then the requests; always stop the container this call started."""
     from sprout.llm.client import LLMError, OllamaClient
 
     started = time.time()
@@ -395,15 +374,15 @@ def run_measurement(args: argparse.Namespace, *, levels=LEVELS) -> dict:
     try:
         _, cold = cold_start(target.start, work[0], root)
         out = {
-            "format": 2, "started_at": started, "n_images": len(paths), "warmup": 1, "questions": list(QUESTIONS),
+            "format": 3, "started_at": started, "n_images": len(paths), "warmup": 1, "questions": list(QUESTIONS),
             "model_sha256": sha256_file(Path(args.model)), "calibration_sha256": sha256_file(Path(args.calibration)),
             "model_file": Path(args.model).name, "writer": args.writer, "ollama_url": args.ollama_url,
             "client": {"machine": machine_info(), "timeout_s": CLIENT_TIMEOUT_S, "memory_interval_s": MEM_INTERVAL_S},
-            "server": target.info(), "cold": cold, "levels": {},
+            "server": target.info(), "cold": cold, "run": None,
             "measurement_mode": "SPROUT_MEASUREMENT=1: rate limits lifted, Server-Timing header on the upload and chat routes",
         }
-        if levels:
-            out["levels"] = measure(target, work, root, levels=levels)
+        if requests:
+            out["run"] = measure(target, work, root)
         try:
             out["ollama_placement"] = OllamaClient(args.writer, base_url=args.ollama_host_url).placement()
         except LLMError:
@@ -428,31 +407,30 @@ def build_measurements(data: dict, cold_files: list[dict]) -> tuple[dict[str, li
     for name in COLD_STAGES:
         samples[f"cold_start_{name}"] = [c[name] for c in colds]
     samples["cold_start_mem_mb"] = [c["mem_mb"] for c in colds]
-    for key, block in data["levels"].items():
-        rows = block["rows"]
-        counts: dict[str, int] = {}
-        for r in rows:
-            counts[r["answer_state"]] = counts.get(r["answer_state"], 0) + 1
-        failed = sum(r["answer_state"] in FAILED_STATES for r in rows)
-        outcomes[f"c{key}"] = {"requests": len(rows), "failed": failed, "failed_share": round(failed / len(rows), 4),
-                               "client_timeouts": counts.get("client_timeout", 0), "by_answer_state": counts, "ran_stage": {}}
-        for stage in REQUEST_STAGES:
-            got = _stage_samples(rows, stage)
-            if not got:
-                raise ValueError(f"no request at concurrency {key} ran the {stage} stage, so it has no number to record")
-            samples[f"c{key}_{stage}"] = got
-            outcomes[f"c{key}"]["ran_stage"][stage] = len(got)
-        samples[f"c{key}_mem_mb"] = block["mem_mb"]
-        samples[f"c{key}_peak_mem_mb"] = [block["peak_mem_mb"]]
-        samples[f"c{key}_requests_per_s"] = [round((len(rows) - failed) / block["wall_s"], 4)]
-        samples[f"c{key}_failed_share"] = [outcomes[f"c{key}"]["failed_share"]]
+    block = data["run"]
+    rows = block["rows"]
+    counts: dict[str, int] = {}
+    for r in rows:
+        counts[r["answer_state"]] = counts.get(r["answer_state"], 0) + 1
+    failed = sum(r["answer_state"] in FAILED_STATES for r in rows)
+    outcomes = {"requests": len(rows), "failed": failed, "failed_share": round(failed / len(rows), 4),
+                "client_timeouts": counts.get("client_timeout", 0), "by_answer_state": counts, "ran_stage": {}}
+    for stage in REQUEST_STAGES:
+        got = _stage_samples(rows, stage)
+        if not got:
+            raise ValueError(f"no request ran the {stage} stage, so it has no number to record")
+        samples[f"request_{stage}"] = got
+        outcomes["ran_stage"][stage] = len(got)
+    samples["request_mem_mb"] = block["mem_mb"]
+    samples["request_peak_mem_mb"] = [block["peak_mem_mb"]]
+    samples["request_failed_share"] = [outcomes["failed_share"]]
     return samples, outcomes
 
 
 def failure_summary(outcomes: dict) -> str:
-    """One line per level, so a level that mostly failed cannot look fast."""
-    parts = [f"{lvl}: {o['failed']} of {o['requests']} failed ({o['client_timeouts']} client timeouts)" for lvl, o in outcomes.items()]
-    return "Failed requests, kept out of the percentiles: " + "; ".join(parts) + "."
+    """So a run that mostly failed cannot look fast."""
+    return (f"Failed requests, kept out of the percentiles: {outcomes['failed']} of {outcomes['requests']} failed "
+            f"({outcomes['client_timeouts']} client timeouts).")
 
 
 def build_record(data: dict, *, machine: str, image: str, variant: str, root=None, cold_files: list[dict] | None = None,
@@ -467,30 +445,32 @@ def build_record(data: dict, *, machine: str, image: str, variant: str, root=Non
     names = [data["writer"], data["model_file"]]
     if any(FAKE.search(n) for n in names):
         raise ValueError(f"{names} looks like a fake or stub; E8 measures the real path")
-    if sorted(data["levels"], key=int) != [str(x) for x in LEVELS]:
-        raise ValueError(f"a record needs every concurrency level {LEVELS}, the file has {sorted(data['levels'])}")
+    if not data.get("run"):
+        raise ValueError("the measurement file has no requests; it is a cold-start file, not a measurement")
     info = split_info(SPLIT, root)
     samples, ran = build_measurements(data, cold_files or [])
-    systems = {}
-    for key, block in data["levels"].items():
-        if [r["path"] for r in block["rows"]] != info.ids:
-            raise ValueError(f"the requests at concurrency {key} are not the perf list's images, once each, in order")
-        systems[f"c{key}"] = [{"path": r["path"], "identification": r["identification"], "answer_state": r["answer_state"]}
-                              for r in block["rows"]]
+    if ran["failed"]:
+        raise ValueError(f"{failure_summary(ran)} A record that shows the parts work together needs every request to answer")
+    rows = data["run"]["rows"]
+    if [r["path"] for r in rows] != info.ids:
+        raise ValueError("the requests are not the perf list's images, once each, in order")
+    systems = {"requests": [{"path": r["path"], "identification": r["identification"], "answer_state": r["answer_state"]}
+                            for r in rows]}
     config = {
         "machine_stated": machine.strip(), "image": image.strip(), "variant": variant.strip(),
-        "load_client": data["client"], "server": data["server"], "levels": [int(k) for k in data["levels"]],
-        "requests_per_level": data["n_images"], "outcomes_per_level": ran, "warmup_requests": data["warmup"],
+        "load_client": data["client"], "server": data["server"],
+        "requests": data["n_images"], "outcomes": ran, "warmup_requests": data["warmup"],
         "questions": data["questions"], "measurement_mode": data["measurement_mode"],
         "model_sha256": data["model_sha256"], "calibration_sha256": data["calibration_sha256"],
         "ollama_url": data["ollama_url"], "ollama_placement": data["ollama_placement"],
         "cold_start_samples": 1 + len(cold_files or []),
         "device": "container on CPU (onnxruntime CPUExecutionProvider, no torch); the writer runs in Ollama on the host",
-        "concurrency": "N user actions in flight at once over HTTP from the host, through the container's own gunicorn "
-                       "entrypoint, so its worker and thread queue is part of every time; the client's clock gives end-to-end",
-        "memory": "the whole container's memory from its cgroup, sampled every 0.5 s, peak and samples per level",
+        "claims": "none about concurrency or end-to-end speed: the requests run one at a time and there are too few for "
+                  "percentiles to mean anything. The record shows the real model, calibration, index and writer answered "
+                  "together through the deployed image.",
+        "memory": "the whole container's memory from its cgroup, sampled every 0.5 s, peak and samples over the requests",
         "stage_times": "from the Server-Timing header (hooks on the real objects); failed and timed-out requests are "
-                       "counted in outcomes_per_level and c<N>_failed_share, and kept out of every percentile",
+                       "counted in outcomes and request_failed_share, and kept out of every percentile",
         "started_at": datetime.fromtimestamp(data["started_at"], timezone.utc).isoformat(),
         "labels_reviewed": False, "claude_calls": 0,
     }
@@ -498,10 +478,11 @@ def build_record(data: dict, *, machine: str, image: str, variant: str, root=Non
               "embedder": "BAAI/bge-small-en-v1.5 (fastembed ONNX)", "reranker": "Xenova/ms-marco-MiniLM-L-6-v2 (fastembed ONNX)"}
     return write_run(
         "E8", SPLIT, config, models, {s: {} for s in systems}, {},
-        [{"setting": variant.strip(), "result": "measured", "levels": config["levels"]}], systems, info.hash,
+        [{"setting": variant.strip(), "result": "measured", "requests": len(rows)}], systems, info.hash,
         root=root, allow_dirty=allow_dirty, measurements=samples,
         notes="Latency and memory of the deployed app (real Identifier, index and writer) in its container on the CPU, "
-              "over HTTP. Requests are the perf list's photos with a fixed question each. Nothing here is accuracy. "
+              "over HTTP, one request at a time. Requests are the perf list's photos with a fixed question each. Nothing here "
+              "is accuracy, and the few requests support no concurrency or speed claim. "
               + failure_summary(ran))
 
 
@@ -514,8 +495,8 @@ def write_image_list(root: Path, n: int, split: str = "field_dev") -> Path:
 
     import numpy as np
 
-    if n < 100:
-        raise ValueError("the perf list needs at least 100 photos for check_run --min-n 100")
+    if n < MIN_REQUESTS:
+        raise ValueError(f"the perf list needs at least {MIN_REQUESTS} photos for check_run --min-n {MIN_REQUESTS}")
     with (root / "datasets" / "manifests" / "field.csv").open(newline="", encoding="utf-8") as f:
         paths = sorted(r["path"] for r in csv.DictReader(f) if r["split"] == split)
     if len(paths) < n:
@@ -673,7 +654,7 @@ def _container_args(ap: argparse.ArgumentParser) -> None:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="e8_perf")
     sub = ap.add_subparsers(dest="stage", required=True)
-    _container_args(sub.add_parser("measure", help="start the container; cold start, then every stage at 1, 5 and 20 over HTTP"))
+    _container_args(sub.add_parser("measure", help="start the container; cold start, then each photo once over HTTP, one at a time"))
     _container_args(sub.add_parser("cold", help="start a fresh container: one more cold-start sample"))
     rec = sub.add_parser("record", help="on the host: write the run record")
     rec.add_argument("--measured", required=True)
@@ -682,7 +663,7 @@ def main(argv: list[str] | None = None) -> int:
     rec.add_argument("--image", required=True, help="the container image measured (name and digest)")
     rec.add_argument("--variant", required=True, help="what this run is: baseline, or what changed")
     lst = sub.add_parser("list", help="write datasets/perf/images.txt")
-    lst.add_argument("--n", type=int, default=120)
+    lst.add_argument("--n", type=int, default=MIN_REQUESTS)
     chk = sub.add_parser("floor-check", help="on the host: ONNX vs torch reranker scores near the floor, on rag_dev")
     chk.add_argument("--index", required=True)
     chk.add_argument("--device", choices=("cpu", "cuda"), default="cpu", help="cuda needs a GPU window")
@@ -694,15 +675,14 @@ def main(argv: list[str] | None = None) -> int:
     if a.stage == "measure":
         _write_json(a.out, run_measurement(a))
     elif a.stage == "cold":
-        _write_json(a.out, run_measurement(a, levels=()))
+        _write_json(a.out, run_measurement(a, requests=False))
     elif a.stage == "record":
         read = lambda p: json.loads(Path(p).read_text(encoding="utf-8"))  # noqa: E731
         path = build_record(read(a.measured), machine=a.machine, image=a.image, variant=a.variant,
                             cold_files=[read(p) for p in a.cold])
         rec = json.loads(path.read_text(encoding="utf-8"))
-        for lvl, o in rec["config"]["outcomes_per_level"].items():
-            flag = "  <-- MANY FAILURES: read these times with care" if o["failed_share"] > WARN_FAILED_SHARE else ""
-            print(f"{lvl}: {o['failed']} of {o['requests']} requests failed{flag}")
+        o = rec["config"]["outcomes"]
+        print(f"{o['failed']} of {o['requests']} requests failed")
         print(path)
     elif a.stage == "list":
         from sprout.eval.records import ROOT

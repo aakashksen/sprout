@@ -421,7 +421,8 @@
         "T4.1"
       ],
       "acceptance": [
-        "{py} -m pytest tests/test_extra_sources.py -q"
+        "{py} -m pytest tests/test_extra_sources.py -q",
+        "{py} -m pytest tests/test_extra_sources.py -q -m real"
       ],
       "status": "in_progress",
       "worktree": "<local path>",
@@ -443,7 +444,8 @@
         "T4.5"
       ],
       "acceptance": [
-        "{py} -m pytest tests/test_extra_sources.py -q"
+        "{py} -m pytest tests/test_extra_sources.py -q",
+        "{py} -m pytest tests/test_extra_sources.py -q -m real"
       ],
       "status": "pending"
     },

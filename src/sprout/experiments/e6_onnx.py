@@ -281,6 +281,19 @@ def cpu_name() -> str:
         return platform.processor() or platform.machine()
 
 
+def cpu_load_percent() -> float | None:
+    """The whole machine's CPU load now, to say in the record how idle it was; None where it cannot be read."""
+    try:
+        import subprocess
+
+        out = subprocess.run(
+            ["powershell", "-NoProfile", "-Command", "(Get-CimInstance Win32_Processor | Measure-Object LoadPercentage -Average).Average"],
+            capture_output=True, text=True, timeout=30, check=True).stdout
+        return float(out.strip())
+    except Exception:
+        return None
+
+
 def stage_latency(cfg: dict[str, Any], root: Path) -> None:
     """Time one photo at a time, decoded beforehand, from resize to probabilities. Needs the machine to itself."""
     import onnxruntime
@@ -317,6 +330,7 @@ def stage_latency(cfg: dict[str, Any], root: Path) -> None:
                     return torch.softmax(model(preprocess(img)[None]), dim=1)[0].numpy()
         else:
             predict = OnnxModel(p.models / state["files"][system]["file"], cfg["threads"]).predict
+        load = cpu_load_percent()  # before the warm-up, while this process is not yet loading the CPU
         for i in range(cfg["latency"]["warmup"]):
             predict(images[i % len(images)])
         samples = []
@@ -324,7 +338,8 @@ def stage_latency(cfg: dict[str, Any], root: Path) -> None:
             t = time.perf_counter()
             predict(img)
             samples.append((time.perf_counter() - t) * 1000)
-        saved["systems"][system] = {"source_sha256": source_sha(state, system), "samples_ms": samples}
+        saved["systems"][system] = {"source_sha256": source_sha(state, system), "samples_ms": samples,
+                                    "cpu_load_percent_before": load}
         atomic_write_text(p.latency, json.dumps(saved, indent=1) + "\n")
         log(p, f"latency {system}: median {float(np.median(samples)):.1f} ms over {len(samples)} photos")
 
@@ -422,7 +437,8 @@ def stage_record(cfg: dict[str, Any], root: Path) -> Path:
                               "segmentation step is exported or timed",
         "calibration": state["calibration"],
         "probs_device": devices,
-        "latency": {**machine, "measured": "one photo at a time on the CPU, decoded beforehand, from resize to "
+        "latency": {**machine, "cpu_load_percent_before": {
+            s: latency["systems"][s].get("cpu_load_percent_before") for s in systems(cfg)}, "measured": "one photo at a time on the CPU, decoded beforehand, from resize to "
                                            "probabilities, by the latency stage run alone"},
         "thresholds": threshold_behaviour(cfg, root, state["checkpoint_sha256"], preds, names, groups),
         "label": "development number, field_dev only",

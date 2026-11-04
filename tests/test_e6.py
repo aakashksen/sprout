@@ -215,6 +215,7 @@ def test_stages_end_to_end_and_the_record_passes_check_run(world, cfg):
     assert "changed_vs@pytorch" not in rec["metrics"]["pytorch"]
     c = rec["config"]
     assert set(c["probs_device"].values()) == {"cpu"} and c["latency"]["threads"] == 1 and c["latency"]["cpu"]
+    assert set(c["latency"]["cpu_load_percent_before"]) == {"pytorch", "onnx_dynamic"}
     assert c["segmentation_model"].startswith("not exported") and "crop" in c["segmentation_model"]
     assert c["calibration"] is None  # dynamic quantization uses no calibration photos
     assert {"latency_ms_onnx_dynamic_p50", "latency_ms_onnx_dynamic_p95"} <= set(rec["measurements"]["values"])

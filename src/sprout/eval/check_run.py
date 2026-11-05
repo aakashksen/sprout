@@ -749,11 +749,13 @@ def _e9_final_problems(rec: dict[str, Any], root: Path) -> list[str]:
         bad["claims"] += [c["claim"] for c in r["claims"]] != want
         bad["haiku"] += any(c["haiku"] != parse_verdict(str(c["haiku_reply"])) for c in r["claims"])
         bad["sonnet"] += any(c["sonnet"] != parse_verdict(str(c["sonnet_reply"])) for c in r["claims"])
-        reply = r["wrong_disease_reply"]
+        reply, status = r["wrong_disease_reply"], r["wrong_disease_status"]
         bad["check"] += (r["wrong_disease"] != answer_checks.parse_call(str(reply or ""))
-                         or (reply is None) != (not r["claims"]))
+                         or status not in answer_checks.WD_STATUSES or (status == "no_claims") != (not r["claims"])
+                         or (status == "graded") != (reply is not None)
+                         or (status != "refused_by_safeguard" and r["wrong_disease_request_id"] is not None))
         bad["calls"] += (r["haiku_calls"] != len(r["claims"])
-                         or r["sonnet_calls"] != len(r["claims"]) + (reply is not None))
+                         or r["sonnet_calls"] != len(r["claims"]) + (status in ("graded", "refused_by_safeguard")))
     for key, what in (("claims", "claims do not follow from the answer text"),
                       ("haiku", "a Haiku verdict does not match its reply"),
                       ("sonnet", "a Sonnet verdict does not match its reply"),
@@ -764,6 +766,14 @@ def _e9_final_problems(rec: dict[str, Any], root: Path) -> list[str]:
     calls = {"haiku": sum(r["haiku_calls"] for r in rows), "sonnet": sum(r["sonnet_calls"] for r in rows)}
     if cfg.get("calls") != calls or rec["claude_calls"] != calls["haiku"] + calls["sonnet"]:
         problems.append("claude_calls or config.calls differ from the calls the rows record")
+    counts = answer_checks.wd_counts(rows)
+    held = cfg.get("wrong_disease_check")
+    if not isinstance(held, dict) or {k: held.get(k) for k in counts} != counts:
+        problems.append("config.wrong_disease_check does not recompute from the rows")
+    if not counts["complete"] and "partial" not in json.dumps([rec["notes"], cfg.get("caveat")]).lower():
+        problems.append("the wrong-disease check is partial (refused or unsent rows) but the record does not say so")
+    if counts["complete"] and "partial" in str(rec["notes"]).lower():
+        problems.append("the record calls a complete wrong-disease check partial")
     cov = cfg.get("generic_followup_coverage")
     if not (isinstance(cov, dict) and cov.get("questions") == len(rows)
             and cov.get("generic_followups") == sum(bool(r["generic_followup"]) for r in rows)

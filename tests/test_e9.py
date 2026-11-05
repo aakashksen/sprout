@@ -2,6 +2,7 @@
 Ollama, no Claude call. The guards, the records check_run recomputes, and the answer-quality stages."""
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -1655,3 +1656,139 @@ def test_e9_reports_abstention_as_served_beside_abstention_alone_and_check_run_r
     rec["metrics"]["improved_calibrated"]["coverage@0.6~0.8"] += 0.1
     path.write_text(json.dumps(rec))
     assert any("coverage@0.6~0.8" in p or "recompute" in p for p in check_file(path, repo, min_n=1))
+
+
+# ------------------------------------------------------------ the safeguard refusing a wrong-disease request
+
+def refusing(*ids, other=None):
+    """A Sonnet fake that raises a safeguard refusal for the wrong-disease requests of the named test questions."""
+    from sprout.llm.client import SafeguardRefusal
+
+    seen = []
+
+    def reply(messages):
+        body = messages[-1]["content"]
+        if body.startswith("Question:"):
+            hit = [i for i in ids if re.search(rf"\b{i}\b", body)]
+            seen.append(hit[0] if hit else None)
+            if hit and other:
+                raise other
+            if hit:
+                raise SafeguardRefusal("claude returned an error (exit 1): safeguards flagged this message", f"req_{hit[0]}")
+        return sonnet_reply(messages)
+
+    return FakeLLM(reply=reply, model="sonnet"), seen
+
+
+def staged(root):
+    cfg = e9.load_config(root)
+    e9.stage_rag_retrieve(cfg, FakeRetriever(), root)
+    e9.stage_rag_generate(cfg, FakeLLM(reply=writer_reply, model="writer-model"), root, None)
+    e9.stage_rag_haiku(cfg, haiku(), root)
+    return cfg
+
+
+def wd_file(root, cfg, llm):
+    items = e9._test_items(cfg, root, e9.claim_rows(cfg, root))
+    return root / "results/e9/work" / f"wd-test-{e9.wd_key(items, llm.model, root)}.jsonl", items
+
+
+def test_a_safeguard_refusal_is_kept_as_a_row_with_its_request_id_and_never_retried(frozen):
+    cfg = staged(frozen)
+    llm, seen = refusing("t2")
+    e9.stage_rag_sonnet(cfg, llm, frozen)  # the refusal does not stop the stage
+    path, _ = wd_file(frozen, cfg, llm)
+    rows = {json.loads(x)["id"]: json.loads(x) for x in path.read_text().splitlines()}
+    assert rows["t2"] == {"id": "t2", "reply": None, "call": None, "refused_by_safeguard": True, "request_id": "req_t2"}
+    assert len(rows) == 6 and seen.count("t2") == 1
+    again, seen2 = refusing("t2")
+    e9.stage_rag_sonnet(cfg, again, frozen)
+    assert again.calls == [] and seen2 == []  # nothing is sent again, the refused row included
+
+
+def test_other_errors_in_the_wrong_disease_check_still_stop_the_stage_and_claim_judges_are_unchanged(frozen):
+    cfg = staged(frozen)
+    llm, _ = refusing("t2", other=LLMError("usage limit"))
+    with pytest.raises(LLMError, match="usage limit"):
+        e9.stage_rag_sonnet(cfg, llm, frozen)
+    path, _ = wd_file(frozen, cfg, llm)
+    assert not any(json.loads(x).get("refused_by_safeguard") for x in path.read_text().splitlines())
+
+
+def test_a_refusal_on_a_claim_judge_call_is_still_an_error_not_a_row(frozen):
+    from sprout.llm.client import SafeguardRefusal
+
+    cfg = staged(frozen)
+
+    def judge(messages):
+        raise SafeguardRefusal("safeguards flagged this message", "req_x")
+
+    with pytest.raises(SafeguardRefusal):
+        e9.stage_rag_sonnet(cfg, FakeLLM(reply=judge, model="sonnet"), frozen)
+
+
+def test_new_calls_stop_for_good_at_three_refusals_and_the_rest_are_not_sent(frozen):
+    cfg = staged(frozen)
+    llm, seen = refusing("t1", "t2", "t3", "t4", "t5")
+    e9.stage_rag_sonnet(cfg, llm, frozen)
+    path, items = wd_file(frozen, cfg, llm)
+    rows = {json.loads(x)["id"]: json.loads(x) for x in path.read_text().splitlines()}
+    refused = [i for i, r in rows.items() if r.get("refused_by_safeguard")]
+    assert 3 <= len(refused) <= 4  # calls already in flight when the third came back still finish
+    assert "t6" not in rows and len(rows) < len(items)  # never sent
+    again, seen2 = refusing("t1", "t2", "t3", "t4", "t5")
+    e9.stage_rag_sonnet(cfg, again, frozen)
+    assert seen2 == []  # a rerun sends nothing: three refusals stop the check for good
+
+
+def test_wd_key_is_unchanged_so_saved_rows_are_reused(frozen):
+    cfg = staged(frozen)
+    llm = FakeLLM(reply=sonnet_reply, model="sonnet")
+    path, items = wd_file(frozen, cfg, llm)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    saved = "".join(json.dumps({"id": i["id"], "reply": "FITS", "call": "FITS"}) + "\n" for i in items[:3])
+    path.write_text(saved)
+    e9.stage_rag_sonnet(cfg, llm, frozen)
+    asked = [c for c in llm.calls if json.dumps(c).count("Question:") and any(
+        f"{i['question']}" in json.dumps(c) for i in items[:3])]
+    assert asked == []  # the three saved answers were not sent again
+    assert path.read_text().startswith(saved) and len(path.read_text().splitlines()) == 6
+
+
+def test_a_refused_request_is_recorded_once_on_the_first_answer_without_a_row_and_never_sent(frozen):
+    cfg = staged(frozen)
+    llm = FakeLLM(reply=sonnet_reply, model="sonnet")
+    path, items = wd_file(frozen, cfg, llm)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("".join(json.dumps({"id": items[i]["id"], "reply": "FITS", "call": "FITS"}) + "\n" for i in (1, 0, 3, 2)))
+    with pytest.raises(e9.Refused, match="request id"):
+        e9.mark_refused(cfg, frozen, "not-an-id")
+    marked = e9.mark_refused(cfg, frozen, "req_011Cgirq4g3x6XmNV3EEmW3i")
+    assert marked == items[4]["id"] and llm.calls == []  # the lowest-index answer with no saved row; no call
+    last = json.loads(path.read_text().splitlines()[-1])
+    assert last["refused_by_safeguard"] is True and last["request_id"] == "req_011Cgirq4g3x6XmNV3EEmW3i"
+    with pytest.raises(e9.Refused, match="already"):
+        e9.mark_refused(cfg, frozen, "req_011Cgirq4g3x6XmNV3EEmW3i")
+    e9.stage_rag_sonnet(cfg, llm, frozen)
+    sent = json.dumps(llm.calls)
+    assert items[4]["question"] not in sent  # that answer is never sent
+    assert items[5]["question"] in sent  # the rest are
+
+
+def test_a_partial_check_is_recorded_as_partial_with_counts_beside_the_rate_and_check_run_agrees(frozen):
+    cfg = staged(frozen)
+    llm, _ = refusing("t1", "t2", "t3", "t4", "t5")
+    e9.stage_rag_sonnet(cfg, llm, frozen)
+    path = e9.stage_rag_record(cfg, frozen, device="none: fakes")
+    rec = json.loads(path.read_text())
+    wd = rec["config"]["wrong_disease_check"]
+    assert wd["complete"] is False and wd["refused_by_safeguard"] >= 3 and wd["not_sent"] >= 1
+    assert wd["graded"] + wd["refused_by_safeguard"] + wd["not_sent"] == wd["answers_to_check"] == 6
+    assert wd["usable_calls"] <= wd["graded"] and all(r["request_id"].startswith("req_") for r in wd["refused"])
+    rows = read_rows(frozen, rec, "served")
+    assert [r["wrong_disease"] for r in rows if r["wrong_disease_status"] != "graded"] == [None] * (6 - wd["graded"])
+    assert "partial" in rec["notes"] and "partial" in e9.report(rec, frozen) and "complete. " not in e9.report(rec, frozen)
+    assert check_file(path, frozen, min_n=1) == []
+    rec["config"]["wrong_disease_check"]["graded"] += 1
+    path.write_text(json.dumps(rec))
+    assert any("wrong_disease_check" in p for p in check_file(path, frozen, min_n=1))

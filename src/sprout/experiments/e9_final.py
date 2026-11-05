@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 from collections.abc import Callable
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
@@ -39,6 +40,7 @@ from sprout.eval.answer_checks import (
     exif_counts,
     final_lists,
     parse_call,
+    wd_counts,
 )
 from sprout.eval.check_run import (
     Scored,
@@ -64,7 +66,7 @@ from sprout.eval.records import (
 from sprout.experiments import e7_rag as e7
 from sprout.experiments import e14_judge_check as e14
 from sprout.experiments.e7_rag import Checkpoint
-from sprout.llm.client import LLMError
+from sprout.llm.client import LLMError, SafeguardRefusal
 from sprout.rag import serving
 from sprout.rag.answer import GENERAL_CROP, AnswerConfig, diagnosis_summary
 from sprout.rag.evalset import Question, load_questions
@@ -730,14 +732,14 @@ def check_budget(llm: Any, need: int, limit: int, spent: int) -> None:
 
 
 def run_two_at_a_time(todo: list[Any], one: Callable[[Any], dict[str, Any]], ck: Checkpoint,
-                      workers: int = IN_FLIGHT) -> None:
+                      workers: int = IN_FLIGHT, stop: Callable[[], bool] = lambda: False) -> None:
     """Run `one` over `todo` with at most `workers` calls at once (two unless said), saving each row as it arrives. An
     error stops new calls, keeps what arrived, and is raised."""
     failure: LLMError | None = None
     with ThreadPoolExecutor(max_workers=workers) as pool:
         queue, live = iter(todo), set()
         while True:
-            while failure is None and len(live) < workers:
+            while failure is None and not stop() and len(live) < workers:
                 nxt = next(queue, None)
                 if nxt is None:
                     break
@@ -817,12 +819,42 @@ def wd_grade(items: list[dict[str, Any]], llm: Any, tag: str, root: Path, limit:
         check_budget(llm, len(todo), limit, len(ck.rows))
 
     def one(item: dict[str, Any]) -> dict[str, Any]:
-        reply = llm.complete(wd_messages(item["question"], item["diagnosis"], item["answer"], root),
-                             max_tokens=8, timeout_s=CALL_TIMEOUT_S).text.strip()
+        try:
+            reply = llm.complete(wd_messages(item["question"], item["diagnosis"], item["answer"], root),
+                                 max_tokens=8, timeout_s=CALL_TIMEOUT_S).text.strip()
+        except SafeguardRefusal as refusal:  # this check's rows only: kept, never retried, no grade
+            return {"id": item["id"], "reply": None, "call": None, "refused_by_safeguard": True,
+                    "request_id": refusal.request_id}
         return {"id": item["id"], "reply": reply, "call": parse_call(reply)}
 
-    run_two_at_a_time(todo, one, ck)
+    run_two_at_a_time(todo, one, ck, stop=lambda: refused_rows(ck) >= WD_STOP_AFTER_REFUSALS)
     return ck
+
+
+WD_STOP_AFTER_REFUSALS = 3  # in total, rows recorded by hand included; calls already in flight still finish and are saved
+
+
+def refused_rows(ck: Checkpoint) -> int:
+    return sum(bool(r.get("refused_by_safeguard")) for r in list(ck.rows.values()))
+
+
+def mark_refused(cfg: dict[str, Any], root: Path, request_id: str, *, override_note: str = "") -> str:
+    """Record, with no model call, the one answer the safeguard refused before its row could be saved. The check runs the
+    answers in a fixed order and an error stops new calls, so that answer is the first one without a saved row. Refuses if
+    a refused row exists already, if every answer has a row, or if the id is not a request id. Returns the answer's id."""
+    guard_rag_test(root, override_note)
+    if not re.fullmatch(r"req_[A-Za-z0-9]+", request_id):
+        raise Refused(f"{request_id!r} is not a request id")
+    items = _test_items(cfg, root, claim_rows(cfg, root))
+    ck = Checkpoint(Path(root) / WORK_REL / f"wd-test-{wd_key(items, cfg['rag']['grader'], root)}.jsonl")
+    if refused_rows(ck):
+        raise Refused("a refused row is already recorded; a refusal is marked once")
+    todo = [i["id"] for i in items if i["id"] not in ck.rows]
+    if not todo:
+        raise Refused("every answer has a saved row, so there is no refused one to record")
+    ck.add({"id": todo[0], "reply": None, "call": None, "refused_by_safeguard": True, "request_id": request_id,
+            "recorded_without_call": True})
+    return todo[0]
 
 
 def dev_answers(cfg: dict[str, Any], root: Path) -> list[dict[str, Any]]:
@@ -852,6 +884,8 @@ def stage_wrong_disease_dev(cfg: dict[str, Any], llm: Any, root: Path = ROOT, no
     items = dev_answers(cfg, root)
     started = datetime.now(timezone.utc).isoformat()
     ck = wd_grade(items, llm, "dev", root, limit=wd["dev_max_calls"])
+    if refused_rows(ck) or any(i["id"] not in ck.rows for i in items):
+        raise Refused("the dev check is incomplete (a safeguard refusal or unsent rows); it makes no record")
     rows = [{**i, "call": ck.rows[i["id"]]["call"], "reply": ck.rows[i["id"]]["reply"]} for i in items]
     info = split_info(DEV_SPLIT, root)
     config = {"stage": "wrong_disease_dev", **prompt_fields(root), "source": wd["dev_source"],
@@ -1099,6 +1133,11 @@ def stage_rag_sonnet(cfg: dict[str, Any], llm: Any, root: Path = ROOT, *, overri
     wd_grade(items, llm, "test", root)
 
 
+WD_RATE_RULE = ("the rate's denominator is the graded answers with a usable call; answers the safeguard refused and "
+                "answers never sent are counted as neither result")
+WD_PARTIAL = ("The wrong-disease check is partial: some answers were refused by the claude command's safeguard or never "
+              "sent, so its rate covers the graded answers only and is not a result for all answers with claims.")
+
 GENERIC_FEW = 10  # wording only, chosen before rag_test was run: below it the report says "few"; no number depends on it
 
 
@@ -1138,15 +1177,18 @@ def final_rows(cfg: dict[str, Any], haiku_model: str, sonnet_model: str, root: P
                         "haiku_reply": haiku[key]["reply"], "sonnet": sonnet[key]["verdict"],
                         "sonnet_reply": sonnet[key]["reply"]})
         check = wd.get(g["id"]) if got else None
-        if got and check is None:
-            raise ValueError("some answers are not wrong-disease checked yet; run the rag-sonnet stage")
+        refused = bool(check and check.get("refused_by_safeguard"))
+        status = ("no_claims" if not got else "not_sent" if check is None else
+                  "refused_by_safeguard" if refused else "graded")
         rows.append({"id": g["id"], "answered": bool(g["answered"]), "state": g["state"],
                      "diagnosis": diagnosis.get(g["id"]) or diagnosis_for(qmap[g["id"]], crops, classes), "text": g["text"],
                      "citations": g["citations"], "query": g["query"],
                      "fallback_fired": len(searches[g["id"]]["searches"]) > 1,
                      "generic_followup": is_generic_followup(qmap[g["id"]], crops, classes),
-                     "claims": got, "wrong_disease": check["call"] if check else None,
-                     "wrong_disease_reply": check["reply"] if check else None,
+                     "claims": got, "wrong_disease": check["call"] if status == "graded" else None,
+                     "wrong_disease_reply": check["reply"] if status == "graded" else None,
+                     "wrong_disease_status": status,
+                     "wrong_disease_request_id": check.get("request_id") if refused else None,
                      "haiku_calls": len(got), "sonnet_calls": len(got) + (1 if check else 0)})
     return rows
 
@@ -1192,6 +1234,8 @@ def stage_rag_record(cfg: dict[str, Any], root: Path = ROOT, *, device: str, not
         "rubric": rubric(), **prompt_fields(root), "frozen_wrong_disease": {"file": FROZEN_REL, **frozen},
         "wrong_disease_validated": False, "wrong_disease_validation": NOT_VALIDATED,
         "diagnosis_source": DIAGNOSIS_RULE, "calls": calls, "claude_calls": calls["haiku"] + calls["sonnet"],
+        "wrong_disease_check": {**wd_counts(rows), "stop_after_refusals": WD_STOP_AFTER_REFUSALS,
+                                "rule": WD_RATE_RULE},
         "device": device, "writer_usage": usage, "index": index_identity(index_path(cfg, root)),
         "generic_followup_coverage": coverage, "dev_source_note": DEV_PREDATES_FALLBACK,
         "served_with_fallback": True,
@@ -1205,7 +1249,8 @@ def stage_rag_record(cfg: dict[str, Any], root: Path = ROOT, *, device: str, not
     attempts = [{"stage": "rag_test", "answers": len(rows), "claims": sum(len(r["claims"]) for r in rows),
                  "claude_calls": config["claude_calls"]}]
     return write_run("E9", RAG_TEST, config, models, metrics, {SERVED: {}}, attempts, {SERVED: rows}, info.hash,
-                     root=root, judged=final_lists(rows), notes=FINAL_CAVEAT + (" " + note if note else ""))
+                     root=root, judged=final_lists(rows), notes=FINAL_CAVEAT + ("" if wd_counts(rows)["complete"] else " " + WD_PARTIAL)
+                     + (" " + note if note else ""))
 
 
 GENERIC_RULE = ("no plant given for the question, no plant of the index and no disease name or alias of the classes "
@@ -1239,7 +1284,7 @@ def report(rec: dict[str, Any], root: Path = ROOT) -> str:
 
     h, s = (sum(sidecar[k]) / len(sidecar[k]) for k in ("claims_supported_by_haiku", "claims_supported_by_sonnet"))
     order = "below" if h < s else "above" if h > s else "equal to"
-    flagged = sidecar.get("answers_flagged_wrong_disease", [])
+    wd = rec["config"]["wrong_disease_check"]
     tag = "[rag_test questions, no photo cleaning applies]"
     lines = [f"{tag} {rec['n']} questions, one run, configurations frozen before it. Label review is signed in "
              f"{SIGNOFF_REL}, not in this record.",
@@ -1250,8 +1295,12 @@ def report(rec: dict[str, Any], root: Path = ROOT) -> str:
              coverage_line(rec["config"]["generic_followup_coverage"]),
              "The saved rag_dev answers the wrong-disease prompt was developed on predate the fallback; rag_test is "
              "answered with it.",
-             f"wrong-disease check (Sonnet, prompt frozen before this run): {sum(flagged)} of {len(flagged)} checked "
-             "answers flagged as advice for the wrong disease or plant. " + NOT_VALIDATED]
+             f"wrong-disease check (Sonnet, prompt frozen before this run): {wd['flagged_wrong_disease']} of "
+             f"{wd['usable_calls']} graded answers flagged as advice for the wrong disease or plant. "
+             f"Of {wd['answers_to_check']} answers with claims: {wd['graded']} graded, {wd['refused_by_safeguard']} "
+             f"refused by the safeguard (request ids {[r['request_id'] for r in wd['refused']]}), {wd['not_sent']} not "
+             "sent; refused and unsent answers are counted as neither result. "
+             + ("The check is complete. " if wd["complete"] else WD_PARTIAL + " ") + NOT_VALIDATED]
     lines += [f"{k}: {v:.3f}" if v is not None else f"{k}: undefined" for k, v in rec["metrics"][SERVED].items()]
     return "\n".join(x if x.startswith(tag) else f"{tag} {x}" for x in lines)
 
@@ -1328,6 +1377,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("stage", choices=STAGES)
     ap.add_argument("--override-note", default="", help="why a test split is run again (a later record needs one)")
     ap.add_argument("--note", default="")
+    ap.add_argument("--refused-request-id", default="", help="rag-sonnet: record, with no model call, the one answer the "
+                    "safeguard refused before its row was saved (the first answer without a saved row)")
     a = ap.parse_args(argv)
     try:
         cfg, root, stage = load_config(ROOT), ROOT, a.stage
@@ -1363,8 +1414,12 @@ def main(argv: list[str] | None = None) -> int:
             stage_rag_haiku(cfg, ClaudeCodeClient(model=first_judge(root)["model"], counter_path=counter), root, override_note=a.override_note)
             print("the Haiku judge graded the claims")
         elif stage == "rag-sonnet":
+            if a.refused_request_id:
+                print(f"recorded {mark_refused(cfg, root, a.refused_request_id, override_note=a.override_note)} "
+                      "as refused_by_safeguard; no call was made")
+                return 0
             stage_rag_sonnet(cfg, grader(), root, override_note=a.override_note)
-            print("the Sonnet judge graded the claims and ran the wrong-disease check")
+            print("the Sonnet judge graded the claims and ran the wrong-disease check (see rag-record for whether it is partial)")
         else:
             path = stage_rag_record(cfg, root, device=device_text(root), note=a.note, override_note=a.override_note)
             print(path)

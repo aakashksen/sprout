@@ -44,8 +44,30 @@ def dev_intervals(rows: list[dict[str, Any]]) -> dict[str, list[float]]:
 
 
 FINAL_ROW_KEYS = ("id", "answered", "state", "diagnosis", "text", "claims", "wrong_disease", "wrong_disease_reply",
-                  "haiku_calls", "sonnet_calls", "citations", "query", "fallback_fired", "generic_followup")
+                  "haiku_calls", "sonnet_calls", "citations", "query", "fallback_fired", "generic_followup",
+                  "wrong_disease_status", "wrong_disease_request_id")
 CLAIM_KEYS = ("claim", "cited", "haiku", "haiku_reply", "sonnet", "sonnet_reply")
+
+
+WD_STATUSES = ("no_claims", "graded", "refused_by_safeguard", "not_sent")
+
+
+def wd_counts(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """The wrong-disease check's own account from the rows: how many answers it was to check, how many it graded, how
+    many the safeguard refused (with their request ids), how many were never sent. The rate's denominator is the
+    graded rows with a usable call; refused and unsent rows are counted as neither result. Complete means every
+    answer with claims was graded."""
+    checked = [r for r in rows if r["wrong_disease_status"] != "no_claims"]
+    graded = [r for r in checked if r["wrong_disease_status"] == "graded"]
+    refused = [r for r in checked if r["wrong_disease_status"] == "refused_by_safeguard"]
+    unsent = [r for r in checked if r["wrong_disease_status"] == "not_sent"]
+    usable = [r for r in graded if r["wrong_disease"] in CALLS]
+    return {"answers_to_check": len(checked), "graded": len(graded), "usable_calls": len(usable),
+            "unusable_replies": len(graded) - len(usable),
+            "flagged_wrong_disease": sum(r["wrong_disease"] == "WRONG" for r in usable),
+            "refused_by_safeguard": len(refused), "not_sent": len(unsent),
+            "refused": [{"id": r["id"], "request_id": r["wrong_disease_request_id"]} for r in refused],
+            "complete": not refused and not unsent}
 
 
 def final_lists(rows: list[dict[str, Any]]) -> dict[str, list[bool]]:

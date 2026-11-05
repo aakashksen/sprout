@@ -493,3 +493,25 @@ def test_a_failed_fallback_search_is_visible_with_its_query():
     r = SecondFails()
     out = ask(FakeLLM(["x"]), r)
     assert out.state == "retrieval_failed" and out.query.endswith("early blight")
+
+
+def test_a_safeguard_refusal_is_its_own_error_and_carries_the_request_id(tmp_path, monkeypatch):
+    from sprout.llm.client import SafeguardRefusal
+
+    flagged = json.dumps({"result": "Our safeguards flagged this message. request_id: req_011Cabc123", "is_error": True})
+    with pytest.raises(SafeguardRefusal) as err:
+        claude(tmp_path, monkeypatch, lambda cmd, **kw: Proc(flagged, 1)).complete(MSGS, max_tokens=5, timeout_s=1)
+    assert err.value.request_id == "req_011Cabc123" and isinstance(err.value, LLMError)
+    with pytest.raises(SafeguardRefusal) as bare:  # the text on stderr, with no request id
+        claude(tmp_path, monkeypatch, lambda cmd, **kw: Proc("", 1, "safeguards flagged this message")).complete(
+            MSGS, max_tokens=5, timeout_s=1)
+    assert bare.value.request_id is None
+
+
+def test_every_other_claude_error_is_not_a_safeguard_refusal(tmp_path, monkeypatch):
+    from sprout.llm.client import SafeguardRefusal
+
+    for out in (Proc("", 1, "boom"), Proc(json.dumps({"result": "Claude usage limit reached", "is_error": True}))):
+        with pytest.raises(LLMError) as err:
+            claude(tmp_path, monkeypatch, lambda cmd, out=out, **kw: out).complete(MSGS, max_tokens=5, timeout_s=1)
+        assert not isinstance(err.value, SafeguardRefusal)

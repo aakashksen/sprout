@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -107,6 +108,19 @@ class OllamaClient:
 _COUNTER_LOCK = threading.Lock()
 
 
+SAFEGUARD_TEXT = "safeguards flagged this message"
+_REQUEST_ID = re.compile(r"req_[A-Za-z0-9]+")
+
+
+class SafeguardRefusal(LLMError):
+    """The claude command refused one request because its safeguards flagged the message. Raised only for that error
+    text; every other error stays an LLMError. `request_id` is the request id in the error output, or None."""
+
+    def __init__(self, message: str, request_id: str | None = None) -> None:
+        super().__init__(message)
+        self.request_id = request_id
+
+
 class ClaudeCodeClient:
     """`claude -p` with every tool, setting and session switched off. Counts calls and refuses past the cap."""
 
@@ -152,6 +166,11 @@ class ClaudeCodeClient:
         text = data.get("result") if isinstance(data, dict) else None
         if done.returncode != 0 or data.get("is_error") or not isinstance(text, str) or not text.strip():
             detail = text if isinstance(text, str) and text.strip() else (done.stderr or "").strip()[:200]
+            seen = " ".join([str(text or ""), done.stdout or "", done.stderr or ""])
+            if SAFEGUARD_TEXT in seen.lower():
+                found = _REQUEST_ID.search(seen)
+                raise SafeguardRefusal(f"claude returned an error (exit {done.returncode}): {detail}",
+                                       found.group(0) if found else None)
             raise LLMError(f"claude returned an error (exit {done.returncode}): {detail}")
         usage = data.get("usage") or {}
         return LLMResult(text.strip(), self.model, round(time.time() - start, 3),

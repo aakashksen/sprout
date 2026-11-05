@@ -1734,7 +1734,8 @@ def test_new_calls_stop_for_good_at_three_refusals_and_the_rest_are_not_sent(fro
     path, items = wd_file(frozen, cfg, llm)
     rows = {json.loads(x)["id"]: json.loads(x) for x in path.read_text().splitlines()}
     refused = [i for i, r in rows.items() if r.get("refused_by_safeguard")]
-    assert 3 <= len(refused) <= 4  # calls already in flight when the third came back still finish
+    assert len(refused) == 3  # exactly three: the check sends one call at a time, so nothing is in flight at the third
+    assert seen.count("t1") + seen.count("t2") + seen.count("t3") == 3 and len(seen) == 3  # and nothing is sent after it
     assert "t6" not in rows and len(rows) < len(items)  # never sent
     again, seen2 = refusing("t1", "t2", "t3", "t4", "t5")
     e9.stage_rag_sonnet(cfg, again, frozen)
@@ -1782,7 +1783,7 @@ def test_a_partial_check_is_recorded_as_partial_with_counts_beside_the_rate_and_
     path = e9.stage_rag_record(cfg, frozen, device="none: fakes")
     rec = json.loads(path.read_text())
     wd = rec["config"]["wrong_disease_check"]
-    assert wd["complete"] is False and wd["refused_by_safeguard"] >= 3 and wd["not_sent"] >= 1
+    assert wd["complete"] is False and wd["refused_by_safeguard"] == 3 and wd["not_sent"] >= 1
     assert wd["graded"] + wd["refused_by_safeguard"] + wd["not_sent"] == wd["answers_to_check"] == 6
     assert wd["usable_calls"] <= wd["graded"] and all(r["request_id"].startswith("req_") for r in wd["refused"])
     rows = read_rows(frozen, rec, "served")

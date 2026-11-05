@@ -811,7 +811,8 @@ def wd_key(items: list[dict[str, Any]], model: str, root: Path) -> str:
     return hashlib.sha1(json.dumps(parts).encode()).hexdigest()[:10]
 
 
-def wd_grade(items: list[dict[str, Any]], llm: Any, tag: str, root: Path, limit: int | None = None) -> Checkpoint:
+def wd_grade(items: list[dict[str, Any]], llm: Any, tag: str, root: Path, limit: int | None = None,
+             workers: int = IN_FLIGHT) -> Checkpoint:
     """One Sonnet call per item not already saved. With `limit`, refuse first if the calls would pass it or the cap."""
     ck = Checkpoint(Path(root) / WORK_REL / f"wd-{tag}-{wd_key(items, llm.model, root)}.jsonl")
     todo = [i for i in items if i["id"] not in ck.rows]
@@ -827,11 +828,11 @@ def wd_grade(items: list[dict[str, Any]], llm: Any, tag: str, root: Path, limit:
                     "request_id": refusal.request_id}
         return {"id": item["id"], "reply": reply, "call": parse_call(reply)}
 
-    run_two_at_a_time(todo, one, ck, stop=lambda: refused_rows(ck) >= WD_STOP_AFTER_REFUSALS)
+    run_two_at_a_time(todo, one, ck, workers=workers, stop=lambda: refused_rows(ck) >= WD_STOP_AFTER_REFUSALS)
     return ck
 
 
-WD_STOP_AFTER_REFUSALS = 3  # in total, rows recorded by hand included; calls already in flight still finish and are saved
+WD_STOP_AFTER_REFUSALS = 3  # in total, rows recorded by hand included; the check sends one call at a time, so none is in flight at the third
 
 
 def refused_rows(ck: Checkpoint) -> int:
@@ -1130,7 +1131,7 @@ def stage_rag_sonnet(cfg: dict[str, Any], llm: Any, root: Path = ROOT, *, overri
     need = len(_pending(rows, ck.rows)) + sum(i["id"] not in wd_done for i in items)
     check_budget(llm, need, cfg["rag"]["max_sonnet_calls"], len(ck.rows) + len(wd_done))
     grade_claims(rows, llm, ck, IN_FLIGHT)
-    wd_grade(items, llm, "test", root)
+    wd_grade(items, llm, "test", root, workers=1)  # one call at a time: nothing is in flight at the third refusal
 
 
 WD_RATE_RULE = ("the rate's denominator is the graded answers with a usable call; answers the safeguard refused and "

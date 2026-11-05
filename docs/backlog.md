@@ -24,3 +24,11 @@ Things to try if time allows. None of these is a plan task, and none blocks anyt
 
 - **E12 gate G1, look-alike retrain:** retrain with PlantDoc held out and its extras at DINOv2 class-token cosine 0.75 or above removed, to learn how much of the PlantDoc gain survives. Rule in `docs/DECISIONS.md`, T4.6 gates entry; code on branch `gates/E12`, `tools/extra_trim.py` and `configs/e12_gates.json`.
 - **E12 gate G2, second seed:** rerun E12 and the E4 arms it's compared with on one new seed, paired, for the seen-source and both held-out runs, because the held-out gain rests on one seed. Same entry and code.
+
+## Next: choosing the final diagnosis from the top 3 (the person, 2026-11-04)
+The app currently takes the model's top guess (81% on `field_test`) and shows the others. Nothing narrows the top 3 to one answer. The person wants this fixed through the pipeline. Options to work through, not started:
+1. Ask which plant it is, and drop other plants' classes. Measured on `field_test`: top-1 85.1%, top-3 98.2%. Confirm the app can take the plant as an input.
+2. Ask symptom questions from the documents and re-rank what's left (`src/sprout/serve/followup.py`, 52 questions). E11 showed no gain with AI agents answering from web photos; never tested with real people. Try a gentler "no" on half the saved answers, score on the other half, and rerun on the final model.
+3. Ask for a second photo, such as a close-up or the underside, and combine the predictions. No test data yet.
+4. Train a specialist model for the look-alike pairs, such as tomato early and late blight. Those classes have the fewest photos.
+Resume bullets drafted around this flow hold only once it's in the app.

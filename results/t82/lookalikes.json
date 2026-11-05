@@ -1,0 +1,677 @@
+{
+ "e15_record": "E15-20261104T220052184613Z",
+ "train_rows": 2047,
+ "device": "cpu",
+ "threshold": 0.9,
+ "strict_threshold": 0.95,
+ "measure": "DINOv2 ViT-S/14 class token, unit length, 224x224 bicubic resize of the whole photo, the higher of the photo and its mirror, against every field_train photo of the 29 classes",
+ "rows": 1018,
+ "at_or_above_threshold": 77,
+ "at_or_above_strict_threshold": 15,
+ "paths": [
+  "datasets/raw/plantdoc/Apple Scab Leaf/apple-scab-5366820.jpg",
+  "datasets/raw/plantdoc/Apple Scab Leaf/apple-scab-leaf-big.jpg",
+  "datasets/raw/plantdoc/Apple leaf/red-apple-green-leaf-isolated-white-background-57496220.jpg",
+  "datasets/raw/plantdoc/Apple leaf/stock-photo-apple-tree-leaf-isolated-on-a-white-622503302.jpg",
+  "datasets/raw/plantdoc/Bell_pepper leaf spot/05.jpg",
+  "datasets/raw/plantdoc/Bell_pepper leaf spot/faab23c85ae5.jpg",
+  "datasets/raw/plantdoc/Cherry leaf/ed12ff77ce021883de241830dee55e2e53d2c93231699_1260x1260.jpg",
+  "datasets/raw/plantdoc/Corn Gray leaf spot/Greyleafspot.jpg",
+  "datasets/raw/plantdoc/Corn Gray leaf spot/gray_leaf_spot__1-14B8612C8B60CDBC8E2.jpg",
+  "datasets/raw/plantdoc/Corn Gray leaf spot/grayleafspotinbred.jpg",
+  "datasets/raw/plantdoc/Corn leaf blight/06c.jpg",
+  "datasets/raw/plantdoc/Corn leaf blight/Bsglqj_IYAATS3C.jpg%2Blarge.jpg",
+  "datasets/raw/plantdoc/Corn leaf blight/Corn-gray-leaf-spot-8-21.jpg",
+  "datasets/raw/plantdoc/Corn leaf blight/Corn-gray-leaf-spot-F2-8-7-15.jpg",
+  "datasets/raw/plantdoc/Corn leaf blight/DSCN0119.jpg",
+  "datasets/raw/plantdoc/Corn leaf blight/Northern-corn-leafblight.jpg",
+  "datasets/raw/plantdoc/Corn leaf blight/swcdg1-e1482969712678-300x188.jpg",
+  "datasets/raw/plantdoc/Corn rust leaf/37356969601_4208f8bb7f_b.jpg",
+  "datasets/raw/plantdoc/Corn rust leaf/c52fa4eeb52b.jpg",
+  "datasets/raw/plantdoc/Corn rust leaf/image1.jpg",
+  "datasets/raw/plantdoc/Peach leaf/peach-leaf-isolated-white-background-39426456.jpg",
+  "datasets/raw/plantdoc/Peach leaf/peach-leaf-isolated-white-background-42295220.jpg",
+  "datasets/raw/plantdoc/Peach leaf/peach-leaves-isolated-white-background-43668179.jpg",
+  "datasets/raw/plantdoc/Peach leaf/peach-leaves-isolated-white-background-43668233.jpg",
+  "datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-isolated-370117730.jpg",
+  "datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaves-isolated-on-white-background-302224460.jpg",
+  "datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaves-isolated-on-white-background-529501441.jpg",
+  "datasets/raw/plantdoc/Raspberry leaf/depositphotos_22512509-stock-photo-raspberry-leaf.jpg",
+  "datasets/raw/plantdoc/Raspberry leaf/depositphotos_2795312-stock-photo-green-raspberry-leaf.jpg",
+  "datasets/raw/plantdoc/Raspberry leaf/raspberry-leaf-isolated-white-18415125.jpg",
+  "datasets/raw/plantdoc/Raspberry leaf/stock-photo-raspberry-leaf-isolated-on-a-white-background-72329308.jpg",
+  "datasets/raw/plantdoc/Soyabean leaf/a-mid-season-soybean-plants-leaves-show-virtually-no-insect-damage-cxy77t.jpg",
+  "datasets/raw/plantdoc/Squash Powdery mildew leaf/Powdery-Mildew-on-Cucumber-Leaf.jpg",
+  "datasets/raw/plantdoc/Squash Powdery mildew leaf/squash-with-mildew-2x.jpg",
+  "datasets/raw/plantdoc/Strawberry leaf/7065201-strawberry-leaf.jpg",
+  "datasets/raw/plantdoc/Strawberry leaf/IMG_4696.jpg",
+  "datasets/raw/plantdoc/Strawberry leaf/depositphotos_40207459-stock-photo-strawberry-leaves-collection-isolated-on.jpg",
+  "datasets/raw/plantdoc/Strawberry leaf/single-green-strawberry-leaf-isolated-white-12750533.jpg",
+  "datasets/raw/plantdoc/Strawberry leaf/strawberry-leaf-stock-picture-3646237.jpg",
+  "datasets/raw/plantdoc/Tomato Early blight leaf/30053_original.jpg",
+  "datasets/raw/plantdoc/Tomato Septoria leaf spot/55830b60a7cf2.image.jpg",
+  "datasets/raw/plantdoc/Tomato leaf mosaic virus/Tomato+mosaic+virus.jpg",
+  "datasets/raw/plantdoc/Tomato leaf yellow virus/1342017-162221-44540.jpg",
+  "datasets/raw/plantdoc/grape leaf/409c0151b4bc.jpg",
+  "datasets/raw/plantseg_field/apple black rot/apple_black_rot_156.jpg",
+  "datasets/raw/plantseg_field/apple rust/apple_rust_google_0007.jpg",
+  "datasets/raw/plantseg_field/apple scab/apple_scab_12.jpg",
+  "datasets/raw/plantseg_field/apple scab/apple_scab_google_0124.jpg",
+  "datasets/raw/plantseg_field/citrus greening disease/citrus_greening_disease_google_0023.jpg",
+  "datasets/raw/plantseg_field/corn gray leaf spot/corn_gray_leaf_spot_google_0008.jpg",
+  "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_16.jpg",
+  "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_17.jpg",
+  "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_29.jpg",
+  "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_3.jpg",
+  "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_42.jpg",
+  "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_54.jpg",
+  "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_56.jpg",
+  "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_google_0011.jpg",
+  "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_google_0012.jpg",
+  "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_google_0017.jpg",
+  "datasets/raw/plantseg_field/corn rust/corn_rust_20.jpg",
+  "datasets/raw/plantseg_field/corn rust/corn_rust_58.jpg",
+  "datasets/raw/plantseg_field/corn rust/corn_rust_81.jpg",
+  "datasets/raw/plantseg_field/grape black rot/grape_black_rot_google_0356.jpg",
+  "datasets/raw/plantseg_field/tomato bacterial leaf spot/tomato_bacterial_leaf_spot_185.jpg",
+  "datasets/raw/plantseg_field/tomato bacterial leaf spot/tomato_bacterial_leaf_spot_7.jpg",
+  "datasets/raw/plantseg_field/tomato bacterial leaf spot/tomato_bacterial_leaf_spot_97.jpg",
+  "datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_10.jpg",
+  "datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_google_0081.jpg",
+  "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_136.jpg",
+  "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_137.jpg",
+  "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_151.jpg",
+  "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_166.jpg",
+  "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_169.jpg",
+  "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_19.jpg",
+  "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_209.jpg",
+  "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_217.jpg"
+ ],
+ "closest": [
+  {
+   "path": "datasets/raw/plantseg_field/corn rust/corn_rust_20.jpg",
+   "cosine": 0.982693,
+   "nearest_train": "datasets/raw/plantseg_field/corn rust/corn_rust_99.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_169.jpg",
+   "cosine": 0.977141,
+   "nearest_train": "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_278.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Squash Powdery mildew leaf/Powdery-Mildew-on-Cucumber-Leaf.jpg",
+   "cosine": 0.976786,
+   "nearest_train": "datasets/raw/plantdoc/Squash Powdery mildew leaf/Powdery-Mildew-on-squash.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/citrus greening disease/citrus_greening_disease_google_0023.jpg",
+   "cosine": 0.97049,
+   "nearest_train": "datasets/raw/plantseg_field/citrus greening disease/citrus_greening_disease_google_0046.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_136.jpg",
+   "cosine": 0.970193,
+   "nearest_train": "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_155.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_google_0081.jpg",
+   "cosine": 0.969017,
+   "nearest_train": "datasets/raw/plantdoc/Potato leaf early blight/Early_blight_on_tomato_leaves_7871930010-Fairfax.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Bell_pepper leaf spot/faab23c85ae5.jpg",
+   "cosine": 0.967193,
+   "nearest_train": "datasets/raw/plantdoc/Bell_pepper leaf spot/d7f6769de82d.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/apple scab/apple_scab_12.jpg",
+   "cosine": 0.964983,
+   "nearest_train": "datasets/raw/plantseg_field/apple scab/apple_scab_11.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Tomato Early blight leaf/30053_original.jpg",
+   "cosine": 0.957344,
+   "nearest_train": "datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_google_0355.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_166.jpg",
+   "cosine": 0.956933,
+   "nearest_train": "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_18.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/grape black rot/grape_black_rot_google_0356.jpg",
+   "cosine": 0.9566,
+   "nearest_train": "datasets/raw/plantseg_field/grape black rot/grape_black_rot_6.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn gray leaf spot/corn_gray_leaf_spot_google_0008.jpg",
+   "cosine": 0.956344,
+   "nearest_train": "datasets/raw/plantdoc/Corn Gray leaf spot/Gray%20leaf%20spot-Adam%20Sisson%20%2856%29%20copy-400x267.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Strawberry leaf/strawberry-leaf-stock-picture-3646237.jpg",
+   "cosine": 0.95407,
+   "nearest_train": "datasets/raw/plantdoc/Strawberry leaf/wild-strawberry-leaf-top-view-rotated-KTBXCY.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaves-isolated-on-white-background-302224460.jpg",
+   "cosine": 0.953962,
+   "nearest_train": "datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaves-isolated-on-white-background-298277570.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/apple scab/apple_scab_google_0124.jpg",
+   "cosine": 0.952232,
+   "nearest_train": "datasets/raw/plantseg_field/apple black rot/apple_black_rot_google_0097.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/tomato bacterial leaf spot/tomato_bacterial_leaf_spot_185.jpg",
+   "cosine": 0.949352,
+   "nearest_train": "datasets/raw/plantseg_field/tomato bacterial leaf spot/tomato_bacterial_leaf_spot_168.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Tomato leaf mosaic virus/Tomato+mosaic+virus.jpg",
+   "cosine": 0.947838,
+   "nearest_train": "datasets/raw/plantdoc/Tomato leaf yellow virus/7585001780_4b89e826b7.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/tomato bacterial leaf spot/tomato_bacterial_leaf_spot_7.jpg",
+   "cosine": 0.947554,
+   "nearest_train": "datasets/raw/plantseg_field/tomato bacterial leaf spot/tomato_bacterial_leaf_spot_168.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/tomato bacterial leaf spot/tomato_bacterial_leaf_spot_97.jpg",
+   "cosine": 0.947424,
+   "nearest_train": "datasets/raw/plantseg_field/tomato bacterial leaf spot/tomato_bacterial_leaf_spot_20.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Bell_pepper leaf spot/05.jpg",
+   "cosine": 0.944454,
+   "nearest_train": "datasets/raw/plantdoc/Bell_pepper leaf spot/04.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Apple Scab Leaf/apple-scab-leaf-big.jpg",
+   "cosine": 0.942113,
+   "nearest_train": "datasets/raw/plantseg_field/apple scab/apple_scab_google_0334.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-isolated-370117730.jpg",
+   "cosine": 0.941972,
+   "nearest_train": "datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-isolated-363604259.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Strawberry leaf/IMG_4696.jpg",
+   "cosine": 0.939897,
+   "nearest_train": "datasets/raw/plantdoc/Strawberry leaf/IMG_4695.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Tomato Septoria leaf spot/55830b60a7cf2.image.jpg",
+   "cosine": 0.938716,
+   "nearest_train": "datasets/raw/plantdoc/Tomato Septoria leaf spot/tomato-plant-is-infected-with-septoria-leaf-spot-1.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_217.jpg",
+   "cosine": 0.938699,
+   "nearest_train": "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_160.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Tomato leaf yellow virus/1342017-162221-44540.jpg",
+   "cosine": 0.938419,
+   "nearest_train": "datasets/raw/plantdoc/Tomato leaf yellow virus/fwa2013313115151.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Corn rust leaf/37356969601_4208f8bb7f_b.jpg",
+   "cosine": 0.935811,
+   "nearest_train": "datasets/raw/plantdoc/Corn rust leaf/37310253326_7f32b316d1_b.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Strawberry leaf/depositphotos_40207459-stock-photo-strawberry-leaves-collection-isolated-on.jpg",
+   "cosine": 0.935453,
+   "nearest_train": "datasets/raw/plantdoc/Strawberry leaf/stock-photo-strawberry-leaves-collection-isolated-on-white-159165548.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_3.jpg",
+   "cosine": 0.932663,
+   "nearest_train": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_95.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_56.jpg",
+   "cosine": 0.932397,
+   "nearest_train": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_95.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_151.jpg",
+   "cosine": 0.931479,
+   "nearest_train": "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_160.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Peach leaf/peach-leaves-isolated-white-background-43668233.jpg",
+   "cosine": 0.931223,
+   "nearest_train": "datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-isolated-on-white-background-254975221.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_42.jpg",
+   "cosine": 0.92984,
+   "nearest_train": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_2.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_10.jpg",
+   "cosine": 0.929783,
+   "nearest_train": "datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_136.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Raspberry leaf/raspberry-leaf-isolated-white-18415125.jpg",
+   "cosine": 0.929189,
+   "nearest_train": "datasets/raw/plantdoc/Raspberry leaf/12972raspberry_leaf.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Cherry leaf/ed12ff77ce021883de241830dee55e2e53d2c93231699_1260x1260.jpg",
+   "cosine": 0.928002,
+   "nearest_train": "datasets/raw/plantdoc/Cherry leaf/fc729af279e9087d00bd32d89a1552a756a3ad9de7f2b_1260x1260.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/apple black rot/apple_black_rot_156.jpg",
+   "cosine": 0.926468,
+   "nearest_train": "datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_165.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Corn leaf blight/Bsglqj_IYAATS3C.jpg%2Blarge.jpg",
+   "cosine": 0.926046,
+   "nearest_train": "datasets/raw/plantdoc/Corn leaf blight/186116-325x209-Northern-Corn-Leaf-Blight-Chilvers.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Corn Gray leaf spot/Greyleafspot.jpg",
+   "cosine": 0.925843,
+   "nearest_train": "datasets/raw/plantdoc/Corn Gray leaf spot/corn-gray-leaf-spot.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_17.jpg",
+   "cosine": 0.923029,
+   "nearest_train": "datasets/raw/plantseg_field/corn rust/corn_rust_62.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_16.jpg",
+   "cosine": 0.922784,
+   "nearest_train": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_google_0027.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_137.jpg",
+   "cosine": 0.922574,
+   "nearest_train": "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_259.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Peach leaf/peach-leaf-isolated-white-background-42295220.jpg",
+   "cosine": 0.921329,
+   "nearest_train": "datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-isolated-on-white-background-195325289.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Corn leaf blight/Corn-gray-leaf-spot-8-21.jpg",
+   "cosine": 0.920667,
+   "nearest_train": "datasets/raw/plantdoc/Corn leaf blight/DSCN0128.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Corn leaf blight/06c.jpg",
+   "cosine": 0.91991,
+   "nearest_train": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_2.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn rust/corn_rust_81.jpg",
+   "cosine": 0.919745,
+   "nearest_train": "datasets/raw/plantseg_field/corn rust/corn_rust_46.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Strawberry leaf/single-green-strawberry-leaf-isolated-white-12750533.jpg",
+   "cosine": 0.919365,
+   "nearest_train": "datasets/raw/plantdoc/Strawberry leaf/green-strawberry-leaf-isolated-white-single-background-78801845.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_google_0011.jpg",
+   "cosine": 0.916698,
+   "nearest_train": "datasets/raw/plantdoc/Corn leaf blight/03c.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Corn leaf blight/Northern-corn-leafblight.jpg",
+   "cosine": 0.915664,
+   "nearest_train": "datasets/raw/plantdoc/Corn leaf blight/Northern-Corn-Leaf-Blight-NCLB-med.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Raspberry leaf/stock-photo-raspberry-leaf-isolated-on-a-white-background-72329308.jpg",
+   "cosine": 0.915084,
+   "nearest_train": "datasets/raw/plantdoc/Raspberry leaf/53840458-raspberry-leaf.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/apple rust/apple_rust_google_0007.jpg",
+   "cosine": 0.915083,
+   "nearest_train": "datasets/raw/plantdoc/Apple rust leaf/applerust-500x383.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Soyabean leaf/a-mid-season-soybean-plants-leaves-show-virtually-no-insect-damage-cxy77t.jpg",
+   "cosine": 0.913797,
+   "nearest_train": "datasets/raw/plantdoc/Soyabean leaf/a-mid-season-soybean-plants-leaves-show-virtually-no-insect-damage-cxy78f.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_209.jpg",
+   "cosine": 0.913256,
+   "nearest_train": "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_152.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Apple leaf/stock-photo-apple-tree-leaf-isolated-on-a-white-622503302.jpg",
+   "cosine": 0.912489,
+   "nearest_train": "datasets/raw/plantdoc/Apple leaf/apple-leaf-isolated-white-background-56631026.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Corn leaf blight/Corn-gray-leaf-spot-F2-8-7-15.jpg",
+   "cosine": 0.911588,
+   "nearest_train": "datasets/raw/plantseg_field/corn gray leaf spot/corn_gray_leaf_spot_65.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Corn rust leaf/c52fa4eeb52b.jpg",
+   "cosine": 0.910956,
+   "nearest_train": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_82.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Raspberry leaf/depositphotos_2795312-stock-photo-green-raspberry-leaf.jpg",
+   "cosine": 0.910833,
+   "nearest_train": "datasets/raw/plantdoc/Raspberry leaf/800px_COLOURBOX4311119.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaves-isolated-on-white-background-529501441.jpg",
+   "cosine": 0.910763,
+   "nearest_train": "datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaves-isolated-on-white-background-618456884.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Peach leaf/peach-leaf-isolated-white-background-39426456.jpg",
+   "cosine": 0.90818,
+   "nearest_train": "datasets/raw/plantdoc/Peach leaf/stock-photo-peach-with-leaf-isolated-on-white-with-clipping-path-494602609.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Corn Gray leaf spot/gray_leaf_spot__1-14B8612C8B60CDBC8E2.jpg",
+   "cosine": 0.908094,
+   "nearest_train": "datasets/raw/plantdoc/Corn Gray leaf spot/corn-gray-leaf-spot.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Corn leaf blight/swcdg1-e1482969712678-300x188.jpg",
+   "cosine": 0.907995,
+   "nearest_train": "datasets/raw/plantdoc/Corn leaf blight/186116-325x209-Northern-Corn-Leaf-Blight-Chilvers.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Corn Gray leaf spot/grayleafspotinbred.jpg",
+   "cosine": 0.907913,
+   "nearest_train": "datasets/raw/plantdoc/Corn leaf blight/03c.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Squash Powdery mildew leaf/squash-with-mildew-2x.jpg",
+   "cosine": 0.907268,
+   "nearest_train": "datasets/raw/plantdoc/Squash Powdery mildew leaf/squash-powdery-mildew-2.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Apple leaf/red-apple-green-leaf-isolated-white-background-57496220.jpg",
+   "cosine": 0.906944,
+   "nearest_train": "datasets/raw/plantdoc/Apple leaf/stock-photo-red-apple-with-leaf-138430751.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_54.jpg",
+   "cosine": 0.906614,
+   "nearest_train": "datasets/raw/plantdoc/Corn leaf blight/image393.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Raspberry leaf/depositphotos_22512509-stock-photo-raspberry-leaf.jpg",
+   "cosine": 0.905774,
+   "nearest_train": "datasets/raw/plantdoc/Raspberry leaf/12972raspberry_leaf.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Corn rust leaf/image1.jpg",
+   "cosine": 0.905567,
+   "nearest_train": "datasets/raw/plantdoc/Corn Gray leaf spot/IMG_5251.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_19.jpg",
+   "cosine": 0.905209,
+   "nearest_train": "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_152.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Peach leaf/peach-leaves-isolated-white-background-43668179.jpg",
+   "cosine": 0.904898,
+   "nearest_train": "datasets/raw/plantdoc/Peach leaf/peach-leaf-isolated-white-background-43668230.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Apple Scab Leaf/apple-scab-5366820.jpg",
+   "cosine": 0.903627,
+   "nearest_train": "datasets/raw/plantseg_field/apple scab/apple_scab_google_0334.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn rust/corn_rust_58.jpg",
+   "cosine": 0.902631,
+   "nearest_train": "datasets/raw/plantdoc/Corn rust leaf/STANDALONE_Southern-corn-rust_01-WEB.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_google_0012.jpg",
+   "cosine": 0.902512,
+   "nearest_train": "datasets/raw/plantdoc/Corn leaf blight/1-495x400.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Corn leaf blight/DSCN0119.jpg",
+   "cosine": 0.901856,
+   "nearest_train": "datasets/raw/plantdoc/Corn rust leaf/Figure%201%20early%20southern%20rust.JPG.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_google_0017.jpg",
+   "cosine": 0.901821,
+   "nearest_train": "datasets/raw/plantdoc/Corn Gray leaf spot/Gray-Leaf-Spot-on-Corn-um9znc.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Strawberry leaf/7065201-strawberry-leaf.jpg",
+   "cosine": 0.901643,
+   "nearest_train": "datasets/raw/plantdoc/Strawberry leaf/1534854-a-green-strawberry-leaf-isolated-on-a-white-background.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_29.jpg",
+   "cosine": 0.900787,
+   "nearest_train": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_2.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/grape leaf/409c0151b4bc.jpg",
+   "cosine": 0.900629,
+   "nearest_train": "datasets/raw/plantdoc/grape leaf/grape-leaf-detail-1457175.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-isolated-on-white-background-207823156.jpg",
+   "cosine": 0.89974,
+   "nearest_train": "datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaves-isolated-203326555.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/tomato septoria leaf spot/tomato_septoria_leaf_spot_32.jpg",
+   "cosine": 0.899674,
+   "nearest_train": "datasets/raw/plantseg_field/tomato septoria leaf spot/tomato_septoria_leaf_spot_18.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/apple scab/apple_scab_google_0028.jpg",
+   "cosine": 0.899451,
+   "nearest_train": "datasets/raw/plantseg_field/apple scab/apple_scab_google_0259.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Corn leaf blight/swcdg1.jpg",
+   "cosine": 0.898894,
+   "nearest_train": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_google_0038.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Tomato leaf/depositphotos_7182856-stock-photo-tomato-leaf.jpg",
+   "cosine": 0.898587,
+   "nearest_train": "datasets/raw/plantdoc/Tomato leaf/tomato-leaves-9025906.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Strawberry leaf/depositphotos_9274005-stock-photo-strawberry-leaf.jpg",
+   "cosine": 0.898336,
+   "nearest_train": "datasets/raw/plantdoc/Strawberry leaf/strawberry-leaves-collection-white-background-36684676.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Strawberry leaf/strawberry-leaves-beautiful-shot-white-background-53944290.jpg",
+   "cosine": 0.898296,
+   "nearest_train": "datasets/raw/plantdoc/Strawberry leaf/green-strawberry-leaf-isolated-white-single-background-78801845.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Strawberry leaf/strawberry-leaf-stock-image-3662904.jpg",
+   "cosine": 0.89814,
+   "nearest_train": "datasets/raw/plantdoc/Strawberry leaf/depositphotos_164701744-stock-photo-closeup-of-strawberry-leaves.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_180.jpg",
+   "cosine": 0.897675,
+   "nearest_train": "datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_22.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn rust/corn_rust_14.jpg",
+   "cosine": 0.897602,
+   "nearest_train": "datasets/raw/plantseg_field/corn rust/corn_rust_36.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Corn leaf blight/rsz0731northernleafblightcigarshapedlesionsfig5.jpg",
+   "cosine": 0.897339,
+   "nearest_train": "datasets/raw/plantseg_field/corn gray leaf spot/corn_gray_leaf_spot_49.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Corn leaf blight/CORN-DISEASE.jpg",
+   "cosine": 0.895822,
+   "nearest_train": "datasets/raw/plantdoc/Corn leaf blight/Corn020Fig2.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_48.jpg",
+   "cosine": 0.895729,
+   "nearest_train": "datasets/raw/plantdoc/Corn leaf blight/corn-bacterial-leaf-streak-f4.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn rust/corn_rust_30.jpg",
+   "cosine": 0.895679,
+   "nearest_train": "datasets/raw/plantseg_field/corn rust/corn_rust_42.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Corn Gray leaf spot/gray_leaf_spot_developing.jpg",
+   "cosine": 0.895015,
+   "nearest_train": "datasets/raw/plantdoc/Corn rust leaf/pu_polysora.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Corn rust leaf/sevc.jpg",
+   "cosine": 0.893591,
+   "nearest_train": "datasets/raw/plantdoc/Corn rust leaf/Corn-southern-rust-F1%20%281%29.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn gray leaf spot/corn_gray_leaf_spot_google_0157.jpg",
+   "cosine": 0.893181,
+   "nearest_train": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_google_0072.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn gray leaf spot/corn_gray_leaf_spot_google_0049.jpg",
+   "cosine": 0.893119,
+   "nearest_train": "datasets/raw/plantseg_field/corn gray leaf spot/corn_gray_leaf_spot_49.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn gray leaf spot/corn_gray_leaf_spot_google_0151.jpg",
+   "cosine": 0.892968,
+   "nearest_train": "datasets/raw/plantseg_field/corn gray leaf spot/corn_gray_leaf_spot_65.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Corn leaf blight/Northern-corn-leaf-blight-V12-leaf-NM-F3.jpg",
+   "cosine": 0.892012,
+   "nearest_train": "datasets/raw/plantdoc/Corn leaf blight/Corn020Fig2.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/squash powdery mildew/squash_powdery_mildew_9.jpg",
+   "cosine": 0.889406,
+   "nearest_train": "datasets/raw/plantseg_field/squash powdery mildew/squash_powdery_mildew_33.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_google_0064.jpg",
+   "cosine": 0.889317,
+   "nearest_train": "datasets/raw/plantdoc/Corn leaf blight/article-fungicides-northern-corn-leaf-blight.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_62.jpg",
+   "cosine": 0.889287,
+   "nearest_train": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_47.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Raspberry leaf/raspberry-leaves-stock-picture-3093023.jpg",
+   "cosine": 0.888487,
+   "nearest_train": "datasets/raw/plantdoc/Raspberry leaf/iron-deficiency-symptoms-on-autumn-fruiting-raspberry-leaf-uk-garden-E4W76G.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/squash powdery mildew/squash_powdery_mildew_google_0019.jpg",
+   "cosine": 0.888112,
+   "nearest_train": "datasets/raw/plantdoc/Squash Powdery mildew leaf/16629068955_3092aa68a5_b.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/citrus greening disease/citrus_greening_disease_5.jpg",
+   "cosine": 0.8881,
+   "nearest_train": "datasets/raw/plantseg_field/citrus greening disease/citrus_greening_disease_19.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Corn leaf blight/Northern-corn-leaf-blight-NM-F1a.jpg",
+   "cosine": 0.88776,
+   "nearest_train": "datasets/raw/plantdoc/Corn rust leaf/Figure%201%20early%20southern%20rust.JPG.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn rust/corn_rust_google_0160.jpg",
+   "cosine": 0.887503,
+   "nearest_train": "datasets/raw/plantseg_field/corn rust/corn_rust_56.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Apple rust leaf/C0258424-Cedar_apple_rust_on_a_leaf-SPL.jpg",
+   "cosine": 0.887415,
+   "nearest_train": "datasets/raw/plantseg_field/apple rust/apple_rust_google_0201.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn rust/corn_rust_19.jpg",
+   "cosine": 0.886967,
+   "nearest_train": "datasets/raw/plantdoc/Corn leaf blight/dsc5582.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_8.jpg",
+   "cosine": 0.886886,
+   "nearest_train": "datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_10.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Corn leaf blight/20160812__13ST_xanthomonas~1.jpg",
+   "cosine": 0.886542,
+   "nearest_train": "datasets/raw/plantseg_field/corn gray leaf spot/corn_gray_leaf_spot_google_0147.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Corn rust leaf/southernrust.jpg",
+   "cosine": 0.886453,
+   "nearest_train": "datasets/raw/plantdoc/Corn leaf blight/DSCN0128.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Raspberry leaf/1029980206_21e73f8c57.jpg",
+   "cosine": 0.886392,
+   "nearest_train": "datasets/raw/plantdoc/Raspberry leaf/village-herbals-bulk-herbs-raspberry-leaves.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Strawberry leaf/0626fb0403af.jpg",
+   "cosine": 0.886347,
+   "nearest_train": "datasets/raw/plantdoc/Strawberry leaf/depositphotos_164701744-stock-photo-closeup-of-strawberry-leaves.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Blueberry leaf/stock-photo-blueberry-leaves-branch-isolated-on-white-background-490111684.jpg",
+   "cosine": 0.884975,
+   "nearest_train": "datasets/raw/plantdoc/Blueberry leaf/a4c9cb77086e.jpg"
+  },
+  {
+   "path": "datasets/raw/plantseg_field/corn gray leaf spot/corn_gray_leaf_spot_google_0041.jpg",
+   "cosine": 0.884954,
+   "nearest_train": "datasets/raw/plantdoc/Corn leaf blight/corn_gray_leaf_spot.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Strawberry leaf/strawberry-leaves-stock-picture-1860898.jpg",
+   "cosine": 0.884521,
+   "nearest_train": "datasets/raw/plantdoc/Strawberry leaf/depositphotos_1090254-Strawberry-leaves.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Raspberry leaf/a32cff6e22e1.jpg",
+   "cosine": 0.884456,
+   "nearest_train": "datasets/raw/plantdoc/Raspberry leaf/12972raspberry_leaf.jpg"
+  },
+  {
+   "path": "datasets/raw/plantdoc/Raspberry leaf/depositphotos_1323551-stock-photo-raspberry-leaves.jpg",
+   "cosine": 0.883414,
+   "nearest_train": "datasets/raw/plantdoc/Raspberry leaf/53840458-raspberry-leaf.jpg"
+  }
+ ]
+}

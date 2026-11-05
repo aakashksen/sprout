@@ -102,7 +102,8 @@ def subset_positions(name: str, split: str, info: SplitInfo, root: Path = ROOT, 
     """Positions within the split of a declared subset: `first_<N>` rows, `source:<name>` (field rows whose
     `source` column in field.csv is <name>), `shared_classes` (labels present in both lab.csv and field.csv),
     `final_classes` (labels in `classes` of configs/e15.json), `answerable` (RAG questions whose gold behaviour is to answer), `clean:<N>` (field rows not in datasets/label_exclusions.csv up to version N),
-    `classes_in:<json path>` (rows whose label is in that file's `classes`, read at `commit` when one is given), or
+    `classes_in:<json path>` (rows whose label is in that file's `classes`, read at `commit` when one is given),
+    `listed:<json path>` / `unlisted:<json path>` (rows whose path is, or is not, in that file's `paths`), or
     `group_part:<seed>:<fit_percent>` (the scoring part of `scoring_part`, for settings fitted on the rest).
     Parts joined with `+` must all hold."""
     if "+" in name:
@@ -133,6 +134,18 @@ def subset_positions(name: str, split: str, info: SplitInfo, root: Path = ROOT, 
             text = shown.stdout
         names = set(json.loads(text)["classes"])
         return [i for i, label in enumerate(info.labels) if label in names]
+    paths = re.fullmatch(r"(listed|unlisted):(.+)", name)
+    if paths:
+        if commit is None:
+            text = (root / paths.group(2)).read_text(encoding="utf-8")
+        else:
+            shown = git(root, "show", f"{commit}:{paths.group(2)}")
+            if shown.returncode != 0:
+                raise ValueError(f"{paths.group(2)} cannot be read at commit {commit}")
+            text = shown.stdout
+        listed = set(json.loads(text)["paths"])
+        want = paths.group(1) == "listed"
+        return [i for i, path in enumerate(info.ids) if (path in listed) == want]
     first = re.fullmatch(r"first_(\d+)", name)
     if first:
         return list(range(min(int(first.group(1)), len(info.ids))))

@@ -835,7 +835,16 @@
         "{py} -m sprout.eval.check_run E9 --min-n 1000 --split lab_test --all",
         "{py} -m sprout.eval.check_run E9 --min-n 50 --split rag_test --all"
       ],
-      "status": "pending"
+      "status": "done",
+      "started_at": "2026-11-04T23:23:25+00:00",
+      "verified": {
+        "commit": "c3fa96e408df8d54d8ba5fcb043487a18fbc6f1c",
+        "passed": true,
+        "at": "2026-11-05T02:26:35+00:00"
+      },
+      "attempts": 2,
+      "reason": "rag_test record doesn't state rag-sonnet's stop and resume, the code changes between, or the row marked refused by hand; that is only in DECISIONS",
+      "done_at": "2026-11-05T02:29:55+00:00"
     },
     {
       "id": "T8.2",

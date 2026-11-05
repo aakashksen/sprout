@@ -883,7 +883,9 @@ def _e9_image_problems(rec: dict[str, Any], root: Path, info: SplitInfo, positio
     if rec["split"] == "field_test":
         saved = cfg.get("cleaned_rows")
         version = saved.get("version") if isinstance(saved, dict) else None
-        if not isinstance(version, int) or rec["subset"] != f"clean:{version}":
+        parts = str(rec["subset"] or "").split("+")
+        known = all(re.fullmatch(r"clean:\d+|classes_in:.+", x) for x in parts)  # nothing else may ride along
+        if not isinstance(version, int) or not known or parts.count(f"clean:{version}") != 1:
             problems.append("an E9 field_test record must be scored on its cleaned rows (subset clean:N) and state config.cleaned_rows")
         elif saved != answer_checks.cleaned_rows(read_log(root / "datasets" / "label_exclusions.csv"), version, info.ids,
                                                  [info.ids[i] for i in subset_positions(f"clean:{version}", "field_test", info, root)]):

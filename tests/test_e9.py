@@ -1793,3 +1793,33 @@ def test_a_partial_check_is_recorded_as_partial_with_counts_beside_the_rate_and_
     rec["config"]["wrong_disease_check"]["graded"] += 1
     path.write_text(json.dumps(rec))
     assert any("wrong_disease_check" in p for p in check_file(path, frozen, min_n=1))
+
+
+def test_a_field_test_record_on_cleaned_rows_and_the_class_list_passes_and_other_subsets_fail(repo):
+    from PIL import Image
+
+    final_model(repo)
+    with open(repo / "datasets/manifests/field.csv", "a", encoding="utf-8") as f:  # a field photo of a class outside the list
+        f.write("f/30.jpg,Tomato___healthy,h30,field_test,s30,plantdoc" + chr(10))
+    Image.new("RGB", (8, 8)).save(repo / "f/30.jpg")
+    commit(repo, "a field photo outside the class list")
+    (path,) = e9.run_images("field_test", e9.load_config(repo), three_class_predictors(), repo)
+    good = json.loads(path.read_text())
+    assert good["subset"] == "clean:1+classes_in:results/e15/decision.json"  # the composite the real run writes
+    assert check_file(path, repo, min_n=1) == []
+
+    def problems(subset):
+        path.write_text(json.dumps({**good, "subset": subset}))
+        return check_file(path, repo, min_n=1)
+
+    for bad in ("classes_in:results/e15/decision.json", None, "xclean:1+classes_in:results/e15/decision.json",
+                "clean:2+classes_in:results/e15/decision.json", "clean:1+shared_classes", "clean:1+clean:1",
+                "clean:1+first_5"):
+        found = problems(bad)  # an unknown part is refused earlier, by the subset itself or its version; the rest by the cleaned-rows rule
+        assert found, bad
+        if bad in (None, "classes_in:results/e15/decision.json", "clean:1+clean:1", "clean:1+first_5", "clean:1+shared_classes"):
+            assert any("cleaned rows" in p for p in found), (bad, found)  # these reach the rule itself
+    rec = json.loads(json.dumps(good))
+    del rec["config"]["cleaned_rows"]
+    path.write_text(json.dumps(rec))
+    assert any("cleaned rows" in p for p in check_file(path, repo, min_n=1))

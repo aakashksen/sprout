@@ -120,3 +120,9 @@ def test_missing_report_fails(tmp_path):
     root = make(tmp_path)
     (root / "docs" / "REPORT.md").unlink()
     assert any("REPORT.md" in p for p in load().check(root))
+
+
+def test_run_ids_and_hardware_model_names_are_not_numbers(tmp_path):
+    ok = "See E17-20261105T024504962312Z and E14H-20261104T174311169630Z on a Ryzen AI 9 HX 370." + chr(10)
+    assert problems(tmp_path, report=ok) == []
+    assert len(problems(tmp_path, report="Run 20261105 and 370 ms." + chr(10))) == 2

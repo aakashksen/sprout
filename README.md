@@ -1,7 +1,23 @@
 # SPROUT V2
 
-Plant disease identification that's measured on real photos, not just lab images, plus a care assistant whose advice points back to
-its sources. This folder holds the whole rebuild: the old code, the design, the plan, and the system that runs the plan.
+Plant disease identification that is measured on real web photos, not just lab images, plus a care assistant whose advice points back to its sources. This folder holds the whole rebuild: the old code, the design, the plan, and the system that runs the plan.
+
+## What it does, and what has been measured
+
+- **Identify:** a ConvNeXt V2 Tiny classifier over 29 plant-and-condition classes (14 plants), with a photo gate, an abstention threshold and a stricter bar for "healthy" labels. A healthy result never rules out disease.
+- **Care assistant:** hybrid retrieval with a reranker over extension and agency documents; an answer cites its documents, says so when none supports it, and tells the user to check the product label and local rules for chemical or disposal advice.
+- **Results:** `docs/REPORT.md` has every number, the splits, the failures and the limits. All test numbers are provisional because the photo labels are not signed. Real photos here are web photos; no phone photos were tested. The headline is a seen-source number; a web source the model has not trained on scores far lower (E4), and the final model has no held-out-source run.
+- **Not claimed:** no speed or concurrency claim (the container check is 5 requests, and the quantized model is smaller but slower on CPU than PyTorch), no "deployed" (the app is containerized, not deployed), no claim about unsupported plants or diseases (never measured), and the wrong-disease check on answers is not validated.
+- **Resume bullets** are in `docs/RESUME-TARGETS.md`; every number in them is in `results/claims.json` and tied to a run record. `python -m sprout.eval.claims check` verifies them and `tools/check_report_numbers.py` checks the report and bullets.
+
+## Run the app
+
+```
+docker compose build app
+SPROUT_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')" docker compose up app
+```
+
+The model and index are mounted from `models/`, the writer runs in Ollama on the host, and nothing is deployed anywhere. `docs/deploy.md` has the settings. There is no hosted demo and no sample photos are included, because the photos are third-party web photos that cannot be redistributed.
 
 ## Start it
 

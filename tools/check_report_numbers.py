@@ -2,7 +2,7 @@
 remains, and results/claims.json has claims.
 
 A number is any digits in the text, except: single digits and 10 (counts of things, not metrics) unless they carry
-a %; years 2000 to 2030; text inside URLs and paths; dates; task and gate ids (T8.2, E12, #90); seeds; top-k and
+a %; years 2000 to 2030; text inside URLs and paths; run ids (E17-20261105T...Z); hardware model names (HX 370); dates; task and gate ids (T8.2, E12, #90); seeds; top-k and
 @k; k=N; Python versions; line numbering and section numbers (not starting with 0). Everything else must equal a
 value in results/runs/*.json (or a value in claims.json), after rounding to the digits written. A figure with a
 % also matches the record's value times 100, so a fraction stored as 0.123 backs "12%".
@@ -22,6 +22,8 @@ PLACEHOLDER = re.compile(r"\[(?!x\])[a-z][a-z0-9_]*\](?!\()")
 NUMBER = re.compile(r"(?<![\w.])(?:\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)(%?)(?!\.\d)")
 EXEMPT = [re.compile(p, re.I) for p in (
     r"\S*(?:://|[/\\])\S*",
+    r"\bE\d+[A-Z]*-\d{8}T\d{12}Z\b",
+    r"\b(?:HX|RTX|GTX)\s?\d+\b",
     r"\b\d{4}-\d{2}-\d{2}\b",
     r"#\d+",
     r"\bseeds?\s*[=:]?\s*\d+(?:\s*(?:,|and)\s*\d+)*",

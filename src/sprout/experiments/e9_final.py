@@ -989,7 +989,8 @@ RAG_TEST = "rag_test"
 SERVED = "served"
 EMBEDDER, RERANKER = "BAAI/bge-small-en-v1.5", "cross-encoder/ms-marco-MiniLM-L6-v2"
 FINAL_CAVEAT = (
-    "Held-out numbers, from one run with everything frozen before it. The Haiku judge (the first judge, chosen by the "
+    "Held-out numbers: the questions were answered and judged once, with everything frozen before; if the stages were "
+    "interrupted, config.run_account says how. The Haiku judge (the first judge, chosen by the "
     "committed Haiku check) and the Sonnet judge (the second figure) read the same claims with the same rubric. Their "
     "figures differ, Sonnet is a reference and not truth, and neither is the share of correct claims. The wrong-disease "
     "check is a Sonnet grader that was run on rag_dev, frozen, and run once here; it was not validated by a blind read."
@@ -1194,9 +1195,111 @@ def final_rows(cfg: dict[str, Any], haiku_model: str, sonnet_model: str, root: P
     return rows
 
 
+def _file_times(path: Path) -> dict[str, str | None]:
+    """When a checkpoint file was created (where the system keeps that) and last written, in UTC."""
+    st = Path(path).stat()
+    stamp = lambda t: datetime.fromtimestamp(t, timezone.utc).isoformat()  # noqa: E731
+    born = getattr(st, "st_birthtime", None)
+    return {"created": stamp(born) if born else None, "last_write": stamp(st.st_mtime)}
+
+
+def _commit_at(root: Path, when: str | None) -> str | None:
+    """The newest first-parent commit made at or before `when`: what the tree was at, as far as file times say."""
+    if when is None:
+        return None
+    out = git(root, "rev-list", "-1", "--first-parent", f"--before={when}", "HEAD").stdout.strip()
+    return out or None
+
+
+def run_account(cfg: dict[str, Any], root: Path, rows: list[dict[str, Any]], frozen: dict[str, Any],
+                interruption_note: str, started_at: str) -> dict[str, Any]:
+    """What the record can say about how its stages ran, from the saved checkpoints and the tree, plus the person's
+    interruption note stored verbatim for what cannot be derived. Refuses when a safeguard refusal exists and there is
+    no note: the commits the first part ran at and the stop itself are not in any file."""
+    counts = wd_counts(rows)
+    claims = claim_rows(cfg, root)
+    items = _test_items(cfg, root, claims)
+    haiku_model, sonnet_model = first_judge(root)["model"], cfg["rag"]["grader"]
+    files = {"retrieve": _retrieval_checkpoint(cfg, root).path,
+             "generate": Path(root) / WORK_REL / "generate" / f"generate-{SERVED}-{_generation_key(cfg, _retrieval_checkpoint(cfg, root))}.jsonl",
+             "claims_haiku": _claims_checkpoint(haiku_model, claims, root).path,
+             "claims_sonnet": _claims_checkpoint(sonnet_model, claims, root).path,
+             "wrong_disease": Path(root) / WORK_REL / f"wd-test-{wd_key(items, sonnet_model, root)}.jsonl"}
+    stages = {}
+    for name, path in files.items():
+        text = Path(path).read_bytes()
+        stages[name] = {"file": Path(path).relative_to(root).as_posix(), "rows": len(text.splitlines()),
+                        "sha256": hashlib.sha256(text).hexdigest(), **_file_times(path)}
+    created = sorted(s["created"] for s in stages.values() if s["created"])
+    written = sorted(s["last_write"] for s in stages.values())
+    saved = Checkpoint(files["wrong_disease"]).rows
+    interrupted = counts["refused_by_safeguard"] > 0
+    if interrupted and not interruption_note.strip():
+        raise Refused("a safeguard refusal stopped the wrong-disease check, so the record needs an interruption: give "
+                      "--interruption-note with the commits the first part ran at and resumed at, in your words")
+    return {
+        "questions_answered_and_judged": {"questions": len(rows), "answers_saved": stages["generate"]["rows"],
+                                          "claims_judged_by_haiku": stages["claims_haiku"]["rows"],
+                                          "claims_judged_by_sonnet": stages["claims_sonnet"]["rows"],
+                                          "wrong_disease_rows": stages["wrong_disease"]["rows"]},
+        "stages": stages,
+        "window": {"first_file_created": created[0] if created else None, "last_file_write": written[-1],
+                   "record_written": started_at,
+                   "note": "from checkpoint files; a stage's own start is not stored, so the window is the files' "
+                           "creation and last write, and the record's own started_at is only when the record was written"},
+        "interruption": {
+            "occurred": interrupted, "stop_after_refusals": WD_STOP_AFTER_REFUSALS,
+            "refused": [{**r, "recorded_without_call": bool(saved.get(r["id"], {}).get("recorded_without_call"))}
+                        for r in counts["refused"]],
+            "code_commits": {"when_wrong_disease_file_was_created": _commit_at(root, stages["wrong_disease"]["created"]),
+                             "when_it_was_last_written": _commit_at(root, stages["wrong_disease"]["last_write"]),
+                             "record_written_at": git(root, "rev-parse", "HEAD").stdout.strip(),
+                             "basis": "newest first-parent commit made at or before the file time; approximate"},
+            "note": interruption_note.strip() or None,
+            "note_is": "the person's words, stored verbatim; it states what no file shows (the commits of the first part "
+                       "and of the resume, and that the earlier saved rows were not changed)"},
+        "frozen": {"prompt_sha256": frozen["prompt_sha256"], "rendered_sha256": frozen["rendered_sha256"],
+                   "grader_model": frozen["grader_model"], "equal_to_frozen_config": prompt_fields(root)["prompt_sha256"]
+                   == frozen["prompt_sha256"], "wd_key_model": sonnet_model},
+        "model_calls_by_rag_record": 0,
+    }
+
+
+def interruption_text(account: dict[str, Any]) -> str:
+    i, w = account["interruption"], account["window"]
+    if not i["occurred"]:
+        return ""
+    ids = ", ".join(f"{r['id']} (request {r['request_id']}{', marked by a command with no resend' if r['recorded_without_call'] else ''})"
+                    for r in i["refused"])
+    return (f"Interruption: rag-sonnet stopped at a safeguard refusal of the wrong-disease check and was resumed later, "
+            f"with the code changed between the stop and the resume. Refused rows: {ids}. The questions were answered "
+            f"and judged once, with one stop; no answer or claim verdict was produced twice. The checkpoint files span "
+            f"{w['first_file_created']} to {w['last_file_write']} (the record itself was written at {w['record_written']}). "
+            f"Commits current at the wrong-disease file's creation and last write: "
+            f"{i['code_commits']['when_wrong_disease_file_was_created']}, {i['code_commits']['when_it_was_last_written']} "
+            f"(derived from file times). The frozen prompt hash, model and the saved rows' hashes are in config.run_account. "
+            f"The person's note: {i['note']}")
+
+
+def superseding(root: Path, old_id: str, metrics: dict[str, Any], judged: dict[str, Any]) -> dict[str, Any]:
+    """config.supersedes: the committed E9 rag_test record this one replaces, and whether it carries the same numbers."""
+    path = Path(root) / "results" / "runs" / f"{old_id}.json"
+    if not path.is_file():
+        raise Refused(f"{old_id} is not a record in results/runs")
+    old = json.loads(path.read_text(encoding="utf-8"))
+    if old.get("experiment") != "E9" or old.get("split") != RAG_TEST:
+        raise Refused(f"{old_id} is not an E9 rag_test record")
+    if git(root, "cat-file", "-e", f"HEAD:results/runs/{old_id}.json").returncode != 0:
+        raise Refused(f"{old_id} is not committed; the record it supersedes stays as committed history")
+    old_judged = json.loads((Path(root) / old["judged"]["file"]).read_text(encoding="utf-8"))
+    return {"record": old_id, "why": "adds config.run_account; made from the saved rows with no model call",
+            "same_numbers": old["metrics"] == metrics and old_judged == judged}
+
+
 def stage_rag_record(cfg: dict[str, Any], root: Path = ROOT, *, device: str, note: str = "",
-                     override_note: str = "") -> Path:
-    """Write the one rag_test record from the saved stages. Refuses unless every answer, claim and check is saved."""
+                     override_note: str = "", interruption_note: str = "", supersedes: str = "") -> Path:
+    """Write the rag_test record from the saved stages, with no model call. Refuses unless every answer, claim and check
+    is saved. A second record of the split needs `override_note`; `supersedes` names the record it replaces."""
     frozen = guard_rag_test(root, override_note)
     root = Path(root)
     haiku = first_judge(root)
@@ -1224,6 +1327,9 @@ def stage_rag_record(cfg: dict[str, Any], root: Path = ROOT, *, device: str, not
     usage = {"rows": len(gen), "model_calls": sum(g.get("llm_calls", 0) for g in gen),
              "rows_without_model_call": sum(g.get("llm_calls", 0) == 0 for g in gen),
              "model_seconds": round(sum(g.get("llm_seconds", 0.0) for g in gen), 1)}
+    started_at = datetime.now(timezone.utc).isoformat()
+    account = run_account(cfg, root, rows, frozen, interruption_note, started_at)
+    judged = final_lists(rows)
     config = {
         "stage": "final", "served": {"prompt_version": ac.prompt_version, "mode": ac.mode, "rerank": ac.rerank, "k": ac.k,
                                      "query_mode": ac.query_mode, "floors": serving.FLOORS},
@@ -1242,7 +1348,8 @@ def stage_rag_record(cfg: dict[str, Any], root: Path = ROOT, *, device: str, not
         "served_with_fallback": True,
         "labels_reviewed": LABELS_REVIEWED, "label_signature": LABEL_SIGNATURE,
         "basis": "rag_test questions as asked; the photo label cleaning does not apply to them",
-        "started_at": datetime.now(timezone.utc).isoformat(), "caveat": FINAL_CAVEAT,
+        "started_at": started_at, "caveat": FINAL_CAVEAT, "run_account": account,
+        **({"supersedes": superseding(root, supersedes, metrics, judged)} if supersedes else {}),
         **({"override_note": override_note.strip()} if override_note.strip() else {}),
     }
     models = {"writer": cfg["rag"]["writer"], "judge_first": haiku["model"], "judge_second": cfg["rag"]["grader"],
@@ -1250,7 +1357,8 @@ def stage_rag_record(cfg: dict[str, Any], root: Path = ROOT, *, device: str, not
     attempts = [{"stage": "rag_test", "answers": len(rows), "claims": sum(len(r["claims"]) for r in rows),
                  "claude_calls": config["claude_calls"]}]
     return write_run("E9", RAG_TEST, config, models, metrics, {SERVED: {}}, attempts, {SERVED: rows}, info.hash,
-                     root=root, judged=final_lists(rows), notes=FINAL_CAVEAT + ("" if wd_counts(rows)["complete"] else " " + WD_PARTIAL)
+                     root=root, judged=judged, notes=FINAL_CAVEAT + ("" if wd_counts(rows)["complete"] else " " + WD_PARTIAL)
+                     + (" " + interruption_text(account) if account["interruption"]["occurred"] else "")
                      + (" " + note if note else ""))
 
 
@@ -1378,6 +1486,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("stage", choices=STAGES)
     ap.add_argument("--override-note", default="", help="why a test split is run again (a later record needs one)")
     ap.add_argument("--note", default="")
+    ap.add_argument("--interruption-note", default="", help="rag-record: in your words, the commits the first part ran "
+                    "at and resumed at and that earlier saved rows were not changed; stored verbatim")
+    ap.add_argument("--supersedes", default="", help="rag-record: the committed rag_test record this one replaces "
+                    "(needs --override-note; it makes no model call)")
     ap.add_argument("--refused-request-id", default="", help="rag-sonnet: record, with no model call, the one answer the "
                     "safeguard refused before its row was saved (the first answer without a saved row)")
     a = ap.parse_args(argv)
@@ -1422,7 +1534,8 @@ def main(argv: list[str] | None = None) -> int:
             stage_rag_sonnet(cfg, grader(), root, override_note=a.override_note)
             print("the Sonnet judge graded the claims and ran the wrong-disease check (see rag-record for whether it is partial)")
         else:
-            path = stage_rag_record(cfg, root, device=device_text(root), note=a.note, override_note=a.override_note)
+            path = stage_rag_record(cfg, root, device=device_text(root), note=a.note, override_note=a.override_note,
+                                    interruption_note=a.interruption_note, supersedes=a.supersedes)
             print(path)
             print(report(json.loads(path.read_text(encoding="utf-8")), root))
     except (Refused, LLMError, RuntimeError, ValueError, OSError, KeyError) as exc:

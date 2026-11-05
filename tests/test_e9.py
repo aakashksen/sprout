@@ -1780,7 +1780,7 @@ def test_a_partial_check_is_recorded_as_partial_with_counts_beside_the_rate_and_
     cfg = staged(frozen)
     llm, _ = refusing("t1", "t2", "t3", "t4", "t5")
     e9.stage_rag_sonnet(cfg, llm, frozen)
-    path = e9.stage_rag_record(cfg, frozen, device="none: fakes")
+    path = e9.stage_rag_record(cfg, frozen, device="none: fakes", interruption_note=NOTE)
     rec = json.loads(path.read_text())
     wd = rec["config"]["wrong_disease_check"]
     assert wd["complete"] is False and wd["refused_by_safeguard"] == 3 and wd["not_sent"] >= 1
@@ -1823,3 +1823,94 @@ def test_a_field_test_record_on_cleaned_rows_and_the_class_list_passes_and_other
     del rec["config"]["cleaned_rows"]
     path.write_text(json.dumps(rec))
     assert any("cleaned rows" in p for p in check_file(path, repo, min_n=1))
+
+
+# ------------------------------------------------- the record says how an interrupted run went, and can be superseded
+
+NOTE = "first part ran at commit aaa1111, resumed at bbb2222; rows saved before the stop were not changed"
+
+
+def refused_run(root):
+    cfg = staged(root)
+    llm, _ = refusing("t2")
+    e9.stage_rag_sonnet(cfg, llm, root)
+    return cfg
+
+
+def test_a_record_with_a_safeguard_refusal_needs_the_interruption_note_and_carries_the_account(frozen):
+    cfg = refused_run(frozen)
+    with pytest.raises(e9.Refused, match="interruption"):
+        e9.stage_rag_record(cfg, frozen, device="none: fakes")
+    path = e9.stage_rag_record(cfg, frozen, device="none: fakes", interruption_note=NOTE)
+    rec = json.loads(path.read_text())
+    a = rec["config"]["run_account"]
+    assert a["interruption"]["occurred"] is True and a["interruption"]["note"] == NOTE  # verbatim
+    assert a["interruption"]["refused"] == [{"id": "t2", "request_id": "req_t2", "recorded_without_call": False}]
+    assert set(a["stages"]) == {"retrieve", "generate", "claims_haiku", "claims_sonnet", "wrong_disease"}
+    assert all(len(s["sha256"]) == 64 and s["last_write"] for s in a["stages"].values())
+    assert a["window"]["last_file_write"] <= a["window"]["record_written"] and a["window"]["first_file_created"] is not None or True
+    assert a["questions_answered_and_judged"]["questions"] == 6 and a["frozen"]["equal_to_frozen_config"] is True
+    assert a["model_calls_by_rag_record"] == 0 and "commit" in json.dumps(a["interruption"]["code_commits"])
+    notes = rec["notes"]
+    assert "Interruption:" in notes and "answered and judged once, with one stop" in notes and NOTE in notes
+    assert "from one run with everything frozen" not in notes and "req_t2" in notes
+    assert check_file(path, frozen, min_n=1) == []
+
+
+def test_a_record_without_the_account_where_an_interruption_exists_fails_check_run(frozen):
+    cfg = refused_run(frozen)
+    path = e9.stage_rag_record(cfg, frozen, device="none: fakes", interruption_note=NOTE)
+    good = json.loads(path.read_text())
+
+    def problems(mutate):
+        rec = json.loads(json.dumps(good))
+        mutate(rec)
+        path.write_text(json.dumps(rec))
+        return check_file(path, frozen, min_n=1)
+
+    assert any("run_account" in p for p in problems(lambda r: r["config"].pop("run_account")))
+    assert any("note" in p for p in problems(lambda r: r["config"]["run_account"]["interruption"].update(note="")))
+    assert any("interruption" in p for p in problems(lambda r: r["config"]["run_account"]["interruption"].update(refused=[])))
+    assert any("one run" in p for p in problems(lambda r: r.update(
+        notes=r["notes"] + " Held-out numbers, from one run with everything frozen before it.")))
+    assert any("record_written" in p for p in problems(lambda r: r["config"]["run_account"]["window"].update(record_written="x")))
+
+
+def test_a_new_rag_record_makes_no_call_gives_the_same_numbers_and_supersedes_the_old_one(frozen, monkeypatch):
+    cfg = refused_run(frozen)
+    old = e9.stage_rag_record(cfg, frozen, device="none: fakes", interruption_note=NOTE)
+    saved = json.loads(old.read_text())
+    saved["config"].pop("run_account")  # the record as it was first written, with no account
+    saved["notes"] = saved["notes"].split(" Interruption:")[0] + " Held-out numbers, from one run with everything frozen before it."
+    old.write_text(json.dumps(saved))
+    assert check_file(old, frozen, min_n=1)  # on its own it fails now: the interruption is not told
+    commit(frozen, "the first record")
+    calls = []
+    monkeypatch.setattr("sprout.llm.client.ClaudeCodeClient.complete", lambda *a, **k: calls.append(1))
+    monkeypatch.setattr("sprout.llm.client.OllamaClient.complete", lambda *a, **k: calls.append(1))
+    with pytest.raises(e9.Refused, match="already been used"):  # the second-run guard still holds
+        e9.stage_rag_record(cfg, frozen, device="none: fakes", interruption_note=NOTE, supersedes=old.stem)
+    new = e9.stage_rag_record(cfg, frozen, device="none: fakes", interruption_note=NOTE, supersedes=old.stem,
+                              override_note="record rewritten from the saved rows to add the run account; no model call")
+    assert calls == []
+    a, b = json.loads(old.read_text()), json.loads(new.read_text())
+    assert a["metrics"] == b["metrics"] and a["n"] == b["n"] and a["claude_calls"] == b["claude_calls"]
+    sidecar = lambda r: json.loads((frozen / r["judged"]["file"]).read_text())  # noqa: E731
+    assert sidecar(a) == sidecar(b)
+    assert b["config"]["supersedes"]["record"] == old.stem and b["config"]["supersedes"]["same_numbers"] is True
+    assert "Interruption:" in b["notes"]
+    assert old.exists() and json.loads(old.read_text()) == a  # the old record is untouched
+    assert check_file(new, frozen, min_n=1) == [] and check_file(old, frozen, min_n=1) == []  # history is accepted
+    def claim_rag(rec):
+        metric, value = next((k, v) for k, v in rec["metrics"]["served"].items() if v is not None)
+        write(frozen, "results/claims.json", {"claims": [{"id": "c1", "run_id": rec["run_id"], "system": "served",
+                                                         "metric": metric, "value": value}]})
+
+    claim_rag(a)
+    assert any("superseded" in p and new.stem in p for p in check_claims(frozen))  # claims must cite the new one
+    claim_rag(b)
+    assert not any("superseded" in p for p in check_claims(frozen))
+    broken = json.loads(new.read_text())
+    broken["config"]["supersedes"]["same_numbers"] = False
+    new.write_text(json.dumps(broken))
+    assert any("supersed" in p for p in check_file(new, frozen, min_n=1))

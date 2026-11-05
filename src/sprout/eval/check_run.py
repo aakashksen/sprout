@@ -783,9 +783,66 @@ def _e9_final_problems(rec: dict[str, Any], root: Path) -> list[str]:
     if side is None or not side.is_file() or json.loads(side.read_text(encoding="utf-8")) != answer_checks.final_lists(rows):
         problems.append("the judged samples are not the rows' own claim verdicts and checks")
     problems += _first_judge_problems(rec, root)
+    problems += _account_problems(rec, rows, root)
     if re.search(r"accuracy|\bupper\b|conservative", json.dumps({k: rec[k] for k in ("config", "models", "notes", "judged", "metrics")}), re.I):
         problems.append("a judge's figure is called accuracy, upper or conservative; it is a share of claims judged supported")
     return problems
+
+
+def superseded_by(root: Path, run_id: str) -> str | None:
+    """The E9 rag_test record that names `run_id` in config.supersedes, if any. A superseded record stays committed as
+    history; claims must cite the one that replaces it."""
+    for path in sorted((Path(root) / RUNS_REL).glob("E9-*.json")):
+        if SIDECAR.fullmatch(path.name) or path.stem == run_id:
+            continue
+        rec = json.loads(path.read_text(encoding="utf-8"))
+        held = (rec.get("config") or {}).get("supersedes")
+        if rec.get("split") == "rag_test" and isinstance(held, dict) and held.get("record") == run_id:
+            return path.stem
+    return None
+
+
+def _account_problems(rec: dict[str, Any], rows: list[dict[str, Any]], root: Path) -> list[str]:
+    """E9 rag_test: a record whose wrong-disease check was refused by the safeguard says so in config.run_account and in
+    its notes, unless a later record supersedes it (then it is history). The account must agree with the rows."""
+    cfg, out = rec["config"], []
+    counts = answer_checks.wd_counts(rows)
+    account = cfg.get("run_account")
+    interrupted = counts["refused_by_safeguard"] > 0
+    history = superseded_by(root, rec["run_id"]) is not None
+    if isinstance(account, dict):
+        i = account.get("interruption") or {}
+        if bool(i.get("occurred")) != interrupted or [(r.get("id"), r.get("request_id")) for r in i.get("refused", [])] != [
+                (r["id"], r["request_id"]) for r in counts["refused"]]:
+            out.append("config.run_account.interruption does not match the refused rows")
+        if (account.get("window") or {}).get("record_written") != cfg.get("started_at"):
+            out.append("config.run_account.window.record_written is not the record's own started_at")
+        if account.get("model_calls_by_rag_record") != 0:
+            out.append("config.run_account must say the record made no model call")
+        if interrupted and not str(i.get("note") or "").strip():
+            out.append("config.run_account.interruption has refused rows but no interruption note")
+        if interrupted and "interrupt" not in str(rec.get("notes", "")).lower():
+            out.append("the notes do not mention the interruption")
+    elif interrupted and not history:
+        out.append("the wrong-disease check was interrupted by a safeguard refusal but the record has no config.run_account")
+    if interrupted and not history and re.search(r"from one run with everything frozen", json.dumps([rec.get("notes"), cfg.get("caveat")])):
+        out.append("the record calls itself one run with everything frozen though the stages were interrupted")
+    held = cfg.get("supersedes")
+    if held is not None:
+        path = root / RUNS_REL / f"{held.get('record')}.json" if isinstance(held, dict) else None
+        if path is None or not path.is_file():
+            out.append("config.supersedes must name a record that exists")
+        else:
+            old = json.loads(path.read_text(encoding="utf-8"))
+            old_judged = json.loads((root / old["judged"]["file"]).read_text(encoding="utf-8"))
+            same = old["metrics"] == rec["metrics"] and old_judged == json.loads((root / rec["judged"]["file"]).read_text(encoding="utf-8"))
+            if old.get("experiment") != "E9" or old.get("split") != "rag_test":
+                out.append("config.supersedes names a record that is not an E9 rag_test record")
+            if held.get("same_numbers") is not same or not same:
+                out.append("a superseding record must carry the superseded record's numbers, and same_numbers must say so truly")
+            if not _valid_note(rec):
+                out.append("a superseding record is a second rag_test record and needs an override_note")
+    return out
 
 
 def _first_judge_problems(rec: dict[str, Any], root: Path) -> list[str]:

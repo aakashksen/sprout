@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from sprout.eval.check_run import check_file, test_once_problems
+from sprout.eval.check_run import check_file, superseded_by, test_once_problems
 from sprout.eval.records import ROOT, RUNS_REL
 
 CLAIMS_REL = Path("results/claims.json")
@@ -109,6 +109,9 @@ def check(root: Path = ROOT, final: bool = False) -> tuple[list[str], list[dict[
             problems.append(f"claim {cid}: no run record {c.get('run_id')}")
             continue
         rec = json.loads(path.read_text(encoding="utf-8"))
+        newer = superseded_by(root, str(c.get("run_id")))
+        if newer:
+            problems.append(f"claim {cid}: run {c.get('run_id')} is superseded by {newer}; cite {newer}")
         saved, problem = _cited(c, rec)
         if problem:
             problems.append(f"claim {cid}: {problem}")

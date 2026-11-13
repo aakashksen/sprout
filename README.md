@@ -2,7 +2,7 @@
 
 **Smart Plant Recovery and Optimization Utility Tool.** Photograph a sick leaf: SPROUT names the likely disease, asks a few yes or no questions written from 237 university extension guides until it is sure, and gives care advice that cites the guide it came from.
 
-- **Website:** `site/` (static, deployed with GitHub Pages): a home page, a step-by-step walkthrough, an architecture page and a live demo.
+- **Website:** `site/` (static, hosted on Cloudflare Pages): a home page, a step-by-step walkthrough, an architecture page and a live demo.
 - **Vision model:** ConvNeXt V2 Tiny, fine-tuned on lab and field photos, 29 conditions across 14 plants.
 - **Guide search:** hybrid BM25 + embedding search with a cross-encoder reranker over 237 extension guides.
 - **Question engine:** the model's odds updated by code after each answer; the next question chosen by expected information gain.
@@ -18,7 +18,7 @@
 
 ```mermaid
 flowchart TD
-    U(["Gardener"]) -->|photo| W["Website, GitHub Pages"]
+    U(["Gardener"]) -->|photo| W["Website, Cloudflare Pages"]
     W -->|"POST /api/check"| M["Vision model<br/>ConvNeXt V2 on ONNX Runtime"]
     M --> O["Odds for 29 conditions"]
     O --> Q{"Sure enough?<br/>93% bar"}

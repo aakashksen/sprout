@@ -2,7 +2,7 @@
 
 [Back to README](../../README.md) · Previous: [Live demo server](live-demo-server.md) · Start: [System overview](system.md)
 
-`site/` is plain HTML, CSS and JavaScript with no framework and no build step. GitHub Pages serves it from the `site/` folder through `.github/workflows/pages.yml`.
+`site/` is plain HTML, CSS and JavaScript with no framework and no build step. It is hosted as static files on Cloudflare Pages, published from the `site/` folder.
 
 ## Pages
 
@@ -22,7 +22,7 @@ flowchart LR
 ```mermaid
 flowchart TD
     LOAD["live.html loads"] --> META{"meta sprout-api"}
-    META -->|"empty (GitHub Pages)"| OFF["Demo off: shows the<br/>recorded run and the walkthrough"]
+    META -->|"empty (the published site)"| OFF["Demo off: shows the<br/>recorded run and the walkthrough"]
     META -->|"same-origin (served by the demo server)"| ON["Demo on: upload or pick one of<br/>10 sample leaves the model never trained on"]
     META -->|"a URL"| REMOTE["Demo on, calling that server"]
 ```

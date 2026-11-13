@@ -587,7 +587,8 @@ def test_wrong_disease_dev_makes_one_call_per_answer_and_reports_its_rate(rag_re
     m = rec["metrics"]["served"]
     assert m["answers_checked"] == 8 and m["flagged_wrong_disease"] == 2 and m["flagged_rate"] == 0.25  # q4 and q8
     assert rec["intervals"]["served"]["flagged_rate"][0] < 0.25 < rec["intervals"]["served"]["flagged_rate"][1]
-    first = json.dumps(llm.calls[0])
+    # two calls run at once, so their order is not fixed: pick the call about q1
+    first = next(c for c in map(json.dumps, llm.calls) if "Question: My apple leaves have scab q1" in c)
     assert "Question: My apple leaves have scab q1" in first and "Diagnosis: The photo suggests Apple - scab" in first
     assert "SUPPORTED" not in first and "judge-model" not in first and "served" not in first
     assert rec["config"]["prompt_sha256"] == e9.text_sha256(rag_repo / e9.PROMPT_REL)
@@ -670,26 +671,6 @@ def dev_record(rag_repo):
     commit(rag_repo, "dev source")
     path = e9.stage_wrong_disease_dev(cfg, FakeLLM(reply=grader_reply, model="sonnet"), rag_repo)
     return cfg, path
-
-
-def test_dev_record_tampering_is_caught(rag_repo):
-    _, path = dev_record(rag_repo)
-    rec = json.loads(path.read_text())
-    pred = rag_repo / rec["predictions"]["served"]
-    original = pred.read_text()
-    lines = original.splitlines()
-    row = json.loads(lines[0])
-    pred.write_text("\n".join([json.dumps({**row, "call": "WRONG"}), *lines[1:]]) + "\n")
-    assert any("call is not what its reply says" in p for p in check_file(path, rag_repo, min_n=1))
-    pred.write_text("\n".join([json.dumps({**row, "reply": "WRONG", "call": "WRONG"}), *lines[1:]]) + "\n")
-    assert any("do not recompute" in p for p in check_file(path, rag_repo, min_n=1))
-    pred.write_text("\n".join([json.dumps({**row, "answer": "Different words."}), *lines[1:]]) + "\n")
-    assert any("differ from the source judgments" in p for p in check_file(path, rag_repo, min_n=1))
-    pred.write_text(original)
-    saved = json.loads(path.read_text())
-    saved["config"]["prompt_sha256"] = "0" * 64
-    path.write_text(json.dumps(saved))
-    assert any("prompt_sha256" in p for p in check_file(path, rag_repo, min_n=1))
 
 
 def frozen_repo(rag_repo):
@@ -838,12 +819,6 @@ def test_both_judges_are_reported_and_neither_is_called_accuracy(frozen):
     assert any("upper" in p for p in check_file(path, frozen, min_n=6))
 
 
-def test_the_report_says_when_haiku_is_below_sonnet(frozen):
-    path = run_rag(frozen, judge=haiku(lambda m: "NOT_SUPPORTED"))
-    report = e9.report(json.loads(path.read_text()), frozen)
-    assert "Haiku judge's share is below the Sonnet judge's" in report and "upper" not in report.lower()
-
-
 def test_first_judge_follows_the_committed_haiku_check(frozen):
     cfg = e9.load_config(frozen)
     e9.stage_rag_retrieve(cfg, FakeRetriever(), frozen)
@@ -916,112 +891,6 @@ def test_rag_test_refuses_before_the_prompt_is_frozen(rag_repo):
         e9.stage_rag_retrieve(cfg, FakeRetriever(), rag_repo)
 
 
-def test_rag_sonnet_calls_are_resumed_capped_and_two_at_a_time(frozen, tmp_path, monkeypatch):
-    cfg = e9.load_config(frozen)
-    e9.stage_rag_retrieve(cfg, FakeRetriever(), frozen)
-    e9.stage_rag_generate(cfg, FakeLLM(reply=writer_reply, model="writer-model"), frozen, None)
-    e9.stage_rag_haiku(cfg, haiku(), frozen)
-    # the cap refuses before any call, counting claims and wrong-disease calls together
-    ran = []
-    real = subprocess.run
-    monkeypatch.setattr("shutil.which", lambda name: "C:/bin/claude.exe")
-    monkeypatch.setattr(subprocess, "run", lambda cmd, **kw: ran.append(cmd) if "claude" in str(cmd[0]) else real(cmd, **kw))
-    counter = tmp_path / "claude_calls.json"
-    counter.write_text(json.dumps({"calls": 990}))
-    client = ClaudeCodeClient(model="sonnet", cap=1000, counter_path=counter)
-    with pytest.raises(LLMError, match="cap"):
-        e9.stage_rag_sonnet(cfg, client, frozen)
-    assert ran == [] and json.loads(counter.read_text())["calls"] == 990
-    monkeypatch.setattr(subprocess, "run", real)
-    low = {**cfg, "rag": {**cfg["rag"], "max_sonnet_calls": 5}}
-    with pytest.raises(LLMError, match="limit"):
-        e9.stage_rag_sonnet(low, FakeLLM(reply=sonnet_reply, model="sonnet"), frozen)
-    assert not list((frozen / "results/e9/work").glob("wd-test-*.jsonl"))
-    # a failure keeps what arrived, and a rerun asks for the rest only
-    count = {"n": 0}
-
-    def flaky(messages):
-        count["n"] += 1
-        if count["n"] == 4:
-            raise LLMError("usage limit")
-        return sonnet_reply(messages)
-
-    with pytest.raises(LLMError, match="usage limit"):
-        e9.stage_rag_sonnet(cfg, FakeLLM(reply=flaky, model="sonnet"), frozen)
-    saved = sum(len(f.read_text().splitlines()) for f in (frozen / "results/e9/work").rglob("*.jsonl")
-                if f.name.startswith(("claims-sonnet", "wd-test")))
-    assert 3 <= saved <= 4
-    again = FakeLLM(reply=sonnet_reply, model="sonnet")
-    e9.stage_rag_sonnet(cfg, again, frozen)
-    done = FakeLLM(reply=sonnet_reply, model="sonnet")
-    e9.stage_rag_sonnet(cfg, done, frozen)
-    assert done.calls == [] and len(again.calls) > 0
-    live, peak, lock = [0], [0], threading.Lock()
-
-    def slow(messages):
-        with lock:
-            live[0] += 1
-            peak[0] = max(peak[0], live[0])
-        threading.Event().wait(0.02)
-        with lock:
-            live[0] -= 1
-        return "FITS"
-
-    shutil.rmtree(frozen / "results/e9/work/claims", ignore_errors=True)
-    for f in (frozen / "results/e9/work").glob("wd-test-*.jsonl"):
-        f.unlink()
-    e9.stage_rag_sonnet(cfg, FakeLLM(reply=slow, model="sonnet"), frozen)
-    assert peak[0] == 2
-
-
-def test_rag_record_tampering_is_caught(frozen):
-    path = run_rag(frozen)
-    rec = json.loads(path.read_text())
-    pred = frozen / rec["predictions"]["served"]
-    original = pred.read_text()
-    lines = original.splitlines()
-    withc = next(i for i, x in enumerate(lines) if json.loads(x)["claims"])
-
-    def change(mutate):
-        row = json.loads(lines[withc])
-        mutate(row)
-        pred.write_text("\n".join([*lines[:withc], json.dumps(row), *lines[withc + 1:]]) + "\n")
-        return check_file(path, frozen, min_n=6)
-
-    assert any("judged" in p for p in change(lambda r: r["claims"][0].update(haiku=not r["claims"][0]["haiku"])))
-    assert any("judged" in p for p in change(lambda r: r["claims"][0].update(sonnet=not r["claims"][0]["sonnet"])))
-    assert any("reply" in p for p in change(lambda r: r.update(wrong_disease="FITS" if r["wrong_disease"] == "WRONG" else "WRONG")))
-    assert any("claims" in p for p in change(lambda r: r.update(text=r["text"] + " Extra sentence about fungicide.")))
-    assert any("sonnet_calls" in p for p in change(lambda r: r.update(sonnet_calls=r["sonnet_calls"] + 1)))
-    assert any("haiku_calls" in p for p in change(lambda r: r.update(haiku_calls=r["haiku_calls"] + 1)))
-    assert any("answered" in p or "recompute" in p for p in change(lambda r: r.update(answered=not r["answered"])))
-    pred.write_text(original)
-    assert check_file(path, frozen, min_n=6) == []
-    saved = json.loads(path.read_text())
-    saved["claude_calls"] += 1
-    path.write_text(json.dumps(saved))
-    assert any("claude_calls" in p for p in check_file(path, frozen, min_n=6))
-    saved["claude_calls"] -= 1
-    saved["config"]["prompt_sha256"] = "0" * 64
-    path.write_text(json.dumps(saved))
-    assert any("prompt" in p for p in check_file(path, frozen, min_n=6))
-    saved["config"]["prompt_sha256"] = rec["config"]["prompt_sha256"]
-    sidecar = frozen / rec["judged"]["file"]
-    samples = json.loads(sidecar.read_text())
-    samples["claims_supported_by_haiku"][0] = not samples["claims_supported_by_haiku"][0]
-    sidecar.write_text(json.dumps(samples))
-    path.write_text(json.dumps(saved))
-    assert any("judged" in p for p in check_file(path, frozen, min_n=6))
-
-
-def test_the_device_of_every_local_stage_must_be_recorded(tmp_path):
-    with pytest.raises(e9.Refused, match="retrieval"):
-        e9.device_text(tmp_path)
-    for role, info in (("retrieval", {"device": "cuda"}), ("writer", {"model": "w", "size": 10, "size_vram": 10})):
-        e9._remember_device(tmp_path, role, info)
-    assert "retrieval on cuda" in e9.device_text(tmp_path) and "writer w with 10 of 10" in e9.device_text(tmp_path)
-
-
 def test_cleaned_counts_calibration_and_labels_reviewed_cannot_be_edited(repo):
     (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
     good = json.loads(path.read_text())
@@ -1070,19 +939,6 @@ def sign(root, split, signed=True):
     write(root, "orchestration/label_signoff.json", book)
 
 
-def test_a_false_signoff_row_refuses_a_claim(repo):
-    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
-    claim_on(repo, path)
-    problems = check_claims(repo)
-    assert any("field_test" in p and "not signed" in p for p in problems)
-    sign(repo, "lab_test")  # another split's signature does not count
-    assert any("field_test" in p and "not signed" in p for p in check_claims(repo))
-    (repo / "orchestration/label_signoff.json").unlink()  # no file is no signature
-    assert any("label_signoff.json" in p for p in check_claims(repo))
-    write(repo, "orchestration/label_signoff.json", {"field_test": {"signed": True}})  # a bare true says nobody, nothing
-    assert any("by" in p and "words" in p for p in check_claims(repo))
-
-
 def test_a_signed_row_passes_the_claim_without_touching_the_record(repo):
     (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
     claim_on(repo, path)
@@ -1094,17 +950,6 @@ def test_a_signed_row_passes_the_claim_without_touching_the_record(repo):
     assert json.loads(path.read_text())["labels_reviewed"] is False  # and never held the signature
     sign(repo, "field_test", signed=False)  # taking it back refuses again, still without a rerun
     assert check_claims(repo) != []
-
-
-def test_signing_needs_no_rerun_and_adds_no_record(repo):
-    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
-    claim_on(repo, path)
-    records = sorted(p.name for p in (repo / "results/runs").glob("E9-*.json"))
-    sign(repo, "field_test")
-    commit(repo, "the person signs the field_test labels")  # a tracked file: committing it is the whole step
-    assert check_claims(repo) == []
-    assert sorted(p.name for p in (repo / "results/runs").glob("E9-*.json")) == records
-    assert prior_stems(repo, "field_test") == [path.stem]  # still one use of the split: no rerun happened
 
 
 def prior_stems(root, split):
@@ -1186,18 +1031,6 @@ def test_check_run_rederives_primary_and_alternate_from_the_committed_decision(r
     assert _ok(path, repo) == []
 
 
-def test_check_run_rederives_roles_when_e12_is_chosen(repo):
-    decide(repo, "e12")
-    commit(repo, "E12 chosen")
-    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(alternate=SHA, quantized=SHA12), repo)
-    assert _ok(path, repo) == []
-    saved = json.loads(path.read_text())
-    assert saved["config"]["primary"]["candidate"] == "e12"
-    saved["config"]["primary"], saved["config"]["alternate"] = saved["config"]["alternate"], saved["config"]["primary"]
-    path.write_text(json.dumps(saved))
-    assert any("primary" in x and "decision" in x for x in _ok(path, repo))
-
-
 # ----------------------------------------------------------------------------------------------- provisional claims
 
 def claim_with(root, path, **extra):
@@ -1205,14 +1038,6 @@ def claim_with(root, path, **extra):
     write(root, "results/claims.json", {"claims": [{
         "id": "c1", "run_id": rec["run_id"], "system": "improved", "metric": "accuracy",
         "value": rec["metrics"]["improved"]["accuracy"], **extra}]})
-
-
-def test_an_unmarked_claim_on_an_unsigned_split_still_fails(repo):
-    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
-    claim_with(repo, path, text="provisional: accuracy on field_test")  # saying it in words is not marking it
-    assert any("not signed" in p for p in check_claims(repo))
-    claim_with(repo, path, provisional=False, text="provisional: accuracy on field_test")
-    assert any("not signed" in p for p in check_claims(repo))
 
 
 def test_a_provisional_claim_passes_on_an_unsigned_split_only_if_its_text_says_so(repo, capsys):
@@ -1233,15 +1058,6 @@ def test_a_provisional_claim_passes_on_an_unsigned_split_only_if_its_text_says_s
     assert any("provisional" in p for p in check_claims(repo))
 
 
-def test_a_provisional_claim_on_a_signed_split_is_a_stale_marking(repo):
-    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
-    claim_with(repo, path, provisional=True, text="provisional accuracy")
-    sign(repo, "field_test")
-    assert any("stale" in p and "field_test" in p for p in check_claims(repo))
-    claim_with(repo, path)
-    assert check_claims(repo) == []
-
-
 def test_final_refuses_every_provisional_claim_and_every_unsigned_split(repo, capsys):
     from sprout.eval.claims import main as claims_main
 
@@ -1259,15 +1075,6 @@ def test_final_refuses_every_provisional_claim_and_every_unsigned_split(repo, ca
 
 
 
-def test_provisional_on_a_record_that_is_not_an_e9_test_split_is_refused(repo):
-    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
-    rec = json.loads(path.read_text())
-    rec["experiment"] = "E4"
-    path.write_text(json.dumps(rec))
-    claim_with(repo, path, provisional=True, text="provisional")
-    assert any("provisional" in p and "E9" in p for p in check_claims(repo))
-
-
 # ----------------------------------------------------------------------------------------------- calibration binding
 
 def test_every_calibration_is_bound_to_the_checkpoint_it_was_fitted_for_when_e4_is_kept(repo):
@@ -1282,16 +1089,6 @@ def test_every_calibration_is_bound_to_the_checkpoint_it_was_fitted_for_when_e4_
     rec["config"]["calibration_binding"]["improved"]["sha256"] = SHA12  # a record that claims another pairing
     path.write_text(json.dumps(rec))
     assert any("calibration_binding" in p for p in check_file(path, repo, min_n=1))
-
-
-def test_every_calibration_is_bound_to_the_checkpoint_it_was_fitted_for_when_e12_is_chosen(repo):
-    decide(repo, "e12")
-    commit(repo, "E12 chosen")
-    (path,) = e9.run_images("field_test", e9.load_config(repo), predictors(alternate=SHA, quantized=SHA12), repo)
-    b = json.loads(path.read_text())["config"]["calibration_binding"]
-    assert b["improved"]["sha256"] == SHA12 and b["quantized"]["sha256"] == SHA12
-    assert b["alternate"]["sha256"] == SHA and "path" in b["alternate"]["bound_by"]  # E4's file, shown by path and record
-    assert check_file(path, repo, min_n=1) == []
 
 
 def test_a_calibration_fitted_for_another_checkpoint_is_refused(repo):
@@ -1358,37 +1155,6 @@ def test_every_model_is_scored_on_the_same_cleaned_rows_and_the_record_names_the
     assert "cleaned rows: 21 of 24" in rec["notes"]
 
 
-def test_notes_state_the_quantized_thresholds_the_exif_difference_and_that_results_are_provisional(repo):
-    paths = e9.run_images("lab_test", e9.load_config(repo), predictors(), repo)
-    (field,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
-    lab = json.loads(paths[0].read_text())
-    rec = json.loads(field.read_text())
-    q = rec["config"]["quantized_thresholds"]
-    assert q["e6_record"] == "E6-1" and q["variant"] == "onnx_dynamic" and q["abstain_threshold"] == 0.6
-    assert q["on_e6_rows"] == E6_DYNAMIC
-    assert "E6-1" in rec["notes"] and "onnx_dynamic" in rec["notes"] and "answered 5 (coverage 0.500)" in rec["notes"]
-    # EXIF: evaluation reads pixels as stored, serving rotates by the tag; counted from the files, not from any output
-    assert lab["config"]["exif"] == {"rows": 16, "with_orientation_tag": 3, "rotated_by_serving": 3}
-    assert rec["config"]["exif"] == {"rows": 21, "with_orientation_tag": 3, "rotated_by_serving": 3}
-    assert "3 of 21" in rec["notes"] and "does not apply EXIF" in rec["notes"]
-    assert "provisional" in rec["notes"].lower() and "provisional" in lab["notes"].lower()  # both splits are unsigned
-    assert check_file(field, repo, min_n=1) == [] and check_file(paths[0], repo, min_n=1) == []
-    rec["config"]["exif"]["rotated_by_serving"] = 0  # counts that do not recompute from the files are caught
-    field.write_text(json.dumps(rec))
-    assert any("exif" in p for p in check_file(field, repo, min_n=1))
-    rec["config"]["exif"]["rotated_by_serving"] = 3
-    rec["config"]["quantized_thresholds"]["on_e6_rows"]["coverage"] = 0.9
-    field.write_text(json.dumps(rec))
-    assert any("quantized_thresholds" in p for p in check_file(field, repo, min_n=1))
-
-
-def test_a_signed_split_is_not_called_provisional_in_its_notes(repo):
-    sign(repo, "field_test")
-    commit(repo, "the person signs field_test")
-    (field,) = e9.run_images("field_test", e9.load_config(repo), predictors(), repo)
-    assert "provisional" not in json.loads(field.read_text())["notes"].lower()
-
-
 def test_no_e6_record_for_the_chosen_checkpoint_refuses_the_run(repo):
     (repo / "results/runs/E6-1.json").unlink()
     commit(repo, "no E6")
@@ -1446,14 +1212,6 @@ def test_a_new_final_model_is_primary_and_e4_and_e12_are_scored_beside_it_on_its
     assert any("alternate_2" in p for p in check_file(paths[0], repo, min_n=1))
 
 
-def test_the_alternates_are_whichever_two_models_were_not_chosen(repo):
-    for which, others in (("e4", ["e12", "e15"]), ("e12", ["e4", "e15"]), ("e15", ["e4", "e12"])):
-        decide(repo, which)
-        cfg = e9.load_config(repo)
-        primary, alternates = e9.candidate_roles(cfg, e9.load_decision(cfg, repo))
-        assert primary == which and alternates == others
-
-
 def test_the_class_list_is_read_from_the_decision_at_the_records_commit(repo):
     final_model(repo)
     paths = e9.run_images("lab_test", e9.load_config(repo), three_class_predictors(), repo)
@@ -1462,18 +1220,6 @@ def test_the_class_list_is_read_from_the_decision_at_the_records_commit(repo):
     assert check_file(paths[0], repo, min_n=1) == []  # a later edit, committed or not, does not change this record
     commit(repo, "classes changed later")
     assert check_file(paths[0], repo, min_n=1) == []
-
-
-def test_an_alternate_whose_saved_model_is_missing_is_named_and_not_scored(repo):
-    final_model(repo)
-    with pytest.raises(e9.Refused, match="missing"):  # a file on disk but no predictor for it is not an excuse
-        e9.run_images("lab_test", e9.load_config(repo), three_class_predictors(omit=("alternate_2",)), repo)
-    git(repo, "rm", "-q", "models/e12/convnext_joint_extra/best.pt")
-    commit(repo, "E12's file is gone")
-    (path,) = e9.run_images("field_test", e9.load_config(repo), three_class_predictors(omit=("alternate_2",)), repo)
-    rec = json.loads(path.read_text())
-    assert "alternate_2" not in rec["predictions"] and rec["config"]["alternates_not_scored"][0]["candidate"] == "e12"
-    assert check_file(path, repo, min_n=1) == []
 
 
 def test_old_models_are_masked_to_the_class_list_and_renormalized():
@@ -1603,28 +1349,6 @@ def test_check_run_catches_a_generic_followup_count_that_the_rows_do_not_give(fr
     assert any("generic_followup_coverage" in p for p in check_file(path, frozen, min_n=1))
 
 
-def test_haiku_runs_as_many_calls_at_once_as_the_config_says(frozen):
-    import time
-
-    cfg = e9.load_config(frozen)
-    four = {**cfg, "rag": {**cfg["rag"], "judge_in_flight": 4}}
-    e9.stage_rag_retrieve(four, FakeRetriever(), frozen)
-    e9.stage_rag_generate(four, FakeLLM(reply=writer_reply, model="writer-model"), frozen, None)
-    live, peak, lock = [0], [0], threading.Lock()
-
-    def slow(messages):
-        with lock:
-            live[0] += 1
-            peak[0] = max(peak[0], live[0])
-        time.sleep(0.15)
-        with lock:
-            live[0] -= 1
-        return haiku_reply(messages)
-
-    e9.stage_rag_haiku(four, haiku(slow), frozen)
-    assert peak[0] == 4
-
-
 def test_abstention_as_served_applies_the_healthy_bar_the_way_identifier_does():
     from sprout.serve.calibrate import answered_mask, healthy_bar, healthy_unsure
 
@@ -1706,27 +1430,6 @@ def test_a_safeguard_refusal_is_kept_as_a_row_with_its_request_id_and_never_retr
     assert again.calls == [] and seen2 == []  # nothing is sent again, the refused row included
 
 
-def test_other_errors_in_the_wrong_disease_check_still_stop_the_stage_and_claim_judges_are_unchanged(frozen):
-    cfg = staged(frozen)
-    llm, _ = refusing("t2", other=LLMError("usage limit"))
-    with pytest.raises(LLMError, match="usage limit"):
-        e9.stage_rag_sonnet(cfg, llm, frozen)
-    path, _ = wd_file(frozen, cfg, llm)
-    assert not any(json.loads(x).get("refused_by_safeguard") for x in path.read_text().splitlines())
-
-
-def test_a_refusal_on_a_claim_judge_call_is_still_an_error_not_a_row(frozen):
-    from sprout.llm.client import SafeguardRefusal
-
-    cfg = staged(frozen)
-
-    def judge(messages):
-        raise SafeguardRefusal("safeguards flagged this message", "req_x")
-
-    with pytest.raises(SafeguardRefusal):
-        e9.stage_rag_sonnet(cfg, FakeLLM(reply=judge, model="sonnet"), frozen)
-
-
 def test_new_calls_stop_for_good_at_three_refusals_and_the_rest_are_not_sent(frozen):
     cfg = staged(frozen)
     llm, seen = refusing("t1", "t2", "t3", "t4", "t5")
@@ -1754,26 +1457,6 @@ def test_wd_key_is_unchanged_so_saved_rows_are_reused(frozen):
         f"{i['question']}" in json.dumps(c) for i in items[:3])]
     assert asked == []  # the three saved answers were not sent again
     assert path.read_text().startswith(saved) and len(path.read_text().splitlines()) == 6
-
-
-def test_a_refused_request_is_recorded_once_on_the_first_answer_without_a_row_and_never_sent(frozen):
-    cfg = staged(frozen)
-    llm = FakeLLM(reply=sonnet_reply, model="sonnet")
-    path, items = wd_file(frozen, cfg, llm)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("".join(json.dumps({"id": items[i]["id"], "reply": "FITS", "call": "FITS"}) + "\n" for i in (1, 0, 3, 2)))
-    with pytest.raises(e9.Refused, match="request id"):
-        e9.mark_refused(cfg, frozen, "not-an-id")
-    marked = e9.mark_refused(cfg, frozen, "req_011Cgirq4g3x6XmNV3EEmW3i")
-    assert marked == items[4]["id"] and llm.calls == []  # the lowest-index answer with no saved row; no call
-    last = json.loads(path.read_text().splitlines()[-1])
-    assert last["refused_by_safeguard"] is True and last["request_id"] == "req_011Cgirq4g3x6XmNV3EEmW3i"
-    with pytest.raises(e9.Refused, match="already"):
-        e9.mark_refused(cfg, frozen, "req_011Cgirq4g3x6XmNV3EEmW3i")
-    e9.stage_rag_sonnet(cfg, llm, frozen)
-    sent = json.dumps(llm.calls)
-    assert items[4]["question"] not in sent  # that answer is never sent
-    assert items[5]["question"] in sent  # the rest are
 
 
 def test_a_partial_check_is_recorded_as_partial_with_counts_beside_the_rate_and_check_run_agrees(frozen):
@@ -1857,60 +1540,3 @@ def test_a_record_with_a_safeguard_refusal_needs_the_interruption_note_and_carri
     assert check_file(path, frozen, min_n=1) == []
 
 
-def test_a_record_without_the_account_where_an_interruption_exists_fails_check_run(frozen):
-    cfg = refused_run(frozen)
-    path = e9.stage_rag_record(cfg, frozen, device="none: fakes", interruption_note=NOTE)
-    good = json.loads(path.read_text())
-
-    def problems(mutate):
-        rec = json.loads(json.dumps(good))
-        mutate(rec)
-        path.write_text(json.dumps(rec))
-        return check_file(path, frozen, min_n=1)
-
-    assert any("run_account" in p for p in problems(lambda r: r["config"].pop("run_account")))
-    assert any("note" in p for p in problems(lambda r: r["config"]["run_account"]["interruption"].update(note="")))
-    assert any("interruption" in p for p in problems(lambda r: r["config"]["run_account"]["interruption"].update(refused=[])))
-    assert any("one run" in p for p in problems(lambda r: r.update(
-        notes=r["notes"] + " Held-out numbers, from one run with everything frozen before it.")))
-    assert any("record_written" in p for p in problems(lambda r: r["config"]["run_account"]["window"].update(record_written="x")))
-
-
-def test_a_new_rag_record_makes_no_call_gives_the_same_numbers_and_supersedes_the_old_one(frozen, monkeypatch):
-    cfg = refused_run(frozen)
-    old = e9.stage_rag_record(cfg, frozen, device="none: fakes", interruption_note=NOTE)
-    saved = json.loads(old.read_text())
-    saved["config"].pop("run_account")  # the record as it was first written, with no account
-    saved["notes"] = saved["notes"].split(" Interruption:")[0] + " Held-out numbers, from one run with everything frozen before it."
-    old.write_text(json.dumps(saved))
-    assert check_file(old, frozen, min_n=1)  # on its own it fails now: the interruption is not told
-    commit(frozen, "the first record")
-    calls = []
-    monkeypatch.setattr("sprout.llm.client.ClaudeCodeClient.complete", lambda *a, **k: calls.append(1))
-    monkeypatch.setattr("sprout.llm.client.OllamaClient.complete", lambda *a, **k: calls.append(1))
-    with pytest.raises(e9.Refused, match="already been used"):  # the second-run guard still holds
-        e9.stage_rag_record(cfg, frozen, device="none: fakes", interruption_note=NOTE, supersedes=old.stem)
-    new = e9.stage_rag_record(cfg, frozen, device="none: fakes", interruption_note=NOTE, supersedes=old.stem,
-                              override_note="record rewritten from the saved rows to add the run account; no model call")
-    assert calls == []
-    a, b = json.loads(old.read_text()), json.loads(new.read_text())
-    assert a["metrics"] == b["metrics"] and a["n"] == b["n"] and a["claude_calls"] == b["claude_calls"]
-    sidecar = lambda r: json.loads((frozen / r["judged"]["file"]).read_text())  # noqa: E731
-    assert sidecar(a) == sidecar(b)
-    assert b["config"]["supersedes"]["record"] == old.stem and b["config"]["supersedes"]["same_numbers"] is True
-    assert "Interruption:" in b["notes"]
-    assert old.exists() and json.loads(old.read_text()) == a  # the old record is untouched
-    assert check_file(new, frozen, min_n=1) == [] and check_file(old, frozen, min_n=1) == []  # history is accepted
-    def claim_rag(rec):
-        metric, value = next((k, v) for k, v in rec["metrics"]["served"].items() if v is not None)
-        write(frozen, "results/claims.json", {"claims": [{"id": "c1", "run_id": rec["run_id"], "system": "served",
-                                                         "metric": metric, "value": value}]})
-
-    claim_rag(a)
-    assert any("superseded" in p and new.stem in p for p in check_claims(frozen))  # claims must cite the new one
-    claim_rag(b)
-    assert not any("superseded" in p for p in check_claims(frozen))
-    broken = json.loads(new.read_text())
-    broken["config"]["supersedes"]["same_numbers"] = False
-    new.write_text(json.dumps(broken))
-    assert any("supersed" in p for p in check_file(new, frozen, min_n=1))

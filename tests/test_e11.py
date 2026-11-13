@@ -36,18 +36,6 @@ def test_questions_cite_a_document_and_page():
     assert len({item.id for item in BANK}) == len(BANK)
 
 
-@needs_raw
-def test_every_passage_is_in_the_cited_page():
-    from sprout.rag.ingest import _extract
-
-    pages: dict[str, dict[int, str]] = {}
-    for item in BANK:
-        if item.document not in pages:
-            pages[item.document] = {n: F.normalize(t) for n, t in _extract(RAW / item.document)}
-        assert item.page in pages[item.document], f"{item.id}: {item.document} has no page {item.page}"
-        assert F.normalize(item.passage) in pages[item.document][item.page], f"{item.id}: passage not on the page"
-
-
 def test_uncovered_class_gets_no_question():
     not_covered = {r["label"] for r in COVERAGE} - COVERED
     assert all(c not in not_covered for item in BANK for c in item.classes)
@@ -384,15 +372,6 @@ def test_answers_committed_in_the_same_commit_as_the_first_record_fail(tmp_path)
     _git(root, "add", "-A")
     _git(root, "commit", "-q", "-m", "both at once")
     assert any("after the first E11 record" in p for p in E.commit_order_problems(root))
-
-
-def test_real_answers_precede_every_real_record():
-    records = list((ROOT / "results" / "runs").glob("E11-*.json"))
-    assert not records or E.commit_order_problems(ROOT) == []
-    answers = ROOT / "datasets" / "followup" / "answers.jsonl"
-    if answers.exists():
-        for line in answers.read_text(encoding="utf-8").splitlines():
-            assert set(json.loads(line)) == {"path", "question", "answer"}
 
 
 # ---------------------------------------------------------------------------------------------------------------

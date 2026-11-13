@@ -407,20 +407,6 @@ def _with_status(
     return cmap[MAP_COLUMNS]
 
 
-def stage_plantdoc(src: Path, dest: Path) -> None:
-    """Flatten PlantDoc's train/ and test/ into dest/<class>/. Long names are shortened."""
-    for f in sorted(src.glob("*/*/*")):
-        if f.suffix.lower() not in IMAGE_SUFFIXES:
-            continue
-        out = dest / f.parent.name
-        out.mkdir(parents=True, exist_ok=True)
-        name = f.name if len(f.name) <= 80 else f"{file_sha1(f)[:12]}{f.suffix.lower()}"
-        target = out / name
-        if target.exists():
-            target = out / f"{f.parent.parent.name}_{name}"
-        shutil.copyfile(f, target)
-
-
 def stage_plantseg(src: Path, dest: Path) -> pd.DataFrame:
     """Copy PlantSeg images into dest/<disease>/ and return its metadata (Plant, Disease)."""
     meta = pd.read_csv(src / "Metadata.csv", encoding="utf-8-sig")

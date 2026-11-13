@@ -916,10 +916,6 @@ def latest_stage_record(root: Path, stage: str) -> tuple[Path, dict[str, Any]]:
     raise Refused(f"there is no {stage} record yet; run its stage first")
 
 
-def _jsonl(path: Path) -> list[dict[str, Any]]:
-    return [json.loads(x) for x in Path(path).read_text(encoding="utf-8").splitlines() if x.strip()]
-
-
 NOT_VALIDATED = ("The wrong-disease check was not validated: no one read a sample of its calls on rag_dev, so how often "
                  "it flags a good answer or passes a wrong one is not known. Its rate is a count of the grader's calls.")
 

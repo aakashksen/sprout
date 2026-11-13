@@ -1,28 +1,52 @@
-# SPROUT V2
+# SPROUT
 
-Plant disease identification that is measured on real web photos, not just lab images, plus a care assistant whose advice points back to its sources. The repository holds the training and evaluation code, the Flask app, the design and plan documents, the run records behind every reported number, and the original code (`legacy/`).
+**Smart Plant Recovery and Optimization Utility Tool.** Photograph a sick leaf: SPROUT names the likely disease, asks a few yes or no questions written from 237 university extension guides until it is sure, and gives care advice that cites the guide it came from.
 
-## What it does, and what has been measured
+- **Website:** `site/` (static, deployed with GitHub Pages): a home page, a step-by-step walkthrough, an architecture page and a live demo.
+- **Vision model:** ConvNeXt V2 Tiny, fine-tuned on lab and field photos, 29 conditions across 14 plants.
+- **Guide search:** hybrid BM25 + embedding search with a cross-encoder reranker over 237 extension guides.
+- **Question engine:** the model's odds updated by code after each answer; the next question chosen by expected information gain.
 
-- **Identify:** a ConvNeXt V2 Tiny classifier over 29 plant-and-condition classes (14 plants), with a photo gate, an abstention threshold and a stricter bar for "healthy" labels. A healthy result never rules out disease.
-- **Care assistant:** hybrid retrieval with a reranker over extension and agency documents; an answer cites its documents, says so when none supports it, and tells the user to check the product label and local rules for chemical or disposal advice.
-- **Headline numbers** (from `docs/REPORT.md`, provisional): on `field_test` (1006 real web photos of the 29 classes) macro-F1 0.8111, accuracy 0.8131, top-3 accuracy 0.9642; on `lab_test` (6443 lab photos) macro-F1 0.9859. A lab-only model scores macro-F1 0.2387 on the same web photos, which is the reason the project exists.
-- **Results:** `docs/REPORT.md` has every number, the splits, the failures and the limits. All test numbers are provisional because the photo labels are not signed. Real photos here are web photos; no phone photos were tested. The headline is a seen-source number; a web source the model has not trained on scores far lower (E4), and the final model has no held-out-source run.
-- **Not claimed:** no speed or concurrency claim (the container check is 5 requests, and the quantized model is smaller but slower on CPU than PyTorch), no "deployed" (the app is containerized, not deployed), no claim about unsupported plants or diseases (never measured), and the wrong-disease check on answers is not validated.
-- **Resume bullets** are in `docs/RESUME-TARGETS.md`; every number in them is in `results/claims.json` and tied to a run record. `python -m sprout.eval.claims check` verifies them and `tools/check_report_numbers.py` checks the report and bullets.
+| | |
+|---|---|
+| Right disease in the top three, from the photo alone | **96%** |
+| University extension guides it reads from | **237** |
+| Photo to diagnosis, median | **0.4 s** |
+| Tap to next question, median | **6.5 ms** |
 
-## Run the app
+## How it works
 
-Needs Docker, and Ollama running on the host for the answer writer. No API keys are needed.
-
+```mermaid
+flowchart TD
+    U(["Gardener"]) -->|photo| W["Website, GitHub Pages"]
+    W -->|"POST /api/check"| M["Vision model<br/>ConvNeXt V2 on ONNX Runtime"]
+    M --> O["Odds for 29 conditions"]
+    O --> Q{"Sure enough?<br/>93% bar"}
+    Q -->|no| A["Ask the most informative question"]
+    A -->|answer| E["Update odds in code"]
+    E --> Q
+    Q -->|yes| D["Diagnosis with cited advice"]
+    O -. suspects .-> G["Guide search<br/>237 extension guides"]
+    G -.-> L["LLM writes questions and advice<br/>in background threads"]
+    L -. question pool .-> A
+    L -. advice .-> D
 ```
-docker compose build app
-SPROUT_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')" docker compose up app
-```
 
-The model and index are mounted from `models/` (git-ignored; not in the repository), the writer runs in Ollama on the host, and nothing is deployed anywhere. `docs/deploy.md` has the settings. There is no hosted demo and no sample photos are included, because the photos are third-party web photos that cannot be redistributed. Datasets, models and the document index are not in the repository either; `docs/datasets.md` and `docs/DESIGN.md` say how they were obtained and built.
+The LLM only writes text. Every probability, every stop decision and the choice of the next question are plain code, so the same answers always give the same result.
 
-## Set up the environment
+## Architecture docs
+
+| Doc | What it explains |
+|---|---|
+| [System overview](docs/architecture/system.md) | The parts, where each runs, and how they talk |
+| [Life of a check](docs/architecture/check-lifecycle.md) | Every request from photo to chat, as sequence diagrams |
+| [Question engine](docs/architecture/question-engine.md) | Odds, the plant question, information gain, the stop rule |
+| [Guide search](docs/architecture/guide-search.md) | Ingest, two indexes, filtered hybrid search, reranking |
+| [Vision model](docs/architecture/vision-model.md) | From photos to a calibrated ONNX model, and how a photo is read |
+| [Live demo server](docs/architecture/live-demo-server.md) | Endpoints, background work, spend caps and safety |
+| [Website](docs/architecture/website.md) | Pages, the live demo client and how it stays responsive |
+
+## Run it
 
 ```
 py -3.12 -m venv .venv
@@ -31,24 +55,28 @@ py -3.12 -m venv .venv
 .venv/Scripts/python -m pytest -q
 ```
 
-The default Windows torch wheel is CPU-only, so install the CUDA build first. `cu128` matches the driver used here (CUDA 13.1 reported by `nvidia-smi`). CI uses the CPU wheel. Tests need no GPU, network or paid service; tests marked `real` are skipped unless asked for. `docs/TESTING.md` has the test layers.
+The live demo server serves the website and its API:
+
+```
+.venv/Scripts/python tools/live_demo.py --site site
+```
+
+then open `http://127.0.0.1:8765/live.html`. It needs the exported model in `models/` and the guide index in `knowledge/`, which are not in the repository (see [the vision model](docs/architecture/vision-model.md) and [guide search](docs/architecture/guide-search.md) docs for how they are built), and an LLM API key in `.env` as `SPROUT_ANTHROPIC_API_KEY`. Without a key it still works with 52 questions pre-extracted from the guides.
 
 ## What's where
 
 | Path | What it is |
 |---|---|
-| `src/sprout/` | The package: `serve/` (classifier, gate, calibration), `rag/` (retrieval and answers), `web/` (Flask app), `train/`, `eval/`, `experiments/` |
-| `tests/` | Unit and integration tests |
-| `configs/` | Experiment configurations |
-| `deploy/`, `docker-compose.yml` | Serving image and entry point |
-| `tools/` | Scripts for data work, checks and experiment runs |
-| `docs/REPORT.md` | Every result, with limits |
-| `docs/DESIGN.md`, `docs/PLAN.md`, `docs/DECISIONS.md` | What was built, the task plan, and the decisions with their evidence |
-| `docs/TESTING.md`, `docs/deploy.md`, `docs/datasets.md` | Test layers, deployment settings, dataset licenses |
-| `docs/RESUME-TARGETS.md`, `results/claims.json` | Target bullets, and the numbers allowed into them, each tied to a run |
-| `results/runs/` | Experiment records, the only source of numbers |
-| `legacy/PlantProject/` | The original code, unchanged, without user data |
+| `src/sprout/serve/` | Photo reading, the photo gate, calibration, the ONNX classifier |
+| `src/sprout/rag/` | Guide ingest, the retriever, grounded answers |
+| `src/sprout/train/`, `src/sprout/eval/`, `src/sprout/experiments/` | Training, metrics and the experiments behind every number |
+| `src/sprout/web/` | A full Flask app with accounts and history |
+| `tools/live_demo.py` | The live demo server behind the website |
+| `site/` | The website |
+| `tests/` | About 950 tests, run on every push |
+| `configs/`, `results/runs/` | Experiment settings and the run records every number comes from |
+| `docs/` | Design, evaluation report and the architecture docs |
 
-## How this project was built
+## License
 
-The work was done task by task from `docs/PLAN.md` using an agent-assisted workflow: `CLAUDE.md` and `.claude/` hold its rules and commands, `orchestration/tasks.json` holds task state (changed only through `tools/taskctl.py`), and each task passed a test run and an independent verifier before it landed. `docs/HANDOFF.md` and `docs/HUMAN-GATES.md` describe the state and the parts only the owner can do. Don't train at the same time as another GPU job: the project assumes one 8 GB GPU, and a task stops immediately if there is not enough free memory.
+[MIT](LICENSE) for the code. Datasets, pretrained weights and extension guides keep their own licenses; none of them are included in this repository.

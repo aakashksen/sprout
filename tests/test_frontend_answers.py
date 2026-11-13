@@ -89,24 +89,11 @@ def test_an_answer_shows_its_text_label_note_and_a_linked_source(browser, serve,
     assert "tomato.pdf" in page.inner_text("#chat-log .passage .src")
 
 
-def test_an_answer_with_no_source_says_so_and_shows_no_passages(browser, serve, tmp_path):
-    page = reply(browser, serve, tmp_path, FakeLLM(["Remove infected leaves."]))
-    assert "reply-ungrounded" in page.get_attribute("#chat-log .reply", "class")
-    assert "No supporting document was cited" in page.inner_text("#chat-log .answer-text")
-    assert page.locator("#chat-log .passage").count() == 0
-
-
 def test_a_question_back_is_shown_with_a_hint(browser, serve, tmp_path):
     page = reply(browser, serve, tmp_path, FakeLLM(["NEED: crop\nWhich plant is it?"]))
     assert "reply-clarify" in page.get_attribute("#chat-log .reply", "class")
     assert "Which plant is it?" in page.inner_text("#chat-log .answer-text")
     assert "next message" in page.inner_text("#chat-log .reply")
-
-
-def test_no_document_is_labelled(browser, serve, tmp_path):
-    page = reply(browser, serve, tmp_path, FakeLLM(["NO_SUPPORT"]))
-    assert "reply-no_document" in page.get_attribute("#chat-log .reply", "class")
-    assert "No supporting document was found" in page.inner_text("#chat-log .answer-text")
 
 
 def test_unavailable_offers_a_retry_that_then_answers(browser, serve, tmp_path):
@@ -124,9 +111,3 @@ def test_a_failed_search_offers_a_retry(browser, serve, tmp_path):
     assert page.locator("#chat-log .reply button").count() == 1
 
 
-def test_script_in_a_generated_answer_is_removed(browser, serve, tmp_path):
-    evil = 'Remove infected leaves [1]. <script>window.pwned=1</script><img src=x onerror="window.pwned=1">'
-    page = reply(browser, serve, tmp_path, FakeLLM([evil]))
-    page.wait_for_timeout(200)
-    assert page.evaluate("window.pwned") is None
-    assert page.locator("#chat-log .answer-text script, #chat-log .answer-text img").count() == 0

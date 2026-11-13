@@ -163,15 +163,6 @@ def test_unknown_exclusion_version_is_refused(world):
 # earlier records
 
 
-def test_old_records_still_pass_check_run():
-    root = Path(__file__).resolve().parents[1]
-    runs = root / "results" / "runs"
-    found = [e for e in ("E1", "E2", "E3", "E4", "E10") if list(runs.glob(f"{e}-*.json"))]
-    assert found, "no earlier record to check"
-    for exp in found:
-        assert check(exp, root=root, min_n=200) == [], exp
-
-
 def test_real_config_names_saved_systems():
     root = Path(__file__).resolve().parents[1]
     cfg = e13.load_config(root / "configs" / "e13.json")

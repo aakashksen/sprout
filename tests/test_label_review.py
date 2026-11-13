@@ -180,7 +180,7 @@ def test_every_exclusion_exists_in_field_csv(tmp_path):
 
 
 def test_field_csv_is_unchanged():
-    assert hashlib.sha256(FIELD_CSV.read_bytes()).hexdigest() == FIELD_SHA256
+    assert hashlib.sha256(FIELD_CSV.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")).hexdigest() == FIELD_SHA256  # the hash is of the CRLF file; git may check it out with LF
 
 
 def test_exclusions_are_applied_when_the_manifest_is_built(tmp_path):

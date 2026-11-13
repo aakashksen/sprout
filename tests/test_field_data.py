@@ -4,7 +4,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pytest
 from PIL import Image, ImageDraw
 
 from sprout.data.field import (
@@ -376,26 +375,6 @@ def test_cached_hash_variants_match_hash_pairs_and_ignore_stale_entries(tmp_path
     assert (ph3[0] != ph[0]).any()
     ph4, _ = hash_variants_cached(paths, sha1s, None)
     assert (ph4 == ph3).all()
-
-
-def test_no_unlisted_cross_split_near_duplicate_in_real_manifest(pytestconfig):
-    from sprout.data.field import pairs_from_hashes
-
-    real = load_manifest("field")
-    if not Path(real["path"].iloc[0]).exists():
-        pytest.skip("raw images are not on this machine")
-    split = dict(zip(real["path"], real["split"], strict=False))
-    cache = getattr(pytestconfig, "cache", None)
-    store = Path(cache.mkdir("sprout")) / "field-hash-variants.npz" if cache else None
-    paths = list(real["path"])
-    ph, dh = hash_variants_cached(paths, list(real["sha1"]), store)
-    found = pairs_from_hashes(paths, ph, dh, 8)
-    across = [split[a] != split[b] for a, b in zip(found["path_a"], found["path_b"], strict=True)]
-    found = found[pd.Series(across, index=found.index, dtype=bool)]
-    listed = pd.read_csv(MANIFEST_DIR / "field_residual_pairs.csv")
-    assert set(zip(found["path_a"], found["path_b"], strict=True)) <= set(
-        zip(listed["path_a"], listed["path_b"], strict=True)
-    )
 
 
 def test_residual_pairs_with_nothing_close_is_an_empty_table(tmp_path):

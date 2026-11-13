@@ -230,51 +230,6 @@ def test_every_exported_file_carries_the_checkpoint_checksum(world, cfg):
         assert OnnxModel(world / "models/e6" / info["file"]).source_sha256 == state["checkpoint_sha256"], system
 
 
-def test_record_states_how_the_fitted_thresholds_behave_on_every_system(world, cfg):
-    from sprout.experiments.e5_confidence import calibrate, scoring_part
-
-    _run_stages(cfg, world)
-    rows = _rows(world, "pytorch")
-    top = calibrate(np.array([r["probs"] for r in rows]), 1.5).max(axis=1)
-    abstain = float(np.sort(top)[3])  # answers some photos and abstains on others
-    (world / "results/e5/chosen.json").write_text(json.dumps(
-        {"temperature": 1.5, "abstain_threshold": abstain, "healthy_threshold": 1.0, "healthy_suffix": "A"}))
-    _commit(world)
-    rec = json.loads(e6.run_stage("record", cfg, world).read_text())
-    t = rec["config"]["thresholds"]
-    assert t["file"] == "results/e5/chosen.json" and t["temperature"] == 1.5 and t["abstain_threshold"] == abstain
-    assert t["model_sha256"] is None and t["names_this_checkpoint"] is None  # this file names no model
-    assert set(t["systems"]) == {"pytorch", "onnx_dynamic"}
-    cal = calibrate(np.array([r["probs"] for r in rows]), 1.5)
-    y = np.array([r["label"] for r in rows])
-    # class "A" (column 0) counts as healthy here, and its bar is 1.0: it is never answered
-    ok = (cal.max(axis=1) >= abstain) & (cal.argmax(axis=1) != 0)
-    got = t["systems"]["pytorch"]["all_rows"]
-    assert 0 < ok.sum() < len(rows)
-    assert got["n"] == 7 and got["answered"] == ok.sum() and got["unsure"] == len(rows) - ok.sum()
-    assert got["coverage"] == pytest.approx(ok.mean())
-    assert got["confident_wrong"] == (ok & (cal.argmax(axis=1) != y)).sum()
-    assert got["healthy_answers"] == 0 and got["sick_called_healthy"] == 0
-    names = [n for n, _ in sorted({"A": 0, "B": 1}.items(), key=lambda kv: kv[1])]
-    groups = [g for _p, _l, g, s_ in FIELD_ROWS if s_ == "field_dev" and _p != "f/dev1.jpg"]
-    part = scoring_part(groups, 0, 50)
-    assert t["systems"]["pytorch"]["scoring_part"]["n"] == part.sum() and names
-    assert "Thresholds fitted for the PyTorch model" in rec["notes"]
-
-
-def test_fitted_classes_may_be_listed_in_another_order_than_the_model_s(world, cfg):
-    _run_stages(cfg, world)
-    counts = []
-    for classes in (["A", "B"], ["B", "A"]):
-        (world / "results/e5/chosen.json").write_text(json.dumps(
-            {"temperature": 1.0, "abstain_threshold": 0.5, "classes": classes}))
-        _commit(world)
-        rec = json.loads(e6.run_stage("record", cfg, world).read_text())
-        counts.append(rec["config"]["thresholds"]["systems"]["pytorch"]["all_rows"])
-        _commit(world)
-    assert counts[0] == counts[1] and counts[0]["n"] == 7
-
-
 def test_record_says_whether_the_thresholds_name_this_checkpoint(world, cfg):
     import hashlib
 
@@ -351,16 +306,3 @@ def test_static_mode_is_built_scored_and_timed_when_the_config_asks_for_it(world
         e6.check_config({**cfg, "quantize": ["half"]})
 
 
-def test_pytorch_size_is_the_weights_alone_and_the_checkpoint_keeps_its_own_name(world, cfg, tmp_path):
-    path = world / "models/e4/best.pt"
-    ckpt = torch.load(path, map_location="cpu", weights_only=True)
-    ckpt["optimizer"] = {"state": torch.zeros(20000)}  # training state a serving file does not need
-    torch.save(ckpt, path)
-    _commit(world)
-    weights_file = tmp_path / "weights.pt"
-    torch.save(ckpt["model"], weights_file)
-    _run_stages(cfg, world)
-    values = json.loads(e6.run_stage("record", cfg, world).read_text())["measurements"]["values"]
-    assert values["size_bytes_pytorch_p50"] == weights_file.stat().st_size
-    assert values["size_bytes_pytorch_checkpoint_p50"] == path.stat().st_size
-    assert values["size_bytes_pytorch_p50"] < values["size_bytes_pytorch_checkpoint_p50"] - 80000

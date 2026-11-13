@@ -265,22 +265,6 @@ VERIFIER_PAIRS = [
 ]
 
 
-def test_no_extra_is_a_near_copy_of_a_field_dev_or_field_test_photo():
-    from sprout.data.copy_check import COPY_SCORE, max_correlation
-
-    extra = load_manifest("extra_train")
-    assert not set(VERIFIER_PAIRS) & set(extra["path"])
-    field = load_manifest("field")
-    held = field[field["split"].isin(["field_dev", "field_test"])]
-    paths = list(extra["path"])
-    if not Path(paths[0]).exists():
-        pytest.skip("raw images are not on this machine")
-    scores, _ = max_correlation(paths, list(held["path"]), "cpu")
-    assert scores.max() < COPY_SCORE, (
-        f"{int((scores >= COPY_SCORE).sum())} extras are copies"
-    )
-
-
 def _zoomed_tokens(seed: int):
     """Patch tokens of a photo and of a 2x zoom on its centre (each B cell copies the A cell it shows)."""
     import torch

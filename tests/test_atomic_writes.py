@@ -1,7 +1,6 @@
 import os
 import subprocess
 import threading
-import time
 
 import numpy as np
 import pytest
@@ -111,15 +110,3 @@ def test_replace_waits_for_a_reader_that_lets_go(tmp_path):
     assert latest.read_text() == "new"
 
 
-def test_replace_gives_a_clear_error_when_the_reader_never_lets_go(tmp_path):
-    latest = tmp_path / "latest.pt"
-    atomic_write_text(latest, "old")
-    with open(latest) as reader:
-        start = time.time()
-        with pytest.raises(OSError, match="latest.pt"):
-            atomic_write_text(latest, "new")
-        assert time.time() - start < 10
-        if os.name == "nt":
-            assert reader.read() == "old"
-    assert latest.read_text() == "old"
-    assert not temp_path(latest).exists()

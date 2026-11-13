@@ -2,7 +2,7 @@
 
 [Back to README](../../README.md) · Previous: [Live demo server](live-demo-server.md) · Start: [System overview](system.md)
 
-`site/` is plain HTML, CSS and JavaScript with no framework and no build step. It is hosted as static files on Cloudflare Pages, published from the `site/` folder.
+`site/` is plain HTML, CSS and JavaScript with no framework and no build step. It is hosted as static assets on Cloudflare Workers, deployed from the `site/` folder on every push.
 
 ## Pages
 

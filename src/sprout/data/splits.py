@@ -35,7 +35,8 @@ def make_splits(df: pd.DataFrame, seed: int = 13, ratios=(0.7, 0.15, 0.15)) -> p
 
 def dataset_hash(manifest: pd.DataFrame) -> str:
     rows = manifest[COLUMNS].astype(str).sort_values("path")
-    return hashlib.sha256(rows.to_csv(index=False).encode()).hexdigest()
+    # the line ending is fixed so the hash is the same on every OS (the frozen hashes were made with CRLF)
+    return hashlib.sha256(rows.to_csv(index=False, lineterminator="\r\n").encode()).hexdigest()
 
 
 def load_manifest(name: str) -> pd.DataFrame:

@@ -12,7 +12,7 @@ Photograph a sick leaf. SPROUT names the disease, asks the few questions that se
 
 ### [See it running: sprout.aakashsenthilnathan.com](https://sprout.aakashsenthilnathan.com)
 
-Walkthrough · How it's built · Live demo
+[Walkthrough](https://sprout.aakashsenthilnathan.com/tour.html) · [How it's built](https://sprout.aakashsenthilnathan.com/specs.html) · [Live demo](https://sprout.aakashsenthilnathan.com/live.html)
 
 </div>
 
@@ -43,7 +43,7 @@ flowchart LR
     L3["<b>Serving model</b><br/>ONNX Runtime,<br/>temperature<br/>scaling"]
     L4["<b>Knowledge</b><br/>pypdf, BM25,<br/>fastembed,<br/>MiniLM"]
     L5["<b>Server</b><br/>Flask, gunicorn,<br/>thread pool,<br/>LLM API"]
-    L6["<b>Front end</b><br/>HTML, CSS, JS,<br/>Cloudflare<br/>Pages"]
+    L6["<b>Front end</b><br/>HTML, CSS, JS,<br/>Cloudflare<br/>Workers"]
     L1 --> L2 --> L3 --> L5
     L4 --> L5
     L5 --> L6
@@ -61,7 +61,7 @@ flowchart LR
 | Server | Flask, gunicorn, `ThreadPoolExecutor`, signed session cookies | JSON API, background writing, spend caps, rate limits |
 | Text | An LLM API for the live demo; a local LLM through Ollama for the full app | Words only, never numbers |
 | Front end | Hand-written HTML, CSS and JavaScript, inline SVG, no framework | Walkthrough, architecture page, live demo |
-| Hosting | Cloudflare Pages (static site), Docker image with gunicorn (full app) | sprout.aakashsenthilnathan.com |
+| Hosting | Cloudflare Workers static assets (site), Docker image with gunicorn (full app) | sprout.aakashsenthilnathan.com |
 | Tracking and quality | MLflow, DVC, JSON run records, pytest, ruff, GitHub Actions | Reproducible runs and checked code |
 
 ## System overview
@@ -199,7 +199,7 @@ flowchart LR
 
 ## Website
 
-Plain HTML, CSS and JavaScript in `site/`, no framework and no build step, published as static files on Cloudflare Pages: a home page, an eight-step walkthrough, an architecture page and the live demo. The live demo client marks your tap instantly, animates the odds, and drops stale replies when you switch photos.
+Plain HTML, CSS and JavaScript in `site/`, no framework and no build step, published as static assets on Cloudflare Workers: a home page, an eight-step walkthrough, an architecture page and the live demo. The live demo client marks your tap instantly, animates the odds, and drops stale replies when you switch photos.
 
 ```mermaid
 flowchart LR

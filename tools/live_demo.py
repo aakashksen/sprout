@@ -241,11 +241,11 @@ class Engine:
         ident = self.identifier.identify(image_bytes)
         if ident.status in ("invalid", "not_plant"):
             return ident, None
-        ident_ = self.identifier
-        raw = ident_.model.predict(ident_._decode(image_bytes))[ident_._columns]
+        idf = self.identifier
+        raw = idf.model.predict(idf._decode(image_bytes))[idf._columns]
         raw = raw / raw.sum()
-        probs = apply_temperature(np.log(np.maximum(raw, 1e-12)), ident_.temperature)
-        return ident, {c: float(p) for c, p in zip(ident_.classes, probs)}
+        probs = apply_temperature(np.log(np.maximum(raw, 1e-12)), idf.temperature)
+        return ident, {c: float(p) for c, p in zip(idf.classes, probs)}
 
     def start(self, image_bytes: bytes, spend) -> Check:
         ident, probs = self.probs_for(image_bytes)
@@ -404,9 +404,11 @@ class Engine:
         return q
 
     def best_fallback(self, chk: Check, best):
-        fb = [{"id": f["id"], "text": f["text"], "supports": f["classes"],
-               "source": (lambda i: f"{i.publisher}, {i.title}" if i else f["document"])(self.sources.get(f["document"]))}
-              for f in self.fallback]
+        fb = []
+        for f in self.fallback:
+            info = self.sources.get(f["document"])
+            fb.append({"id": f["id"], "text": f["text"], "supports": f["classes"],
+                       "source": f"{info.publisher}, {info.title}" if info else f["document"]})
         return best(fb)
 
     def next_step(self, chk: Check, spend, wait: bool = True) -> None:
@@ -541,13 +543,13 @@ class Engine:
             n = int(m.group(1))
             if 1 <= n <= len(pas) and self.cite(pas[n - 1]) not in order:
                 order.append(self.cite(pas[n - 1]))
+
         def renum(m):
             n = int(m.group(1))
-            return f"[{order.index(self.cite(pas[n - 1])) + 1}]" if 1 <= n <= len(pas) else ""
-        reply = re.sub(r"\s*\[(\d+)\]", lambda m: (" " + renum(m)) if renum(m) else "", reply)
-        sources = order
+            return f" [{order.index(self.cite(pas[n - 1])) + 1}]" if 1 <= n <= len(pas) else ""
+        reply = re.sub(r"\s*\[(\d+)\]", renum, reply)
         chk.history += [{"role": "user", "text": text}, {"role": "sprout", "text": reply}]
-        return {"reply": reply, "sources": sources, "shift": shift}
+        return {"reply": reply, "sources": order, "shift": shift}
 
     def view(self, chk: Check) -> dict:
         if chk.status in ("invalid", "not_plant"):

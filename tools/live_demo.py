@@ -21,7 +21,7 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from flask import Flask, Response, abort, jsonify, request, send_from_directory, session
+from flask import Flask, Response, jsonify, request, send_from_directory, session
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL = ROOT / "models" / "e6" / "model.onnx"
@@ -36,6 +36,8 @@ CAP_VISITOR, CAP_IP, CAP_SERVER = 1.00, 3.00, 10.00  # dollars per day
 K_YES, K_NO, K_CHAT_FOR, K_CHAT_AGAINST = 3.0, 0.35, 2.0, 0.5
 MAX_QUESTIONS = 5
 CANDIDATE_FLOOR = 0.05
+CHECK_TTL, MAX_CHECKS = 3600, 2000  # seconds a check is kept, and how many at most
+CHECKS_PER_MINUTE = 12  # photos one IP may send per minute
 
 # class -> (crop in the index, disease tag in the index or None, name shown)
 CLASSES = {
@@ -133,24 +135,26 @@ class Writer:
         import anthropic
 
         ws = load_workspace()
-        self.client = anthropic.Anthropic(api_key=key, default_headers={"anthropic-workspace-id": ws} if ws else None)
+        self.client = anthropic.Anthropic(api_key=key, timeout=30.0, max_retries=1,
+                                          default_headers={"anthropic-workspace-id": ws} if ws else None)
 
-    def json(self, system: str, user: str, max_tokens: int = 1200, text_key: str | None = None) -> tuple[dict, float]:
+    def json(self, system: str, user: str, spend, max_tokens: int = 1200, text_key: str | None = None) -> dict:
         kwargs = dict(model=LLM, max_tokens=max_tokens, system=system, messages=[{"role": "user", "content": user}])
         try:
             msg = self.client.messages.create(**kwargs, output_config={"effort": "low"})
         except TypeError:
             msg = self.client.messages.create(**kwargs, extra_body={"output_config": {"effort": "low"}})
-        cost = msg.usage.input_tokens * PRICE_IN + msg.usage.output_tokens * PRICE_OUT
+        spend(msg.usage.input_tokens * PRICE_IN + msg.usage.output_tokens * PRICE_OUT)  # charged before any parsing
         if msg.stop_reason == "refusal":
             raise ValueError("the model declined")
         text = "".join(b.text for b in msg.content if getattr(b, "type", "") == "text")
         m = re.search(r"\{.*\}", text, re.S)
         try:
-            return json.loads(m.group(0)), cost
+            out = json.loads(m.group(0))
+            return out if isinstance(out, dict) else {}
         except (AttributeError, ValueError):
             if text_key and text.strip():
-                return {text_key: text.strip()}, cost  # the model answered in prose: keep the answer
+                return {text_key: text.strip()}  # the model answered in prose: keep the answer
             raise ValueError(f"no JSON in the reply (stop: {msg.stop_reason})")
 
 
@@ -159,7 +163,6 @@ class Writer:
 POOL_SIZE = 6          # questions written per batch, picked from locally after each answer
 LIKELY = 0.70          # below the calibrated bar but worth naming as "likely"
 PLANT_DOWN = 0.02      # an answered plant question keeps other plants' classes at 2% of their weight
-ADVICE_AT = 0.55       # start writing the advice in the background once the top class passes this
 
 
 @dataclass
@@ -177,7 +180,9 @@ class Check:
     advice: dict[str, Future] = field(default_factory=dict)
     history: list[dict] = field(default_factory=list)
     plant_known: bool = False
-    lock: threading.Lock = field(default_factory=threading.Lock)
+    lock: threading.Lock = field(default_factory=threading.Lock)  # guards the question pool
+    step: threading.RLock = field(default_factory=threading.RLock)  # one answer, stop or chat turn at a time
+    final_cls: str = ""
     created: float = field(default_factory=time.time)
 
     def top(self) -> tuple[str, float]:
@@ -243,6 +248,8 @@ class Engine:
             return ident, None
         idf = self.identifier
         raw = idf.model.predict(idf._decode(image_bytes))[idf._columns]
+        if not raw.sum() > 0:
+            return ident, None
         raw = raw / raw.sum()
         probs = apply_temperature(np.log(np.maximum(raw, 1e-12)), idf.temperature)
         return ident, {c: float(p) for c, p in zip(idf.classes, probs)}
@@ -251,12 +258,21 @@ class Engine:
         ident, probs = self.probs_for(image_bytes)
         cid = uuid.uuid4().hex
         if probs is None:
-            chk = Check(cid, {}, ident.status, message=ident.guidance or "")
+            status = ident.status if ident.status in ("invalid", "not_plant") else "invalid"
+            chk = Check(cid, {}, status, message=ident.guidance or "This photo couldn't be read. Try a closer photo of one leaf.")
         else:
             chk = Check(cid, probs, "asking")
             self.prefetch(chk, spend)
         self.checks[cid] = chk
+        self.evict()
         return chk
+
+    def evict(self) -> None:
+        now = time.time()
+        for cid in [c for c, k in self.checks.items() if now - k.created > CHECK_TTL]:
+            self.checks.pop(cid, None)
+        while len(self.checks) > MAX_CHECKS:
+            self.checks.pop(next(iter(self.checks)))
 
     # ----- background work: questions and advice, written while the visitor reads -----
     def prefetch(self, chk: Check, spend) -> None:
@@ -313,13 +329,14 @@ class Engine:
                   f"{POOL_SIZE} questions that cover different differences. 'supports' = the classes a YES points to; "
                   "never all of them. Cite passages about a class the question supports.")
         try:
-            out, cost = self.writer.json(system, user, max_tokens=4000)
+            out = self.writer.json(system, user, spend, max_tokens=4000)
         except Exception as e:
             print("question batch failed, using the saved questions:", type(e).__name__, str(e)[:160], flush=True)
             return []
-        spend(cost)
         pool = []
         for q in out.get("questions", []):
+            if not isinstance(q, dict):
+                continue
             text = str(q.get("text", "")).strip()
             sup = [s for s in q.get("supports", []) if s in cands]
             ps = [str(x) for x in q.get("passages", []) if str(x) in passages and passages[str(x)]["cls"] in sup]
@@ -342,11 +359,10 @@ class Engine:
         user = f"Diagnosis: {name}\nPassages:\n" + "\n".join(f"[{i + 1}] {x['text']}" for i, x in enumerate(pas)) \
             + '\nReturn {"advice": "...", "passage": <number used most>}'
         try:
-            out, cost = self.writer.json(system, user, max_tokens=2500)
+            out = self.writer.json(system, user, spend, max_tokens=2500)
         except Exception as e:
             print("advice failed:", type(e).__name__, str(e)[:160], flush=True)
             return {"text": "The advice couldn't be written just now. Ask in the chat below.", "source": ""}
-        spend(cost)
         n = out.get("passage")
         used = pas[n - 1] if isinstance(n, int) and 1 <= n <= len(pas) else pas[0]
         return {"text": str(out.get("advice", "")).strip(), "source": self.cite(used)}
@@ -393,8 +409,8 @@ class Engine:
             for j in pending:
                 try:
                     j.result(timeout=25)
-                except Exception:
-                    pass
+                except Exception as e:
+                    print("question batch failed:", type(e).__name__, str(e)[:160], flush=True)
                 with chk.lock:
                     q = best(chk.pool)
                 if q is not None:
@@ -414,14 +430,14 @@ class Engine:
     def next_step(self, chk: Check, spend, wait: bool = True) -> None:
         top, p = chk.top()
         if p >= self.threshold or len(chk.asked) >= MAX_QUESTIONS:
-            return self.finish(chk)
+            return self.finish(chk, spend)
         q = self.pick(chk, wait)
         if q == "pending":
             chk.question = None
             chk.message = f"{round(p * 100)}% sure so far."
             return
         if q is None:
-            return self.finish(chk)
+            return self.finish(chk, spend)
         chk.question = q
         chk.message = ("The photo leaves a few possibilities. Answer a couple of questions to narrow it down."
                        if not chk.asked else f"{round(p * 100)}% sure so far.")
@@ -430,7 +446,7 @@ class Engine:
     def answer(self, chk: Check, qid: str, ans: str, spend) -> None:
         q = chk.question
         if q is None or q["id"] != qid:
-            abort(409)
+            return False
         before = chk.top()[1]
         if q.get("kind") == "plant":
             chk.plant_known = True
@@ -449,12 +465,14 @@ class Engine:
         chk.question = None
         self.prefetch(chk, spend)
         self.next_step(chk, spend, wait=False)
+        return True
 
     # ----- the answer -----
-    def finish(self, chk: Check) -> None:
+    def finish(self, chk: Check, spend) -> None:
         chk.question = None
         chk.status = "final"
         top, p = chk.top()
+        chk.final_cls = top
         crop, disease, name = CLASSES[top]
         pct = round(p * 100)
         if p >= self.threshold:
@@ -470,19 +488,22 @@ class Engine:
             return
         job = chk.advice.get(top)
         if job is None and self.writer:
-            job = chk.advice[top] = self.jobs.submit(self.write_advice, top, lambda d: None)
+            job = chk.advice[top] = self.jobs.submit(self.write_advice, top, spend)
         chk.final = {"name": name, "sure": level, "advice": "", "source": "", "advice_pending": bool(job)}
         if job is not None and job.done():
             self.fill_advice(chk, wait=False)
 
     def fill_advice(self, chk: Check, wait: bool) -> None:
         """The final answer shows at once; its care advice fills in when the background writing is done."""
-        job = chk.advice.get(chk.top()[0])
-        if job is None or chk.final is None:
+        job = chk.advice.get(chk.final_cls)
+        if job is None or chk.final is None or not chk.final.get("advice_pending"):
             return
         try:
             advice = job.result(timeout=30 if wait else 0)
-        except Exception:
+        except TimeoutError:
+            return  # still writing: the page asks again
+        except Exception as e:
+            print("advice job failed:", type(e).__name__, str(e)[:160], flush=True)
             advice = {"text": "The advice couldn't be written just now. Ask in the chat below.", "source": ""}
         chk.final.update(advice=advice["text"], source=advice["source"], advice_pending=False)
 
@@ -518,14 +539,15 @@ class Engine:
         user = (context + "\n\nConversation so far:" + (convo or " (none)") + f"\nGardener: {text}\n\n"
                 + 'Return {"reply": "...", "cited": [<passage numbers used>], "evidence": [{"class": "<candidate class>", "direction": "for"|"against", "because": "<the gardener exact words describing what they see>"}]}')
         try:
-            out, cost = self.writer.json(system, user, max_tokens=3000, text_key="reply")
+            out = self.writer.json(system, user, spend, max_tokens=3000, text_key="reply")
         except Exception as e:
             print("chat failed:", type(e).__name__, str(e)[:160], flush=True)
             return {"reply": "The chat couldn't reach the AI model just now. Try again in a moment.", "sources": [], "shift": ""}
-        spend(cost)
         before_cls, before = chk.top()
         said = text.lower()
         for ev in out.get("evidence", []) or []:
+            if not isinstance(ev, dict) or ev.get("direction") not in ("for", "against"):
+                continue
             c, because = ev.get("class"), str(ev.get("because", "")).strip().lower()
             # only something the gardener actually described counts: the quote must be their own words
             if c in cands and len(because.split()) >= 3 and because in said:
@@ -581,12 +603,18 @@ def create(site: Path, engine: Engine) -> Flask:
             return None, (jsonify(message=msg), 429)
         return (lambda dollars: budget.charge(v, ip, dollars)), None
 
-    def find(body: dict, status: str | None = None):
+    recent: dict[str, list[float]] = {}
+
+    def body() -> dict:
+        b = request.get_json(force=True, silent=True)
+        return b if isinstance(b, dict) else {}
+
+    def find(body: dict, status: str | tuple | None = None):
         chk = engine.checks.get(str(body.get("check", "")))
         if chk is None:
             return None, (jsonify(message=gone, code="gone"), 410)
-        if status and chk.status != status:
-            return None, (jsonify(message="That step is already done.", code="stale", **engine.view(chk)), 409)
+        if status and chk.status not in ((status,) if isinstance(status, str) else status):
+            return None, (jsonify(engine.view(chk) | {"message": "That step is already done.", "code": "stale"}), 409)
         return chk, None
 
     @app.post("/api/check")
@@ -594,6 +622,10 @@ def create(site: Path, engine: Engine) -> Flask:
         spend, err = guard()
         if err:
             return err
+        ip, now = request.remote_addr or "?", time.time()  # behind a proxy, wrap the app in werkzeug's ProxyFix
+        recent[ip] = [t for t in recent.get(ip, []) if now - t < 60] + [now]
+        if len(recent[ip]) > CHECKS_PER_MINUTE:
+            return jsonify(message="That's a lot of photos in a minute. Wait a moment and try again."), 429
         f = request.files.get("photo")
         if f is None:
             return jsonify(message="No photo was sent."), 400
@@ -606,32 +638,36 @@ def create(site: Path, engine: Engine) -> Flask:
     def nxt():
         spend, err = guard()
         if err:
-            return err
-        chk, err = find(request.get_json(force=True, silent=True) or {}, "asking")
+            spend = lambda dollars: None  # noqa: E731  past the cap the saved questions still work, nothing new is written
+        chk, err = find(body(), "asking")
         if err:
             return err
-        if chk.question is None:
-            engine.next_step(chk, spend, wait=True)
+        with chk.step:
+            if chk.question is None and chk.status == "asking":
+                engine.next_step(chk, spend, wait=True)
         return jsonify(engine.view(chk) | {"pending": False})
 
     @app.post("/api/answer")
     def answer():
         spend, err = guard()
         if err:
-            return err
-        body = request.get_json(force=True, silent=True) or {}
-        chk, err = find(body, "asking")
+            spend = lambda dollars: None  # noqa: E731  answering and stopping use code only; never trap a visitor at the cap
+        b = body()
+        chk, err = find(b, "asking")
         if err:
             return err
-        if body.get("stop"):
-            engine.finish(chk)
-        else:
-            engine.answer(chk, str(body.get("question", "")), str(body.get("answer", "")), spend)
+        with chk.step:
+            if chk.status != "asking":
+                return jsonify(engine.view(chk) | {"message": "That step is already done.", "code": "stale"}), 409
+            if b.get("stop"):
+                engine.finish(chk, spend)
+            elif not engine.answer(chk, str(b.get("question", "")), str(b.get("answer", "")), spend):
+                return jsonify(engine.view(chk) | {"message": "That question was already answered.", "code": "stale"}), 409
         return jsonify(engine.view(chk) | {"pending": chk.status == "asking" and chk.question is None})
 
     @app.post("/api/advice")
     def advice():
-        chk, err = find(request.get_json(force=True, silent=True) or {}, "final")
+        chk, err = find(body(), "final")
         if err:
             return err
         engine.fill_advice(chk, wait=True)
@@ -642,16 +678,17 @@ def create(site: Path, engine: Engine) -> Flask:
         spend, err = guard()
         if err:
             return err
-        body = request.get_json(force=True, silent=True) or {}
-        chk, err = find(body)
+        b = body()
+        chk, err = find(b, ("asking", "final"))
         if err:
             return err
-        text = str(body.get("text", "")).strip()[:500]
+        text = str(b.get("text", "")).strip()[:500]
         if not text:
             return jsonify(message="Type a question first."), 400
         if engine.writer is None:
             return jsonify(message="The chat needs the API key."), 503
-        out = engine.chat(chk, text, spend)
+        with chk.step:
+            out = engine.chat(chk, text, spend)
         return jsonify(out | {"odds": engine.view(chk)["odds"]})
 
     @app.get("/")

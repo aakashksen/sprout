@@ -8,7 +8,7 @@
 
 ```mermaid
 flowchart LR
-    HOME["index.html<br/>what it does, a recorded run,<br/>how a check works, contact"] --> TOUR["tour.html<br/>8-step walkthrough of one leaf"]
+    HOME["index.html<br/>what it does, how a check works,<br/>the stack, contact"] --> TOUR["tour.html<br/>8-step walkthrough of one leaf"]
     HOME --> SPECS["specs.html<br/>architecture diagrams, stack"]
     HOME --> LIVE["live.html<br/>the live demo"]
     TOUR -->|finish| LIVE
@@ -22,7 +22,7 @@ flowchart LR
 ```mermaid
 flowchart TD
     LOAD["live.html loads"] --> META{"meta sprout-api"}
-    META -->|"empty (the published site)"| OFF["Demo off: shows the<br/>recorded run and the walkthrough"]
+    META -->|"empty (the published site)"| OFF["Demo off: a real check<br/>and the walkthrough"]
     META -->|"same-origin (served by the demo server)"| ON["Demo on: upload or pick one of<br/>10 sample leaves the model never trained on"]
     META -->|"a URL"| REMOTE["Demo on, calling that server"]
 ```

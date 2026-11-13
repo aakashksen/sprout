@@ -10,10 +10,6 @@ Photograph a sick leaf. SPROUT names the disease, asks the few questions that se
 
 ![Python](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white) ![PyTorch](https://img.shields.io/badge/PyTorch-ConvNeXt_V2-EE4C2C?logo=pytorch&logoColor=white) ![ONNX Runtime](https://img.shields.io/badge/ONNX_Runtime-CPU-005CED?logo=onnx&logoColor=white) ![Flask](https://img.shields.io/badge/Flask-API-000000?logo=flask&logoColor=white) ![Tests](https://img.shields.io/badge/tests-~950-2ea44f) ![License](https://img.shields.io/badge/license-MIT-blue)
 
-<img src="site/img/live-demo.gif" width="820" alt="A recorded run: a tomato leaf read as potato late blight, one question about the plant, then tomato late blight at 97% with cited care advice and a follow-up chat">
-
-<sub>A real run on a tomato leaf the model never trained on.</sub>
-
 </div>
 
 ---

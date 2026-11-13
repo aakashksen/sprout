@@ -296,7 +296,8 @@ def test_pages_render_under_csp_with_no_errors_and_no_network(browser, serve, tm
         visited.append(path)
     page.fill("#username", "alice")
     page.fill("#password", "password123")
-    page.click("text=Create account")
+    with page.expect_navigation(wait_until="load"):  # let the next page's scripts finish before leaving it
+        page.click("text=Create account")
     photo = tmp_path / "leaf.png"
     photo.write_bytes(_png())
     page.goto(url + "/upload")

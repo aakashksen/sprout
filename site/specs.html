@@ -52,7 +52,7 @@
       <svg class="arch" viewBox="0 0 1000 380" role="img" aria-label="System diagram. The browser sends photos, answers and chat messages to the Flask server as JSON and gets back odds, questions and answers. The server holds the image model, the guide search, the odds engine and background workers. It sends guide passages to the AI model API and gets JSON text back. The model file comes from offline training on a CUDA GPU.">
         <defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arch-head"/></marker></defs>
         <rect class="node" x="20" y="90" width="180" height="100" rx="6"/>
-        <text class="n-t" x="38" y="128">Browser</text><text class="n-s" x="38" y="152">static site,</text><text class="n-s" x="38" y="172">Cloudflare Pages</text>
+        <text class="n-t" x="38" y="128">Browser</text><text class="n-s" x="38" y="152">static site,</text><text class="n-s" x="38" y="172">Cloudflare Workers</text>
         <rect class="node node--model" x="370" y="40" width="270" height="200" rx="6"/>
         <text class="n-t" x="390" y="76">Flask server</text>
         <text class="n-s" x="390" y="108">Image model, ONNX on CPU</text>

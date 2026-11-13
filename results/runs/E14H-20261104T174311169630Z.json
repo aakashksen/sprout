@@ -1,0 +1,206 @@
+{
+ "run_id": "E14H-20261104T174311169630Z",
+ "experiment": "E14H",
+ "git_commit": "dd458dab95f03c6a0193a2ae46a7310379c32948",
+ "dirty": false,
+ "dataset_hash": "b6b3b168bfd8792f7311f47c457652657d82eb6e47e8a45e2a3aebaf9ba793f9",
+ "split": "rag_dev",
+ "subset": null,
+ "config": {
+  "experiment": "E14H",
+  "split": "rag_dev",
+  "seed": 14,
+  "sample_size": 200,
+  "model": "claude-haiku-5-5",
+  "workers": 4,
+  "max_calls": 260,
+  "e14_config": "configs/e14.json",
+  "e14_run_id": "E14-20261104T085533959094Z",
+  "reads": "configs/e14h_reads.json",
+  "reference": "sonnet",
+  "device": "none: no GPU or local model is used; Haiku runs through the claude command and the local and Sonnet grades are read from E14's record",
+  "claude_calls": 249,
+  "served_system": "served",
+  "source": {
+   "e7_run_id": "E7-20261104T040010301317Z",
+   "judgments": "E7-prompts-v2-1e90d37a.judgments.jsonl",
+   "judgments_sha256": "afb838d9291ce5c47c15ed859bb8ff0f2542a6faa071b6f75d7a2250e0895edb",
+   "blind": "E7-prompts-v2-1e90d37a.blind.jsonl",
+   "blind_sha256": "3e61c876e3e57eddd0aba9d5305a558f964ba15fef6733c6511e6d49ba8aa4dd"
+  },
+  "local_judge": "gemma4:e4b-it-qat",
+  "rubric_sha256": "28df9a6a23ef529a23d469ccdad9683d3d892e0b3443b923bc45978ae32e7302",
+  "wall_seconds": 264.1,
+  "sessions": [
+   {
+    "started_at": "2026-11-04T17:38:32.974098+00:00",
+    "seconds": 264.1,
+    "workers": 4,
+    "saved_after": 249
+   }
+  ],
+  "started_at": "2026-11-04T17:38:32.974098+00:00",
+  "labels_reviewed": false,
+  "caveat": "Sonnet is a reference and not truth, and Haiku and Sonnet come from one family, so agreement may flatter Haiku. Passing shows Haiku is not clearly worse at matching Sonnet, not that it is right. Neither figure is accuracy."
+ },
+ "models": {
+  "judge_under_test": "claude-haiku-5-5",
+  "reference": "sonnet",
+  "local_judge": "gemma4:e4b-it-qat"
+ },
+ "n": 200,
+ "metrics": {
+  "sample": {
+   "haiku_agreement": 0.86,
+   "haiku_kappa": 0.6761882733896148,
+   "haiku_supported": 0.665,
+   "haiku_kinder": 10.0,
+   "haiku_stricter": 18.0,
+   "local_agreement": 0.84,
+   "local_kappa": 0.5588032538260029,
+   "local_supported": 0.835,
+   "local_kinder": 29.0,
+   "local_stricter": 3.0,
+   "sonnet_supported": 0.705,
+   "claims": 200.0,
+   "answers": 140.0,
+   "parse_failures": 0.0,
+   "kappa_difference": 0.11738501956361191,
+   "served_haiku_agreement": 0.84,
+   "served_haiku_kappa": 0.5614035087719298,
+   "served_haiku_supported": 0.76,
+   "served_haiku_kinder": 4.0,
+   "served_haiku_stricter": 4.0,
+   "served_local_agreement": 0.86,
+   "served_local_kappa": 0.5205479452054793,
+   "served_local_supported": 0.9,
+   "served_local_kinder": 7.0,
+   "served_local_stricter": 0.0,
+   "served_sonnet_supported": 0.76,
+   "served_claims": 50.0,
+   "served_answers": 34.0,
+   "served_parse_failures": 0.0,
+   "served_kappa_difference": 0.04085556356645048,
+   "haiku_clearly_worse": 0.0
+  },
+  "read": {
+   "claims": 49.0,
+   "reader_supported": 22.0,
+   "haiku_supported": 18.0,
+   "parse_failures": 0.0,
+   "haiku_with_local": 19.0,
+   "haiku_with_sonnet": 30.0,
+   "n": 49.0,
+   "haiku_right": 35.0,
+   "local_right": 21.0,
+   "sonnet_right": 28.0,
+   "clear_n": 14.0,
+   "clear_haiku_right": 12.0,
+   "clear_local_right": 8.0,
+   "clear_sonnet_right": 6.0,
+   "served_n": 29.0,
+   "served_haiku_right": 20.0,
+   "served_local_right": 15.0,
+   "served_sonnet_right": 14.0,
+   "other_n": 20.0,
+   "other_haiku_right": 15.0,
+   "other_local_right": 6.0,
+   "other_sonnet_right": 14.0
+  }
+ },
+ "measurements": {},
+ "judged": {},
+ "intervals": {
+  "sample": {
+   "haiku_agreement": [
+    0.8131868131868132,
+    0.904528595357741
+   ],
+   "haiku_kappa": [
+    0.5648005349310311,
+    0.7784062238311464
+   ],
+   "haiku_supported": [
+    0.5959595959595959,
+    0.7324000150636438
+   ],
+   "local_agreement": [
+    0.7880434782608695,
+    0.8888888888888888
+   ],
+   "local_kappa": [
+    0.43516418556090747,
+    0.6798738260052598
+   ],
+   "local_supported": [
+    0.7864077669902912,
+    0.8817733990147784
+   ],
+   "sonnet_supported": [
+    0.6387434554973822,
+    0.7673267326732673
+   ],
+   "kappa_difference": [
+    -0.029246941830323406,
+    0.25800139104036957
+   ],
+   "served_haiku_agreement": [
+    0.7297156531531531,
+    0.9318181818181818
+   ],
+   "served_haiku_kappa": [
+    0.24497131435216649,
+    0.8004111444774307
+   ],
+   "served_haiku_supported": [
+    0.6181528046421664,
+    0.8846153846153846
+   ],
+   "served_local_agreement": [
+    0.7619047619047619,
+    0.9433962264150944
+   ],
+   "served_local_kappa": [
+    0.2131549970462589,
+    0.7764705882352942
+   ],
+   "served_local_supported": [
+    0.8225806451612904,
+    0.9761904761904762
+   ],
+   "served_sonnet_supported": [
+    0.6444444444444445,
+    0.868421052631579
+   ],
+   "served_kappa_difference": [
+    -0.2616898308909293,
+    0.32683143196809783
+   ]
+  },
+  "read": {}
+ },
+ "per_class": {},
+ "confusion": {},
+ "bootstrap": {
+  "n": 10000,
+  "seed": 13
+ },
+ "comparisons": [],
+ "attempts": [
+  {
+   "stage": "grade",
+   "claude_calls": 249,
+   "workers": 4,
+   "replies_without_a_verdict": 0
+  }
+ ],
+ "claude_calls": 249,
+ "labels_reviewed": false,
+ "predictions": {
+  "sample": "results/runs/E14H-20261104T174311169630Z.sample.predictions.jsonl",
+  "read": "results/runs/E14H-20261104T174311169630Z.read.predictions.jsonl"
+ },
+ "started_at": "2026-11-04T17:38:32.974098+00:00",
+ "finished_at": "2026-11-04T17:43:11.169630+00:00",
+ "notes": "Haiku replies that were not a verdict count as disagreements with Sonnet. Sonnet is a reference and not truth, and Haiku and Sonnet come from one family, so agreement may flatter Haiku. Passing shows Haiku is not clearly worse at matching Sonnet, not that it is right. Neither figure is accuracy."
+}

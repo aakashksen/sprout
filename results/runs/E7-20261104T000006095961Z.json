@@ -1,0 +1,170 @@
+{
+ "run_id": "E7-20261104T000006095961Z",
+ "experiment": "E7",
+ "git_commit": "e41653032829d8da13c54df9c79ccc573b658a95",
+ "dirty": false,
+ "dataset_hash": "b6b3b168bfd8792f7311f47c457652657d82eb6e47e8a45e2a3aebaf9ba793f9",
+ "split": "rag_dev",
+ "subset": "answerable",
+ "config": {
+  "stage": "crops",
+  "method_version": 2,
+  "base": "base",
+  "rank_k": 10,
+  "gold_matching": "A passage is the gold hit when its source and page equal the question's gold source and page. A document the index holds as a single page (every HTML page and Markdown file is 'page 1') would match any of its chunks, so there the passage must also contain one of the question's answer terms.",
+  "crop_source": "The plant comes from the question text (or the question's stated crop), never from the gold label. A top disease is simulated from the class names of that plant that the question names; a plant with no such class has no photo diagnosis.",
+  "device": "cuda",
+  "device_info": {
+   "device": "cuda",
+   "torch": "2.11.0+cu128",
+   "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+   "cuda": "12.8",
+   "peak_gpu_mib": 479
+  },
+  "labels_reviewed": false,
+  "decision_rule": "keep when the paired interval of recall@5 or of MRR excludes zero and the other point estimate is not worse (version 2, revised after the first pass)",
+  "documents_with_extra_crops": 9
+ },
+ "models": {
+  "embedder": "BAAI/bge-small-en-v1.5",
+  "reranker": "cross-encoder/ms-marco-MiniLM-L6-v2"
+ },
+ "n": 60,
+ "metrics": {
+  "base": {
+   "recall@1": 0.6,
+   "recall@3": 0.8,
+   "recall@5": 0.8333333333333334,
+   "recall@10": 0.9333333333333333,
+   "mrr": 0.7123544973544973
+  },
+  "base_terms": {
+   "recall@1": 0.6666666666666666,
+   "recall@3": 0.8166666666666667,
+   "recall@5": 0.9,
+   "recall@10": 0.9666666666666667,
+   "mrr": 0.7655555555555557
+  },
+  "crops_from_title": {
+   "recall@1": 0.6,
+   "recall@3": 0.8,
+   "recall@5": 0.8,
+   "recall@10": 0.9333333333333333,
+   "mrr": 0.7108465608465608
+  },
+  "crops_from_title_terms": {
+   "recall@1": 0.6666666666666666,
+   "recall@3": 0.8166666666666667,
+   "recall@5": 0.8833333333333333,
+   "recall@10": 0.95,
+   "mrr": 0.7631481481481482
+  }
+ },
+ "measurements": {},
+ "judged": {},
+ "intervals": {
+  "base": {
+   "recall@5": [
+    0.7333333333333333,
+    0.9166666666666666
+   ],
+   "mrr": [
+    0.6158108465608466,
+    0.8047619047619048
+   ]
+  },
+  "base_terms": {
+   "recall@5": [
+    0.8166666666666667,
+    0.9666666666666667
+   ],
+   "mrr": [
+    0.6739791666666668,
+    0.8510185185185185
+   ]
+  },
+  "crops_from_title": {
+   "recall@5": [
+    0.7,
+    0.9
+   ],
+   "mrr": [
+    0.6137533068783069,
+    0.8038359788359788
+   ]
+  },
+  "crops_from_title_terms": {
+   "recall@5": [
+    0.8,
+    0.95
+   ],
+   "mrr": [
+    0.6705439814814815,
+    0.8487962962962963
+   ]
+  }
+ },
+ "per_class": {},
+ "confusion": {},
+ "bootstrap": {
+  "n": 10000,
+  "seed": 13
+ },
+ "comparisons": [
+  {
+   "a": "crops_from_title",
+   "b": "base",
+   "metric": "recall@5",
+   "diff": -0.03333333333333333,
+   "ci": [
+    -0.08333333333333333,
+    0.0
+   ],
+   "mcnemar_p": 0.5
+  },
+  {
+   "a": "crops_from_title",
+   "b": "base",
+   "metric": "mrr",
+   "diff": -0.0015079365079365087,
+   "ci": [
+    -0.003412698412698414,
+    0.0
+   ],
+   "mcnemar_p": 1.0
+  }
+ ],
+ "attempts": [
+  {
+   "system": "base",
+   "setting": {
+    "index": "index",
+    "mode": "hybrid",
+    "rerank": true,
+    "query_mode": "question",
+    "crops_from_title": false
+   }
+  },
+  {
+   "system": "crops_from_title",
+   "setting": {
+    "index": "index",
+    "mode": "hybrid",
+    "rerank": true,
+    "query_mode": "question",
+    "crops_from_title": true
+   }
+  }
+ ],
+ "claude_calls": 0,
+ "labels_reviewed": false,
+ "predictions": {
+  "base": "results/runs/E7-20261104T000006095961Z.base.predictions.jsonl",
+  "base_terms": "results/runs/E7-20261104T000006095961Z.base_terms.predictions.jsonl",
+  "crops_from_title": "results/runs/E7-20261104T000006095961Z.crops_from_title.predictions.jsonl",
+  "crops_from_title_terms": "results/runs/E7-20261104T000006095961Z.crops_from_title_terms.predictions.jsonl"
+ },
+ "started_at": "2026-11-04T00:00:06.095961+00:00",
+ "finished_at": "2026-11-04T00:00:06.095961+00:00",
+ "notes": "Retrieval only, on the answerable questions; the score floor is off."
+}

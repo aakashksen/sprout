@@ -1,0 +1,29 @@
+{
+  "task": "T1.1",
+  "commit": "87096719301f4695b4e7b582140ac8624620983f",
+  "verdict": "PASS",
+  "checks": [
+    {"item": "HEAD equals commit; only orchestration/ dirty", "result": "pass", "evidence": "git rev-parse HEAD matches; git status shows only orchestration/tasks.json and verdicts/T1.1.json"},
+    {"item": "Evidence log shows acceptance ran at this commit and passed", "result": "pass", "evidence": "orchestration/evidence/T1.1.log: commit 8709671..., 9 passed, check_splits exit 0, RESULT PASS"},
+    {"item": "Acceptance commands rerun", "result": "pass", "evidence": ".venv/Scripts/python -m pytest tests/test_lab_data.py -q -> 9 passed; -m sprout.data.check_splits lab -> 54305 images, 38 classes, hash 7eda8dbf..."},
+    {"item": "Break-the-code: remove source-ID union", "result": "pass", "evidence": "test_same_source_id_shares_a_group failed; restored with git checkout -- grouping.py"},
+    {"item": "Break-the-code: disable phash union / rotations", "result": "pass", "evidence": "test_duplicate_images_share_a_group failed in both cases; restored"},
+    {"item": "Break-the-code: split by row instead of group", "result": "pass", "evidence": "test_no_group_in_two_splits failed; restored"},
+    {"item": "Break-the-code: unseeded RNG; dataset_hash ignoring label", "result": "pass", "evidence": "test_split_is_deterministic failed; test_hash_changes_when_a_label_changes failed; restored. Final git status clean of src changes, 9 passed"},
+    {"item": "Real DVC restore", "result": "pass", "evidence": "git clone into orchestration/evidence/tmp-T1.1/restore at the commit, dvc remote modify --local local url <abs .dvcstore>, dvc pull: 'A datasets/raw/lab, A datasets/raw/lab_segmented; 108571 files fetched and 108611 files added'. find counts: lab 54305, lab_segmented 54306. dvc status: up to date. Restore folder deleted afterward."},
+    {"item": "Manifest integrity on real data", "result": "pass", "evidence": "54305 rows, columns path,label,group,split,sha1; splits exactly lab_dev/lab_test/lab_train (38016/8152/8137); groups spanning splits 0; sha1 spanning splits 0; 38 classes each in all 3 splits; all paths exist; 300 random sha1 recomputed from files matched"},
+    {"item": "docs/data-counts.md numbers recomputed", "result": "pass", "evidence": "per-class/split table: 0 mismatches vs manifest incl. TOTAL; 51210 groups; 1201 multi-image groups; 239 multi-class groups with 2074 images; largest group sizes 1290/107/19/14/13; 1367 copy-named files with form counts copy 720, copy 2 536, copy 3 95, copy 4 9, copy 5 2, 'copy ' 2, copy3 2, 'copy  3' 1; 54305 color / 54306 segmented files on disk"},
+    {"item": "Source-ID normalization covers every copy file and leaves other names alone", "result": "pass", "evidence": "own script: for all 1367 copy-named files source_id contains no 'copy'; for all 52938 other files source_id equals class/code unchanged; zero regex hits for letters-before-copy suffix in data; unit test also covers Photocopy 12 and Xcopy"},
+    {"item": "datasets/raw/.gitignore ignores new folders, dvc works", "result": "pass", "evidence": "git check-ignore: datasets/raw/newset/a.jpg and newset2.zip ignored; lab.dvc and .gitignore not ignored; git ls-files datasets/raw lists only .gitignore, lab.dvc, lab_segmented.dvc; dvc status 'up to date'"},
+    {"item": "Plan items all present", "result": "pass", "evidence": "inventory, group_near_duplicates (imagehash phash, 8 flip/rotation variants, source IDs), make_splits(seed=13, ratios), load_manifest, dataset_hash, check_splits, lab.csv, .dvc pointers, data-counts.md with healthy-classes note and near-duplicate-grouped wording; all six named tests exist"},
+    {"item": "Diff review: secrets, legacy, weakened tests", "result": "pass", "evidence": "no secret-like strings in diff; no legacy/ files touched; removed test lines were the flipLR/old split names replaced by suffixes actually in the data and lab_train/dev/test names, not weakened"}
+  ],
+  "own_tests": [
+    {"input": "orchestration/evidence/tmp-T1.1/test_T1_1_own.py: normalization over every real filename, split/group/sha1 leakage, group stats", "result": "bad=0, group multi 0, sha multi 0, 1367 copy files, 51210 groups"},
+    {"input": "orchestration/evidence/tmp-T1.1/test_T1_1_counts.py: parse docs/data-counts.md table vs manifest, recompute 300 random sha1s", "result": "0 table mismatches; sha ok"},
+    {"input": "git check-ignore on a new dataset folder and zip, plus dvc status", "result": "ignored as expected; dvc up to date"},
+    {"input": "Fresh clone + dvc pull from the local store", "result": "54305 and 54306 files restored, dvc status clean"}
+  ],
+  "failures": [],
+  "notes": "Group chaining is real and documented: 239 multi-class groups, one 1290-image group of 20 classes kept whole in lab_train, so Soybean/Raspberry dev and test shares are smaller than 15%. Doc discloses it. Perceptual-hash pairing only was tested synthetically plus via the real manifest counts, not independently re-derived over all 54k images. dvc pull reported 108571 fetched vs 108611 added (identical-content dedup); final counts correct."
+}

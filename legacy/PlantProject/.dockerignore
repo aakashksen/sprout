@@ -1,0 +1,33 @@
+__pycache__/
+*/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.git/
+.gitignore
+.dockerignore
+.DS_Store
+*.log
+# Include only uploaded files from users in static/uploads
+# But ensure default UI images are included
+static/uploads/*
+!static/uploads/upload.jpeg
+!static/uploads/camera.jpg
+!static/uploads/account.png
+# Don't include database files
+instance/
+*.db
+*.sqlite3
+# Don't include development/test files
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.idea/
+.vscode/
+# Do not ignore .env for Lightsail deployment unless using secrets manager
+#.env

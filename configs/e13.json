@@ -1,0 +1,28 @@
+{
+  "experiment": "E13",
+  "split": "field_dev",
+  "exclusion_version": 1,
+  "reference": "convnext_joint",
+  "second_look_uncertain_regex": "slide|graphic|collage|diagram|poster|chart|text|figure|title|drawing|illustrat|not the|may not|might not|not (tomato|potato|apple|corn|grape|cherry|peach|squash|pepper|soy|straw|rasp|blue|orange)|different plant|another plant|other plant|unusual|unlike|panel|composite|banner",
+  "device": "none: saved predictions are filtered; a model rerun would need the GPU and is not part of this experiment",
+  "views": [
+    {"name": "shared_classes", "subset": "shared_classes",
+     "systems": {
+       "e1": "E4-20261103T143743951448Z",
+       "frozen_convnext": "E4-20261103T143743951448Z",
+       "xgboost": "E4-20261103T143743951448Z",
+       "dinov2_small": "E4-20261103T143743951448Z",
+       "convnext_joint": "E4-20261103T143743951448Z",
+       "dinov2_head": "E4-20261103T151153536379Z"}},
+    {"name": "heldout_plantdoc", "subset": "source:plantdoc",
+     "systems": {
+       "e1": "E4-20261103T151651745350Z",
+       "convnext_joint": "E4-20261103T151651745350Z",
+       "heldout_plantdoc": "E4-20261103T151651745350Z"}},
+    {"name": "heldout_plantseg", "subset": "source:plantseg",
+     "systems": {
+       "e1": "E4-20261103T152355622205Z",
+       "convnext_joint": "E4-20261103T152355622205Z",
+       "heldout_plantseg": "E4-20261103T152355622205Z"}}
+  ]
+}

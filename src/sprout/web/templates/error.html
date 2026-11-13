@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Error {{ code }} | SPROUT{% endblock %}
+{% block body %}
+<h1 class="text-center mb-4">Something went wrong</h1>
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card"><div class="card-body p-4 text-center">
+      <i class="bi bi-exclamation-triangle-fill error-icon"></i>
+      <p class="mt-3 mb-1 fw-semibold">Error {{ code }}</p>
+      <p class="error">{{ message }}</p>
+      <div class="text-start mt-4">
+        <h5>Tips for better results</h5>
+        <ul>
+          <li>Use a single plant or leaf in the frame</li>
+          <li>Take a clear, well-lit photo</li>
+          <li>Use a JPEG or PNG image</li>
+        </ul>
+      </div>
+    </div></div>
+    <div class="text-center mt-4">
+      <a href="{{ url_for('pages.upload') }}" class="btn btn-primary"><i class="bi bi-upload"></i> Try Another Photo</a>
+      <a href="{{ url_for('pages.camera') }}" class="btn btn-success ms-2"><i class="bi bi-camera"></i> Take New Photo</a>
+      <a href="{{ url_for('pages.home') }}" class="btn btn-outline-secondary ms-2"><i class="bi bi-house"></i> Back to Home</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

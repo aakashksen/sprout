@@ -1,0 +1,28 @@
+{
+  "experiment": "E6",
+  "split": "field_dev",
+  "subset": "final_classes+clean:1",
+  "out_dir": "results/e6",
+  "model_dir": "models/e6",
+  "model": {
+    "name": "convnextv2_final",
+    "checkpoint": "models/e15/final/best.pt",
+    "note": "The model T4.9 chose (results/e15/decision.json), a timm ConvNeXt V2 tiny on 29 classes. Everything under results/e6 and models/e6 is rebuilt when the checkpoint's checksum changes."
+  },
+  "quantize": ["dynamic", "static"],
+  "crop_kept": false,
+  "crop_note": "E4 kept no crop (docs/DECISIONS.md, T4.1 'Crop kept out of serving'), so the segmentation model is not exported or timed. If this becomes true the stages refuse: that path is not built.",
+  "torch_device": "cpu",
+  "threads": 4,
+  "batch_size": 32,
+  "chunk": 32,
+  "calibration": {
+    "split": "field_train",
+    "n": 100,
+    "seed": 0,
+    "note": "Used only if \"static\" is listed in quantize. field_train: real photos, never scored, unlike the plan's lab_dev (lab photos look unlike phone photos; DECISIONS T5.2 open concern). Allowed: lab_dev, lab_train, field_train. Never field_dev (scored here) or any test split."
+  },
+  "thresholds": "results/e15/refit/chosen.json",
+  "scoring_part": {"seed": 0, "fit_percent": 50, "note": "The refit's own seed and share (configs/e15.json refit): the part of field_dev groups the thresholds were not fitted on."},
+  "latency": {"images": 100, "warmup": 10}
+}

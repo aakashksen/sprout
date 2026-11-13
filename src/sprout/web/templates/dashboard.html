@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | SPROUT{% endblock %}
+{% block body %}
+<div class="page-header">
+  <h1>Welcome, {{ g.user.username }}!</h1>
+  <p class="lead">
+    {% if count %}You have {{ count }} saved {{ "analysis" if count == 1 else "analyses" }}.
+    {% else %}You have no saved analyses yet.{% endif %}
+  </p>
+</div>
+<div class="row">
+  <div class="col-md-4">
+    <div class="card h-100 hover-lift"><div class="card-body text-center">
+      <i class="bi bi-upload card-icon"></i>
+      <h5 class="card-title mt-3">Upload Photo</h5>
+      <p class="card-text">Upload an existing photo from your device.</p>
+      <a href="{{ url_for('pages.upload') }}" class="btn btn-brown">Upload Photo</a>
+    </div></div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100 hover-lift"><div class="card-body text-center">
+      <i class="bi bi-camera card-icon"></i>
+      <h5 class="card-title mt-3">Take Photo</h5>
+      <p class="card-text">Use your camera to take a photo right now.</p>
+      <a href="{{ url_for('pages.camera') }}" class="btn btn-brown">Take Photo</a>
+    </div></div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100 hover-lift"><div class="card-body text-center">
+      <i class="bi bi-clock-history card-icon"></i>
+      <h5 class="card-title mt-3">View History</h5>
+      <p class="card-text">View your past analyses.</p>
+      <a href="{{ url_for('analyses.history') }}" class="btn btn-brown">View History</a>
+    </div></div>
+  </div>
+</div>
+{% if latest %}
+<p class="text-center mt-3">Latest: <a href="{{ url_for('analyses.show', analysis_id=latest.id) }}">analysis from {{ latest.created_at }}</a></p>
+{% endif %}
+{% endblock %}

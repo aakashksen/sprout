@@ -1,0 +1,6 @@
+# Files read inside the Linux container must keep LF endings on every machine.
+*.sh text eol=lf
+deploy/* text eol=lf
+requirements/*.txt text eol=lf
+docker-compose.yml text eol=lf
+.dockerignore text eol=lf

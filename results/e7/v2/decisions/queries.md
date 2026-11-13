@@ -1,0 +1,25 @@
+### T6.4 - Retrieval, queries: base kept (no change met the rule) (method v2, 2026-11-03)
+- **Chose:** base = {'index': 'index', 'mode': 'hybrid', 'rerank': True, 'query_mode': 'question', 'crops_from_title': False}
+- **Considered:** history = {'index': 'index', 'mode': 'hybrid', 'rerank': True, 'query_mode': 'history', 'crops_from_title': False}; diseases = {'index': 'index', 'mode': 'hybrid', 'rerank': True, 'query_mode': 'diseases', 'crops_from_title': False}; full = {'index': 'index', 'mode': 'hybrid', 'rerank': True, 'query_mode': 'full', 'crops_from_title': False}
+- **Rule:** keep a change when the paired interval of recall@5 or of MRR excludes zero and the other point estimate is not worse. Revised after the first pass, whose numbers showed the old recall@5-only rule dropping a clear gain.
+- **Evidence:** record `E7-20261104T000146288157Z`, n=60 answerable rag_dev questions. recall@1 / @3 / @5 / @10 / MRR per system (the `_terms` rows count any document holding an answer term):
+  - base: 0.600 / 0.800 / 0.833 / 0.933 / 0.712
+  - base_terms: 0.667 / 0.817 / 0.900 / 0.967 / 0.766
+  - history: 0.533 / 0.717 / 0.783 / 0.867 / 0.640
+  - history_terms: 0.617 / 0.733 / 0.817 / 0.900 / 0.699
+  - diseases: 0.550 / 0.700 / 0.817 / 0.867 / 0.653
+  - diseases_terms: 0.650 / 0.733 / 0.833 / 0.900 / 0.718
+  - full: 0.533 / 0.650 / 0.750 / 0.817 / 0.618
+  - full_terms: 0.617 / 0.700 / 0.800 / 0.867 / 0.685
+  - recall@5 history minus base: -0.050 (95% CI -0.117 to +0.017), McNemar p=0.375
+  - mrr history minus base: -0.073 (95% CI -0.136 to -0.021), McNemar p=0.125
+  - recall@5 diseases minus base: -0.017 (95% CI -0.083 to +0.050), McNemar p=1.000
+  - mrr diseases minus base: -0.059 (95% CI -0.116 to -0.010), McNemar p=0.375
+  - recall@5 full minus base: -0.083 (95% CI -0.167 to +0.000), McNemar p=0.125
+  - mrr full minus base: -0.094 (95% CI -0.164 to -0.033), McNemar p=0.219
+  - by category, base: multi_turn n=14 recall@5 0.714 MRR 0.617; supported n=46 recall@5 0.870 MRR 0.741
+  - by category, history: multi_turn n=14 recall@5 0.500 MRR 0.306; supported n=46 recall@5 0.870 MRR 0.741
+  - by category, diseases: multi_turn n=14 recall@5 0.714 MRR 0.488; supported n=46 recall@5 0.848 MRR 0.703
+  - by category, full: multi_turn n=14 recall@5 0.429 MRR 0.339; supported n=46 recall@5 0.848 MRR 0.703
+- **Device:** {'device': 'cuda', 'torch': '2.11.0+cu128', 'gpu': 'NVIDIA GeForce RTX 4070 Laptop GPU', 'cuda': '12.8', 'peak_gpu_mib': 479}
+- **Would change if:** a larger or reviewed question set shows a different gain.

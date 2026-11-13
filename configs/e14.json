@@ -1,0 +1,18 @@
+{
+  "experiment": "E14",
+  "split": "rag_dev",
+  "seed": 14,
+  "sample_size": 220,
+  "served_system": "served",
+  "max_calls": 1800,
+  "judge_model": "gemma4:e4b-it-qat",
+  "grader_model": "sonnet",
+  "device": "none: no GPU or local model is used; Sonnet runs through the claude command and the local grades are read from a saved file",
+  "source": {
+    "e7_run_id": "E7-20261104T040010301317Z",
+    "judgments": "E7-prompts-v2-1e90d37a.judgments.jsonl",
+    "judgments_sha256": "afb838d9291ce5c47c15ed859bb8ff0f2542a6faa071b6f75d7a2250e0895edb",
+    "blind": "E7-prompts-v2-1e90d37a.blind.jsonl",
+    "blind_sha256": "3e61c876e3e57eddd0aba9d5305a558f964ba15fef6733c6511e6d49ba8aa4dd"
+  }
+}

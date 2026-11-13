@@ -1,0 +1,122 @@
+{
+ "run_id": "E7-20261104T014326302860Z",
+ "experiment": "E7",
+ "git_commit": "7c094b7869406c50f12f80015e3530cdf26ba9ec",
+ "dirty": false,
+ "dataset_hash": "b6b3b168bfd8792f7311f47c457652657d82eb6e47e8a45e2a3aebaf9ba793f9",
+ "split": "rag_dev",
+ "subset": "first_100",
+ "config": {
+  "writer": "qwen3.5:4b-q4_K_M",
+  "claude_writer": "sonnet",
+  "judge": {
+   "model": "gemma4:e4b-it-qat"
+  },
+  "prompt": "base+faithful+abstain",
+  "retrieval": {
+   "index": "index",
+   "mode": "hybrid",
+   "rerank": true,
+   "query_mode": "question",
+   "crops_from_title": false
+  },
+  "floors": {
+   "dense": 0.732844,
+   "hybrid": 0.806462,
+   "hybrid+rerank": 0.73875
+  },
+  "claude_calls": 62,
+  "judgments_file": "E7-claude-v2-4e89cfd6.judgments.jsonl",
+  "blind_file": "E7-claude-v2-4e89cfd6.blind.jsonl",
+  "device": "writer cuda; judge cuda",
+  "device_info": {
+   "writer": {
+    "model": "qwen3.5:4b-q4_K_M",
+    "size": 3130009844,
+    "size_vram": 3130009844
+   },
+   "judge": {
+    "model": "gemma4:e4b-it-qat",
+    "size": 3086242282,
+    "size_vram": 3086242282
+   }
+  },
+  "stage": "claude",
+  "method_version": 2,
+  "labels_reviewed": false,
+  "gold_matching": "A passage is the gold hit when its source and page equal the question's gold source and page. A document the index holds as a single page (every HTML page and Markdown file is 'page 1') would match any of its chunks, so there the passage must also contain one of the question's answer terms.",
+  "crop_source": "The plant comes from the question text (or the question's stated crop), never from the gold label. A top disease is simulated from the class names of that plant that the question names; a plant with no such class has no photo diagnosis.",
+  "writer_usage": {
+   "local_base_faithful_abstain": {
+    "rows": 100,
+    "model_calls": 62,
+    "rows_without_model_call": 38,
+    "model_seconds": 186.2
+   },
+   "claude_sonnet": {
+    "rows": 100,
+    "model_calls": 62,
+    "rows_without_model_call": 38,
+    "model_seconds": 315.0
+   }
+  }
+ },
+ "models": {
+  "writer": "qwen3.5:4b-q4_K_M",
+  "claude_writer": "sonnet",
+  "judge": "gemma4:e4b-it-qat"
+ },
+ "n": 100,
+ "metrics": {
+  "local_base_faithful_abstain": {
+   "answers_when_answerable": 0.8,
+   "declines_when_unanswerable": 0.9285714285714286,
+   "declines_when_crop_mismatch": 0.6428571428571429,
+   "declines_when_ambiguous": 0.3333333333333333
+  },
+  "claude_sonnet": {
+   "answers_when_answerable": 0.7666666666666667,
+   "declines_when_unanswerable": 1.0,
+   "declines_when_crop_mismatch": 1.0,
+   "declines_when_ambiguous": 0.6666666666666666
+  }
+ },
+ "measurements": {},
+ "judged": {
+  "file": "results/runs/E7-20261104T014326302860Z.judged.json",
+  "values": {
+   "faithfulness_local_base_faithful_abstain": 0.850609756097561,
+   "faithfulness_claude_sonnet": 0.7848605577689243
+  }
+ },
+ "intervals": {
+  "local_base_faithful_abstain": {},
+  "claude_sonnet": {}
+ },
+ "per_class": {},
+ "confusion": {},
+ "bootstrap": {
+  "n": 10000,
+  "seed": 13
+ },
+ "comparisons": [],
+ "attempts": [
+  {
+   "system": "local_base_faithful_abstain",
+   "answers_graded": 62
+  },
+  {
+   "system": "claude_sonnet",
+   "answers_graded": 50
+  }
+ ],
+ "claude_calls": 62,
+ "labels_reviewed": false,
+ "predictions": {
+  "local_base_faithful_abstain": "results/runs/E7-20261104T014326302860Z.local_base_faithful_abstain.predictions.jsonl",
+  "claude_sonnet": "results/runs/E7-20261104T014326302860Z.claude_sonnet.predictions.jsonl"
+ },
+ "started_at": "2026-11-04T01:43:26.302860+00:00",
+ "finished_at": "2026-11-04T01:43:26.302860+00:00",
+ "notes": "Faithfulness is the share of claims the judge model found supported by the cited passages."
+}

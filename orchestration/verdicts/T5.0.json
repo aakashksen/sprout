@@ -1,0 +1,24 @@
+{
+  "task": "T5.0",
+  "commit": "1d8f5da04bd42f381a71cd990d3c8675f97b6fd4",
+  "verdict": "PASS",
+  "checks": [
+    {"item": "HEAD equals commit, worktree clean", "result": "pass", "evidence": "git rev-parse HEAD = 1d8f5da...; git status --short empty"},
+    {"item": "Evidence log shows acceptance ran at this commit and passed", "result": "pass", "evidence": "orchestration/evidence/T5.0.log: commit 1d8f5da, 2 passed, exit 0, RESULT PASS"},
+    {"item": "Identification has status answered|unsure|not_plant|invalid, top, alternatives, guidance", "result": "pass", "evidence": "src/sprout/serve/types.py: frozen dataclass with Literal status, top Candidate|None, alternatives list, guidance str"},
+    {"item": "IdentifierProtocol matches T5.2 plan (identify(image_bytes) -> Identification)", "result": "pass", "evidence": "Protocol.identify(self, image_bytes: bytes) -> Identification; my test checks the signature and that a class with __init__(model_path, calibration_path) fits"},
+    {"item": "FakeIdentifier(results)", "result": "pass", "evidence": "returns results in order, repeats last, rejects empty list; test_fake_returns_each_status checks order equals STATUSES"},
+    {"item": "JSON round trip keeps all statuses and nested values", "result": "pass", "evidence": "test_identification_round_trips_as_json covers all 4 statuses with top None and nested Candidates, using equality; my test adds unicode and multiple alternatives"},
+    {"item": "Tests assert real behavior", "result": "pass", "evidence": "Round trip compares dataclass equality, so dropped nested fields would fail; status order test would fail if fake returned wrong item"},
+    {"item": "Full suite and ruff", "result": "pass", "evidence": "pytest -q: 76 passed, 4 skipped, 1 deselected; ruff check on serve and the test: all passed"},
+    {"item": "Scope: test_real_runs_cannot_use_the_fake not required", "result": "pass", "evidence": "Per orchestrator, moved to T2.3; its absence is not counted as a failure"}
+  ],
+  "own_tests": [
+    {"input": "Protocol signature and a Real class with (model_path, calibration_path) ctor", "result": "pass"},
+    {"input": "Defaults-only Identification('not_plant') plus unicode labels and 2 alternatives round trip", "result": "pass"},
+    {"input": "Fake repeats last result after exhaustion; empty list raises ValueError", "result": "pass"},
+    {"input": "Mutating the caller's list after constructing the fake does not change it (copy made)", "result": "pass"}
+  ],
+  "failures": [],
+  "notes": "Identification does not validate status at construction or in from_json, so an invalid status string is accepted at runtime; not required by the plan. The fake has no marker that check_run (T2.3) can detect beyond its class name; T2.3 will need to define that. docs/PLAN.md in the worktree still lists the moved test, as expected. My temp tests were run by copying into the worktree tests dir briefly and then removed; the worktree is clean."
+}

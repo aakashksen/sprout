@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard | SPROUT </title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;300&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"/>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+    }
+
+    .dashboard-header {
+      background-color: #e8f5e9;
+      padding: 2rem 0;
+      margin-bottom: 2rem;
+      border-radius: 10px;
+    }
+
+    .dashboard-header h1 {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 300;
+    }
+
+    .card {
+      transition: transform 0.3s;
+      margin-bottom: 1rem;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-brown {
+      background-color: #b8916a;
+      border-color: #b8916a;
+      color: white;
+      font-weight: 600;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .btn-brown:hover {
+      background-color: #9e7a55;
+      border-color: #9e7a55;
+      color: white;
+    }
+
+    .btn-outline-secondary,
+    .btn-danger,
+    .btn {
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .bi {
+      color: #6c757d;
+    }
+
+    .bi-house {
+      color: #6c757d;
+    }
+
+    .bi-box-arrow-right {
+      color: white;
+    }
+
+    .btn-outline-secondary:hover .bi-house,
+    .btn-outline-secondary:hover {
+      color: white;
+    }
+
+    .btn-outline-secondary:hover .bi-house {
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="dashboard-header mt-4 text-center">
+      <h1>Welcome, {{ current_user.username }}!</h1>
+      <p class="lead">Manage your plant disease identification activities</p>
+    </div>
+
+    <div class="row mt-4">
+      <div class="col-md-4">
+        <div class="card h-100">
+          <div class="card-body text-center">
+            <i class="bi bi-upload fs-1"></i>
+            <h5 class="card-title mt-3">Upload Photo</h5>
+            <p class="card-text">Upload an existing photo from your device.</p>
+            <a href="{{ url_for('upload_file') }}" class="btn btn-brown">Upload Photo</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card h-100">
+          <div class="card-body text-center">
+            <i class="bi bi-camera fs-1"></i>
+            <h5 class="card-title mt-3">Take Photo</h5>
+            <p class="card-text">Use your camera to take a photo right now.</p>
+            <a href="{{ url_for('camera') }}" class="btn btn-brown">Take Photo</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card h-100">
+          <div class="card-body text-center">
+            <i class="bi bi-clock-history fs-1"></i>
+            <h5 class="card-title mt-3">View History</h5>
+            <p class="card-text">View your past plant disease identifications.</p>
+            <a href="{{ url_for('view_history') }}" class="btn btn-brown">View History</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-5 text-center">
+      <a href="{{ url_for('home') }}" class="btn btn-outline-secondary me-2">
+        <i class="bi bi-house"></i> Home
+      </a>
+      <a href="{{ url_for('logout') }}" class="btn btn-danger">
+        <i class="bi bi-box-arrow-right"></i> Logout
+      </a>
+    </div>
+  </div>
+
+  <footer class="bg-light text-center text-lg-start mt-5">
+    <div class="text-center p-3">
+      © 2025 Sprout Team
+    </div>
+  </footer>
+</body>
+</html>

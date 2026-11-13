@@ -1,0 +1,19 @@
+services:
+  app:
+    image: sprout-app
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      SPROUT_SECRET_KEY: ${SPROUT_SECRET_KEY:-}  # empty makes the app refuse to start; set it in your shell
+      SPROUT_WORKERS: ${SPROUT_WORKERS:-1}
+      SPROUT_OLLAMA_URL: ${SPROUT_OLLAMA_URL:-http://host.docker.internal:11434}  # Ollama on the host
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - sprout-data:/data
+      - ./models:/models:ro
+volumes:
+  sprout-data:

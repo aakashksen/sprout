@@ -1,0 +1,138 @@
+{
+ "run_id": "E7-20261103T211722141404Z",
+ "experiment": "E7",
+ "git_commit": "4dcb3f1f89567bfc80cf57dfaf4dd5399f369a7a",
+ "dirty": false,
+ "dataset_hash": "b6b3b168bfd8792f7311f47c457652657d82eb6e47e8a45e2a3aebaf9ba793f9",
+ "split": "rag_dev",
+ "subset": null,
+ "config": {
+  "stage": "floors",
+  "floors": {
+   "dense": {
+    "floor": 0.801127,
+    "balanced": 0.7892857142857144,
+    "answerable_kept": 0.65,
+    "unanswerable_dropped": 0.9285714285714286
+   },
+   "hybrid": {
+    "floor": 0.886041,
+    "balanced": 0.7892857142857144,
+    "answerable_kept": 0.65,
+    "unanswerable_dropped": 0.9285714285714286
+   },
+   "hybrid+rerank": {
+    "floor": 0.945975,
+    "balanced": 0.8642857142857143,
+    "answerable_kept": 0.8,
+    "unanswerable_dropped": 0.9285714285714286
+   }
+  },
+  "default_floor": 0.3,
+  "device": {
+   "device": "cuda",
+   "torch": "2.11.0+cu128",
+   "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+   "cuda": "12.8",
+   "peak_gpu_mib": 480
+  },
+  "labels_reviewed": false,
+  "decline_rule": "a question is declined when its best passage scores under the floor"
+ },
+ "models": {
+  "embedder": "BAAI/bge-small-en-v1.5",
+  "reranker": "cross-encoder/ms-marco-MiniLM-L6-v2"
+ },
+ "n": 101,
+ "metrics": {
+  "floor_chosen_dense": {
+   "answers_when_answerable": 0.65,
+   "declines_when_unanswerable": 1.0,
+   "declines_when_crop_mismatch": 0.8571428571428571,
+   "declines_when_ambiguous": 1.0
+  },
+  "floor_default_dense": {
+   "answers_when_answerable": 1.0,
+   "declines_when_unanswerable": 0.0,
+   "declines_when_crop_mismatch": 0.0,
+   "declines_when_ambiguous": 0.0
+  },
+  "floor_chosen_hybrid": {
+   "answers_when_answerable": 0.65,
+   "declines_when_unanswerable": 0.9285714285714286,
+   "declines_when_crop_mismatch": 0.9285714285714286,
+   "declines_when_ambiguous": 0.9230769230769231
+  },
+  "floor_default_hybrid": {
+   "answers_when_answerable": 1.0,
+   "declines_when_unanswerable": 0.0,
+   "declines_when_crop_mismatch": 0.0,
+   "declines_when_ambiguous": 0.0
+  },
+  "floor_chosen_hybrid_rerank": {
+   "answers_when_answerable": 0.8,
+   "declines_when_unanswerable": 0.8571428571428571,
+   "declines_when_crop_mismatch": 1.0,
+   "declines_when_ambiguous": 0.6153846153846154
+  },
+  "floor_default_hybrid_rerank": {
+   "answers_when_answerable": 0.8333333333333334,
+   "declines_when_unanswerable": 0.6428571428571429,
+   "declines_when_crop_mismatch": 0.5714285714285714,
+   "declines_when_ambiguous": 0.15384615384615385
+  }
+ },
+ "measurements": {},
+ "judged": {},
+ "intervals": {
+  "floor_chosen_dense": {},
+  "floor_default_dense": {},
+  "floor_chosen_hybrid": {},
+  "floor_default_hybrid": {},
+  "floor_chosen_hybrid_rerank": {},
+  "floor_default_hybrid_rerank": {}
+ },
+ "per_class": {},
+ "confusion": {},
+ "bootstrap": {
+  "n": 10000,
+  "seed": 13
+ },
+ "comparisons": [],
+ "attempts": [
+  {
+   "mode": "dense",
+   "floor": 0.801127,
+   "balanced": 0.7892857142857144,
+   "answerable_kept": 0.65,
+   "unanswerable_dropped": 0.9285714285714286
+  },
+  {
+   "mode": "hybrid",
+   "floor": 0.886041,
+   "balanced": 0.7892857142857144,
+   "answerable_kept": 0.65,
+   "unanswerable_dropped": 0.9285714285714286
+  },
+  {
+   "mode": "hybrid+rerank",
+   "floor": 0.945975,
+   "balanced": 0.8642857142857143,
+   "answerable_kept": 0.8,
+   "unanswerable_dropped": 0.9285714285714286
+  }
+ ],
+ "claude_calls": 0,
+ "labels_reviewed": false,
+ "predictions": {
+  "floor_chosen_dense": "results/runs/E7-20261103T211722141404Z.floor_chosen_dense.predictions.jsonl",
+  "floor_default_dense": "results/runs/E7-20261103T211722141404Z.floor_default_dense.predictions.jsonl",
+  "floor_chosen_hybrid": "results/runs/E7-20261103T211722141404Z.floor_chosen_hybrid.predictions.jsonl",
+  "floor_default_hybrid": "results/runs/E7-20261103T211722141404Z.floor_default_hybrid.predictions.jsonl",
+  "floor_chosen_hybrid_rerank": "results/runs/E7-20261103T211722141404Z.floor_chosen_hybrid_rerank.predictions.jsonl",
+  "floor_default_hybrid_rerank": "results/runs/E7-20261103T211722141404Z.floor_default_hybrid_rerank.predictions.jsonl"
+ },
+ "started_at": "2026-11-03T21:17:22.141404+00:00",
+ "finished_at": "2026-11-03T21:17:22.141404+00:00",
+ "notes": "Floors were picked on rag_dev itself, so these rates are optimistic."
+}

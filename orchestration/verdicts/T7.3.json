@@ -1,0 +1,25 @@
+{
+  "task": "T7.3",
+  "commit": "7af21698f8d021ce81318a809871f4c550c62681",
+  "verdict": "PASS",
+  "checks": [
+    {"item": "HEAD equals commit, worktree clean", "result": "pass", "evidence": "git rev-parse HEAD = 7af2169...; git status --short empty in the worktree"},
+    {"item": "Evidence log", "result": "pass", "evidence": "orchestration/evidence/T7.3.log: docker compose build app exit 0; pytest tests/test_container.py -m 'real or not real' 9 passed; RESULT PASS"},
+    {"item": "Original failure reproduced the original way: fresh clone with core.autocrlf=true, build, docker run -e SPROUT_SECRET_KEY=x", "result": "pass", "evidence": "clone in mktemp dir with -c core.autocrlf=true; git ls-files --eol shows i/lf w/lf attr/text eol=lf for deploy/*; entrypoint has LF only; image built; container stayed Up, /healthz returned 200 (earlier it exited 255)"},
+    {"item": "Fix is protective: broken copy (no .gitattributes, Dockerfile CR strip removed, CRLF files) fails the new tests", "result": "pass", "evidence": "test_container_files_are_committed_with_lf_endings FAILED (eol: unspecified); test_built_container_files_have_no_cr FAILED (/app/deploy/wsgi.py contains CR); test_production_container_refuses_fake_and_missing_secret FAILED ('container did not answer')"},
+    {"item": "Image contents, non-root, no torch", "result": "pass", "evidence": "docker exec: uid=10001(sprout); /app has only deploy, knowledge/manifest.csv, pyproject.toml, requirements, src; no .env or legacy; pip list shows onnxruntime 1.31.1 and no torch"},
+    {"item": "Production refuses the fake identifier and a missing secret", "result": "pass", "evidence": "SPROUT_FAKE_IDENTIFIER=1 gives RuntimeError 'only allowed with SPROUT_ENV=testing' and worker boot failure; with no SPROUT_SECRET_KEY the container exits 3"},
+    {"item": "docker stop and /readyz", "result": "pass", "evidence": "docker stop took 1.35s and exit code was 0; /readyz returned 503 with no model mounted (expected, the model is not provisioned)"},
+    {"item": "Read-only root filesystem (not checked earlier)", "result": "pass", "evidence": "MSYS_NO_PATHCONV=1 docker run --read-only --tmpfs /tmp -v t73-rodata:/data: /healthz returned 200 and gunicorn booted"},
+    {"item": "Earlier notes handled", "result": "pass", "evidence": "docker-compose.yml sets image: sprout-app and docs/deploy.md uses 'docker tag sprout-app ...'; grep 'minutes' in docs/deploy.md finds nothing; docs/deploy.md lines 32-33 say a bind-mounted /data must be writable by uid 10001 (chown 10001)"},
+    {"item": "Diff since the previous verified commit", "result": "pass", "evidence": "git diff afec93a..HEAD --stat: .gitattributes, deploy/Dockerfile (+1), docker-compose.yml (+1), docs/deploy.md, tests/test_container.py (+20). No legacy/ or .env paths in the task diff. The only secret-like match is a smoke-test fixture password, 'password123'."}
+  ],
+  "own_tests": [
+    {"input": "Clone with autocrlf=true, build, run, curl /healthz", "result": "container up, 200"},
+    {"input": "Broken copy: remove .gitattributes and the Dockerfile CR strip, convert files to CRLF, run the tests", "result": "3 tests fail, listed above"},
+    {"input": "Production env with the fake identifier, and without a secret key", "result": "both refused at start (exit 3)"},
+    {"input": "Read-only root filesystem with tmpfs /tmp and a named /data volume", "result": "starts and healthz returns 200"}
+  ],
+  "failures": [],
+  "notes": "Not checked: removing the named volume t73-rodata with 'docker volume rm t73-rodata' was denied, so that empty volume I created is left behind. I removed the containers I made and the images t73-verify-crlf and sprout-serve-test. Images t73-app and sprout-app were already present and I left them. The temp clone remains in a mktemp directory because recursive rm is denied. The broken-copy run used -x, so test_built_container_files_have_no_cr was run on its own and failed as expected. I did not re-run the full smoke test in the fresh autocrlf clone; the log shows it passing at this commit, and the container itself started there."
+}

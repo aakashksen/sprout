@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPROUT: how it’s built</title>
+<meta name="description" content="SPROUT’s architecture: a static site, a Python server with the image model, guide search and odds engine, background threads and an AI model that only writes text.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vollkorn:wght@600&family=Hanken+Grotesk:wght@400;500&family=Montserrat:wght@800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="pages.css">
+<script>document.documentElement.classList.add('js');</script>
+</head>
+<body>
+<header class="nav">
+  <div class="container">
+    <a class="wordmark" href="index.html"><svg class="leafmark" viewBox="0 0 24 24" aria-hidden="true"><path class="leafmark__blade" d="M4.5 19.5C4.5 10.5 10 4.8 20 4c-.6 9.6-6.3 15.5-15.5 15.5z"/><path class="leafmark__vein" d="M4.5 19.5L14.5 9.5"/></svg>SPROUT</a>
+    <nav class="nav__links" aria-label="Main">
+      <a href="index.html">Home</a>
+      <a href="tour.html">Walkthrough</a>
+      <a href="specs.html" aria-current="page">How it’s built</a>
+      <a href="live.html">Live demo</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="spec-top">
+  <div class="container spec-top__grid">
+    <div>
+      <h1>How SPROUT is built</h1>
+      <p class="lead">Four parts: a vision model trained on a GPU, a search engine over 237 extension guides, a question engine that keeps every number in code, and a small web stack that serves it all.</p>
+    </div>
+    <dl class="keyfacts">
+      <div><dt>Right disease in the top three, from the photo alone</dt><dd>96%</dd></div>
+      <div><dt>Photo to diagnosis, median</dt><dd>0.4 s</dd></div>
+      <div><dt>Tap to next question, median</dt><dd>6.5 ms</dd></div>
+      <div><dt>Extension guides searched</dt><dd>237</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="section section--paper2" aria-labelledby="sys">
+  <div class="container">
+    <div class="head head--split">
+      <h2 id="sys">The system</h2>
+      <p class="lead">A static site, one Python server, and an AI model that only writes text.</p>
+    </div>
+    <figure class="arch-fig">
+      <svg class="arch" viewBox="0 0 1000 380" role="img" aria-label="System diagram. The browser sends photos, answers and chat messages to the Flask server as JSON and gets back odds, questions and answers. The server holds the image model, the guide search, the odds engine and background workers. It sends guide passages to the AI model API and gets JSON text back. The model file comes from offline training on a CUDA GPU.">
+        <defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arch-head"/></marker></defs>
+        <rect class="node" x="20" y="90" width="180" height="100" rx="6"/>
+        <text class="n-t" x="38" y="128">Browser</text><text class="n-s" x="38" y="152">static site,</text><text class="n-s" x="38" y="172">Cloudflare Pages</text>
+        <rect class="node node--model" x="370" y="40" width="270" height="200" rx="6"/>
+        <text class="n-t" x="390" y="76">Flask server</text>
+        <text class="n-s" x="390" y="108">Image model, ONNX on CPU</text>
+        <text class="n-s" x="390" y="134">Guide search</text>
+        <text class="n-s" x="390" y="160">Odds engine and stop rule</text>
+        <text class="n-s" x="390" y="186">Background text workers</text>
+        <text class="n-s" x="390" y="212">Spend caps: visitor, IP, day</text>
+        <rect class="node node--ai" x="810" y="90" width="170" height="100" rx="6"/>
+        <text class="n-t" x="828" y="128">AI model API</text><text class="n-s" x="828" y="152">writes questions,</text><text class="n-s" x="828" y="172">advice, replies</text>
+        <rect class="node node--dash" x="370" y="296" width="270" height="64" rx="6"/>
+        <text class="n-t" x="390" y="324">Offline training</text><text class="n-s" x="390" y="346">PyTorch on a CUDA GPU</text>
+        <line class="e" x1="200" y1="124" x2="370" y2="124" marker-end="url(#a1)"/><text class="e-t" x="285" y="114" text-anchor="middle">photo, answers, chat</text>
+        <line class="e" x1="370" y1="160" x2="200" y2="160" marker-end="url(#a1)"/><text class="e-t" x="285" y="182" text-anchor="middle">odds, questions, replies</text>
+        <line class="e" x1="640" y1="124" x2="810" y2="124" marker-end="url(#a1)"/><text class="e-t" x="725" y="114" text-anchor="middle">guide passages</text>
+        <line class="e" x1="810" y1="160" x2="640" y2="160" marker-end="url(#a1)"/><text class="e-t" x="725" y="182" text-anchor="middle">JSON, checked by code</text>
+        <line class="e" x1="505" y1="296" x2="505" y2="240" marker-end="url(#a1)"/><text class="e-t" x="515" y="274">model file + calibration</text>
+      </svg>
+      <figcaption>The browser keeps nothing but the id of the current check. The server owns the odds, so a refresh or a second tab never changes the result.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="train">
+  <div class="container">
+    <div class="head head--split">
+      <h2 id="train">The vision model</h2>
+      <p class="lead">ConvNeXt V2 Tiny, fine-tuned on 19,260 photos: 12,918 from the lab and 6,342 taken in fields and gardens.</p>
+    </div>
+    <figure class="arch-fig">
+      <svg class="arch" viewBox="0 0 960 250" role="img" aria-label="Training pipeline: lab and field photos, grouped splits that keep near-duplicates together, fine-tuning on a CUDA GPU with mixed precision, calibration with temperature scaling and a 93 percent bar, export to ONNX for CPU serving. MLflow logs every run and DVC versions the data.">
+        <defs><marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arch-head"/></marker></defs>
+        <rect class="node" x="20" y="40" width="160" height="110" rx="6"/><text class="n-t" x="34" y="72">Photos</text><text class="n-s" x="34" y="96">12,918 lab</text><text class="n-s" x="34" y="116">6,342 field</text><text class="n-s" x="34" y="136">5 public datasets</text>
+        <rect class="node node--code" x="210" y="40" width="160" height="110" rx="6"/><text class="n-t" x="224" y="72">Clean splits</text><text class="n-s" x="224" y="96">near-duplicates</text><text class="n-s" x="224" y="116">grouped by hash,</text><text class="n-s" x="224" y="136">never split apart</text>
+        <rect class="node node--model" x="400" y="40" width="160" height="110" rx="6"/><text class="n-t" x="414" y="72">Fine-tune</text><text class="n-s" x="414" y="96">PyTorch + timm</text><text class="n-s" x="414" y="116">CUDA, RTX 4070 GPU</text><text class="n-s" x="414" y="136">mixed precision</text>
+        <rect class="node node--code" x="590" y="40" width="160" height="110" rx="6"/><text class="n-t" x="604" y="72">Calibrate</text><text class="n-s" x="604" y="96">temperature scaling</text><text class="n-s" x="604" y="116">93% bar to answer,</text><text class="n-s" x="604" y="136">stricter for healthy</text>
+        <rect class="node" x="780" y="40" width="160" height="110" rx="6"/><text class="n-t" x="794" y="72">Export</text><text class="n-s" x="794" y="96">ONNX, 29 classes</text><text class="n-s" x="794" y="116">ONNX Runtime</text><text class="n-s" x="794" y="136">on a plain CPU</text>
+        <line class="e" x1="180" y1="95" x2="210" y2="95" marker-end="url(#a2)"/>
+        <line class="e" x1="370" y1="95" x2="400" y2="95" marker-end="url(#a2)"/>
+        <line class="e" x1="560" y1="95" x2="590" y2="95" marker-end="url(#a2)"/>
+        <line class="e" x1="750" y1="95" x2="780" y2="95" marker-end="url(#a2)"/>
+        <rect class="band" x="20" y="186" width="920" height="44" rx="6"/>
+        <text class="n-s" x="40" y="213">MLflow logs every run, DVC versions the data, and every number on this site traces to a saved run record.</text>
+        <line class="e e--dash" x1="480" y1="150" x2="480" y2="186"/>
+      </svg>
+      <figcaption>Trained on lab photos alone, the model scored 0.24 macro-F1 on real field photos. Training on lab and field photos together took it to 0.81, ahead of a DINOv2 baseline at 0.72.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="section section--paper2" aria-labelledby="search">
+  <div class="container">
+    <div class="head head--split">
+      <h2 id="search">The guide search</h2>
+      <p class="lead">Every question, piece of advice and chat reply starts from passages in 237 university extension guides.</p>
+    </div>
+    <figure class="arch-fig">
+      <svg class="arch" viewBox="0 0 960 200" role="img" aria-label="Guide search pipeline: 237 guides are extracted and chunked with crop and disease tags, indexed with BM25 keywords and BGE-small embeddings, searched with filters for crop and disease, merged, then reranked by a MiniLM cross-encoder to give the top passages.">
+        <defs><marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arch-head"/></marker></defs>
+        <rect class="node" x="20" y="40" width="160" height="110" rx="6"/><text class="n-t" x="34" y="72">237 guides</text><text class="n-s" x="34" y="96">PDF and web pages</text><text class="n-s" x="34" y="116">from university</text><text class="n-s" x="34" y="136">extension services</text>
+        <rect class="node node--code" x="210" y="40" width="160" height="110" rx="6"/><text class="n-t" x="224" y="72">Chunk and tag</text><text class="n-s" x="224" y="96">passages tagged</text><text class="n-s" x="224" y="116">with crop and</text><text class="n-s" x="224" y="136">disease</text>
+        <rect class="node node--code" x="400" y="40" width="160" height="110" rx="6"/><text class="n-t" x="414" y="72">Two indexes</text><text class="n-s" x="414" y="96">BM25 keywords</text><text class="n-s" x="414" y="116">BGE-small</text><text class="n-s" x="414" y="136">embeddings</text>
+        <rect class="node node--code" x="590" y="40" width="160" height="110" rx="6"/><text class="n-t" x="604" y="72">Filtered search</text><text class="n-s" x="604" y="96">only this plant</text><text class="n-s" x="604" y="116">and these suspects,</text><text class="n-s" x="604" y="136">results merged</text>
+        <rect class="node node--model" x="780" y="40" width="160" height="110" rx="6"/><text class="n-t" x="794" y="72">Rerank</text><text class="n-s" x="794" y="96">MiniLM cross-</text><text class="n-s" x="794" y="116">encoder picks the</text><text class="n-s" x="794" y="136">top passages</text>
+        <line class="e" x1="180" y1="95" x2="210" y2="95" marker-end="url(#a3)"/>
+        <line class="e" x1="370" y1="95" x2="400" y2="95" marker-end="url(#a3)"/>
+        <line class="e" x1="560" y1="95" x2="590" y2="95" marker-end="url(#a3)"/>
+        <line class="e" x1="750" y1="95" x2="780" y2="95" marker-end="url(#a3)"/>
+      </svg>
+      <figcaption>The reranker is what made the difference: the right passage lands in the top five for 83% of test questions, against 72% for embedding search alone.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="engine">
+  <div class="container">
+    <div class="head head--split">
+      <h2 id="engine">The question engine</h2>
+      <p class="lead">The AI model writes the words. Code does the counting, so the same answers always give the same result.</p>
+    </div>
+    <figure class="arch-fig">
+      <svg class="arch" viewBox="0 0 960 400" role="img" aria-label="Question loop. Background workers write questions and advice. The photo gives odds. If the suspects span two plants the first question is the plant. Otherwise code picks the most informative question from the pool. Each answer multiplies the supported diseases by 3 for yes or 0.35 for no. If one disease passes 93 percent or five questions are asked, the diagnosis is shown with the advice already written; otherwise the loop picks the next question.">
+        <defs><marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arch-head"/></marker></defs>
+        <rect class="band" x="20" y="20" width="920" height="80" rx="6"/>
+        <text class="n-t" x="40" y="52">Background, while you read</text>
+        <rect class="node node--ai" x="330" y="34" width="250" height="52" rx="6"/><text class="n-s" x="346" y="65">Question writer: 6 per plant group</text>
+        <rect class="node node--ai" x="620" y="34" width="300" height="52" rx="6"/><text class="n-s" x="636" y="65">Advice writer: top two suspects</text>
+        <rect class="node node--model" x="20" y="160" width="150" height="80" rx="6"/><text class="n-t" x="36" y="194">Photo odds</text><text class="n-s" x="36" y="218">29 conditions</text>
+        <rect class="node node--code" x="210" y="160" width="160" height="80" rx="6"/><text class="n-t" x="226" y="194">Two plants?</text><text class="n-s" x="226" y="218">ask the plant first</text>
+        <rect class="node node--code" x="410" y="160" width="170" height="80" rx="6"/><text class="n-t" x="426" y="194">Pick a question</text><text class="n-s" x="426" y="218">most informative</text>
+        <rect class="node" x="620" y="160" width="140" height="80" rx="6"/><text class="n-t" x="636" y="194">You answer</text><text class="n-s" x="636" y="218">yes, no, not sure</text>
+        <rect class="node node--code" x="800" y="160" width="140" height="80" rx="6"/><text class="n-t" x="816" y="194">Update odds</text><text class="n-s" x="816" y="218">x3 or x0.35</text>
+        <rect class="node node--code" x="620" y="300" width="320" height="80" rx="6"/><text class="n-t" x="636" y="334">93% sure, or 5 questions?</text><text class="n-s" x="636" y="358">yes: diagnosis with the advice ready</text>
+        <line class="e" x1="170" y1="200" x2="210" y2="200" marker-end="url(#a4)"/>
+        <line class="e" x1="370" y1="200" x2="410" y2="200" marker-end="url(#a4)"/>
+        <line class="e" x1="580" y1="200" x2="620" y2="200" marker-end="url(#a4)"/>
+        <line class="e" x1="760" y1="200" x2="800" y2="200" marker-end="url(#a4)"/>
+        <line class="e" x1="870" y1="240" x2="870" y2="300" marker-end="url(#a4)"/>
+        <polyline class="e e--hot" points="620,340 495,340 495,240" marker-end="url(#a4)"/><text class="e-t e-t--hot" x="482" y="300" text-anchor="end">no: next question</text><text class="e-t e-t--hot" x="482" y="320" text-anchor="end">in 6.5 ms</text>
+        <line class="e e--dash" x1="455" y1="86" x2="495" y2="160" marker-end="url(#a4)"/>
+        <polyline class="e e--dash" points="920,60 952,60 952,340 940,340" marker-end="url(#a4)"/>
+      </svg>
+      <figcaption>Worked example: early blight at 54%, a yes multiplies it by 3 to 162 against 46 for everything else, so 162 ÷ 208 = 78%. Questions are scored by how much they would narrow the odds; the best one is asked first.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="section section--moss" aria-labelledby="stack">
+  <div class="container">
+    <div class="head head--split">
+      <h2 id="stack">Built with</h2>
+      <p class="lead">Python end to end, from data checks to the server; plain HTML, CSS and JavaScript for the site.</p>
+    </div>
+    <div class="builtwith">
+      <article><h3>Training</h3><ul>
+        <li>PyTorch and timm, ConvNeXt V2 Tiny pretrained on ImageNet-22k</li>
+        <li>AdamW, batch size 32, 224 px inputs, fresh lab and field mix every epoch</li>
+        <li>CUDA mixed precision on an RTX 4070 laptop GPU</li>
+      </ul></article>
+      <article><h3>Data</h3><ul>
+        <li>Five public datasets: PlantVillage, PlantDoc, PlantSeg, PlantWild, Plant Pathology 2021</li>
+        <li>Perceptual hashing and DINOv2 similarity to keep near-duplicates out of the test set</li>
+        <li>DVC for versioned datasets, pandas manifests for every split</li>
+      </ul></article>
+      <article><h3>Evaluation</h3><ul>
+        <li>Macro-F1, top-3 accuracy, bootstrap confidence intervals, McNemar’s test</li>
+        <li>Temperature scaling and expected calibration error</li>
+        <li>MLflow for every run; each published number traced to a run record</li>
+      </ul></article>
+      <article><h3>Serving</h3><ul>
+        <li>ONNX export, served by ONNX Runtime on CPU</li>
+        <li>Flask API with a background thread pool and per-visitor spend caps</li>
+        <li>Photos read with Pillow, turned upright, never stored</li>
+      </ul></article>
+      <article><h3>Search and text</h3><ul>
+        <li>pypdf extraction, passages tagged by crop and disease</li>
+        <li>BM25 plus BGE-small embeddings via fastembed, MiniLM cross-encoder reranker</li>
+        <li>An AI model API for questions, advice and chat, checked by code</li>
+      </ul></article>
+      <article><h3>Quality</h3><ul>
+        <li>About 950 automated tests with pytest</li>
+        <li>Ruff linting and GitHub Actions on every push</li>
+        <li>This site: hand-written HTML and CSS, inline SVG diagrams, no framework</li>
+      </ul></article>
+    </div>
+    <div class="spec-links">
+      <a class="btn btn--primary" href="tour.html">Take the walkthrough</a>
+      <a class="btn" href="live.html">Live demo</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="footer">
+  <div class="container footer__grid">
+    <div class="footer__brand"><a class="wordmark" href="index.html"><svg class="leafmark" viewBox="0 0 24 24" aria-hidden="true"><path class="leafmark__blade" d="M4.5 19.5C4.5 10.5 10 4.8 20 4c-.6 9.6-6.3 15.5-15.5 15.5z"/><path class="leafmark__vein" d="M4.5 19.5L14.5 9.5"/></svg>SPROUT</a><span>Smart Plant Recovery and Optimization Utility Tool</span></div>
+    <div class="footer__meta"><p>Built by Aakash Senthilnathan. <a href="index.html#contact">Contact</a>, <a href="https://www.linkedin.com/in/aakashsenthilnathan/" rel="noopener">LinkedIn</a>, <a href="https://github.com/aakashksen" rel="noopener">GitHub</a>.</p><p class="footer__credits" data-credits>Leaf photographs from the PlantDoc (Singh et al., 2020; CC BY 4.0) and PlantSeg (CC BY-NC 4.0) datasets. Not a substitute for your local extension office.</p></div>
+  </div>
+</footer>
+</body>
+</html>

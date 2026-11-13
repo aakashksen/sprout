@@ -1,0 +1,31 @@
+# Ignore old_models directory
+old_models/
+
+# Python cache and environment
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+venv/
+ENV/
+.venv/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# VSCode settings
+.vscode/
+
+# OS files
+.DS_Store
+
+# Large model files
+ConvNextAIPredictionModel/plant_disease_convnext_best.pth
+Thumbs.db
+
+# Ignore uploads and sensitive files
+uploads/
+*.env
+*.sqlite3
+*.db

@@ -1,0 +1,95 @@
+{"id": "gf-000-0", "label": "Apple___Apple_scab", "question": "How do I treat it?"}
+{"id": "gf-000-1", "label": "Apple___Apple_scab", "question": "What should I do about this?"}
+{"id": "gf-000-2", "label": "Apple___Apple_scab", "question": "Is it contagious?"}
+{"id": "gf-000-3", "label": "Apple___Apple_scab", "question": "What causes this?"}
+{"id": "gf-000-4", "label": "Apple___Apple_scab", "question": "How can I stop it coming back?"}
+{"id": "gf-001-0", "label": "Apple___Black_rot", "question": "How do I treat it?"}
+{"id": "gf-001-1", "label": "Apple___Black_rot", "question": "What should I do about this?"}
+{"id": "gf-001-2", "label": "Apple___Black_rot", "question": "Is it contagious?"}
+{"id": "gf-001-3", "label": "Apple___Black_rot", "question": "What causes this?"}
+{"id": "gf-001-4", "label": "Apple___Black_rot", "question": "How can I stop it coming back?"}
+{"id": "gf-002-0", "label": "Apple___Cedar_apple_rust", "question": "How do I treat it?"}
+{"id": "gf-002-1", "label": "Apple___Cedar_apple_rust", "question": "What should I do about this?"}
+{"id": "gf-002-2", "label": "Apple___Cedar_apple_rust", "question": "Is it contagious?"}
+{"id": "gf-002-3", "label": "Apple___Cedar_apple_rust", "question": "What causes this?"}
+{"id": "gf-002-4", "label": "Apple___Cedar_apple_rust", "question": "How can I stop it coming back?"}
+{"id": "gf-003-0", "label": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "How do I treat it?"}
+{"id": "gf-003-1", "label": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "What should I do about this?"}
+{"id": "gf-003-2", "label": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "Is it contagious?"}
+{"id": "gf-003-3", "label": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "What causes this?"}
+{"id": "gf-003-4", "label": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "How can I stop it coming back?"}
+{"id": "gf-004-0", "label": "Corn_(maize)___Common_rust_", "question": "How do I treat it?"}
+{"id": "gf-004-1", "label": "Corn_(maize)___Common_rust_", "question": "What should I do about this?"}
+{"id": "gf-004-2", "label": "Corn_(maize)___Common_rust_", "question": "Is it contagious?"}
+{"id": "gf-004-3", "label": "Corn_(maize)___Common_rust_", "question": "What causes this?"}
+{"id": "gf-004-4", "label": "Corn_(maize)___Common_rust_", "question": "How can I stop it coming back?"}
+{"id": "gf-005-0", "label": "Corn_(maize)___Northern_Leaf_Blight", "question": "How do I treat it?"}
+{"id": "gf-005-1", "label": "Corn_(maize)___Northern_Leaf_Blight", "question": "What should I do about this?"}
+{"id": "gf-005-2", "label": "Corn_(maize)___Northern_Leaf_Blight", "question": "Is it contagious?"}
+{"id": "gf-005-3", "label": "Corn_(maize)___Northern_Leaf_Blight", "question": "What causes this?"}
+{"id": "gf-005-4", "label": "Corn_(maize)___Northern_Leaf_Blight", "question": "How can I stop it coming back?"}
+{"id": "gf-006-0", "label": "Grape___Black_rot", "question": "How do I treat it?"}
+{"id": "gf-006-1", "label": "Grape___Black_rot", "question": "What should I do about this?"}
+{"id": "gf-006-2", "label": "Grape___Black_rot", "question": "Is it contagious?"}
+{"id": "gf-006-3", "label": "Grape___Black_rot", "question": "What causes this?"}
+{"id": "gf-006-4", "label": "Grape___Black_rot", "question": "How can I stop it coming back?"}
+{"id": "gf-007-0", "label": "Orange___Haunglongbing_(Citrus_greening)", "question": "How do I treat it?"}
+{"id": "gf-007-1", "label": "Orange___Haunglongbing_(Citrus_greening)", "question": "What should I do about this?"}
+{"id": "gf-007-2", "label": "Orange___Haunglongbing_(Citrus_greening)", "question": "Is it contagious?"}
+{"id": "gf-007-3", "label": "Orange___Haunglongbing_(Citrus_greening)", "question": "What causes this?"}
+{"id": "gf-007-4", "label": "Orange___Haunglongbing_(Citrus_greening)", "question": "How can I stop it coming back?"}
+{"id": "gf-008-0", "label": "Pepper,_bell___Bacterial_spot", "question": "How do I treat it?"}
+{"id": "gf-008-1", "label": "Pepper,_bell___Bacterial_spot", "question": "What should I do about this?"}
+{"id": "gf-008-2", "label": "Pepper,_bell___Bacterial_spot", "question": "Is it contagious?"}
+{"id": "gf-008-3", "label": "Pepper,_bell___Bacterial_spot", "question": "What causes this?"}
+{"id": "gf-008-4", "label": "Pepper,_bell___Bacterial_spot", "question": "How can I stop it coming back?"}
+{"id": "gf-009-0", "label": "Potato___Early_blight", "question": "How do I treat it?"}
+{"id": "gf-009-1", "label": "Potato___Early_blight", "question": "What should I do about this?"}
+{"id": "gf-009-2", "label": "Potato___Early_blight", "question": "Is it contagious?"}
+{"id": "gf-009-3", "label": "Potato___Early_blight", "question": "What causes this?"}
+{"id": "gf-009-4", "label": "Potato___Early_blight", "question": "How can I stop it coming back?"}
+{"id": "gf-010-0", "label": "Potato___Late_blight", "question": "How do I treat it?"}
+{"id": "gf-010-1", "label": "Potato___Late_blight", "question": "What should I do about this?"}
+{"id": "gf-010-2", "label": "Potato___Late_blight", "question": "Is it contagious?"}
+{"id": "gf-010-3", "label": "Potato___Late_blight", "question": "What causes this?"}
+{"id": "gf-010-4", "label": "Potato___Late_blight", "question": "How can I stop it coming back?"}
+{"id": "gf-011-0", "label": "Squash___Powdery_mildew", "question": "How do I treat it?"}
+{"id": "gf-011-1", "label": "Squash___Powdery_mildew", "question": "What should I do about this?"}
+{"id": "gf-011-2", "label": "Squash___Powdery_mildew", "question": "Is it contagious?"}
+{"id": "gf-011-3", "label": "Squash___Powdery_mildew", "question": "What causes this?"}
+{"id": "gf-011-4", "label": "Squash___Powdery_mildew", "question": "How can I stop it coming back?"}
+{"id": "gf-012-0", "label": "Tomato___Bacterial_spot", "question": "How do I treat it?"}
+{"id": "gf-012-1", "label": "Tomato___Bacterial_spot", "question": "What should I do about this?"}
+{"id": "gf-012-2", "label": "Tomato___Bacterial_spot", "question": "Is it contagious?"}
+{"id": "gf-012-3", "label": "Tomato___Bacterial_spot", "question": "What causes this?"}
+{"id": "gf-012-4", "label": "Tomato___Bacterial_spot", "question": "How can I stop it coming back?"}
+{"id": "gf-013-0", "label": "Tomato___Early_blight", "question": "How do I treat it?"}
+{"id": "gf-013-1", "label": "Tomato___Early_blight", "question": "What should I do about this?"}
+{"id": "gf-013-2", "label": "Tomato___Early_blight", "question": "Is it contagious?"}
+{"id": "gf-013-3", "label": "Tomato___Early_blight", "question": "What causes this?"}
+{"id": "gf-013-4", "label": "Tomato___Early_blight", "question": "How can I stop it coming back?"}
+{"id": "gf-014-0", "label": "Tomato___Late_blight", "question": "How do I treat it?"}
+{"id": "gf-014-1", "label": "Tomato___Late_blight", "question": "What should I do about this?"}
+{"id": "gf-014-2", "label": "Tomato___Late_blight", "question": "Is it contagious?"}
+{"id": "gf-014-3", "label": "Tomato___Late_blight", "question": "What causes this?"}
+{"id": "gf-014-4", "label": "Tomato___Late_blight", "question": "How can I stop it coming back?"}
+{"id": "gf-015-0", "label": "Tomato___Leaf_Mold", "question": "How do I treat it?"}
+{"id": "gf-015-1", "label": "Tomato___Leaf_Mold", "question": "What should I do about this?"}
+{"id": "gf-015-2", "label": "Tomato___Leaf_Mold", "question": "Is it contagious?"}
+{"id": "gf-015-3", "label": "Tomato___Leaf_Mold", "question": "What causes this?"}
+{"id": "gf-015-4", "label": "Tomato___Leaf_Mold", "question": "How can I stop it coming back?"}
+{"id": "gf-016-0", "label": "Tomato___Septoria_leaf_spot", "question": "How do I treat it?"}
+{"id": "gf-016-1", "label": "Tomato___Septoria_leaf_spot", "question": "What should I do about this?"}
+{"id": "gf-016-2", "label": "Tomato___Septoria_leaf_spot", "question": "Is it contagious?"}
+{"id": "gf-016-3", "label": "Tomato___Septoria_leaf_spot", "question": "What causes this?"}
+{"id": "gf-016-4", "label": "Tomato___Septoria_leaf_spot", "question": "How can I stop it coming back?"}
+{"id": "gf-017-0", "label": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "How do I treat it?"}
+{"id": "gf-017-1", "label": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "What should I do about this?"}
+{"id": "gf-017-2", "label": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "Is it contagious?"}
+{"id": "gf-017-3", "label": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "What causes this?"}
+{"id": "gf-017-4", "label": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "How can I stop it coming back?"}
+{"id": "gf-018-0", "label": "Tomato___Tomato_mosaic_virus", "question": "How do I treat it?"}
+{"id": "gf-018-1", "label": "Tomato___Tomato_mosaic_virus", "question": "What should I do about this?"}
+{"id": "gf-018-2", "label": "Tomato___Tomato_mosaic_virus", "question": "Is it contagious?"}
+{"id": "gf-018-3", "label": "Tomato___Tomato_mosaic_virus", "question": "What causes this?"}
+{"id": "gf-018-4", "label": "Tomato___Tomato_mosaic_virus", "question": "How can I stop it coming back?"}

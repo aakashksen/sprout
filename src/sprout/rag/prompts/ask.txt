@@ -1,0 +1,1 @@
+If the plant or the symptoms are missing and the answer depends on them, reply with one line, NEED: followed by the missing items separated by commas (for example NEED: crop, symptoms), and then one short question.

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Result | SPROUT{% endblock %}
+{% block body %}
+{% set shown_label = analysis.selected_label or (ident.top.label if ident.top else "") %}
+<div id="analysis" data-base="{{ url_for('analyses.show', analysis_id=analysis.id) }}" data-healthy="{{ '1' if is_healthy(shown_label) else '0' }}">
+<h1 class="text-center mb-4">Analysis Results</h1>
+<div class="row justify-content-center">
+<div class="col-md-8">
+<div class="card result-card">
+  <div class="card-body p-0">
+    <img src="{{ url_for('analyses.image', analysis_id=analysis.id) }}" alt="Your uploaded photo" class="result-image">
+    <div class="p-4">
+      <div class="text-center mb-4">
+      {% if ident.status == "answered" and ident.top %}
+        {% set pct = (ident.top.confidence * 100)|round(0)|int %}
+        <h2 class="card-title {{ 'text-healthy' if 'healthy' in ident.top.label else 'text-problem' }}">
+          <i class="bi {{ 'bi-info-circle' if is_healthy(ident.top.label) else 'bi-exclamation-triangle' }}"></i>
+          <span id="prediction">{{ pretty(ident.top.label) }}: {{ pct }}% confidence</span>
+        </h2>
+        <progress class="confidence" value="{{ pct }}" max="100" aria-label="Confidence"></progress>
+      {% elif ident.status == "unsure" %}
+        <h2 class="card-title"><i class="bi bi-question-circle"></i> <span id="prediction"><strong>Unsure.</strong> The model could not tell what this is.</span></h2>
+      {% elif ident.status == "not_plant" %}
+        <h2 class="card-title"><i class="bi bi-slash-circle"></i> <span id="prediction"><strong>Not a plant.</strong> This does not look like a plant photo.</span></h2>
+      {% else %}
+        <h2 class="card-title"><i class="bi bi-exclamation-octagon"></i> <span id="prediction"><strong>Unusable image.</strong> The image could not be used.</span></h2>
+      {% endif %}
+      </div>
+      {% if ident.status == "answered" and is_healthy(shown_label) %}<p class="alert alert-warning" id="healthy-caution">{{ healthy_caution }}</p>{% endif %}
+      {% if ident.guidance %}<p class="alert alert-warning" id="guidance">{{ ident.guidance }}</p>{% endif %}
+      {% if ident.status != "answered" %}<p class="text-center">Try another photo: a close, well-lit view of one leaf works best.</p>{% endif %}
+
+      <div class="disease-info">
+        {% if ident.alternatives %}
+        <h5>Other possibilities</h5>
+        <ul id="alternatives">
+        {% for alt in ident.alternatives %}
+          <li>{{ pretty(alt.label) }}: {{ (alt.confidence * 100)|round(0)|int }}%</li>
+        {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if candidates %}
+        <h5>Your selection</h5>
+        <p class="small text-muted">If the model is wrong, pick what you think it is. This is kept separately from the model's prediction.</p>
+        <div id="choices" class="list-group mb-2">
+        {% for label in candidates %}
+          <label class="list-group-item"><input class="form-check-input me-2" type="radio" name="choice" value="{{ label }}" {% if label == analysis.selected_label %}checked{% endif %}>{{ pretty(label) }}</label>
+        {% endfor %}
+        </div>
+        <p id="selection-status" role="status" class="small"></p>
+        {% endif %}
+
+        <div class="text-center mt-4 d-flex justify-content-center gap-3 flex-wrap">
+          {% if candidates %}
+          <button id="open-chat" type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#chat-modal"><i class="bi bi-chat-dots"></i> Ask about this plant</button>
+          {% endif %}
+          <button id="report-open" type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#report-modal"><i class="bi bi-bug"></i> Report a problem with this result</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="text-center mt-4 d-flex justify-content-center gap-3 flex-wrap">
+  <a href="{{ url_for('analyses.history') }}" class="btn btn-outline-secondary"><i class="bi bi-clock-history"></i> History</a>
+  <form method="post" action="{{ url_for('analyses.delete', analysis_id=analysis.id) }}" data-confirm="Delete this analysis and its photo?" class="m-0">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-outline-danger"><i class="bi bi-trash"></i> Delete this analysis</button>
+  </form>
+</div>
+</div>
+</div>
+</div>
+
+{% if candidates %}
+<div class="modal fade" id="chat-modal" tabindex="-1" aria-labelledby="chat-title" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+    <div class="modal-header chat-head">
+      <h5 class="modal-title" id="chat-title"><i class="bi bi-chat-dots"></i> Ask about this plant</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+      <p class="alert alert-info small">Answers show passages from source documents. Where nothing supports an answer, none is given.</p>
+      <div id="chat-log" class="chat-log mb-3" aria-live="polite"></div>
+      <form id="chat-form" class="input-group">
+        <input id="chat-message" class="form-control" maxlength="1000" required aria-label="Your question">
+        <button id="chat-send" type="submit" class="btn btn-success">Ask</button>
+      </form>
+    </div>
+  </div></div>
+</div>
+{% endif %}
+
+<div class="modal fade" id="report-modal" tabindex="-1" aria-labelledby="report-title" aria-hidden="true">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title" id="report-title">Report a problem</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+      <form id="report-form">
+        <label for="report-note" class="form-label">What went wrong?</label>
+        <textarea id="report-note" class="form-control mb-3" maxlength="1000" required rows="3"></textarea>
+        <button id="report-send" type="submit" class="btn btn-danger">Send report</button>
+      </form>
+      <p id="report-status" role="status" class="mt-2"></p>
+    </div>
+  </div></div>
+</div>
+{% endblock %}

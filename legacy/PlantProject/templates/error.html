@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error | Plant Disease Identification</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        .error-card {
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .error-image {
+            width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+            background-color: #f8f9fa;
+            padding: 1rem;
+            opacity: 0.7;
+        }
+        .tips-section {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+        .error-icon {
+            font-size: 4rem;
+            color: #dc3545;
+            margin-bottom: 1rem;
+        }
+        .error-message {
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Analysis Error</h1>
+        
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card error-card">
+                    <div class="card-body p-4 text-center">
+                        <i class="bi bi-exclamation-triangle-fill error-icon"></i>
+                        
+                        <div class="error-message">
+                            {% if error %}
+                                <p>{{ error }}</p>
+                            {% else %}
+                                <p>We couldn't process your image. The analysis result was empty.</p>
+                            {% endif %}
+                        </div>
+                        
+                        {% if filename %}
+                            <div class="mb-4">
+                                <img src="{{ url_for('static', filename='uploads/' + filename) }}" alt="Uploaded image" class="error-image">
+                            </div>
+                        {% endif %}
+                        
+                        <div class="tips-section text-start">
+                            <h4>Possible reasons:</h4>
+                            <ul>
+                                <li>The image doesn't contain any plants</li>
+                                <li>The image quality is too low (blurry, dark, etc.)</li>
+                                <li>The plant disease is not recognizable by our system</li>
+                                <li>There was a technical issue processing your image</li>
+                            </ul>
+                            
+                            <h4 class="mt-4">Tips for better results:</h4>
+                            <ul>
+                                <li>Ensure your image contains a single plant or leaf</li>
+                                <li>Take a clear, well-lit photo</li>
+                                <li>Focus on the affected area of the plant</li>
+                                <li>Make sure the plant fills most of the frame</li>
+                                <li>Try using a different image format (JPG or PNG)</li>
+                            </ul>
+                            
+                            <div class="text-center mt-4">
+                                <img src="{{ url_for('static', filename='uploads/good_image_example.jpg') }}" alt="Example of good photo" class="img-fluid" style="max-height: 200px; border-radius: 8px;">
+                                <p class="text-muted mt-2">Example of a good plant photo</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <a href="{{ url_for('upload_file') }}" class="btn btn-primary">
+                        <i class="bi bi-upload"></i> Try Another Photo
+                    </a>
+                    <a href="{{ url_for('camera') }}" class="btn btn-success ms-2">
+                        <i class="bi bi-camera"></i> Take New Photo
+                    </a>
+                    
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary ms-2">
+                            <i class="bi bi-speedometer2"></i> Back to Dashboard
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('home') }}" class="btn btn-outline-secondary ms-2">
+                            <i class="bi bi-house"></i> Back to Home
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="bg-light text-center text-lg-start mt-5">
+        <div class="text-center p-3">
+            © 2025 Sprout Team
+        </div>
+    </footer>
+</body>
+</html>

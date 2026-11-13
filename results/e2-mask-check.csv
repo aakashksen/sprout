@@ -1,0 +1,41 @@
+index,path,good
+0,datasets/raw/plantseg_field/corn rust/corn_rust_87.jpg,no
+1,datasets/raw/plantseg_field/squash powdery mildew/squash_powdery_mildew_35.jpg,no
+2,datasets/raw/plantdoc/Bell_pepper leaf spot/pepper_bacterial-spot_03_zoom.jpg,yes
+3,datasets/raw/plantdoc/Tomato leaf mosaic virus/mosaic_virus_tomato_small.jpg,no
+4,datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_google_0024.jpg,yes
+5,datasets/raw/plantseg_field/potato early blight/potato_early_blight_51.jpg,no
+6,datasets/raw/plantseg_field/apple black rot/apple_black_rot_167.jpg,no
+7,datasets/raw/plantseg_field/tomato leaf mold/tomato_leaf_mold_173.jpg,yes
+8,datasets/raw/plantseg_field/citrus greening disease/citrus_greening_disease_google_0140.jpg,no
+9,datasets/raw/plantdoc/Tomato Septoria leaf spot/Tom_Sept4.jpg,yes
+10,datasets/raw/plantseg_field/tomato yellow leaf curl virus/tomato_yellow_leaf_curl_virus_99.jpg,yes
+11,datasets/raw/plantdoc/Potato leaf late blight/6a00d8341c4fe353ef011571354632970c-800wi.jpg,no
+12,datasets/raw/plantdoc/Tomato mold leaf/image233.jpg,yes
+13,datasets/raw/plantdoc/Potato leaf late blight/CzFxqKtWEAA4U3g.jpg,yes
+14,datasets/raw/plantdoc/Corn leaf blight/nclb3x1200.jpg,no
+15,datasets/raw/plantdoc/Tomato leaf late blight/lateblightTom_lesion.jpg,no
+16,datasets/raw/plantdoc/Potato leaf late blight/potato-late-blight-symptom-on-leaves-PGB5H9.jpg,yes
+17,datasets/raw/plantseg_field/apple rust/apple_rust_106.jpg,no
+18,datasets/raw/plantdoc/Corn leaf blight/swcdg1-e1482969712678-300x188.jpg,no
+19,datasets/raw/plantdoc/Corn Gray leaf spot/f4b954eba082.jpg,no
+20,datasets/raw/plantseg_field/apple scab/apple_scab_google_0049.jpg,no
+21,datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0120.jpg,no
+22,datasets/raw/plantdoc/Corn rust leaf/5833328024_724f1df3f2_b.jpg,no
+23,datasets/raw/plantseg_field/citrus greening disease/citrus_greening_disease_93.jpg,no
+24,datasets/raw/plantseg_field/strawberry leaf scorch/strawberry_leaf_scorch_google_0109.jpg,no
+25,datasets/raw/plantseg_field/apple rust/apple_rust_69.jpg,no
+26,datasets/raw/plantdoc/Tomato Early blight leaf/Tomato-Early-Blight-Leaf-Examples-Cornell-University.jpg,yes
+27,datasets/raw/plantseg_field/tomato bacterial leaf spot/tomato_bacterial_leaf_spot_google_0036.jpg,no
+28,datasets/raw/plantdoc/Tomato leaf mosaic virus/tomato-leaf-herbicide-damage.jpg,yes
+29,datasets/raw/plantdoc/Blueberry leaf/vaccinium-myrtilloides-le-mlovit.jpg,no
+30,datasets/raw/plantdoc/Apple leaf/AppleLeavesInRain.jpg,yes
+31,datasets/raw/plantdoc/Corn leaf blight/corn_disease_clip_image001_0003.jpg,yes
+32,datasets/raw/plantseg_field/grape black rot/grape_black_rot_google_0011.jpg,no
+33,datasets/raw/plantdoc/Apple Scab Leaf/1b558cc48a6f.jpg,no
+34,datasets/raw/plantseg_field/tomato septoria leaf spot/tomato_septoria_leaf_spot_241.jpg,yes
+35,datasets/raw/plantseg_field/apple scab/apple_scab_google_0139.jpg,yes
+36,datasets/raw/plantdoc/Tomato leaf late blight/LateBlt09_05.jpg,no
+37,datasets/raw/plantseg_field/apple scab/apple_scab_73.jpg,no
+38,datasets/raw/plantdoc/Blueberry leaf/vaccspp_leaf1.jpg,yes
+39,datasets/raw/plantdoc/Strawberry leaf/7065201-strawberry-leaf.jpg,yes

@@ -1,0 +1,832 @@
+{
+ "retrieval": {
+  "index": "index",
+  "mode": "hybrid",
+  "rerank": true,
+  "query_mode": "question",
+  "crops_from_title": false
+ },
+ "floors": {
+  "dense": 0.732844,
+  "hybrid": 0.806462,
+  "hybrid+rerank": 0.73875
+ },
+ "prompt": "base+faithful+abstain",
+ "combined": "base+faithful+abstain",
+ "decisions": [
+  {
+   "stage": "baseline",
+   "kept": "hybrid_rerank",
+   "record": "E7-20261103T234741564452Z",
+   "comparisons": [
+    {
+     "a": "hybrid",
+     "b": "dense",
+     "metric": "recall@5",
+     "diff": 0.0,
+     "ci": [
+      -0.15,
+      0.15
+     ],
+     "mcnemar_p": 1.0
+    },
+    {
+     "a": "hybrid",
+     "b": "dense",
+     "metric": "mrr",
+     "diff": -0.035925925925925924,
+     "ci": [
+      -0.15390013227513227,
+      0.07836160714285711
+     ],
+     "mcnemar_p": 0.6476058959960938
+    },
+    {
+     "a": "hybrid_rerank",
+     "b": "dense",
+     "metric": "recall@5",
+     "diff": 0.11666666666666667,
+     "ci": [
+      0.0,
+      0.23333333333333334
+     ],
+     "mcnemar_p": 0.09228515625
+    },
+    {
+     "a": "hybrid_rerank",
+     "b": "dense",
+     "metric": "mrr",
+     "diff": 0.16953703703703704,
+     "ci": [
+      0.08389517195767197,
+      0.2617194113756613
+     ],
+     "mcnemar_p": 0.00738525390625
+    }
+   ],
+   "device": {
+    "device": "cuda",
+    "torch": "2.11.0+cu128",
+    "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+    "cuda": "12.8",
+    "peak_gpu_mib": 480
+   }
+  },
+  {
+   "stage": "chunking",
+   "kept": "base",
+   "record": "E7-20261103T235742665344Z",
+   "comparisons": [
+    {
+     "a": "structured",
+     "b": "base",
+     "metric": "recall@5",
+     "diff": -0.05,
+     "ci": [
+      -0.11666666666666667,
+      0.016666666666666666
+     ],
+     "mcnemar_p": 0.375
+    },
+    {
+     "a": "structured",
+     "b": "base",
+     "metric": "mrr",
+     "diff": -0.09187830687830688,
+     "ci": [
+      -0.1853176256613757,
+      -0.001705026455026475
+     ],
+     "mcnemar_p": 0.1795654296875
+    }
+   ],
+   "device": {
+    "device": "cuda",
+    "torch": "2.11.0+cu128",
+    "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+    "cuda": "12.8",
+    "peak_gpu_mib": 479
+   }
+  },
+  {
+   "stage": "header",
+   "kept": "base",
+   "record": "E7-20261103T235854416532Z",
+   "comparisons": [
+    {
+     "a": "header",
+     "b": "base",
+     "metric": "recall@5",
+     "diff": 0.06666666666666667,
+     "ci": [
+      0.0,
+      0.15
+     ],
+     "mcnemar_p": 0.21875
+    },
+    {
+     "a": "header",
+     "b": "base",
+     "metric": "mrr",
+     "diff": 0.007089947089947089,
+     "ci": [
+      -0.06952579365079366,
+      0.08293187830687819
+     ],
+     "mcnemar_p": 1.0
+    }
+   ],
+   "device": {
+    "device": "cuda",
+    "torch": "2.11.0+cu128",
+    "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+    "cuda": "12.8",
+    "peak_gpu_mib": 479
+   }
+  },
+  {
+   "stage": "crops",
+   "kept": "base",
+   "record": "E7-20261104T000006095961Z",
+   "comparisons": [
+    {
+     "a": "crops_from_title",
+     "b": "base",
+     "metric": "recall@5",
+     "diff": -0.03333333333333333,
+     "ci": [
+      -0.08333333333333333,
+      0.0
+     ],
+     "mcnemar_p": 0.5
+    },
+    {
+     "a": "crops_from_title",
+     "b": "base",
+     "metric": "mrr",
+     "diff": -0.0015079365079365087,
+     "ci": [
+      -0.003412698412698414,
+      0.0
+     ],
+     "mcnemar_p": 1.0
+    }
+   ],
+   "device": {
+    "device": "cuda",
+    "torch": "2.11.0+cu128",
+    "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+    "cuda": "12.8",
+    "peak_gpu_mib": 479
+   }
+  },
+  {
+   "stage": "queries",
+   "kept": "base",
+   "record": "E7-20261104T000146288157Z",
+   "comparisons": [
+    {
+     "a": "history",
+     "b": "base",
+     "metric": "recall@5",
+     "diff": -0.05,
+     "ci": [
+      -0.11666666666666667,
+      0.016666666666666666
+     ],
+     "mcnemar_p": 0.375
+    },
+    {
+     "a": "history",
+     "b": "base",
+     "metric": "mrr",
+     "diff": -0.07265873015873017,
+     "ci": [
+      -0.13611111111111113,
+      -0.021269841269841272
+     ],
+     "mcnemar_p": 0.125
+    },
+    {
+     "a": "diseases",
+     "b": "base",
+     "metric": "recall@5",
+     "diff": -0.016666666666666666,
+     "ci": [
+      -0.08333333333333333,
+      0.05
+     ],
+     "mcnemar_p": 1.0
+    },
+    {
+     "a": "diseases",
+     "b": "base",
+     "metric": "mrr",
+     "diff": -0.05923280423280423,
+     "ci": [
+      -0.11564880952380951,
+      -0.00972089947089949
+     ],
+     "mcnemar_p": 0.375
+    },
+    {
+     "a": "full",
+     "b": "base",
+     "metric": "recall@5",
+     "diff": -0.08333333333333333,
+     "ci": [
+      -0.16666666666666666,
+      0.0
+     ],
+     "mcnemar_p": 0.125
+    },
+    {
+     "a": "full",
+     "b": "base",
+     "metric": "mrr",
+     "diff": -0.09395502645502643,
+     "ci": [
+      -0.1644444444444444,
+      -0.03284358465608466
+     ],
+     "mcnemar_p": 0.21875
+    }
+   ],
+   "device": {
+    "device": "cuda",
+    "torch": "2.11.0+cu128",
+    "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+    "cuda": "12.8",
+    "peak_gpu_mib": 479
+   }
+  },
+  {
+   "stage": "floors",
+   "record": "E7-20261104T000358595403Z",
+   "floors": {
+    "dense": {
+     "floor": 0.732844,
+     "answers_when_answerable": 0.8,
+     "declines_when_unanswerable": 0.5714285714285714,
+     "rule_applied": "highest declines among floors answering at least 80%"
+    },
+    "hybrid": {
+     "floor": 0.806462,
+     "answers_when_answerable": 0.8666666666666667,
+     "declines_when_unanswerable": 0.6428571428571429,
+     "rule_applied": "highest declines among floors answering at least 80%"
+    },
+    "hybrid+rerank": {
+     "floor": 0.73875,
+     "answers_when_answerable": 0.8166666666666667,
+     "declines_when_unanswerable": 0.8571428571428571,
+     "rule_applied": "highest declines among floors answering at least 80%"
+    }
+   },
+   "device": {
+    "device": "cuda",
+    "torch": "2.11.0+cu128",
+    "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+    "cuda": "12.8",
+    "peak_gpu_mib": 480
+   }
+  },
+  {
+   "stage": "prompts",
+   "record": "E7-20261104T004412525032Z",
+   "prompt": "base+faithful+abstain",
+   "decisions": [
+    {
+     "addition": "faithful",
+     "target": "faithfulness",
+     "gain": 0.05842306595778679,
+     "answer_drop": 0.0,
+     "kept": true
+    },
+    {
+     "addition": "abstain",
+     "target": "declines_when_unanswerable",
+     "gain": 0.14285714285714285,
+     "answer_drop": 0.0,
+     "kept": true
+    },
+    {
+     "addition": "ask",
+     "target": "declines_when_ambiguous",
+     "gain": 0.6923076923076923,
+     "answer_drop": 0.1333333333333333,
+     "kept": false
+    }
+   ],
+   "intervals": {
+    "faithful": {
+     "target": {
+      "metric": "faithfulness",
+      "answers": [
+       101,
+       101
+      ],
+      "diff": 0.05842306595778679,
+      "ci": [
+       -0.0017928490094676279,
+       0.11920069649486868
+      ]
+     },
+     "answers": {
+      "metric": "answers_when_answerable",
+      "n": 60,
+      "diff": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "mcnemar_p": 1.0
+     },
+     "distinguishable": false
+    },
+    "abstain": {
+     "target": {
+      "metric": "declines_when_unanswerable",
+      "n": 14,
+      "diff": 0.14285714285714285,
+      "ci": [
+       0.0,
+       0.35714285714285715
+      ],
+      "mcnemar_p": 0.5
+     },
+     "answers": {
+      "metric": "answers_when_answerable",
+      "n": 60,
+      "diff": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "mcnemar_p": 1.0
+     },
+     "distinguishable": false
+    },
+    "ask": {
+     "target": {
+      "metric": "declines_when_ambiguous",
+      "n": 13,
+      "diff": 0.6923076923076923,
+      "ci": [
+       0.46153846153846156,
+       0.9230769230769231
+      ],
+      "mcnemar_p": 0.00390625
+     },
+     "answers": {
+      "metric": "answers_when_answerable",
+      "n": 60,
+      "diff": -0.13333333333333333,
+      "ci": [
+       -0.21666666666666667,
+       -0.05
+      ],
+      "mcnemar_p": 0.0078125
+     },
+     "distinguishable": true
+    }
+   }
+  },
+  {
+   "stage": "prompts",
+   "record": "E7-20261104T010519096337Z",
+   "prompt": "base+faithful+abstain",
+   "decisions": [
+    {
+     "addition": "faithful",
+     "target": "faithfulness",
+     "gain": 0.05842306595778679,
+     "answer_drop": 0.0,
+     "kept": true
+    },
+    {
+     "addition": "abstain",
+     "target": "declines_when_unanswerable",
+     "gain": 0.14285714285714285,
+     "answer_drop": 0.0,
+     "kept": true
+    },
+    {
+     "addition": "ask",
+     "target": "declines_when_ambiguous",
+     "gain": 0.6923076923076923,
+     "answer_drop": 0.1333333333333333,
+     "kept": false
+    },
+    {
+     "addition": "combined",
+     "kept": true,
+     "answer_drop": 0.0
+    }
+   ],
+   "intervals": {
+    "faithful": {
+     "target": {
+      "metric": "faithfulness",
+      "answers": [
+       101,
+       101
+      ],
+      "diff": 0.05842306595778679,
+      "ci": [
+       -0.0017928490094676279,
+       0.11920069649486868
+      ]
+     },
+     "answers": {
+      "metric": "answers_when_answerable",
+      "n": 60,
+      "diff": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "mcnemar_p": 1.0
+     },
+     "distinguishable": false
+    },
+    "abstain": {
+     "target": {
+      "metric": "declines_when_unanswerable",
+      "n": 14,
+      "diff": 0.14285714285714285,
+      "ci": [
+       0.0,
+       0.35714285714285715
+      ],
+      "mcnemar_p": 0.5
+     },
+     "answers": {
+      "metric": "answers_when_answerable",
+      "n": 60,
+      "diff": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "mcnemar_p": 1.0
+     },
+     "distinguishable": false
+    },
+    "ask": {
+     "target": {
+      "metric": "declines_when_ambiguous",
+      "n": 13,
+      "diff": 0.6923076923076923,
+      "ci": [
+       0.46153846153846156,
+       0.9230769230769231
+      ],
+      "mcnemar_p": 0.00390625
+     },
+     "answers": {
+      "metric": "answers_when_answerable",
+      "n": 60,
+      "diff": -0.13333333333333333,
+      "ci": [
+       -0.21666666666666667,
+       -0.05
+      ],
+      "mcnemar_p": 0.0078125
+     },
+     "distinguishable": true
+    }
+   }
+  },
+  {
+   "stage": "prompts",
+   "record": "E7-20261104T012545627616Z",
+   "prompt": "base+faithful+abstain",
+   "decisions": [
+    {
+     "addition": "faithful",
+     "target": "faithfulness",
+     "gain": 0.05842306595778679,
+     "answer_drop": 0.0,
+     "kept": true
+    },
+    {
+     "addition": "abstain",
+     "target": "declines_when_unanswerable",
+     "gain": 0.14285714285714285,
+     "answer_drop": 0.0,
+     "kept": true
+    },
+    {
+     "addition": "ask",
+     "target": "declines_when_ambiguous",
+     "gain": 0.6923076923076923,
+     "answer_drop": 0.1333333333333333,
+     "kept": false
+    },
+    {
+     "addition": "combined",
+     "kept": true,
+     "answer_drop": 0.0,
+     "target_gains": {
+      "faithful": 0.09469816037241607,
+      "abstain": 0.42857142857142855
+     }
+    }
+   ],
+   "intervals": {
+    "faithful": {
+     "target": {
+      "metric": "faithfulness",
+      "answers": [
+       101,
+       101
+      ],
+      "diff": 0.05842306595778679,
+      "ci": [
+       -0.0017928490094676279,
+       0.11920069649486868
+      ]
+     },
+     "answers": {
+      "metric": "answers_when_answerable",
+      "n": 60,
+      "diff": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "mcnemar_p": 1.0
+     },
+     "distinguishable": false
+    },
+    "abstain": {
+     "target": {
+      "metric": "declines_when_unanswerable",
+      "n": 14,
+      "diff": 0.14285714285714285,
+      "ci": [
+       0.0,
+       0.35714285714285715
+      ],
+      "mcnemar_p": 0.5
+     },
+     "answers": {
+      "metric": "answers_when_answerable",
+      "n": 60,
+      "diff": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "mcnemar_p": 1.0
+     },
+     "distinguishable": false
+    },
+    "ask": {
+     "target": {
+      "metric": "declines_when_ambiguous",
+      "n": 13,
+      "diff": 0.6923076923076923,
+      "ci": [
+       0.46153846153846156,
+       0.9230769230769231
+      ],
+      "mcnemar_p": 0.00390625
+     },
+     "answers": {
+      "metric": "answers_when_answerable",
+      "n": 60,
+      "diff": -0.13333333333333333,
+      "ci": [
+       -0.21666666666666667,
+       -0.05
+      ],
+      "mcnemar_p": 0.0078125
+     },
+     "distinguishable": true
+    }
+   }
+  },
+  {
+   "stage": "prompts",
+   "record": "E7-20261104T013649302918Z",
+   "prompt": "base+faithful+abstain",
+   "decisions": [
+    {
+     "addition": "faithful",
+     "target": "faithfulness",
+     "gain": 0.05842306595778679,
+     "answer_drop": 0.0,
+     "kept": true
+    },
+    {
+     "addition": "abstain",
+     "target": "declines_when_unanswerable",
+     "gain": 0.14285714285714285,
+     "answer_drop": 0.0,
+     "kept": true
+    },
+    {
+     "addition": "ask",
+     "target": "declines_when_ambiguous",
+     "gain": 0.6923076923076923,
+     "answer_drop": 0.1333333333333333,
+     "kept": false
+    },
+    {
+     "addition": "combined",
+     "kept": true,
+     "answer_drop": 0.0,
+     "target_gains": {
+      "faithful": 0.09469816037241607,
+      "abstain": 0.42857142857142855
+     }
+    }
+   ],
+   "intervals": {
+    "faithful": {
+     "target": {
+      "metric": "faithfulness",
+      "answers": [
+       101,
+       101
+      ],
+      "diff": 0.05842306595778679,
+      "ci": [
+       -0.0017928490094676279,
+       0.11920069649486868
+      ]
+     },
+     "answers": {
+      "metric": "answers_when_answerable",
+      "n": 60,
+      "diff": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "mcnemar_p": 1.0
+     },
+     "distinguishable": false
+    },
+    "abstain": {
+     "target": {
+      "metric": "declines_when_unanswerable",
+      "n": 14,
+      "diff": 0.14285714285714285,
+      "ci": [
+       0.0,
+       0.35714285714285715
+      ],
+      "mcnemar_p": 0.5
+     },
+     "answers": {
+      "metric": "answers_when_answerable",
+      "n": 60,
+      "diff": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "mcnemar_p": 1.0
+     },
+     "distinguishable": false
+    },
+    "ask": {
+     "target": {
+      "metric": "declines_when_ambiguous",
+      "n": 13,
+      "diff": 0.6923076923076923,
+      "ci": [
+       0.46153846153846156,
+       0.9230769230769231
+      ],
+      "mcnemar_p": 0.00390625
+     },
+     "answers": {
+      "metric": "answers_when_answerable",
+      "n": 60,
+      "diff": -0.13333333333333333,
+      "ci": [
+       -0.21666666666666667,
+       -0.05
+      ],
+      "mcnemar_p": 0.0078125
+     },
+     "distinguishable": true
+    }
+   }
+  },
+  {
+   "stage": "prompts",
+   "record": "E7-20261104T040010301317Z",
+   "prompt": "base+faithful+abstain",
+   "decisions": [
+    {
+     "addition": "faithful",
+     "target": "faithfulness",
+     "gain": 0.07738008632814386,
+     "answer_drop": 0.0,
+     "kept": true
+    },
+    {
+     "addition": "abstain",
+     "target": "declines_when_unanswerable",
+     "gain": 0.6428571428571428,
+     "answer_drop": 0.033333333333333326,
+     "kept": true
+    },
+    {
+     "addition": "ask",
+     "target": "declines_when_ambiguous",
+     "gain": 0.6923076923076923,
+     "answer_drop": 0.11666666666666659,
+     "kept": false
+    },
+    {
+     "addition": "combined",
+     "kept": true,
+     "answer_drop": 0.016666666666666607,
+     "target_gains": {
+      "faithful": 0.10819012935776329,
+      "abstain": 0.6428571428571428
+     }
+    }
+   ],
+   "intervals": {
+    "faithful": {
+     "target": {
+      "metric": "faithfulness",
+      "answers": [
+       79,
+       88
+      ],
+      "diff": 0.07738008632814386,
+      "ci": [
+       0.014490632039652375,
+       0.1404633282250658
+      ]
+     },
+     "answers": {
+      "metric": "answers_when_answerable",
+      "n": 60,
+      "diff": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "mcnemar_p": 1.0
+     },
+     "distinguishable": true
+    },
+    "abstain": {
+     "target": {
+      "metric": "declines_when_unanswerable",
+      "n": 14,
+      "diff": 0.6428571428571429,
+      "ci": [
+       0.35714285714285715,
+       0.8571428571428571
+      ],
+      "mcnemar_p": 0.00390625
+     },
+     "answers": {
+      "metric": "answers_when_answerable",
+      "n": 60,
+      "diff": -0.03333333333333333,
+      "ci": [
+       -0.08333333333333333,
+       0.0
+      ],
+      "mcnemar_p": 0.5
+     },
+     "distinguishable": true
+    },
+    "ask": {
+     "target": {
+      "metric": "declines_when_ambiguous",
+      "n": 13,
+      "diff": 0.6923076923076923,
+      "ci": [
+       0.46153846153846156,
+       0.9230769230769231
+      ],
+      "mcnemar_p": 0.00390625
+     },
+     "answers": {
+      "metric": "answers_when_answerable",
+      "n": 60,
+      "diff": -0.11666666666666667,
+      "ci": [
+       -0.2,
+       -0.05
+      ],
+      "mcnemar_p": 0.015625
+     },
+     "distinguishable": true
+    }
+   }
+  }
+ ]
+}

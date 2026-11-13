@@ -1,0 +1,24 @@
+{
+  "task": "T2.3",
+  "commit": "84f37bbf74eacc7ac2bff97df48cd2bcdd8d329f",
+  "verdict": "PASS",
+  "checks": [
+    {"item": "HEAD equals the commit and the worktree is clean", "result": "pass", "evidence": "git rev-parse HEAD gave 84f37bbf...; git status --porcelain was empty, before and after my revert and restore."},
+    {"item": "Fix: t17.py (delete and re-add the first record) against this commit", "result": "pass", "evidence": "check_run E2 and claims check both FAIL with 'more than one lab_test record and no override_note in config', before and after the delete and re-add. The two checkers agree."},
+    {"item": "Fix: t9.py case D (git mv away and back)", "result": "pass", "evidence": "Both check_run and claims check FAIL with the second-use message while the first record is away and again after it is moved back. The two agree."},
+    {"item": "New tests fail without the fix", "result": "pass", "evidence": "I ran git checkout 340b9f5 -- src/sprout/eval/check_run.py. pytest -k 'readding_the_first or moving_the_first' then gave 2 failed (test_readding_the_first_record_does_not_make_it_newer and test_moving_the_first_record_away_and_back_does_not_make_it_newer). I restored with git checkout HEAD -- src/sprout/eval/check_run.py and both passed (2 passed). The worktree was clean afterwards."},
+    {"item": "Existing tamper suite t1.py against this commit", "result": "pass", "evidence": "All 20+ tampers rejected with rc=1: interval lo/hi, comparison diff/ci/p/swap/a==b, seed, bootstrap n, dirty, fake and nested stub model, dataset hash, non-ancestor commit, n, empty attempts, measurement and judged mismatches, judge same as writer, missing field, min-n. Controls: 'min-n ok' rc=0, 'split wrong' says no run record."},
+    {"item": "t9 cases E and F, t10 shallow, other tamper scripts", "result": "pass", "evidence": "Case E (squash) FAILs on the second record, as before. The shallow clone FAILs on ancestry. Case F (first record hidden outside results/runs) is out of scope per the coordinator: the checker guards against mistakes, not history rewrites."},
+    {"item": "Honest flows: E1 with claims, first test use with a same-commit shared_classes view, worktree merge", "result": "pass", "evidence": "t13: 'E1: OK', claims on E1 OK, E9 full plus view in one commit OK, claims OK. t15: after merge OK, claims OK, after squash merge OK. t16 (50 records): 0 flagged, claims ok."},
+    {"item": "Acceptance evidence at this commit", "result": "pass", "evidence": "orchestration/evidence/T2.3.log names commit 84f37bbf; pytest tests/test_records.py gave 59 passed; claims check gave 'claims ok'; RESULT PASS."},
+    {"item": "Diff from 340b9f5 touches only the fix and its tests", "result": "pass", "evidence": "git diff --stat 340b9f5 HEAD showed src/sprout/eval/check_run.py (+2) and tests/test_records.py (+36). The code change is 'if name[:-5] in recs: continue' in _uses(). No secrets, no legacy/ changes, no existing tests weakened (additions only)."}
+  ],
+  "own_tests": [
+    {"input": "t17: second lab_test use with no note, claim on it, delete and re-add the first record, then rerun", "result": "Flagged before and after the trick. check_run and claims check agree."},
+    {"input": "t9 D: git mv the first record away, claim the second, move the first back", "result": "Flagged at both stages. check_run and claims check agree."},
+    {"input": "Mutation: reverted the one-line fix", "result": "Both new tests fail, so they exercise the fix. Restored; both pass."},
+    {"input": "t15 worktree flow: run records on a task branch, merge into build, then squash merge", "result": "check_run and claims check OK after both merges."}
+  ],
+  "failures": [],
+  "notes": "t13's view-written-after-committing-the-full-record case FAILs, because the view has a different git_commit and so counts as a second use. This is designed behavior: the docs require a view to come from the same commit, and the same-commit flow passes. The tail of t13 (view on field_test and rag_test) crashed with a NameError in my script (missing split_info import), so that part was not checked on this pass. test_records.py covers shared_classes on field_test (line 263). A background t1 rerun I started by mistake was left to finish; it wrote only under tmp-T2.3. Nothing was written to results/runs/ and the GPU was not used (CUDA_VISIBLE_DEVICES empty). I did no git-history-rewrite hunting, as instructed."
+}

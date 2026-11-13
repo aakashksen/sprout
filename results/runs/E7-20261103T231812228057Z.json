@@ -1,0 +1,133 @@
+{
+ "run_id": "E7-20261103T231812228057Z",
+ "experiment": "E7",
+ "git_commit": "6542e8e7fc87dc4d28a6a15863b91d9b0750bcf2",
+ "dirty": false,
+ "dataset_hash": "b6b3b168bfd8792f7311f47c457652657d82eb6e47e8a45e2a3aebaf9ba793f9",
+ "split": "rag_dev",
+ "subset": null,
+ "config": {
+  "writer": "qwen3.5:4b-q4_K_M",
+  "judge": {
+   "model": "gemma4:e4b-it-qat"
+  },
+  "retrieval": {
+   "index": "index",
+   "mode": "dense",
+   "rerank": false,
+   "query_mode": "question",
+   "crops_from_title": false
+  },
+  "floors": {
+   "dense": 0.801127,
+   "hybrid": 0.886041,
+   "hybrid+rerank": 0.945975
+  },
+  "prompts": {
+   "base": "base",
+   "faithful": "base+faithful",
+   "abstain": "base+abstain",
+   "ask": "base+ask"
+  },
+  "answer_config": {
+   "prompt_version": "base",
+   "mode": "dense",
+   "rerank": false,
+   "k": 5,
+   "query_mode": "question",
+   "history_turns": 4,
+   "history_chars": 500,
+   "max_tokens": 400,
+   "timeout_s": 180.0
+  },
+  "judgments_file": "E7-prompts-20261103.judgments.jsonl",
+  "blind_file": "E7-prompts-20261103.blind.jsonl",
+  "stage": "prompts",
+  "labels_reviewed": false,
+  "gold_matching": "A passage is the gold hit when its source and page equal the question's gold source and page. A document the index holds as a single page (every HTML page and Markdown file is 'page 1') would match any of its chunks, so there the passage must also contain one of the question's answer terms.",
+  "crop_source": "The plant comes from the question text (or the question's stated crop), never from the gold label. A top disease is simulated from the class names of that plant that the question names; a plant with no such class has no photo diagnosis."
+ },
+ "models": {
+  "writer": "qwen3.5:4b-q4_K_M",
+  "judge": "gemma4:e4b-it-qat"
+ },
+ "n": 101,
+ "metrics": {
+  "base": {
+   "answers_when_answerable": 0.65,
+   "declines_when_unanswerable": 1.0,
+   "declines_when_crop_mismatch": 0.8571428571428571,
+   "declines_when_ambiguous": 1.0
+  },
+  "faithful": {
+   "answers_when_answerable": 0.65,
+   "declines_when_unanswerable": 1.0,
+   "declines_when_crop_mismatch": 0.8571428571428571,
+   "declines_when_ambiguous": 1.0
+  },
+  "abstain": {
+   "answers_when_answerable": 0.65,
+   "declines_when_unanswerable": 1.0,
+   "declines_when_crop_mismatch": 0.8571428571428571,
+   "declines_when_ambiguous": 1.0
+  },
+  "ask": {
+   "answers_when_answerable": 0.5333333333333333,
+   "declines_when_unanswerable": 1.0,
+   "declines_when_crop_mismatch": 1.0,
+   "declines_when_ambiguous": 1.0
+  }
+ },
+ "measurements": {},
+ "judged": {
+  "file": "results/runs/E7-20261103T231812228057Z.judged.json",
+  "values": {
+   "faithfulness_base": 0.8484848484848485,
+   "faithfulness_faithful": 0.8669724770642202,
+   "faithfulness_abstain": 0.8795811518324608,
+   "faithfulness_ask": 0.8444444444444444
+  }
+ },
+ "intervals": {
+  "base": {},
+  "faithful": {},
+  "abstain": {},
+  "ask": {}
+ },
+ "per_class": {},
+ "confusion": {},
+ "bootstrap": {
+  "n": 10000,
+  "seed": 13
+ },
+ "comparisons": [],
+ "attempts": [
+  {
+   "system": "base",
+   "answers_graded": 41
+  },
+  {
+   "system": "faithful",
+   "answers_graded": 41
+  },
+  {
+   "system": "abstain",
+   "answers_graded": 41
+  },
+  {
+   "system": "ask",
+   "answers_graded": 34
+  }
+ ],
+ "claude_calls": 0,
+ "labels_reviewed": false,
+ "predictions": {
+  "base": "results/runs/E7-20261103T231812228057Z.base.predictions.jsonl",
+  "faithful": "results/runs/E7-20261103T231812228057Z.faithful.predictions.jsonl",
+  "abstain": "results/runs/E7-20261103T231812228057Z.abstain.predictions.jsonl",
+  "ask": "results/runs/E7-20261103T231812228057Z.ask.predictions.jsonl"
+ },
+ "started_at": "2026-11-03T23:18:12.228057+00:00",
+ "finished_at": "2026-11-03T23:18:12.228057+00:00",
+ "notes": "Faithfulness is the share of claims the judge model found supported by the cited passages."
+}

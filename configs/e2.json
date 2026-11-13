@@ -1,0 +1,18 @@
+{
+  "experiment": "E2",
+  "checkpoint": "models/e1/best.pt",
+  "e1_run_id": "E1-20261103T092124608963Z",
+  "splits": ["field_dev", "lab_dev"],
+  "batch_size": 32,
+  "num_workers": 8,
+  "seed": 0,
+  "out_dir": "results/e2-gradcam",
+  "overlays_per_cell": 8,
+  "mistakes_n": 50,
+  "mistakes_sheet": "results/e2-mistakes.csv",
+  "mistakes_report": "results/error-analysis-e2.md",
+  "mask_sample_n": 40,
+  "mask_sheet": "results/e2-mask-check.csv",
+  "mask_min_good": 0.8,
+  "field_masks_reliable": false
+}

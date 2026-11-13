@@ -1,0 +1,20 @@
+### T6.4 - Retrieval, baseline: hybrid_rerank kept (method v2, 2026-11-03)
+- **Chose:** hybrid_rerank = {'index': 'index', 'mode': 'hybrid', 'rerank': True, 'query_mode': 'question', 'crops_from_title': False}
+- **Considered:** dense = {'index': 'index', 'mode': 'dense', 'rerank': False, 'query_mode': 'question', 'crops_from_title': False}; hybrid = {'index': 'index', 'mode': 'hybrid', 'rerank': False, 'query_mode': 'question', 'crops_from_title': False}
+- **Rule:** keep a change when the paired interval of recall@5 or of MRR excludes zero and the other point estimate is not worse. Revised after the first pass, whose numbers showed the old recall@5-only rule dropping a clear gain.
+- **Evidence:** record `E7-20261103T234741564452Z`, n=60 answerable rag_dev questions. recall@1 / @3 / @5 / @10 / MRR per system (the `_terms` rows count any document holding an answer term):
+  - dense: 0.417 / 0.617 / 0.717 / 0.817 / 0.543
+  - dense_terms: 0.500 / 0.767 / 0.833 / 0.900 / 0.648
+  - hybrid: 0.367 / 0.583 / 0.717 / 0.783 / 0.507
+  - hybrid_terms: 0.467 / 0.650 / 0.733 / 0.883 / 0.591
+  - hybrid_rerank: 0.600 / 0.800 / 0.833 / 0.933 / 0.712
+  - hybrid_rerank_terms: 0.667 / 0.817 / 0.900 / 0.967 / 0.766
+  - recall@5 hybrid minus dense: +0.000 (95% CI -0.150 to +0.150), McNemar p=1.000
+  - mrr hybrid minus dense: -0.036 (95% CI -0.154 to +0.078), McNemar p=0.648
+  - recall@5 hybrid_rerank minus dense: +0.117 (95% CI +0.000 to +0.233), McNemar p=0.092
+  - mrr hybrid_rerank minus dense: +0.170 (95% CI +0.084 to +0.262), McNemar p=0.007
+  - by category, dense: multi_turn n=14 recall@5 0.714 MRR 0.562; supported n=46 recall@5 0.717 MRR 0.537
+  - by category, hybrid: multi_turn n=14 recall@5 0.357 MRR 0.169; supported n=46 recall@5 0.826 MRR 0.610
+  - by category, hybrid_rerank: multi_turn n=14 recall@5 0.714 MRR 0.617; supported n=46 recall@5 0.870 MRR 0.741
+- **Device:** {'device': 'cuda', 'torch': '2.11.0+cu128', 'gpu': 'NVIDIA GeForce RTX 4070 Laptop GPU', 'cuda': '12.8', 'peak_gpu_mib': 480}
+- **Would change if:** a larger or reviewed question set shows a different gain.

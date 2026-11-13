@@ -1,0 +1,30 @@
+[project]
+name = "sprout"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = ["pypdf", "fastembed", "numpy", "imagehash", "dvc", "pandas", "pillow", "torch", "torchvision", "mlflow-skinny", "flask", "markdown-it-py", "xgboost", "scikit-image", "transformers", "onnx", "onnxruntime", "pyarrow", "timm"]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff", "scikit-learn", "playwright"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-m 'not real'"
+markers = ["real: needs a GPU, Ollama, or a network; skipped unless asked for"]
+
+[tool.ruff]
+extend-exclude = ["legacy"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.setuptools.package-data]
+sprout = ["web/templates/*.html", "web/static/**/*", "rag/prompts/*.txt"]

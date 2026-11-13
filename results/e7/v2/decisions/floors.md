@@ -1,0 +1,20 @@
+### T6.4 - Score floor per mode, picked on rag_dev (method v2, 2026-11-03)
+- **Chose:** floors {'dense': 0.732844, 'hybrid': 0.806462, 'hybrid+rerank': 0.73875} on retrieval setup {'index': 'index', 'mode': 'hybrid', 'rerank': True, 'query_mode': 'question', 'crops_from_title': False}, replacing the single 0.3.
+- **Rule:** among floors that answer at least 80% of answerable questions, the one with the highest declines_when_unanswerable; if none reaches 80%, the highest mean of the two (said below). Revised after the first pass, whose rule picked a dense floor that answered only 65% of answerable questions.
+- **Considered:** the old single floor of 0.3, and the first pass's balanced rule.
+- **Evidence:** record `E7-20261104T000358595403Z`; the floor is picked on rag_dev itself, so these rates are optimistic. answers / declines (abstain) / declines (wrong crop) / declines (ambiguous) per system:
+  - floor_chosen_dense: 0.800 / 0.571 / 0.143 / 0.462
+  - floor_default_dense: 1.000 / 0.000 / 0.000 / 0.000
+  - floor_chosen_hybrid: 0.867 / 0.643 / 0.143 / 0.154
+  - floor_default_hybrid: 1.000 / 0.000 / 0.000 / 0.000
+  - floor_chosen_hybrid_rerank: 0.817 / 0.857 / 0.714 / 0.385
+  - floor_default_hybrid_rerank: 0.833 / 0.643 / 0.571 / 0.154
+  - dense: floor 0.732844, highest declines among floors answering at least 80%
+  - hybrid: floor 0.806462, highest declines among floors answering at least 80%
+  - hybrid+rerank: floor 0.73875, highest declines among floors answering at least 80%
+- **Why answerable questions fall under the floor:**
+  - dense: {'floor': 0.732844, 'answerable_under_floor': 12, 'of': 60, 'by_category': {'multi_turn': 11, 'supported': 1}, 'gold_in_top10_anyway': 9, 'gold_missing_from_top10': 3, 'no_simulated_diagnosis': 5, 'plant_filter_applied': 12, 'would_pass_floor_without_plant_filter': 3}
+  - hybrid: {'floor': 0.806462, 'answerable_under_floor': 8, 'of': 60, 'by_category': {'multi_turn': 8}, 'gold_in_top10_anyway': 3, 'gold_missing_from_top10': 5, 'no_simulated_diagnosis': 3, 'plant_filter_applied': 8, 'would_pass_floor_without_plant_filter': 3}
+  - hybrid+rerank: {'floor': 0.73875, 'answerable_under_floor': 11, 'of': 60, 'by_category': {'multi_turn': 10, 'supported': 1}, 'gold_in_top10_anyway': 7, 'gold_missing_from_top10': 4, 'no_simulated_diagnosis': 4, 'plant_filter_applied': 11, 'would_pass_floor_without_plant_filter': 3}
+- **Device:** {'device': 'cuda', 'torch': '2.11.0+cu128', 'gpu': 'NVIDIA GeForce RTX 4070 Laptop GPU', 'cuda': '12.8', 'peak_gpu_mib': 480}
+- **Would change if:** floors picked on rag_dev do not hold on new questions.

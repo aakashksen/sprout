@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Take Photo | SPROUT{% endblock %}
+{% block body %}
+<h1 class="text-center mb-4">Take Plant Photo</h1>
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-body" id="camera-root" data-upload="{{ url_for('analyses.create') }}">
+        <p class="card-text text-center mb-4">Take a clear photo of a single plant leaf for the best results.</p>
+        <div id="camera-container">
+          <video id="video" autoplay playsinline muted></video>
+          <canvas id="canvas" hidden></canvas>
+          <img id="photo" alt="Captured photo" hidden>
+        </div>
+        <p id="camera-message" class="camera-message" role="status" hidden></p>
+        <div class="text-center mt-3">
+          <button id="switchCamera" class="btn btn-outline-primary camera-btn" type="button" aria-label="Switch camera"><i class="bi bi-arrow-repeat"></i></button>
+          <button id="captureBtn" class="btn btn-primary camera-btn" type="button" aria-label="Take photo"><i class="bi bi-camera"></i></button>
+          <button id="retakeBtn" class="btn btn-outline-secondary camera-btn" type="button" aria-label="Retake" hidden><i class="bi bi-arrow-counterclockwise"></i></button>
+        </div>
+        <div class="text-center mt-4">
+          <button id="analyzeBtn" class="btn btn-success btn-lg" type="button" hidden><i class="bi bi-check-circle"></i> Analyse</button>
+        </div>
+      </div>
+    </div>
+    <div class="text-center mt-4">
+      <a href="{{ url_for('pages.upload') }}" class="btn btn-outline-success"><i class="bi bi-upload"></i> Upload Photo Instead</a>
+      <a href="{{ url_for('pages.dashboard') }}" class="btn btn-outline-secondary ms-2"><i class="bi bi-speedometer2"></i> Back to Dashboard</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

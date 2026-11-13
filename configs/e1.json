@@ -1,0 +1,21 @@
+{
+  "experiment": "E1",
+  "manifest": "lab",
+  "split": "lab_dev",
+  "out_dir": "models/e1",
+  "train": {
+    "model": "convnext_tiny",
+    "seed": 0,
+    "lr": 0.0001,
+    "batch_size": 32,
+    "num_workers": 8,
+    "epochs": 10,
+    "transforms": ["random_resized_crop", "hflip", "color_jitter"]
+  },
+  "legacy": {
+    "checkpoint": "<local path> Project\\pytorchConvNextMulticlassClassification\\plant_disease_convnext_best.pth",
+    "application": "legacy/PlantProject/application.py",
+    "model": "convnext_tiny",
+    "sensible_accuracy": 0.5
+  }
+}

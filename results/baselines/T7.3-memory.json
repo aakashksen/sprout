@@ -1,0 +1,17 @@
+{
+  "task": "T7.3",
+  "kind": "raw notes, not a run record and not a claim source",
+  "date": "2026-11-02",
+  "what": "Container memory (docker stats MemUsage) of the serving image with NO model and NO index loaded; FakeIdentifier test double, SPROUT_ENV=testing",
+  "valid_for": "the web app and gunicorn alone. Not valid as the memory of the real service: the ONNX model and retrieval index are not in it. Re-measure at T7.4.",
+  "machine": "AMD Ryzen AI 9 HX 370, 24 logical CPUs, Docker Desktop VM 30.89 GiB, image linux/amd64 python 3.12.16",
+  "image_size": "487MB (docker images, sprout-serve-test)",
+  "gunicorn": "gthread, 4 threads per worker",
+  "load": "signup, then 15 sequential 640x480 JPEG uploads",
+  "results": {
+    "workers=1": {"idle": "62.45MiB", "after_15_uploads": "65.37MiB"},
+    "workers=2": {"idle": "99.88MiB", "after_15_uploads": "106.6MiB"}
+  },
+  "n_runs": 1,
+  "command": "docker stats --no-stream --format {{.MemUsage}} <container>"
+}

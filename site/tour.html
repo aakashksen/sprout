@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPROUT walkthrough: one tomato leaf</title>
+<meta name="description" content="Follow one tomato leaf through SPROUT: the photo, the suspects, the plant question, the yes or no questions from extension guides, the answer and the chat.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vollkorn:wght@600&family=Hanken+Grotesk:wght@400;500&family=Montserrat:wght@800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="pages.css">
+<script>document.documentElement.classList.add('js');</script>
+</head>
+<body>
+<header class="nav">
+  <div class="container">
+    <a class="wordmark" href="index.html"><svg class="leafmark" viewBox="0 0 24 24" aria-hidden="true"><path class="leafmark__blade" d="M4.5 19.5C4.5 10.5 10 4.8 20 4c-.6 9.6-6.3 15.5-15.5 15.5z"/><path class="leafmark__vein" d="M4.5 19.5L14.5 9.5"/></svg>SPROUT</a>
+    <nav class="nav__links" aria-label="Main">
+      <a href="index.html">Home</a>
+      <a href="tour.html" aria-current="page">Walkthrough</a>
+      <a href="specs.html">How it’s built</a>
+      <a href="live.html">Live demo</a>
+    </nav>
+  </div>
+</header>
+
+<main class="tour">
+  <div class="container">
+    <div class="tour__top">
+      <h1>One tomato leaf, start to finish</h1>
+      <p class="source">An example run. The questions and sources are SPROUT’s real ones.</p>
+    </div>
+
+    <div id="steps">
+      <section class="step" aria-labelledby="s1h">
+        <div class="screen">
+          <figure class="screen__photo" data-slot="tour-leaf" data-alt="The gardener's leaf photo">
+            <img src="img/single-leaf.jpg" width="1600" height="1071" alt="A tomato leaf with dark spots and yellow halos" fetchpriority="high">
+          </figure>
+          <div class="actions"><span class="btn btn--primary" aria-hidden="true">Photo added</span></div>
+        </div>
+        <div class="explain">
+          <h2 id="s1h">A gardener photographs one leaf</h2>
+          <p>Brown spots showed up on the lower leaves of a tomato plant. The gardener takes one photo of one leaf, in daylight, close enough to see the spots.</p>
+          <h3 class="explain__sub">What the system is doing</h3>
+          <p>The photo goes to a small Python server. A gate checks it looks like a plant before anything else runs, using the model’s own confidence and how spread out its guesses are; photos of objects are turned away with a tip for a better shot. The photo is turned upright from its camera data and thrown away after the check.</p>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="s2h">
+        <div class="screen">
+          <p class="detected">Plant <b>Tomato</b> <button type="button" class="link-button" disabled>Not tomato?</button></p>
+          <ol class="odds" aria-label="Three suspects">
+            <li><span class="odds__name">Early blight</span><span class="odds__pct">54%</span><span class="odds__bar"><span style="width: 54%"></span></span></li>
+            <li><span class="odds__name">Septoria leaf spot</span><span class="odds__pct">27%</span><span class="odds__bar"><span style="width: 27%"></span></span></li>
+            <li><span class="odds__name">Late blight</span><span class="odds__pct">11%</span><span class="odds__bar"><span style="width: 11%"></span></span></li>
+          </ol>
+          <p>Not sure yet. Two of these look alike from a photo.</p>
+        </div>
+        <div class="explain">
+          <h2 id="s2h">The model names the plant and three suspects</h2>
+          <p>In about a fifth of a second the page shows the plant and the three likeliest diseases with their chances.</p>
+          <h3 class="explain__sub">What the system is doing</h3>
+          <p>A ConvNeXt V2 image model, trained on 19,260 lab and garden photos, scores all 29 conditions it knows. The scores are calibrated so 90% means right about 90% of the time. SPROUT only calls a result sure above 93%; on held-out photos, the ones it answers at that bar are right 95% of the time. At 54% it asks instead of answering.</p>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="s3h">
+        <div class="screen">
+          <p class="source">A different leaf: tomato late blight</p>
+          <ol class="odds" aria-label="Odds from the photo alone">
+            <li><span class="odds__name">Potato late blight</span><span class="odds__pct">78%</span><span class="odds__bar"><span style="width: 78%"></span></span></li>
+            <li><span class="odds__name">Tomato late blight</span><span class="odds__pct">21%</span><span class="odds__bar"><span style="width: 21%"></span></span></li>
+          </ol>
+          <p class="question">Is this a potato or a tomato plant?</p>
+          <div class="actions">
+            <button type="button" class="btn btn--small" aria-pressed="false">Potato</button>
+            <button type="button" class="btn btn--small" aria-pressed="true">Tomato</button>
+          </div>
+          <ul class="answers">
+            <li>Answer: Tomato <b>Tomato late blight 21% to 90%</b></li>
+            <li>One more yes <b>90% to 97%</b></li>
+          </ul>
+        </div>
+        <div class="explain">
+          <h2 id="s3h">Sometimes the plant comes first</h2>
+          <p>Late blight looks almost the same on potato and tomato, so a photo alone can lean the wrong way. One tap on the plant fixes it.</p>
+          <h3 class="explain__sub">What the system is doing</h3>
+          <p>When the top suspects belong to different plants, the first question is which plant. Answering keeps that plant’s conditions and cuts every other plant’s to 2% of its weight. In this real run on a different leaf, tomato late blight went from 21% to 90% on one tap, and to 97% after one more yes.</p>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="s4h">
+        <div class="screen">
+          <div class="pair">
+            <div>
+              <h3>Early blight</h3>
+              <blockquote class="quote">“The lesions develop a bulls-eye pattern of concentric rings.”</blockquote>
+              <p class="source">University of Maryland Extension, Early Blight of Tomatoes</p>
+            </div>
+            <div>
+              <h3>Septoria leaf spot</h3>
+              <blockquote class="quote">“Circular lesions with grayish-white or tan centers and dark brown margins.”</blockquote>
+              <p class="source">UConn Integrated Pest Management, Tomato Septoria Leaf Spot</p>
+            </div>
+          </div>
+        </div>
+        <div class="explain">
+          <h2 id="s4h">It looks up what tells the suspects apart</h2>
+          <p>For each suspect, SPROUT pulls the guides’ own description of its symptoms.</p>
+          <h3 class="explain__sub">What the system is doing</h3>
+          <p>The search runs over 237 extension guides, filtered to tomato and to each disease still in the running. It combines keyword matching (BM25) with meaning-based matching, then a reranker reorders the top hits; the reranker is the part that measurably improved finding the right passage. This happens in a background thread the moment the photo is read.</p>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="s5h">
+        <div class="screen">
+          <p class="source">Question 1 of up to 5</p>
+          <p class="question">Do the brown leaf spots have dark rings inside them, like a bull’s-eye?</p>
+          <div class="actions">
+            <button type="button" class="btn btn--small" aria-pressed="true">Yes</button>
+            <button type="button" class="btn btn--small" aria-pressed="false">No</button>
+            <button type="button" class="btn btn--small" aria-pressed="false">Not sure</button>
+          </div>
+          <p class="source">A yes points to early blight. From University of Maryland Extension.</p>
+        </div>
+        <div class="explain">
+          <h2 id="s5h">It asks one question</h2>
+          <p>Each question is about something you can see, answered with a tap. The answer shows at once because the questions were written while you were reading the result.</p>
+          <h3 class="explain__sub">What the system is doing</h3>
+          <p>An AI model writes a batch of six questions from those passages. Code then throws out any question that doesn’t cite a passage or that every suspect would answer the same way. From what’s left it picks the one expected to narrow the odds the most, so the first question is the most informative one, not the first one written.</p>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="s6h">
+        <div class="screen">
+          <ol class="odds" aria-label="Odds after three answers">
+            <li><span class="odds__name">Early blight</span><span class="odds__pct">94%</span><span class="odds__bar"><span style="width: 94%"></span></span></li>
+            <li><span class="odds__name">Septoria leaf spot</span><span class="odds__pct">2%</span><span class="odds__bar"><span style="width: 2%"></span></span></li>
+            <li><span class="odds__name">Late blight</span><span class="odds__pct">2%</span><span class="odds__bar"><span style="width: 2%"></span></span></li>
+          </ol>
+          <ul class="answers">
+            <li>Dark rings inside the spots <b>Yes, 54% to 78%</b></li>
+            <li>Many small spots with grey centres <b>No, 78% to 85%</b></li>
+            <li>A yellow ring around each spot <b>Yes, 85% to 94%</b></li>
+          </ul>
+        </div>
+        <div class="explain">
+          <h2 id="s6h">Each answer moves the odds</h2>
+          <p>A yes counts for the diseases the question’s passage describes, a no counts against them, and not sure changes nothing.</p>
+          <h3 class="explain__sub">What the system is doing</h3>
+          <p>Code multiplies the supported diseases by 3 for a yes, or by 0.35 for a no, then rescales everything to add up to 100%. Worked through: early blight 54 × 3 = 162 against 27 + 11 + 8 for the rest, so 162 ÷ 208 = 78%. It stops once one disease passes 93%, after five questions, or when no question can separate the suspects any more.</p>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="s7h">
+        <div class="screen">
+          <span class="final__sure">94% sure</span>
+          <span class="final__name">Tomato early blight</span>
+          <p>Keep plants mulched so soil doesn’t splash onto leaves, water at the base, and remove infected leaves during the season. A fungicide labelled for early blight can slow it; follow the label.</p>
+          <p class="source">University of Maryland Extension, Early Blight of Tomatoes</p>
+          <p class="source">SPROUT says “sure” only above 93%, so this is a likely answer.</p>
+        </div>
+        <div class="explain">
+          <h2 id="s7h">The answer, with where it came from</h2>
+          <p>Early blight, 94% sure, with care advice from the University of Maryland Extension guide.</p>
+          <h3 class="explain__sub">What the system is doing</h3>
+          <p>The advice was drafted in the background as soon as early blight became likely, so it appears with the answer. It is written only from the guide passages it cites. Below the 93% bar the answer reads “Likely” (70% or more) or “Best guess”, with a suggestion to try a closer photo.</p>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="s8h">
+        <div class="screen chat">
+          <p class="chat__you">The lowest leaves are turning yellow and dropping off.</p>
+          <p class="chat__sprout">That fits early blight: it usually starts on the lower leaves and works its way up. Pruning the lowest leaf branches once fruit sets helps.</p>
+          <p class="source">University of Maryland Extension, Early Blight of Tomatoes</p>
+          <p class="shift">Early blight 94% to 97%</p>
+          <p class="chat__you">Can I still eat the tomatoes?</p>
+          <p class="chat__sprout">The guides I searched don’t cover that, so this is general advice, not from a guide: cut away any spotted parts and ask your local extension office if you’re unsure.</p>
+        </div>
+        <div class="explain">
+          <h2 id="s8h">Then you can ask about your plant</h2>
+          <p>The chat answers follow-up questions and remembers the conversation, so the gardener can describe what else they see.</p>
+          <h3 class="explain__sub">What the system is doing</h3>
+          <p>Each message is answered from the guide passages for the diagnosis, with numbered sources; anything the guides don’t cover is marked as general advice. When the gardener describes a symptom, the AI model points to their own words as evidence and the same code moves the odds: here, “lowest leaves turning yellow” fits early blight, 94% to 97%. A plain question never moves the odds.</p>
+        </div>
+      </section>
+      <section class="step tour-end" id="tour-end" aria-labelledby="endh" hidden>
+        <div class="screen">
+          <p class="final__sure">That’s the whole check.</p>
+          <span class="final__name">Photo, two questions, a diagnosis and a conversation.</span>
+          <figure class="recording"><img src="img/live-demo.gif" width="880" height="591" loading="lazy" alt="A recorded run of the live demo on a tomato leaf, from the photo to the chat."><figcaption>The same flow, recorded on the live demo.</figcaption></figure>
+        </div>
+        <div class="explain">
+          <h2 id="endh">You’ve finished the walkthrough</h2>
+          <p>Watch the recorded run beside this, see how each part is built, or try it on a leaf of your own.</p>
+          <div class="actions">
+            <a class="btn btn--primary" href="live.html">Try the live demo</a>
+            <a class="btn" href="specs.html">How it’s built</a>
+            <button type="button" class="btn" id="restart-tour">Start the walkthrough again</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="tour__nav" id="tour-nav" hidden>
+      <span class="tour__count" id="count" aria-live="polite">Step 1 of 8</span>
+      <button type="button" class="btn" id="back">Back</button>
+      <button type="button" class="btn btn--primary" id="next">Next step</button>
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="container footer__grid">
+    <div class="footer__brand"><a class="wordmark" href="index.html"><svg class="leafmark" viewBox="0 0 24 24" aria-hidden="true"><path class="leafmark__blade" d="M4.5 19.5C4.5 10.5 10 4.8 20 4c-.6 9.6-6.3 15.5-15.5 15.5z"/><path class="leafmark__vein" d="M4.5 19.5L14.5 9.5"/></svg>SPROUT</a><span>Smart Plant Recovery and Optimization Utility Tool</span></div>
+    <div class="footer__meta"><p>Built by Aakash Senthilnathan. <a href="index.html#contact">Contact</a>, <a href="https://www.linkedin.com/in/aakashsenthilnathan/" rel="noopener">LinkedIn</a>, <a href="https://github.com/aakashksen" rel="noopener">GitHub</a>.</p><p class="footer__credits" data-credits>Leaf photographs from the PlantDoc (Singh et al., 2020; CC BY 4.0) and PlantSeg (CC BY-NC 4.0) datasets. Not a substitute for your local extension office.</p></div>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const steps = [...document.querySelectorAll('#steps .step:not(.tour-end)')];
+  const end = document.getElementById('tour-end');
+  const nav = document.getElementById('tour-nav'), next = document.getElementById('next'), back = document.getElementById('back'), count = document.getElementById('count');
+  let i = 0;
+  const show = (n, focus) => {
+    const done = n >= steps.length;
+    i = Math.max(0, Math.min(steps.length - 1, n));
+    steps.forEach((s, k) => { s.hidden = done || k !== i; });
+    end.hidden = !done;
+    nav.hidden = done;
+    count.textContent = `Step ${i + 1} of ${steps.length}`;
+    back.disabled = i === 0;
+    next.textContent = i === steps.length - 1 ? 'Finish' : 'Next step';
+    const h = done ? end.querySelector('h2') : steps[i].querySelector('h2');
+    if (focus) h.focus({ preventScroll: true });
+  };
+  [...steps, end].forEach((s) => s.querySelector('h2').setAttribute('tabindex', '-1'));
+  next.addEventListener('click', () => show(i + 1, true));
+  back.addEventListener('click', () => show(i - 1, true));
+  document.getElementById('restart-tour').addEventListener('click', () => show(0, true));
+  show(0, false);
+})();
+</script>
+<script>window.hallmarkSlots = (m) => { for (const [k, v] of Object.entries(m)) { const s = document.querySelector(`[data-slot="${k}"]`); if (!s) continue; const im = new Image(); im.src = typeof v === 'string' ? v : v.src; im.alt = (typeof v === 'object' && v.alt) || s.dataset.alt || ''; s.querySelectorAll(':scope > img').forEach((o) => o.remove()); s.prepend(im); } };
+document.querySelectorAll('[data-slot] img').forEach((i) => { if (i.complete && !i.naturalWidth) i.remove(); else i.addEventListener('error', () => i.remove(), { once: true }); });</script>
+</body>
+</html>

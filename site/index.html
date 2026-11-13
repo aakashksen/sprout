@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPROUT: plant disease check</title>
+<meta name="description" content="Photograph one sick leaf. SPROUT names the plant and the likely disease, asks a few questions from extension guides until it is sure, and cites its advice.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vollkorn:wght@600&family=Hanken+Grotesk:wght@400;500&family=Montserrat:wght@800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="pages.css">
+<script>document.documentElement.classList.add('js');</script>
+</head>
+<body>
+<p class="banner">The live demo is off for now. <a href="tour.html">Take the walkthrough</a> instead.</p>
+<header class="nav">
+  <div class="container">
+    <a class="wordmark" href="index.html"><svg class="leafmark" viewBox="0 0 24 24" aria-hidden="true"><path class="leafmark__blade" d="M4.5 19.5C4.5 10.5 10 4.8 20 4c-.6 9.6-6.3 15.5-15.5 15.5z"/><path class="leafmark__vein" d="M4.5 19.5L14.5 9.5"/></svg>SPROUT</a>
+    <nav class="nav__links" aria-label="Main">
+      <a href="index.html" aria-current="page">Home</a>
+      <a href="tour.html">Walkthrough</a>
+      <a href="specs.html">How it’s built</a>
+      <a href="live.html">Live demo</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="container hero__grid">
+      <div class="hero__text">
+        <h1>SPROUT</h1>
+        <p class="lead">Smart Plant Recovery and Optimization Utility Tool</p>
+        <div class="actions">
+          <a class="btn btn--primary" href="tour.html">Take the walkthrough</a>
+          <a class="btn" href="live.html">Live demo</a>
+        </div>
+        <p class="hero__note">Photograph a sick leaf. SPROUT names the likely disease, asks a few yes or no questions written from 237 university guides, and tells you when it can’t tell.</p>
+      </div>
+      <div class="hero__visual">
+        <figure class="hero__photo" data-slot="hero" data-alt="A diseased tomato plant in the garden">
+          <img src="img/garden-leaves.jpg" width="1600" height="1200" alt="Tomato leaves with brown ringed spots and yellowing edges" fetchpriority="high" style="object-position: 55% 40%">
+        </figure>
+        <p class="source">Tomato with early blight, the kind of photo SPROUT starts from.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--paper2" aria-labelledby="watch">
+    <div class="container">
+      <div class="head head--split">
+        <h2 id="watch">Watch a real run</h2>
+        <p class="lead">A tomato leaf the model never trained on, start to finish, recorded on the live demo.</p>
+      </div>
+      <figure class="recording recording--wide">
+        <img src="img/live-demo.gif" width="880" height="591" loading="lazy" alt="A recorded run: the photo is read as potato late blight, SPROUT asks whether it is a potato or tomato plant, settles on tomato late blight at 97 percent, writes care advice citing UMass Extension and answers a chat question with numbered sources.">
+        <figcaption>Photo in, one question about the plant, one about the spots, a diagnosis at 97% with cited advice, then a follow-up in the chat.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="how">
+    <div class="container">
+      <div class="head">
+        <h2 id="how">How a check works</h2>
+      </div>
+      <ol class="shots">
+        <li>
+          <figure class="shot"><img src="img/step-odds.jpg" alt="The odds after the photo: potato late blight 78 percent, tomato late blight 21 percent, and the first question, is this a potato or a tomato plant"></figure>
+          <h3>The photo gives the odds</h3>
+          <p>A ConvNeXt V2 vision model scores 29 conditions across 14 plants in under half a second. When the top suspects belong to different plants, it asks which plant first.</p>
+        </li>
+        <li>
+          <figure class="shot"><img src="img/step-question.jpg" alt="Question 2: are there irregularly shaped, wet-looking patches on the leaf, with NC State Extension named as the source"></figure>
+          <h3>Questions come from the guides</h3>
+          <p>While you read, a background worker searches 237 university extension guides and writes yes or no questions from the symptom passages. Code keeps the one that best separates the suspects.</p>
+        </li>
+        <li>
+          <figure class="shot"><img src="img/step-final.jpg" alt="The final answer, tomato late blight 97 percent sure, with care advice and the UMass Extension guide it came from"></figure>
+          <h3>A diagnosis you can check</h3>
+          <p>Each answer updates the odds in code, so the same answers always give the same result. Once one disease clears 93%, you get it with care advice and the guide it came from.</p>
+        </li>
+        <li>
+          <figure class="shot"><img src="img/step-chat.jpg" alt="The chat: can this plant be saved, answered with three numbered sources from UMass, NC State and Clemson Extension"></figure>
+          <h3>Then ask anything</h3>
+          <p>The chat remembers the conversation and answers from the same guides with numbered sources. Describe a symptom and the odds move again.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section section--moss" aria-labelledby="numbers">
+    <div class="container">
+      <h2 id="numbers" class="visually-hidden">By the numbers</h2>
+      <dl class="bignums">
+        <div><dt>The right disease is in the top three from the photo alone, before a single question</dt><dd>96%</dd></div>
+        <div><dt>From photo to diagnosis, median on a laptop CPU</dt><dd>0.4 s</dd></div>
+        <div><dt>From a tap to the next question, median over 56 taps</dt><dd>6.5 ms</dd></div>
+        <div><dt>University extension guides it reads from</dt><dd>237</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="built">
+    <div class="container knows">
+      <div class="head">
+        <h2 id="built">What’s under the hood</h2>
+        <p class="lead">A vision model trained on a GPU, a search engine over the guides, and a small server that keeps every number in code.</p>
+        <a class="text-link" href="specs.html">See the architecture</a>
+      </div>
+      <ul class="facts facts--grid">
+        <li><b>Vision model</b>ConvNeXt V2 Tiny fine-tuned in PyTorch on a CUDA GPU with mixed precision, on 19,260 lab and field photos, exported to ONNX for CPU serving.</li>
+        <li><b>Guide search</b>Hybrid keyword and embedding search over 237 guides, with a cross-encoder reranker on top.</li>
+        <li><b>Question engine</b>Odds updated by code, next question chosen by expected information gain, questions and advice written ahead in background threads.</li>
+        <li><b>Experiment tracking</b>Every training run and result logged in MLflow, data versioned with DVC, every published number traced to a run record.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section section--paper2" id="contact" aria-labelledby="contact-h">
+    <div class="container contact">
+      <div class="contact__who">
+        <h2 id="contact-h">Aakash Senthilnathan</h2>
+        <p class="lead">Statistics and Data Science at UC Santa Barbara. I built SPROUT end to end: the data pipeline, the model, the search, the server and this site.</p>
+      </div>
+      <ul class="contact__links">
+        <li><span>Portfolio</span><a href="#" data-fill="portfolio">portfolio site</a></li>
+        <li><span>Email</span><a href="mailto:aakash.senthilnathan@gmail.com">aakash.senthilnathan@gmail.com</a></li>
+        <li><span>LinkedIn</span><a href="https://www.linkedin.com/in/aakashsenthilnathan/" rel="noopener">linkedin.com/in/aakashsenthilnathan</a></li>
+        <li><span>GitHub</span><a href="https://github.com/aakashksen" rel="noopener">github.com/aakashksen</a></li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="container footer__grid">
+    <div class="footer__brand"><a class="wordmark" href="index.html"><svg class="leafmark" viewBox="0 0 24 24" aria-hidden="true"><path class="leafmark__blade" d="M4.5 19.5C4.5 10.5 10 4.8 20 4c-.6 9.6-6.3 15.5-15.5 15.5z"/><path class="leafmark__vein" d="M4.5 19.5L14.5 9.5"/></svg>SPROUT</a><span>Smart Plant Recovery and Optimization Utility Tool</span></div>
+    <div class="footer__meta"><p>Built by Aakash Senthilnathan. <a href="index.html#contact">Contact</a>, <a href="https://www.linkedin.com/in/aakashsenthilnathan/" rel="noopener">LinkedIn</a>, <a href="https://github.com/aakashksen" rel="noopener">GitHub</a>.</p><p class="footer__credits" data-credits>Leaf photographs from the PlantDoc (Singh et al., 2020; CC BY 4.0) and PlantSeg (CC BY-NC 4.0) datasets. Not a substitute for your local extension office.</p></div>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('[data-switch]').forEach((sw) => {
+  const tabs = [...sw.querySelectorAll('[role="tab"]')];
+  const show = (t) => tabs.forEach((x) => { const on = x === t; x.setAttribute('aria-selected', String(on)); x.tabIndex = on ? 0 : -1; document.getElementById(x.getAttribute('aria-controls')).hidden = !on; });
+  tabs.forEach((t, i) => {
+    t.addEventListener('click', () => show(t));
+    t.addEventListener('keydown', (e) => { if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return; const n = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length]; show(n); n.focus(); });
+  });
+  show(tabs[0]);
+});
+</script>
+<script>window.hallmarkSlots = (m) => { for (const [k, v] of Object.entries(m)) { const s = document.querySelector(`[data-slot="${k}"]`); if (!s) continue; const im = new Image(); im.src = typeof v === 'string' ? v : v.src; im.alt = (typeof v === 'object' && v.alt) || s.dataset.alt || ''; s.querySelectorAll(':scope > img').forEach((o) => o.remove()); s.prepend(im); } };
+document.querySelectorAll('[data-slot] img').forEach((i) => { if (i.complete && !i.naturalWidth) i.remove(); else i.addEventListener('error', () => i.remove(), { once: true }); });</script>
+</body>
+</html>

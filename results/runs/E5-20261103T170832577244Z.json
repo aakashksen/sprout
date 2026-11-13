@@ -1,0 +1,125 @@
+{
+ "run_id": "E5-20261103T170832577244Z",
+ "experiment": "E5",
+ "git_commit": "5599a467fab04b737884199ee471f3d5faf6a105",
+ "dirty": false,
+ "dataset_hash": "ca794a9071d662cc1dd02e83e0ae345278251ff538255fba82523360835b65ae",
+ "split": "not_plant_dev",
+ "subset": "group_part:0:50",
+ "config": {
+  "seed": 0,
+  "fit_percent": 50,
+  "min_coverage": 0.5,
+  "temperature": 1.1926994533819275,
+  "abstain_threshold": 0.885377,
+  "chosen_gate": "confidence_ood",
+  "gate_settings": {
+   "green_rule": {
+    "kind": "green_rule",
+    "green_threshold": 0.05
+   },
+   "confidence": {
+    "kind": "confidence",
+    "confidence_threshold": 0.3037049661113271
+   },
+   "confidence_ood": {
+    "kind": "confidence_ood",
+    "confidence_threshold": 0.09125950059111163,
+    "ood_threshold": 0.6714892312404642
+   }
+  },
+  "method": "Temperature, the abstention threshold and the gate settings are chosen on the fitting part of each dev split and scored on the scoring part. Each split is cut by near-duplicate group (field_dev by its group column, not_plant_dev one image per group) with sprout.eval.records.scoring_part, seed 0, 50% of the groups to fitting; the record's subset group_part:0:50 names the scoring part. The settings saved in results/e5/chosen.json come from the fitting part only. The final held-out estimate is T8.1's.",
+  "limits": [
+   "The model, convnext_joint, was selected on field_dev, so every number here is a development number.",
+   "field_dev is seen-source: E4's held-out-source runs scored far lower on unseen sources, so calibration and thresholds fitted here may not carry over to new photo sources.",
+   "The out-of-distribution score uses only the probabilities, because the serving check receives probabilities; scores built from logits or features were not tried.",
+   "not_plant_dev is COCO 2017 val images without potted plants; it measures rejection of everyday objects, not of every non-plant photo."
+  ],
+  "model_record": "E4-20261103T143743951448Z",
+  "started_at": "2026-11-03T17:08:32.221348+00:00",
+  "labels_reviewed": false
+ },
+ "models": {
+  "green_rule": "green_rule: convnext_joint from E4 record E4-20261103T143743951448Z",
+  "confidence": "confidence: convnext_joint from E4 record E4-20261103T143743951448Z",
+  "confidence_ood": "confidence_ood: convnext_joint from E4 record E4-20261103T143743951448Z"
+ },
+ "n": 603,
+ "metrics": {
+  "green_rule": {
+   "not_plant_acceptance_rate": 0.33001658374792703
+  },
+  "confidence": {
+   "not_plant_acceptance_rate": 0.04145936981757877
+  },
+  "confidence_ood": {
+   "not_plant_acceptance_rate": 0.01658374792703151
+  }
+ },
+ "measurements": {},
+ "judged": {},
+ "intervals": {},
+ "per_class": {},
+ "confusion": {},
+ "bootstrap": {
+  "n": 10000,
+  "seed": 13
+ },
+ "comparisons": [],
+ "attempts": [
+  {
+   "step": "fit",
+   "temperature": 1.1926994533819275,
+   "abstain_threshold": 0.885377,
+   "min_coverage": 0.5,
+   "fit_rows": {
+    "field_dev": 523,
+    "not_plant_dev": 604
+   }
+  },
+  {
+   "step": "gate",
+   "gate": "green_rule",
+   "settings": {
+    "kind": "green_rule",
+    "green_threshold": 0.05
+   },
+   "fit_plant_rejection": 0.0248565965583174,
+   "fit_not_plant_rejection": 0.6688741721854304,
+   "eligible": true
+  },
+  {
+   "step": "gate",
+   "gate": "confidence",
+   "settings": {
+    "kind": "confidence",
+    "confidence_threshold": 0.3037049661113271
+   },
+   "fit_plant_rejection": 0.0497131931166348,
+   "fit_not_plant_rejection": 0.9552980132450332,
+   "eligible": true
+  },
+  {
+   "step": "gate",
+   "gate": "confidence_ood",
+   "settings": {
+    "kind": "confidence_ood",
+    "confidence_threshold": 0.09125950059111163,
+    "ood_threshold": 0.6714892312404642
+   },
+   "fit_plant_rejection": 0.04588910133843216,
+   "fit_not_plant_rejection": 0.9784768211920529,
+   "eligible": true
+  }
+ ],
+ "claude_calls": 0,
+ "labels_reviewed": false,
+ "predictions": {
+  "green_rule": "results/runs/E5-20261103T170832577244Z.green_rule.predictions.jsonl",
+  "confidence": "results/runs/E5-20261103T170832577244Z.confidence.predictions.jsonl",
+  "confidence_ood": "results/runs/E5-20261103T170832577244Z.confidence_ood.predictions.jsonl"
+ },
+ "started_at": "2026-11-03T17:08:32.221348+00:00",
+ "finished_at": "2026-11-03T17:08:32.577244+00:00",
+ "notes": "Temperature, the abstention threshold and the gate settings are chosen on the fitting part of each dev split and scored on the scoring part. Each split is cut by near-duplicate group (field_dev by its group column, not_plant_dev one image per group) with sprout.eval.records.scoring_part, seed 0, 50% of the groups to fitting; the record's subset group_part:0:50 names the scoring part. The settings saved in results/e5/chosen.json come from the fitting part only. The final held-out estimate is T8.1's. The model, convnext_joint, was selected on field_dev, so every number here is a development number. field_dev is seen-source: E4's held-out-source runs scored far lower on unseen sources, so calibration and thresholds fitted here may not carry over to new photo sources. The out-of-distribution score uses only the probabilities, because the serving check receives probabilities; scores built from logits or features were not tried. not_plant_dev is COCO 2017 val images without potted plants; it measures rejection of everyday objects, not of every non-plant photo."
+}

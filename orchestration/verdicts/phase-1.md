@@ -1,0 +1,22 @@
+VERDICT: PASS
+
+Scope: T1.1, T1.2. I ran everything on CPU (CUDA_VISIBLE_DEVICES empty). I changed no code, `datasets/raw/` or `legacy/`.
+
+What I checked
+- Design: the lab manifest has 54305 images in 38 classes. The field manifest has 4144 images in 31 shared classes (2069/1040/1035 across train/dev/test). The not_plant manifest has 4828 images. The three T1.2 manifests, `class_map.csv`, `docs/data-counts.md` and `docs/field-dedup.md` are present and consistent with each other.
+- Manifest consistency: field.csv has 0 duplicate sha1 values and 0 duplicate paths. Every field label is a `shared` lab_class in `class_map.csv` (set difference is empty both ways). `n_field_test` summed per lab class equals the field_test counts exactly. The one dropped class (Tomato spider mites, 2 images in 2 groups) has no rows in field.csv and has a recorded reason. The 94 excluded classes each carry a reason.
+- Leakage: lab and field manifests have no group and no sha1 spanning splits (`check_splits lab` and `check_splits field` exit 0). Only `datasets/raw/.gitignore` and the lab `.dvc` pointers are tracked under `datasets/raw`, so COCO and PlantDoc images are not in git. Group g000682 is disclosed in `docs/data-counts.md`. The same-scene limit is stated in `docs/field-dedup.md`. I did not search for more duplicates, as instructed.
+- Honesty: README has no metrics. `results/runs/` is empty and there is no `claims.json`, so nothing claims a number. The phase-0 PlantSeg and COCO approval concerns are now recorded in `docs/datasets.md`: the newest Zenodo record is cited, and the COCO approval is recorded as the person's decision, not a license finding.
+- Weakened checks: I found no skipped or loosened tests. The only skip is the raw-image test, which skips when `datasets/raw` is absent.
+
+Worktree question (T2.1, T2.2, experiments under `../_worktrees/`)
+- `taskctl` junction-links `datasets/raw/*` into each worktree (`SHARED` in `tools/taskctl.py:28`). In `_worktrees/SPROUTV2/T2.3`, `datasets/raw/lab`, `plantdoc` and the others resolve to the main copy. Manifest paths are cwd-relative (`datasets/raw/...`), so they resolve when cwd is the worktree root.
+- `ctl verify` runs acceptance with `cwd=<worktree>` and `PYTHONPATH=<worktree>/src` (`tools/taskctl.py:235,250`). So `check_splits lab` and `check_splits field` work from a worktree. Run by hand in T2.3's worktree, both exit 0 with hashes 7eda8dbf... (lab) and 0330ee7e... (field).
+- `load_manifest`, `ManifestDataset` (`src/sprout/train/dataset.py:47`, `Image.open(path)`) and `predict` all use the relative paths directly. They find images only when cwd is the worktree root.
+
+Non-blocking observations (not defects at this phase; each could bite a later task)
+1. Without `PYTHONPATH=src`, the editable install resolves `sprout` to the MAIN checkout. Repro: in the T2.3 worktree, run `python -c "from sprout.data.splits import MANIFEST_DIR; print(MANIFEST_DIR)"`. It prints `datasets\manifests`. With `PYTHONPATH=src` it prints the worktree's folder. So a hand-run `-m sprout.data.check_splits` in a worktree validates the main branch's manifest, not the worktree's. `ctl verify` is unaffected because it sets PYTHONPATH. Anyone changing manifests in a worktree must use `ctl verify` or set PYTHONPATH.
+2. Running `check_splits field` from any other cwd (for example `/`) reports `4144 manifest files are missing on disk`. `MANIFEST_DIR` is anchored to the source file, but the paths inside the manifests are cwd-relative. Experiments run from outside the worktree root will fail to find images. Prefer resolving paths against the repo root in T2.1's dataset code.
+3. `src/sprout/data/check_splits.py:14` compares the number of splits per class to `len(SPLITS)`. `SPLITS` holds the lab split names, so on field.csv only the count (3) is checked, not the names. A field manifest with wrong split names would pass. Today the names are correct.
+4. For T3.2: the shared-class scoring list is the 31 distinct `lab_class` values with `status == shared` in `datasets/class_map.csv`. 48 shared rows map onto those 31 labels, because several source classes map to one lab class. Seven of the 38 lab classes are never in field data. A model scored on field data must be restricted to these 31, or the 7 absent classes will count as zero-support classes.
+5. Experiments that write to `results/` from a worktree write inside the worktree. Results must be committed and merged back; they are not shared like `datasets/raw`.

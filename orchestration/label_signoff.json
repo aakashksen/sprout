@@ -1,0 +1,21 @@
+{
+  "note": "The person signs label review per test split, in words. claims check reads this file for E9 records and refuses a claim on a split whose row is not signed true with by, at and words. Signing changes no run record and needs no rerun. H2's done status does not sign any split.",
+  "lab_test": {
+    "signed": false,
+    "by": null,
+    "at": null,
+    "words": null
+  },
+  "field_test": {
+    "signed": false,
+    "by": null,
+    "at": null,
+    "words": null
+  },
+  "rag_test": {
+    "signed": false,
+    "by": null,
+    "at": null,
+    "words": null
+  }
+}

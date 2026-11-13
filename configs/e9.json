@@ -1,0 +1,81 @@
+{
+  "experiment": "E9",
+  "note": "Frozen before any test split is touched: commit this file, the decision file below, configs/e15.json, the Haiku decision (results/e14/haiku_decision.json), the E5 and E6 outputs and configs/e9_wrong_disease.json first. The primary model (system 'improved') is the one the decision file names, scored on the decision's class list; every other candidate whose saved checkpoint is on disk is scored beside it as 'alternate' (and 'alternate_2'), each with its own calibration. Older models are restricted to the class list by masking the outputs of dropped classes and renormalizing. The other systems are named here.",
+  "exclusion_version": 1,
+  "decision_file": "results/e15/decision.json",
+  "candidates": {
+    "e4": {
+      "checkpoint": "models/e4/convnext_joint/best.pt",
+      "calibration": "results/e5/chosen.json"
+    },
+    "e12": {
+      "checkpoint": "models/e12/convnext_joint_extra/best.pt",
+      "calibration": "results/e12/e5_refit/chosen.json"
+    },
+    "e15": {
+      "checkpoint": "models/e15/final/best.pt",
+      "calibration": null
+    }
+  },
+  "batch_size": 32,
+  "torch_device": "cuda",
+  "systems": {
+    "baseline": {
+      "kind": "torch_checkpoint",
+      "checkpoint": "models/e1/best.pt",
+      "what": "E1, the clean lab baseline"
+    },
+    "xgboost": {
+      "kind": "xgboost",
+      "model": "models/e3/xgboost/model.ubj",
+      "what": "E3, HOG and colour histograms, trained on lab_train",
+      "features": {
+        "size": 128,
+        "orientations": 9,
+        "pixels_per_cell": 16,
+        "cells_per_block": 2,
+        "bins": 32
+      }
+    },
+    "dinov2": {
+      "kind": "torch_checkpoint",
+      "checkpoint": "models/e4/dinov2_head/best.pt",
+      "what": "E4, DINOv2 small with a linear head, trained on the joint set"
+    },
+    "quantized": {
+      "kind": "onnx",
+      "export_file": "results/e6/export.json",
+      "variant": "onnx_dynamic",
+      "model_dir": "models/e6",
+      "what": "E6's quantized export of the chosen model; set `variant` to the export E6's final numbers pick"
+    }
+  },
+  "calibrated": [
+    "improved",
+    "alternate",
+    "quantized"
+  ],
+  "rag": {
+    "index_dir": "knowledge/index",
+    "device": "cuda",
+    "writer": "qwen3.5:4b-q4_K_M",
+    "grader": "sonnet",
+    "max_sonnet_calls": 600,
+    "judge_in_flight": 4,
+    "max_haiku_calls": 600
+  },
+  "wrong_disease": {
+    "served_system": "served",
+    "dev_max_calls": 200,
+    "dev_source": {
+      "e7_run_id": "E7-20261104T040010301317Z",
+      "judgments": "E7-prompts-v2-1e90d37a.judgments.jsonl",
+      "judgments_sha256": "afb838d9291ce5c47c15ed859bb8ff0f2542a6faa071b6f75d7a2250e0895edb",
+      "blind": "E7-prompts-v2-1e90d37a.blind.jsonl",
+      "blind_sha256": "3e61c876e3e57eddd0aba9d5305a558f964ba15fef6733c6511e6d49ba8aa4dd"
+    }
+  },
+  "decision_schema": "T4.9's results/e15/decision.json, read as written: chosen, chosen_checkpoint, chosen_checkpoint_sha256 and classes (the 29, in output order). The chosen checkpoint is the primary and must be one of the candidates (convnext_joint is e4, convnext_joint_extra is e12, convnextv2_final is e15, models/e15/final/best.pt); the other two are scored beside it. Its calibration is not named in the decision: it is <refit.out_dir>/chosen.json of configs/e15.json (results/e15/refit/chosen.json), which names model_sha256. A candidate that is not chosen has no calibration of its own except E4's and E12's earlier files. E9 refuses if the decision, configs/e15.json or the refit is absent or uncommitted.",
+  "old_classes_file": "results/e12/decision.json",
+  "e15_config": "configs/e15.json"
+}

@@ -1,0 +1,71 @@
+{
+  "experiment": "E12",
+  "out_dir": "models/e12",
+  "decision_file": "results/e12/decision.json",
+  "split": "field_dev",
+  "clean_version": 1,
+  "min_free_disk_gb": 40,
+  "lab_manifest": "lab",
+  "field_manifest": "field",
+  "e4": {
+    "config": "configs/e4.json",
+    "arm": "convnext_joint",
+    "model": "models/e4/convnext_joint/best.pt",
+    "why": "E4's best arm: the highest field_dev macro-F1 among arms 1 to 5 that ran (rule configs/e4.json rules.best_arm). The test checks this against E4's records.",
+    "records": {
+      "convnext_joint_extra": "E4-20261103T143743951448Z",
+      "heldout_plantdoc_extra": "E4-20261103T151651745350Z",
+      "heldout_plantseg_extra": "E4-20261103T152355622205Z"
+    }
+  },
+  "settings": {
+    "note": "Copied from configs/e4.json arm convnext_joint and the E4 record's train config. tests/test_e12.py compares every value with E4's; only the extra rows, the output folder and the loader worker count differ.",
+    "model": "convnext_tiny",
+    "lr": 0.0001,
+    "epochs": 10,
+    "batch_size": 32,
+    "transforms": ["random_resized_crop", "hflip", "color_jitter"],
+    "seed": 0,
+    "lab_cap": 60,
+    "train_splits": ["lab_train", "field_train", "extra_train"],
+    "select_split": "field_dev"
+  },
+  "extra": {
+    "manifest": "extra_train",
+    "rows": 3484,
+    "dataset_hash": "edcaec3b39bb86cb554e8ed7749d1f937cc8b7404d40a1db824edc69ff12e0e8",
+    "note": "datasets/manifests/extra_train.csv as frozen by T4.5 and T4.8. Rows keep the cap of 200 per class set there; no further cap or filter is applied. A run refuses to start if the manifest's dataset hash differs."
+  },
+  "num_workers": {
+    "default": 2,
+    "max": 4,
+    "env": "SPROUT_NUM_WORKERS",
+    "e4": 4,
+    "note": "Set with --num-workers or SPROUT_NUM_WORKERS (the flag wins), default 2, at most 4 (T4.1). E4 ran with 4. The sample order comes from a torch Generator seeded with the run seed, so it does not depend on the count; the random augmentation draws are made inside the workers, seeded from the same generator plus the worker's number, so they do depend on the count, as they did in E4. A resume must use the count the run started with. The count is written to the record."
+  },
+  "runs": [
+    {"name": "convnext_joint_extra", "held_out_source": "", "subset": "shared_classes", "compare": ["e1", "convnext_joint"],
+     "change": "E4 convnext_joint plus the extra_train rows"},
+    {"name": "heldout_plantdoc_extra", "held_out_source": "plantdoc", "subset": "source:plantdoc",
+     "compare": ["e1", "convnext_joint", "heldout_plantdoc"],
+     "change": "the same without PlantDoc in training or selection (extras that repeat a PlantDoc photo also leave); scored on field_dev PlantDoc"},
+    {"name": "heldout_plantseg_extra", "held_out_source": "plantseg", "subset": "source:plantseg",
+     "compare": ["e1", "convnext_joint", "heldout_plantseg"],
+     "change": "the same without PlantSeg in training or selection (extras that repeat a PlantSeg photo also leave); scored on field_dev PlantSeg"}
+  ],
+  "focus_classes": ["Apple___", "Corn_(maize)___"],
+  "decision": {
+    "rule": "The extra rows clearly help if both hold. (1) On the seen-source run, scored on field_dev shared_classes+clean:1, the paired 95% interval of the macro-F1 difference (E12 minus E4 convnext_joint) lies wholly above zero. (2) On each held-out-source run, the macro-F1 difference (E12 held-out minus E4 held-out, same rows) is at least minus heldout_margin. Otherwise they do not clearly help, and E4's model stays.",
+    "metric": "macro_f1",
+    "heldout_margin": 0.02,
+    "heldout_margin_reason": "A fixed allowance of two macro-F1 points on a held-out part of 421 to 619 photos, where a single run's own noise is of that order. The point difference is used, not an interval, because a held-out part this small cannot show a loss that small; the interval is reported beside it.",
+    "if_helps": "chosen_model is models/e12/convnext_joint_extra/best.pt. E5's calibration and thresholds are refit on it (configs/e5.json points to it); results/e12/decision.json says so.",
+    "otherwise": "chosen_model stays models/e4/convnext_joint/best.pt and E5 is not refit.",
+    "fixed_before_any_e12_run": true
+  },
+  "limits": [
+    "Development numbers on field_dev, which also chose E4's model, so E4's numbers are optimistic and E12's compare on the same footing only because they use the same field_dev rows.",
+    "Each model is one run with one seed; the paired interval resamples photos and does not cover run-to-run training noise.",
+    "E4 trained on field.csv's rows and E12 does too (the 7 sampled field_train removals of E13 were not applied to training)."
+  ]
+}

@@ -1,0 +1,234 @@
+{
+ "claims": [
+  {
+   "id": "lab_f1",
+   "run_id": "E9-20261105T002700600954Z",
+   "kind": "metric",
+   "system": "baseline",
+   "metric": "macro_f1",
+   "value": 0.9983924702219489,
+   "text": "Clean lab-trained model, lab_test macro-F1 on the shared classes (provisional: the test labels are not signed)",
+   "provisional": true
+  },
+  {
+   "id": "field_f1_before",
+   "run_id": "E9-20261105T003314703226Z",
+   "kind": "metric",
+   "system": "baseline",
+   "metric": "macro_f1",
+   "value": 0.23865064465809938,
+   "text": "Same clean model on field_test, 29 classes, macro-F1, web photos (provisional: the test labels are not signed)",
+   "provisional": true
+  },
+  {
+   "id": "field_f1_after",
+   "run_id": "E9-20261105T003314703226Z",
+   "kind": "metric",
+   "system": "improved",
+   "metric": "macro_f1",
+   "value": 0.8111456065656687,
+   "text": "Final model (ConvNeXt V2 Tiny, joint real and lab training) on field_test, macro-F1, web photos (provisional: the test labels are not signed)",
+   "provisional": true
+  },
+  {
+   "id": "field_top3_after",
+   "run_id": "E9-20261105T003314703226Z",
+   "kind": "metric",
+   "system": "improved",
+   "metric": "top_3_accuracy",
+   "value": 0.9642147117296223,
+   "text": "Final model on field_test, top-3 accuracy over the 29 classes, web photos (provisional: the test labels are not signed)",
+   "provisional": true
+  },
+  {
+   "id": "field_gain_f1",
+   "run_id": "E9-20261105T003314703226Z",
+   "kind": "comparison",
+   "a": "improved",
+   "b": "baseline",
+   "metric": "macro_f1",
+   "field": "diff",
+   "value": 0.5724949619075693,
+   "text": "Final model minus clean lab model, field_test macro-F1 difference (provisional: the test labels are not signed)",
+   "provisional": true
+  },
+  {
+   "id": "field_accuracy",
+   "run_id": "E9-20261105T003314703226Z",
+   "kind": "metric",
+   "system": "improved",
+   "metric": "accuracy",
+   "value": 0.8131212723658051,
+   "text": "Final model on field_test, accuracy over all photos, before abstention (provisional: the test labels are not signed)",
+   "provisional": true
+  },
+  {
+   "id": "field_ece",
+   "run_id": "E9-20261105T003314703226Z",
+   "kind": "metric",
+   "system": "improved",
+   "metric": "ece",
+   "value": 0.07522017793141111,
+   "text": "Final model on field_test, expected calibration error before temperature scaling (provisional: the test labels are not signed)",
+   "provisional": true
+  },
+  {
+   "id": "field_ece_calibrated",
+   "run_id": "E9-20261105T003314703226Z",
+   "kind": "metric",
+   "system": "improved_calibrated",
+   "metric": "ece",
+   "value": 0.04338436833004757,
+   "text": "Final model on field_test, expected calibration error after temperature scaling (provisional: the test labels are not signed)",
+   "provisional": true
+  },
+  {
+   "id": "abstain_coverage",
+   "run_id": "E9-20261105T003314703226Z",
+   "kind": "metric",
+   "system": "improved_calibrated",
+   "metric": "coverage@0.929437~0.964719",
+   "value": 0.5039761431411531,
+   "text": "Share of field_test photos answered at the served thresholds (0.929437, healthy labels 0.964719) (provisional: the test labels are not signed)",
+   "provisional": true
+  },
+  {
+   "id": "abstain_accuracy",
+   "run_id": "E9-20261105T003314703226Z",
+   "kind": "metric",
+   "system": "improved_calibrated",
+   "metric": "selective_accuracy@0.929437~0.964719",
+   "value": 0.9506903353057199,
+   "text": "Accuracy on the field_test photos answered at the served thresholds (provisional: the test labels are not signed)",
+   "provisional": true
+  },
+  {
+   "id": "abstain_error",
+   "run_id": "E9-20261105T003314703226Z",
+   "kind": "metric",
+   "system": "improved_calibrated",
+   "metric": "confident_error_rate@0.929437~0.964719",
+   "value": 0.04930966469428011,
+   "text": "Share of answered field_test photos that are wrong at the served thresholds (provisional: the test labels are not signed)",
+   "provisional": true
+  },
+  {
+   "id": "xgboost_f1",
+   "run_id": "E9-20261105T003314703226Z",
+   "kind": "metric",
+   "system": "xgboost",
+   "metric": "macro_f1",
+   "value": 0.04315526615576534,
+   "text": "XGBoost on HOG and colour histograms, field_test macro-F1, 29 classes (provisional: the test labels are not signed)",
+   "provisional": true
+  },
+  {
+   "id": "dinov2_f1",
+   "run_id": "E9-20261105T003314703226Z",
+   "kind": "metric",
+   "system": "dinov2",
+   "metric": "macro_f1",
+   "value": 0.717128468938528,
+   "text": "DINOv2 small with a linear head, field_test macro-F1, 29 classes (provisional: the test labels are not signed)",
+   "provisional": true
+  },
+  {
+   "id": "vs_dinov2_f1",
+   "run_id": "E9-20261105T003314703226Z",
+   "kind": "comparison",
+   "a": "improved",
+   "b": "dinov2",
+   "metric": "macro_f1",
+   "field": "diff",
+   "value": 0.0940171376271407,
+   "text": "Final model minus DINOv2 head, field_test macro-F1 difference (provisional: the test labels are not signed)",
+   "provisional": true
+  },
+  {
+   "id": "vs_e4_f1",
+   "run_id": "E9-20261105T003314703226Z",
+   "kind": "comparison",
+   "a": "improved",
+   "b": "alternate",
+   "metric": "macro_f1",
+   "field": "diff",
+   "value": 0.058704471783209144,
+   "text": "Final model minus E4 ConvNeXt (rescored on the 29 classes), field_test macro-F1 difference (provisional: the test labels are not signed)",
+   "provisional": true
+  },
+  {
+   "id": "vs_e12_f1",
+   "run_id": "E9-20261105T003314703226Z",
+   "kind": "comparison",
+   "a": "improved",
+   "b": "alternate_2",
+   "metric": "macro_f1",
+   "field": "diff",
+   "value": 0.042937515211652344,
+   "text": "Final model minus E12 ConvNeXt (rescored on the 29 classes), field_test macro-F1 difference (provisional: the test labels are not signed)",
+   "provisional": true
+  },
+  {
+   "id": "quantized_f1",
+   "run_id": "E9-20261105T003314703226Z",
+   "kind": "metric",
+   "system": "quantized",
+   "metric": "macro_f1",
+   "value": 0.8042161295141382,
+   "text": "Dynamic int8 ONNX copy of the final model on field_test, macro-F1 (provisional: the test labels are not signed)",
+   "provisional": true
+  },
+  {
+   "id": "quantized_vs_float_f1",
+   "run_id": "E9-20261105T003314703226Z",
+   "kind": "comparison",
+   "a": "quantized",
+   "b": "improved",
+   "metric": "macro_f1",
+   "field": "diff",
+   "value": -0.006929477051530464,
+   "text": "Quantized minus float32 final model, field_test macro-F1 difference (provisional: the test labels are not signed)",
+   "provisional": true
+  },
+  {
+   "id": "rag_answers",
+   "run_id": "E9-20261105T021656097995Z",
+   "kind": "metric",
+   "system": "served",
+   "metric": "answers_when_answerable",
+   "value": 0.9148936170212766,
+   "text": "Share of answerable rag_test questions answered with a citation (provisional: the test labels are not signed)",
+   "provisional": true
+  },
+  {
+   "id": "rag_declines",
+   "run_id": "E9-20261105T021656097995Z",
+   "kind": "metric",
+   "system": "served",
+   "metric": "declines_when_unanswerable",
+   "value": 1.0,
+   "text": "Share of rag_test questions with no document that were declined (provisional: the test labels are not signed)",
+   "provisional": true
+  },
+  {
+   "id": "rag_declines_crop",
+   "run_id": "E9-20261105T021656097995Z",
+   "kind": "metric",
+   "system": "served",
+   "metric": "declines_when_crop_mismatch",
+   "value": 1.0,
+   "text": "Share of wrong-plant rag_test questions that were declined (provisional: the test labels are not signed)",
+   "provisional": true
+  },
+  {
+   "id": "rag_declines_ambiguous",
+   "run_id": "E9-20261105T021656097995Z",
+   "kind": "metric",
+   "system": "served",
+   "metric": "declines_when_ambiguous",
+   "value": 0.3076923076923077,
+   "text": "Share of ambiguous rag_test questions that were declined (provisional: the test labels are not signed)",
+   "provisional": true
+  }
+ ]
+}

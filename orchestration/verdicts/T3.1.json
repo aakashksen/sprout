@@ -1,0 +1,162 @@
+{
+ "task": "T3.1",
+ "commit": "77af330b314f765d80f0edfafe468db4254380d1",
+ "verdict": "PASS",
+ "checks": [
+  {
+   "item": "HEAD equals commit; worktree clean",
+   "result": "pass",
+   "evidence": "Re-confirmed at 77af330: git rev-parse HEAD matches, git status --short empty in worktree. Earlier checks carried over from 2788629 because git diff 2788629 HEAD changes only docs/data-counts.md (3 insertions, 3 deletions)."
+  },
+  {
+   "item": "Evidence log shows acceptance commands at this commit",
+   "result": "pass",
+   "evidence": "orchestration/evidence/T3.1.log: task T3.1 commit 2788629..., 4 passed, 'E1 ok'. I reran check_run E1 --min-n 1000 --split lab_dev: 'E1 ok'. ruff clean."
+  },
+  {
+   "item": "Recompute accuracy, macro-F1, ECE from saved predictions without project metric code",
+   "result": "pass",
+   "evidence": "numpy script orchestration/evidence/tmp-T3.1/recompute.py: e1 acc 0.9979146221786065, macro-F1 0.9966107943502964, ECE(15 bins) 0.0011059093317409797; legacy 1.0 / 1.0 / 5.531762164523446e-05. Exact match to record."
+  },
+  {
+   "item": "Interval recompute",
+   "result": "pass",
+   "evidence": "My own group bootstrap (seed 13, 2000 resamples, 7896 groups) gave e1 accuracy CI [0.996821, 0.998894] vs record [0.996811, 0.998897]; Wald CI also agrees."
+  },
+  {
+   "item": "Predictions agree with lab.csv for lab_dev, n=8152, no lab_test path, dataset_hash",
+   "result": "pass",
+   "evidence": "Both prediction files: 8152 unique paths equal to the lab_dev set; every label equals the manifest label; no lab_test path. dataset_hash 7eda8dbf... equals sprout.data.splits.dataset_hash(load_manifest('lab')) (not the raw file sha256, which is by design)."
+  },
+  {
+   "item": "best_metric / chosen model agrees with log; best.pt rescoring on CPU",
+   "result": "pass",
+   "evidence": "Log epoch 10 val_acc 0.9979146221786065 is the max and equals record best_dev_accuracy and ckpt best_metric (epoch 10). CUDA_VISIBLE_DEVICES=-1, own torchvision+PIL preprocessing, 237 lab_dev images (all 17 errors plus 220 random): argmax agreement 1.0, max prob diff 1.7e-4. Legacy checkpoint rescored the same way: argmax agreement 1.0, max diff 1.6e-6."
+  },
+  {
+   "item": "Per-class report and confusion matrix recompute and sum to n; MLflow",
+   "result": "pass",
+   "evidence": "Confusion matrices equal my own for both models, sum 8152; per-class supports match and sum to 8152. mlruns/905212871796463407 has one run with 10 epochs of train_loss/val_loss/val_acc and lab_dev_* metrics. Note: logged after training, and the manifest_hash param is an empty string."
+  },
+  {
+   "item": "39-to-38 mapping and class order",
+   "result": "pass",
+   "evidence": "Class order in record equals application.py list (lines 149-160). All 38 mapping pairs checked by an independent normaliser (only '(including_sour)', '(maize)' and trailing underscore differ), values are exactly the 38 official names; Background_without_leaves dropped. Order proved per class: legacy per-class accuracy is 1.0 on all 38 classes (every support > 0), so a swapped pair would show. Background is top output on 0 of the 237 rescored images and 0.0 share in the record."
+  },
+  {
+   "item": "attempts truthful; config data-independent",
+   "result": "pass",
+   "evidence": "One attempt, setting equals configs/e1.json train block, epochs_done 10, not resumed (all 10 epochs have fresh seconds). git history has a single E1 record. Config values are generic (lr 1e-4, bs 32, 10 epochs); selection was on lab_dev only; lab_test never read."
+  },
+  {
+   "item": "D1 refuse changed-settings resume; D2 restore test; mutation checks",
+   "result": "pass",
+   "evidence": "tests/test_train.py 17 passed. Replacing the D1 check with 'if False:' made test_resume_refuses_changed_training_settings[change0] fail. Removing scheduler.load_state_dict, and separately optimizer.load_state_dict, each made test_resume_restores_optimizer_and_scheduler fail. loop.py restored with git checkout -- path each time."
+  },
+  {
+   "item": "Rewrite of test_resume_requires_explicit_path kept strength",
+   "result": "pass",
+   "evidence": "Still asserts FileExistsError without resume, FileNotFoundError for a missing path, and epochs_done == 2 with len(history) == 1 after resume. Now uses a real interruption after epoch 1 instead of a completed 1-epoch run plus changed epochs, which is stronger and consistent with D1."
+  },
+  {
+   "item": "Workers, per-epoch time and memory logging",
+   "result": "pass",
+   "evidence": "num_workers in TrainConfig/DataLoader, seconds and peak_mem_* in history, covered by test_workers_keep_first_batch_seed_stable_and_a_run_works and test_worker_count_does_not_block_a_resume; present in the real run history."
+  },
+  {
+   "item": "docs/data-counts.md new numbers match record",
+   "result": "pass",
+   "evidence": "Accuracy, macro-F1, intervals, ECE for both rows, n 8152, 10,000 resamples, seed 13, commit and hash all match the record exactly. Legacy 1.0 is explicitly flagged as not performance, and lab scores are flagged as not real-world."
+  },
+  {
+   "item": "Diff since 2788629 limited to docs/data-counts.md",
+   "result": "pass",
+   "evidence": "git diff --stat 2788629 HEAD: only docs/data-counts.md, +3 -3. Earlier run, record, metric recompute, rescoring, mapping, attempts, D1/D2 results carried over."
+  },
+  {
+   "item": "Acceptance rerun at 77af330",
+   "result": "pass",
+   "evidence": "pytest tests/test_e1.py -q: 4 passed; check_run E1 --min-n 1000 --split lab_dev: 'E1 ok' (CUDA_VISIBLE_DEVICES=-1). Evidence log ends RESULT PASS."
+  },
+  {
+   "item": "False claims removed: ConcatDataset and 'matching the notebook's printed log'",
+   "result": "pass",
+   "evidence": "grep -rn 'ConcatDataset\\|matching the notebook' docs returns nothing; grep -rIn ConcatDataset legacy returns nothing. Both false statements are gone."
+  },
+  {
+   "item": "Claim: notebook loads one folder 9layerplantdatacnn/data/noaug/noaug data with ImageFolder",
+   "result": "pass",
+   "evidence": "model.ipynb line 51 data_dir = os.path.join('9layerplantdatacnn','data','noaug','noaug data'); line 71 datasets.ImageFolder(data_dir,...). True."
+  },
+  {
+   "item": "Claim: 80/20 random_split over individual images, no seed",
+   "result": "pass",
+   "evidence": "lines 79-81: train_size=int(0.8*len(dataset)); random_split(dataset,[train_size,val_size]). grep for seed finds nothing. True."
+  },
+  {
+   "item": "Claim: 55,448 images in 39 classes",
+   "result": "pass",
+   "evidence": "line 45 output 'Dataset loaded with 55448 images across 39 classes'; class list includes Background_without_leaves. True."
+  },
+  {
+   "item": "Claim: num_epochs = 1 and saved output is a 1-epoch run; no notebook output contains 99.97",
+   "result": "pass",
+   "evidence": "line 261 num_epochs = 1; line 241 output 'Epoch 1/1: 13% ... acc=99.9'; grep '99\\.97' legacy hits only training_history.json. True."
+  },
+  {
+   "item": "Claim: best_epoch 11, epochs_ran 16, best val_acc 99.97006884166417",
+   "result": "pass",
+   "evidence": "training_history.json: best_val_acc 99.97006884166417, best_epoch 11, epochs_ran 16; max(val_acc) is at 1-based index 11 of 16 entries. True."
+  },
+  {
+   "item": "Claim: README says 'Accuracy: 97.5% on validation data', 38 classes",
+   "result": "pass",
+   "evidence": "legacy/PlantProject/README.md line 22 'Accuracy: 97.5% on validation data', lines 10 and 23 say 38. True."
+  },
+  {
+   "item": "Claim: literal 98.5 found only in docs/PLAN.md and the data-counts section",
+   "result": "pass",
+   "evidence": "grep -rIn '98\\.5' legacy README.md docs: only docs/PLAN.md:119 and docs/data-counts.md:104. True."
+  },
+  {
+   "item": "Claim: image names 'image (N).JPG' and PlantVillage-style folder names; count 55,448 vs 54,305",
+   "result": "pass",
+   "evidence": "notebook lines 413/562 show 'Orange___Haunglongbing_(Citrus_greening)\\image (4210).JPG'; release has 54305 per this doc's totals. True. The doc explicitly says the files do not prove the same underlying dataset."
+  },
+  {
+   "item": "E1 record numbers quoted in doc match results/runs/E1-20261103T074728015380Z.json exactly",
+   "result": "pass",
+   "evidence": "commit 592fa2c0..., dirty False, dataset_hash 7eda8dbf..., split lab_dev, n 8152, acc 0.9979146221786065 [0.9968109702576189, 0.9988966565624972], F1 0.9966107943502964 [0.994622070375535, 0.9982896717025654], ECE 0.0011059093317409797; legacy 1.0/1.0/5.531762164523446e-05; bootstrap n 10000 seed 13; train lr 0.0001, batch 32, epochs 10. All match."
+  },
+  {
+   "item": "Framing: legacy 1.0 not presented as performance; lab not real-world",
+   "result": "pass",
+   "evidence": "data-counts.md lines 97 and 99 say do not read 1.0 as performance, cannot be compared with E1, and lab scores are not real-world. Pass."
+  },
+  {
+   "item": "legacy/ untouched",
+   "result": "pass",
+   "evidence": "git diff --stat HEAD -- legacy empty; no secrets in the doc diff."
+  }
+ ],
+ "own_tests": [
+  {
+   "input": "Independent rescoring of 237 lab_dev images (17 errors + 220 random) from models/e1/best.pt and the legacy .pth on CPU with my own preprocessing",
+   "result": "argmax agreement 1.0 for both; max prob diff 1.7e-4 (e1), 1.6e-6 (legacy)"
+  },
+  {
+   "input": "Independent numpy recompute of metrics, confusion, per-class support, group bootstrap, path/label/split agreement with lab.csv",
+   "result": "all match the record"
+  },
+  {
+   "input": "map_legacy / legacy_to_shared edge cases: official class with no legacy output, two legacy names mapping to one class, background-dominated row, reordered official list",
+   "result": "ValueError raised for the two bad mappings; background row renormalised to [0.5, 0.5] with unmapped share 0.5; reordered output correct. All passed."
+  },
+  {
+   "input": "Mutations of loop.py (D1 check removed; scheduler restore removed; optimizer restore removed)",
+   "result": "the matching tests failed each time; file restored with git checkout -- src/sprout/train/loop.py"
+  }
+ ],
+ "failures": [],
+ "notes": "Previous two false source claims fixed. Minor, not failures: MLflow params manifest_hash is an empty string and metrics are logged in one burst after training; lab_test-not-read note is fixed text (code and path check show no lab_test path); legacy checkpoint path is absolute and outside the repo so legacy rescoring is not rerunnable from the repo alone (sha256 recorded); the worktree results/runs record is not yet in the main folder."
+}

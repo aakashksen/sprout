@@ -1,0 +1,33 @@
+{
+  "task": "T7.1",
+  "commit": "1ce6ed30a83a21adb70ec7ae209d944f76bed634",
+  "verdict": "PASS",
+  "checks": [
+    {"item": "HEAD equals commit; worktree clean", "result": "pass", "evidence": "git rev-parse HEAD = 1ce6ed30...; git status --short in worktree empty (before and after my runs)"},
+    {"item": "Acceptance evidence log", "result": "pass", "evidence": "orchestration/evidence/T7.1.log: commit 1ce6ed3, 'pytest tests/test_web.py -q' 23 passed, RESULT PASS"},
+    {"item": "All 10 named plan tests plus extras exist in tests/test_web.py", "result": "pass", "evidence": "grep of test names: prediction_and_user_selection, csrf, non_image, rate_limit, ready_false_when_model_missing, two_app_instances, delete_removes_row_and_file etc. present; new tests for lab class mapping, general-only, readiness truth, failed warm-up"},
+    {"item": "Fix 1: corrupt/truncated/zero-length/wrong-shape/1-D/garbage/too-many-rows vector cache", "result": "pass", "evidence": "my test_r2.py::test_bad_caches (6 variants): search returns 3 results, cache rewritten with shape (3,2), next Retriever reuses it (embed count stays 2). Object-pickle cache also does not crash (ValueError caught)."},
+    {"item": "Fix 2: concurrent cold start embeds once", "result": "pass", "evidence": "8 searching threads + 3 warm() threads on one Retriever with a 0.5s embedder: embed count == 1, no errors. RLock in _ensure_vectors."},
+    {"item": "Failing embedder", "result": "pass", "evidence": "warm() raises, no vectors file or .tmp left behind, a later warm() after the embedder recovers succeeds. replace() failing (OSError) still warms and leaves no .tmp."},
+    {"item": "Stale cache after chunk or model change", "result": "pass", "evidence": "added chunk -> re-embed once; embedding_model changed -> re-embed. Cache key hashes model plus all chunk text."},
+    {"item": "Route: chat during warm-up and after failed warm-up", "result": "pass", "evidence": "test_route_warming_503_no_second_embed_and_failed_503 (ok and fail): 5 chat posts while warming all 503, retriever.search_calls == 0 and warm_calls == 1; after failure, /readyz chat='failed' and chat stays 503 with no search; after success chat returns 200."},
+    {"item": "Real app with Retriever whose cache is zero-length", "result": "pass", "evidence": "test_real_retriever_in_app_corrupt_cache: warm-up heals, readyz chat 'ready', chat 200"},
+    {"item": "Fix 3: all 38 real lab.csv labels map to the right manifest crop", "result": "pass", "evidence": "test_all_38_real_labels uses datasets/manifests/lab.csv (38 labels) with real chunk crops (apple, blueberry, cherry, corn, grape, orange, peach, pepper, potato, strawberry, tomato); every mapped crop is a substring of its plant name, no crop that appears in a plant name is missed; Raspberry, Soybean, Squash map to None. Manifest crops equal chunks.jsonl crops."},
+    {"item": "Tomato question cannot reach apple documents", "result": "pass", "evidence": "test_real_index_tomato_cannot_reach_apple on the real 2,258-chunk index: 'apple scab fungicide' with crop=tomato returns only tomato/general chunks; Apple labels map to apple, Tomato to tomato"},
+    {"item": "Class with no documents gets general guidance only, labeled", "result": "pass", "evidence": "Squash___Powdery_mildew chat: crop passed as 'general' (repo test) and note = 'No document covers this plant, so only general guidance is shown, which may not apply to it. Check the product label ...'"},
+    {"item": "Real fastembed on CPU (CUDA_VISIBLE_DEVICES empty)", "result": "pass", "evidence": "real_fastembed.py with a 24-chunk subset of the real index: cold warm 2.8s writes vectors-*.npy, second Retriever warm 0.01s, zero-length cache then heals. Full 2,258-chunk CPU embed was NOT run (minutes); only the subset was exercised."},
+    {"item": "Earlier attack tests (test_own.py, test_cache.py) rerun against this commit", "result": "pass", "evidence": "pytest of test_r2.py, test_cache.py, test_own.py: 46 passed, 1 failed; the single failure is my deliberately strict general-fallback labeling probe (see notes), not a prior check. Image bombs, SVG/corrupt uploads, open-redirect variants and CSRF on every POST route all still pass."},
+    {"item": "Diff hygiene", "result": "pass", "evidence": "no legacy/ changes, no secrets matched in diff, earlier tests not weakened (tests only added: +120 test_web, +71 test_retrieve)"}
+  ],
+  "own_tests": [
+    {"input": "6 bad cache variants (truncated, zero, wrong shape, 1-D, garbage, extra rows)", "result": "all recover and rewrite the cache"},
+    {"input": "8 searches + 3 warms racing on a cold Retriever", "result": "exactly one embed"},
+    {"input": "3 independent Retriever objects warming the same dir at once", "result": "3 embeds (one each) but the cache file ends valid, no .tmp left; the lock is per-object only"},
+    {"input": "NaN-filled cache of correct shape", "result": "accepted as valid; dense search silently returns no results; no re-embed"},
+    {"input": "chat while warming, and after failed warm-up", "result": "503 every time, search never called"},
+    {"input": "Squash label chat", "result": "general-only note shown"},
+    {"input": "Known crop (tomato) whose search falls back to general documents", "result": "response carries only the normal label note; passages have source general.pdf but the response does not say they are general"}
+  ],
+  "failures": [],
+  "notes": "Not failures, but worth knowing. (1) /readyz stays HTTP 200 with ready:true while chat is 'warming' or 'failed'; the chat state is only in the 'chat' field. Chat itself returns 503 in those states, so there are no more timeouts. (2) A failed warm-up is permanent until restart; there is no retry. (3) When a known crop's own documents are all filtered out, Retriever.search falls back to the general documents and the route gives only the normal label note, without saying the guidance is general (src/sprout/web/analyses.py chat, note logic). The cited source shows it, but the response does not. (4) The user's chat message is committed to chat_messages before the 503 abort, so a rejected message is still stored. (5) A cache with the right shape but NaN content is trusted. (6) The cross-process or cross-object cold start can still embed more than once; the writes are atomic though. The main folder's T1.2 changes were not touched."
+}

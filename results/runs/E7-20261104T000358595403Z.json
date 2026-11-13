@@ -1,0 +1,362 @@
+{
+ "run_id": "E7-20261104T000358595403Z",
+ "experiment": "E7",
+ "git_commit": "6aa60c2901e4f491ab6ab1109d6cb3e5f59e8a4a",
+ "dirty": false,
+ "dataset_hash": "b6b3b168bfd8792f7311f47c457652657d82eb6e47e8a45e2a3aebaf9ba793f9",
+ "split": "rag_dev",
+ "subset": null,
+ "config": {
+  "stage": "floors",
+  "method_version": 2,
+  "floors": {
+   "dense": {
+    "floor": 0.732844,
+    "answers_when_answerable": 0.8,
+    "declines_when_unanswerable": 0.5714285714285714,
+    "rule_applied": "highest declines among floors answering at least 80%",
+    "curve": [
+     {
+      "floor": 0.5449,
+      "answers": 1.0,
+      "declines": 0.0
+     },
+     {
+      "floor": 0.6851,
+      "answers": 0.8666666666666667,
+      "declines": 0.0
+     },
+     {
+      "floor": 0.719,
+      "answers": 0.8333333333333334,
+      "declines": 0.35714285714285715
+     },
+     {
+      "floor": 0.7393,
+      "answers": 0.7833333333333333,
+      "declines": 0.6428571428571429
+     },
+     {
+      "floor": 0.7821,
+      "answers": 0.7,
+      "declines": 0.8571428571428571
+     },
+     {
+      "floor": 0.8039,
+      "answers": 0.6166666666666667,
+      "declines": 1.0
+     },
+     {
+      "floor": 0.8191,
+      "answers": 0.5,
+      "declines": 1.0
+     },
+     {
+      "floor": 0.8348,
+      "answers": 0.36666666666666664,
+      "declines": 1.0
+     },
+     {
+      "floor": 0.8517,
+      "answers": 0.25,
+      "declines": 1.0
+     },
+     {
+      "floor": 0.8641,
+      "answers": 0.13333333333333333,
+      "declines": 1.0
+     },
+     {
+      "floor": 0.8898,
+      "answers": 0.016666666666666666,
+      "declines": 1.0
+     }
+    ]
+   },
+   "hybrid": {
+    "floor": 0.806462,
+    "answers_when_answerable": 0.8666666666666667,
+    "declines_when_unanswerable": 0.6428571428571429,
+    "rule_applied": "highest declines among floors answering at least 80%",
+    "curve": [
+     {
+      "floor": 0.7475,
+      "answers": 1.0,
+      "declines": 0.0
+     },
+     {
+      "floor": 0.7884,
+      "answers": 0.95,
+      "declines": 0.35714285714285715
+     },
+     {
+      "floor": 0.8035,
+      "answers": 0.8833333333333333,
+      "declines": 0.5714285714285714
+     },
+     {
+      "floor": 0.8329,
+      "answers": 0.7833333333333333,
+      "declines": 0.6428571428571429
+     },
+     {
+      "floor": 0.8665,
+      "answers": 0.7,
+      "declines": 0.8571428571428571
+     },
+     {
+      "floor": 0.8906,
+      "answers": 0.6,
+      "declines": 0.9285714285714286
+     },
+     {
+      "floor": 0.8958,
+      "answers": 0.5,
+      "declines": 1.0
+     },
+     {
+      "floor": 0.9024,
+      "answers": 0.36666666666666664,
+      "declines": 1.0
+     },
+     {
+      "floor": 0.9128,
+      "answers": 0.25,
+      "declines": 1.0
+     },
+     {
+      "floor": 0.9248,
+      "answers": 0.13333333333333333,
+      "declines": 1.0
+     },
+     {
+      "floor": 0.9449,
+      "answers": 0.016666666666666666,
+      "declines": 1.0
+     }
+    ]
+   },
+   "hybrid+rerank": {
+    "floor": 0.73875,
+    "answers_when_answerable": 0.8166666666666667,
+    "declines_when_unanswerable": 0.8571428571428571,
+    "rule_applied": "highest declines among floors answering at least 80%",
+    "curve": [
+     {
+      "floor": 0.0001,
+      "answers": 1.0,
+      "declines": 0.0
+     },
+     {
+      "floor": 0.0071,
+      "answers": 0.9,
+      "declines": 0.14285714285714285
+     },
+     {
+      "floor": 0.0415,
+      "answers": 0.85,
+      "declines": 0.42857142857142855
+     },
+     {
+      "floor": 0.6699,
+      "answers": 0.8166666666666667,
+      "declines": 0.7857142857142857
+     },
+     {
+      "floor": 0.9818,
+      "answers": 0.7,
+      "declines": 0.8571428571428571
+     },
+     {
+      "floor": 0.9936,
+      "answers": 0.6,
+      "declines": 0.9285714285714286
+     },
+     {
+      "floor": 0.9975,
+      "answers": 0.48333333333333334,
+      "declines": 0.9285714285714286
+     },
+     {
+      "floor": 0.9986,
+      "answers": 0.36666666666666664,
+      "declines": 1.0
+     },
+     {
+      "floor": 0.9993,
+      "answers": 0.25,
+      "declines": 1.0
+     },
+     {
+      "floor": 0.9996,
+      "answers": 0.13333333333333333,
+      "declines": 1.0
+     },
+     {
+      "floor": 0.9999,
+      "answers": 0.016666666666666666,
+      "declines": 1.0
+     }
+    ]
+   }
+  },
+  "default_floor": 0.3,
+  "device": "cuda",
+  "device_info": {
+   "device": "cuda",
+   "torch": "2.11.0+cu128",
+   "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+   "cuda": "12.8",
+   "peak_gpu_mib": 480
+  },
+  "labels_reviewed": false,
+  "floor_diagnosis": {
+   "dense": {
+    "floor": 0.732844,
+    "answerable_under_floor": 12,
+    "of": 60,
+    "by_category": {
+     "multi_turn": 11,
+     "supported": 1
+    },
+    "gold_in_top10_anyway": 9,
+    "gold_missing_from_top10": 3,
+    "no_simulated_diagnosis": 5,
+    "plant_filter_applied": 12,
+    "would_pass_floor_without_plant_filter": 3
+   },
+   "hybrid": {
+    "floor": 0.806462,
+    "answerable_under_floor": 8,
+    "of": 60,
+    "by_category": {
+     "multi_turn": 8
+    },
+    "gold_in_top10_anyway": 3,
+    "gold_missing_from_top10": 5,
+    "no_simulated_diagnosis": 3,
+    "plant_filter_applied": 8,
+    "would_pass_floor_without_plant_filter": 3
+   },
+   "hybrid+rerank": {
+    "floor": 0.73875,
+    "answerable_under_floor": 11,
+    "of": 60,
+    "by_category": {
+     "multi_turn": 10,
+     "supported": 1
+    },
+    "gold_in_top10_anyway": 7,
+    "gold_missing_from_top10": 4,
+    "no_simulated_diagnosis": 4,
+    "plant_filter_applied": 11,
+    "would_pass_floor_without_plant_filter": 3
+   }
+  },
+  "decline_rule": "a question is declined when its best passage scores under the floor",
+  "floor_rule": "among floors answering at least 80% of answerable questions, the highest declines_when_unanswerable; else the highest mean of the two (version 2, revised after the first pass)",
+  "retrieval": {
+   "index": "index",
+   "mode": "hybrid",
+   "rerank": true,
+   "query_mode": "question",
+   "crops_from_title": false
+  }
+ },
+ "models": {
+  "embedder": "BAAI/bge-small-en-v1.5",
+  "reranker": "cross-encoder/ms-marco-MiniLM-L6-v2"
+ },
+ "n": 101,
+ "metrics": {
+  "floor_chosen_dense": {
+   "answers_when_answerable": 0.8,
+   "declines_when_unanswerable": 0.5714285714285714,
+   "declines_when_crop_mismatch": 0.14285714285714285,
+   "declines_when_ambiguous": 0.46153846153846156
+  },
+  "floor_default_dense": {
+   "answers_when_answerable": 1.0,
+   "declines_when_unanswerable": 0.0,
+   "declines_when_crop_mismatch": 0.0,
+   "declines_when_ambiguous": 0.0
+  },
+  "floor_chosen_hybrid": {
+   "answers_when_answerable": 0.8666666666666667,
+   "declines_when_unanswerable": 0.6428571428571429,
+   "declines_when_crop_mismatch": 0.14285714285714285,
+   "declines_when_ambiguous": 0.15384615384615385
+  },
+  "floor_default_hybrid": {
+   "answers_when_answerable": 1.0,
+   "declines_when_unanswerable": 0.0,
+   "declines_when_crop_mismatch": 0.0,
+   "declines_when_ambiguous": 0.0
+  },
+  "floor_chosen_hybrid_rerank": {
+   "answers_when_answerable": 0.8166666666666667,
+   "declines_when_unanswerable": 0.8571428571428571,
+   "declines_when_crop_mismatch": 0.7142857142857143,
+   "declines_when_ambiguous": 0.38461538461538464
+  },
+  "floor_default_hybrid_rerank": {
+   "answers_when_answerable": 0.8333333333333334,
+   "declines_when_unanswerable": 0.6428571428571429,
+   "declines_when_crop_mismatch": 0.5714285714285714,
+   "declines_when_ambiguous": 0.15384615384615385
+  }
+ },
+ "measurements": {},
+ "judged": {},
+ "intervals": {
+  "floor_chosen_dense": {},
+  "floor_default_dense": {},
+  "floor_chosen_hybrid": {},
+  "floor_default_hybrid": {},
+  "floor_chosen_hybrid_rerank": {},
+  "floor_default_hybrid_rerank": {}
+ },
+ "per_class": {},
+ "confusion": {},
+ "bootstrap": {
+  "n": 10000,
+  "seed": 13
+ },
+ "comparisons": [],
+ "attempts": [
+  {
+   "mode": "dense",
+   "floor": 0.732844,
+   "answers_when_answerable": 0.8,
+   "declines_when_unanswerable": 0.5714285714285714,
+   "rule_applied": "highest declines among floors answering at least 80%"
+  },
+  {
+   "mode": "hybrid",
+   "floor": 0.806462,
+   "answers_when_answerable": 0.8666666666666667,
+   "declines_when_unanswerable": 0.6428571428571429,
+   "rule_applied": "highest declines among floors answering at least 80%"
+  },
+  {
+   "mode": "hybrid+rerank",
+   "floor": 0.73875,
+   "answers_when_answerable": 0.8166666666666667,
+   "declines_when_unanswerable": 0.8571428571428571,
+   "rule_applied": "highest declines among floors answering at least 80%"
+  }
+ ],
+ "claude_calls": 0,
+ "labels_reviewed": false,
+ "predictions": {
+  "floor_chosen_dense": "results/runs/E7-20261104T000358595403Z.floor_chosen_dense.predictions.jsonl",
+  "floor_default_dense": "results/runs/E7-20261104T000358595403Z.floor_default_dense.predictions.jsonl",
+  "floor_chosen_hybrid": "results/runs/E7-20261104T000358595403Z.floor_chosen_hybrid.predictions.jsonl",
+  "floor_default_hybrid": "results/runs/E7-20261104T000358595403Z.floor_default_hybrid.predictions.jsonl",
+  "floor_chosen_hybrid_rerank": "results/runs/E7-20261104T000358595403Z.floor_chosen_hybrid_rerank.predictions.jsonl",
+  "floor_default_hybrid_rerank": "results/runs/E7-20261104T000358595403Z.floor_default_hybrid_rerank.predictions.jsonl"
+ },
+ "started_at": "2026-11-04T00:03:58.595403+00:00",
+ "finished_at": "2026-11-04T00:03:58.595403+00:00",
+ "notes": "Floors were picked on rag_dev itself, so these rates are optimistic."
+}

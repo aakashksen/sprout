@@ -1,0 +1,263 @@
+{
+ "run_id": "E7-20261103T235630916335Z",
+ "experiment": "E7",
+ "git_commit": "b3064076d3c4e0cfee2ed7127f16c74a3150cb70",
+ "dirty": false,
+ "dataset_hash": "b6b3b168bfd8792f7311f47c457652657d82eb6e47e8a45e2a3aebaf9ba793f9",
+ "split": "rag_dev",
+ "subset": "answerable",
+ "config": {
+  "stage": "latency",
+  "method_version": 2,
+  "base": "rerank_cuda",
+  "rank_k": 10,
+  "gold_matching": "A passage is the gold hit when its source and page equal the question's gold source and page. A document the index holds as a single page (every HTML page and Markdown file is 'page 1') would match any of its chunks, so there the passage must also contain one of the question's answer terms.",
+  "crop_source": "The plant comes from the question text (or the question's stated crop), never from the gold label. A top disease is simulated from the class names of that plant that the question names; a plant with no such class has no photo diagnosis.",
+  "device": "cuda",
+  "device_info": {
+   "device": "cuda",
+   "torch": "2.11.0+cu128",
+   "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+   "cuda": "12.8",
+   "peak_gpu_mib": 479
+  },
+  "labels_reviewed": false,
+  "decision_rule": "keep when the paired interval of recall@5 or of MRR excludes zero and the other point estimate is not worse (version 2, revised after the first pass)",
+  "machine": {
+   "cpu": "AMD64 Family 26 Model 36 Stepping 0, AuthenticAMD",
+   "cpu_count": 24,
+   "python": "3.12.8",
+   "gpu_memory_in_use_mib_when_stage_began": 2043,
+   "candidates_reranked_per_search": 15,
+   "searches_timed": 60,
+   "warmup_searches": 3,
+   "note": "Embedding the query runs on CUDA in every path, so search_ms differs between paths by the reranker only."
+  }
+ },
+ "models": {
+  "embedder": "BAAI/bge-small-en-v1.5",
+  "reranker": "cross-encoder/ms-marco-MiniLM-L6-v2"
+ },
+ "n": 60,
+ "metrics": {
+  "rerank_cuda": {
+   "recall@1": 0.6,
+   "recall@3": 0.8,
+   "recall@5": 0.8333333333333334,
+   "recall@10": 0.9333333333333333,
+   "mrr": 0.7123544973544973
+  },
+  "rerank_cuda_terms": {
+   "recall@1": 0.6666666666666666,
+   "recall@3": 0.8166666666666667,
+   "recall@5": 0.9,
+   "recall@10": 0.9666666666666667,
+   "mrr": 0.7655555555555557
+  },
+  "rerank_cpu_torch": {
+   "recall@1": 0.6,
+   "recall@3": 0.8,
+   "recall@5": 0.8333333333333334,
+   "recall@10": 0.9333333333333333,
+   "mrr": 0.7123544973544973
+  },
+  "rerank_cpu_torch_terms": {
+   "recall@1": 0.6666666666666666,
+   "recall@3": 0.8166666666666667,
+   "recall@5": 0.9,
+   "recall@10": 0.9666666666666667,
+   "mrr": 0.7655555555555557
+  },
+  "rerank_cpu_onnx": {
+   "recall@1": 0.6,
+   "recall@3": 0.8,
+   "recall@5": 0.8333333333333334,
+   "recall@10": 0.9333333333333333,
+   "mrr": 0.7123544973544973
+  },
+  "rerank_cpu_onnx_terms": {
+   "recall@1": 0.6666666666666666,
+   "recall@3": 0.8166666666666667,
+   "recall@5": 0.9,
+   "recall@10": 0.9666666666666667,
+   "mrr": 0.7655555555555557
+  }
+ },
+ "measurements": {
+  "file": "results/runs/E7-20261103T235630916335Z.measurements.json",
+  "values": {
+   "search_ms_cuda_p50": 57.73629999748664,
+   "search_ms_cuda_p95": 79.46020999297616,
+   "rerank_ms_cuda_p50": 30.05414999643108,
+   "rerank_ms_cuda_p95": 42.54521999464487,
+   "search_ms_cpu_torch_p50": 682.385099993553,
+   "search_ms_cpu_torch_p95": 1085.9316699898045,
+   "rerank_ms_cpu_torch_p50": 631.1317499930738,
+   "rerank_ms_cpu_torch_p95": 1063.4386649973749,
+   "search_ms_cpu_onnx_p50": 629.9609999987297,
+   "search_ms_cpu_onnx_p95": 1078.5489849942678,
+   "rerank_ms_cpu_onnx_p50": 604.2232500039972,
+   "rerank_ms_cpu_onnx_p95": 975.5566500054553
+  }
+ },
+ "judged": {},
+ "intervals": {
+  "rerank_cuda": {
+   "recall@5": [
+    0.7333333333333333,
+    0.9166666666666666
+   ],
+   "mrr": [
+    0.6158108465608466,
+    0.8047619047619048
+   ]
+  },
+  "rerank_cuda_terms": {
+   "recall@5": [
+    0.8166666666666667,
+    0.9666666666666667
+   ],
+   "mrr": [
+    0.6739791666666668,
+    0.8510185185185185
+   ]
+  },
+  "rerank_cpu_torch": {
+   "recall@5": [
+    0.7333333333333333,
+    0.9166666666666666
+   ],
+   "mrr": [
+    0.6158108465608466,
+    0.8047619047619048
+   ]
+  },
+  "rerank_cpu_torch_terms": {
+   "recall@5": [
+    0.8166666666666667,
+    0.9666666666666667
+   ],
+   "mrr": [
+    0.6739791666666668,
+    0.8510185185185185
+   ]
+  },
+  "rerank_cpu_onnx": {
+   "recall@5": [
+    0.7333333333333333,
+    0.9166666666666666
+   ],
+   "mrr": [
+    0.6158108465608466,
+    0.8047619047619048
+   ]
+  },
+  "rerank_cpu_onnx_terms": {
+   "recall@5": [
+    0.8166666666666667,
+    0.9666666666666667
+   ],
+   "mrr": [
+    0.6739791666666668,
+    0.8510185185185185
+   ]
+  }
+ },
+ "per_class": {},
+ "confusion": {},
+ "bootstrap": {
+  "n": 10000,
+  "seed": 13
+ },
+ "comparisons": [
+  {
+   "a": "rerank_cpu_torch",
+   "b": "rerank_cuda",
+   "metric": "recall@5",
+   "diff": 0.0,
+   "ci": [
+    0.0,
+    0.0
+   ],
+   "mcnemar_p": 1.0
+  },
+  {
+   "a": "rerank_cpu_torch",
+   "b": "rerank_cuda",
+   "metric": "mrr",
+   "diff": 0.0,
+   "ci": [
+    0.0,
+    0.0
+   ],
+   "mcnemar_p": 1.0
+  },
+  {
+   "a": "rerank_cpu_onnx",
+   "b": "rerank_cuda",
+   "metric": "recall@5",
+   "diff": 0.0,
+   "ci": [
+    0.0,
+    0.0
+   ],
+   "mcnemar_p": 1.0
+  },
+  {
+   "a": "rerank_cpu_onnx",
+   "b": "rerank_cuda",
+   "metric": "mrr",
+   "diff": 0.0,
+   "ci": [
+    0.0,
+    0.0
+   ],
+   "mcnemar_p": 1.0
+  }
+ ],
+ "attempts": [
+  {
+   "system": "rerank_cuda",
+   "setting": {
+    "index": "index",
+    "mode": "hybrid",
+    "rerank": true,
+    "query_mode": "question",
+    "crops_from_title": false
+   }
+  },
+  {
+   "system": "rerank_cpu_torch",
+   "setting": {
+    "index": "index",
+    "mode": "hybrid",
+    "rerank": true,
+    "query_mode": "question",
+    "crops_from_title": false
+   }
+  },
+  {
+   "system": "rerank_cpu_onnx",
+   "setting": {
+    "index": "index",
+    "mode": "hybrid",
+    "rerank": true,
+    "query_mode": "question",
+    "crops_from_title": false
+   }
+  }
+ ],
+ "claude_calls": 0,
+ "labels_reviewed": false,
+ "predictions": {
+  "rerank_cuda": "results/runs/E7-20261103T235630916335Z.rerank_cuda.predictions.jsonl",
+  "rerank_cuda_terms": "results/runs/E7-20261103T235630916335Z.rerank_cuda_terms.predictions.jsonl",
+  "rerank_cpu_torch": "results/runs/E7-20261103T235630916335Z.rerank_cpu_torch.predictions.jsonl",
+  "rerank_cpu_torch_terms": "results/runs/E7-20261103T235630916335Z.rerank_cpu_torch_terms.predictions.jsonl",
+  "rerank_cpu_onnx": "results/runs/E7-20261103T235630916335Z.rerank_cpu_onnx.predictions.jsonl",
+  "rerank_cpu_onnx_terms": "results/runs/E7-20261103T235630916335Z.rerank_cpu_onnx_terms.predictions.jsonl"
+ },
+ "started_at": "2026-11-03T23:56:30.916335+00:00",
+ "finished_at": "2026-11-03T23:56:30.916335+00:00",
+ "notes": "Retrieval only, on the answerable questions; the score floor is off."
+}

@@ -1,0 +1,15 @@
+### T6.4 - Retrieval, header: base kept (no change met the rule) (method v2, 2026-11-03)
+- **Chose:** base = {'index': 'index', 'mode': 'hybrid', 'rerank': True, 'query_mode': 'question', 'crops_from_title': False}
+- **Considered:** header = {'index': 'index-header', 'mode': 'hybrid', 'rerank': True, 'query_mode': 'question', 'crops_from_title': False}
+- **Rule:** keep a change when the paired interval of recall@5 or of MRR excludes zero and the other point estimate is not worse. Revised after the first pass, whose numbers showed the old recall@5-only rule dropping a clear gain.
+- **Evidence:** record `E7-20261103T235854416532Z`, n=60 answerable rag_dev questions. recall@1 / @3 / @5 / @10 / MRR per system (the `_terms` rows count any document holding an answer term):
+  - base: 0.600 / 0.800 / 0.833 / 0.933 / 0.712
+  - base_terms: 0.667 / 0.817 / 0.900 / 0.967 / 0.766
+  - header: 0.600 / 0.833 / 0.900 / 0.900 / 0.719
+  - header_terms: 0.700 / 0.867 / 0.933 / 0.967 / 0.794
+  - recall@5 header minus base: +0.067 (95% CI +0.000 to +0.150), McNemar p=0.219
+  - mrr header minus base: +0.007 (95% CI -0.070 to +0.083), McNemar p=1.000
+  - by category, base: multi_turn n=14 recall@5 0.714 MRR 0.617; supported n=46 recall@5 0.870 MRR 0.741
+  - by category, header: multi_turn n=14 recall@5 0.714 MRR 0.518; supported n=46 recall@5 0.957 MRR 0.781
+- **Device:** {'device': 'cuda', 'torch': '2.11.0+cu128', 'gpu': 'NVIDIA GeForce RTX 4070 Laptop GPU', 'cuda': '12.8', 'peak_gpu_mib': 479}
+- **Would change if:** a larger or reviewed question set shows a different gain.

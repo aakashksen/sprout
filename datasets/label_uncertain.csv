@@ -1,0 +1,284 @@
+version,image_id,path,source,split,label,reason_code,note,began_as
+1,1cd4805245c8efa9fe2502e00188f287b60df5ea,datasets/raw/plantdoc/Apple leaf/stock-photo-red-apple-with-leaf-124592107.jpg,plantdoc,field_test,Apple___healthy,,isolated stock fruit,uncertain
+1,165c42e845ea2c986542386222ebd76d35c32486,datasets/raw/plantdoc/Peach leaf/stock-photo-peach-fruit-isolated-on-white-332799767.jpg,plantdoc,field_test,Peach___healthy,,isolated stock fruit,uncertain
+1,74cbca8c9061a22acf10c7c38b073ea83a3fe79d,datasets/raw/plantdoc/Apple leaf/stock-photo-green-apple-leaf-clipping-path-258728936.jpg,plantdoc,field_test,Apple___healthy,,isolated stock leaf,uncertain
+1,9f2dc914e1841e9a4c7da0949d6af3e9d01282d9,datasets/raw/plantdoc/Tomato leaf/tomato-leaf-20728368.jpg,plantdoc,field_dev,Tomato___healthy,,isolated stock leaf,uncertain
+1,f7db6064a75802debda00d22b000fcbf6d82f358,datasets/raw/plantdoc/Tomato leaf bacterial spot/bac-canker.jpg,plantdoc,field_test,Tomato___Bacterial_spot,,collage,uncertain
+1,c27a69f432ad865a29a60dd0da4e0f0598390012,datasets/raw/plantdoc/Raspberry leaf/608e975059eb73da53ec9bf95362b153.jpg,plantdoc,field_dev,Raspberry___healthy,,text graphic,uncertain
+1,a130cab0dd4b31cdec73f11528fa4d888cb7b1aa,datasets/raw/plantdoc/grape leaf/trim-the-stem.jpg,plantdoc,field_test,Grape___healthy,,cut leaves on table scene,uncertain
+1,65e91a043d13cb599c7af23d01b0caee3c1b8d69,datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_google_0383.jpg,plantseg,field_test,Tomato___Early_blight,,collage banner,uncertain
+1,195e3805a37a2140b62153a85f482a876f87e3a4,datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_177.jpg,plantseg,field_dev,Tomato___Early_blight,,figure from book page,uncertain
+1,121ecd90f9141431fbf221f87251e437cfa93a19,datasets/raw/plantdoc/Soyabean leaf/stock-photo-fresh-soy-leaves-with-dew-isolated-on-white-416036248.jpg,plantdoc,field_test,Soybean___healthy,,isolated stock leaf,uncertain
+1,f8f289d681889bae542607937fa84d4a8965b497,datasets/raw/plantdoc/grape leaf/grapevine-leaf-7466071.jpg,plantdoc,field_dev,Grape___healthy,,isolated stock leaf,uncertain
+1,8218dd43d81f42248c27f87c52938f7931dd866e,datasets/raw/plantseg_field/apple scab/apple_scab_95.jpg,plantseg,field_dev,Apple___Apple_scab,,leaves look citrus-like,uncertain
+1,fcc25f90e139088d1a8c5b98240b223eab301161,datasets/raw/plantdoc/Soyabean leaf/downy-mildew-on-soybeans-2csq9n7.jpg,plantdoc,field_test,Soybean___healthy,,filename says downy mildew,uncertain
+1,c674cf7c225b5a0f024e8fe044c9b8eff95d815d,datasets/raw/plantdoc/Tomato leaf/tomato-leaves-17427786.jpg,plantdoc,field_dev,Tomato___healthy,,isolated stock leaves,uncertain
+1,9ca403b207d982c1854e5e983aff0481929a1dd3,datasets/raw/plantdoc/Potato leaf early blight/potato_early-blight_02_zoom.jpg,plantdoc,field_dev,Potato___Early_blight,,unclear close-up possibly insect,uncertain
+1,e819b4188784ee8bd1931dbc2c37f380a95083f9,datasets/raw/plantdoc/Apple leaf/stock-photo-sweet-apple-with-leaf-111143150.jpg,plantdoc,field_test,Apple___healthy,,isolated stock fruit,uncertain
+1,d80ebf01ff97dcefcf728cedf6421ac868ed2677,datasets/raw/plantdoc/Tomato Septoria leaf spot/slide21-n.jpg,plantdoc,field_dev,Tomato___Septoria_leaf_spot,,titled figure; leaf may not be tomato,uncertain
+1,46daa6fbd048132d5cf1874f44a6a4a39419e890,datasets/raw/plantdoc/Blueberry leaf/blueberry-leaves-white-collection-isolated-35579573.jpg,plantdoc,field_dev,Blueberry___healthy,,isolated stock leaves,uncertain
+1,0dd036159a51b46693e322585d447a95b06a2c70,datasets/raw/plantdoc/Peach leaf/H2c1o.jpg,plantdoc,field_dev,Peach___healthy,,leaf shape unusual for peach,uncertain
+1,3d635025c9a8f83fc00a5c1ef9980d9918b02306,datasets/raw/plantdoc/Blueberry leaf/blueberries-and-leaves.jpg,plantdoc,field_test,Blueberry___healthy,,isolated stock fruit and leaves,uncertain
+1,93225bb04e7142eb12f5a31a354ec956089dab0e,datasets/raw/plantdoc/grape leaf/grape-leaf-14309623.jpg,plantdoc,field_test,Grape___healthy,,isolated stock leaf,uncertain
+1,aa51891815d48c0b47e4b16c2757adf88d4d0ac7,datasets/raw/plantdoc/Strawberry leaf/strawberry-leaves-isolated-white-17473157.jpg,plantdoc,field_test,Strawberry___healthy,,isolated stock leaves,uncertain
+1,05ad5db2c00f02ce0bf01a4f0f8cd19efa1571c7,datasets/raw/plantdoc/Soyabean leaf/stock-photo-soy-leaf-isolated-on-white-background-120961801.jpg,plantdoc,field_test,Soybean___healthy,,isolated stock leaf,uncertain
+1,05add48e855a36f24bfd5ad29c9ef8e2ee288c17,datasets/raw/plantdoc/Strawberry leaf/75219ffa4254.jpg,plantdoc,field_test,Strawberry___healthy,,isolated stock leaves,uncertain
+1,1b558cc48a6fe0df0acb5619d90ea538e0cfb69b,datasets/raw/plantdoc/Apple Scab Leaf/1b558cc48a6f.jpg,plantdoc,field_dev,Apple___Apple_scab,,clean-looking shoot under disease label,uncertain
+1,266a8f6cee9cd0cc7afb295c5d5da02bbdb7bcb8,datasets/raw/plantdoc/Tomato Septoria leaf spot/septoria-leaf-spot-in-tomatoes.jpg,plantdoc,field_test,Tomato___Septoria_leaf_spot,,blog cover graphic,uncertain
+1,2886d838310c3abbea19bca5bae107c2a46ba189,datasets/raw/plantdoc/Potato leaf late blight/24847793510_7859b46a3d.jpg,plantdoc,field_test,Potato___Late_blight,,very small plant in straw,uncertain
+1,aa57bcae6e64f783b5d38f73dff787a313fed117,datasets/raw/plantdoc/Strawberry leaf/single-green-strawberry-leaf-isolated-white-12750533.jpg,plantdoc,field_dev,Strawberry___healthy,,isolated stock leaf,uncertain
+1,a28f65b190f57595116a3fdec2c9bf5242f8aec6,datasets/raw/plantdoc/Bell_pepper leaf/4825902504_5fa80b65b8_z.jpg,plantdoc,field_test,"Pepper,_bell___healthy",,isolated leaf on black,uncertain
+1,2da66bbd07b109781fbdef4af71e4ef7fb2ff3d4,datasets/raw/plantdoc/Blueberry leaf/9b850ffbba67.jpg,plantdoc,field_test,Blueberry___healthy,,spotted leaves under healthy label,uncertain
+1,24e54cf3d65c8c79f7b27ab1d0855d25bff7cad7,datasets/raw/plantdoc/Soyabean leaf/soybean_leaves_01.jpg,plantdoc,field_test,Soybean___healthy,,yellow autumn-looking leaves,uncertain
+1,438cbb4991cb58ce7247787fcf693eacd7efd4c8,datasets/raw/plantdoc/Strawberry leaf/dew-on-a-leaf-stock-image-1226834.jpg,plantdoc,field_test,Strawberry___healthy,,dew leaf stock image,uncertain
+1,bcc4b6962e65e01d20c09686af2c96ea971e3556,datasets/raw/plantdoc/Apple leaf/depositphotos_6657863-stock-photo-single-red-apple-with-leaf.jpg,plantdoc,field_dev,Apple___healthy,,isolated stock fruit,uncertain
+1,9981c586d7dcdd7edc3b742959e38a1286ff801c,datasets/raw/plantseg_field/apple black rot/apple_black_rot_google_0037.jpg,plantseg,field_test,Apple___Black_rot,,isolated cut fruit,uncertain
+1,d1ec8871ae7e370593b18d2bbfa676f5ef762ea9,datasets/raw/plantseg_field/citrus greening disease/citrus_greening_disease_google_0053.jpg,plantseg,field_dev,Orange___Haunglongbing_(Citrus_greening),,collage of fruit,uncertain
+1,f683ab88c4390a037c9ce3db4bd940de52b07b67,datasets/raw/plantdoc/Corn rust leaf/corn-diseases-fig-2-tar-spot.jpg,plantdoc,field_dev,Corn_(maize)___Common_rust_,,filename says tar spot; black dots,uncertain
+1,0626fb0403af4d9e1d525e41a62ef7f827ac5095,datasets/raw/plantdoc/Strawberry leaf/0626fb0403af.jpg,plantdoc,field_dev,Strawberry___healthy,,isolated stock leaf,uncertain
+1,589cbb30270a6a4ef35f197ebde4f1239b745ed5,datasets/raw/plantdoc/Tomato leaf/stock-photo-leaves-of-tomato-plant-isolated-on-white-12085288.jpg,plantdoc,field_dev,Tomato___healthy,,isolated stock plant,uncertain
+1,285a24947bf751681cad91e460ab63130705eb77,datasets/raw/plantdoc/Apple Scab Leaf/apples_apple-scab_02_thm.jpg,plantdoc,field_test,Apple___Apple_scab,,very small cropped image,uncertain
+1,81bfb9af90cd4ae31400dbde1f6ff97b453be342,datasets/raw/plantdoc/Apple rust leaf/apples_black-rot_01_zoom.jpg,plantdoc,field_test,Apple___Cedar_apple_rust,,filename says black rot; brown spots,uncertain
+1,3e6a6cb2a67474bfa3bdf860694d9201b4606f11,datasets/raw/plantdoc/grape leaf/fd12dbcf155c.jpg,plantdoc,field_dev,Grape___healthy,,isolated stock leaf,uncertain
+1,73697118f298f6f54fbb2e2d78f2fb1da0df684a,datasets/raw/plantdoc/Potato leaf early blight/EB%20lesions1_opt.jpeg.jpg,plantdoc,field_test,Potato___Early_blight,,spotted bean-like leaves under potato label,uncertain
+1,74702b6fbec2db185c382c4c8c97603c558a2c7e,datasets/raw/plantdoc/Soyabean leaf/soybeans-glycine-max-with-leaves-e1hkcy.jpg,plantdoc,field_dev,Soybean___healthy,,isolated stock soybean,uncertain
+1,3a8a29f5050480a125199940da87e549a396f903,datasets/raw/plantdoc/Tomato leaf mosaic virus/Tomato-Mosaic-1wdr2jx-300x225.jpg,plantdoc,field_test,Tomato___Tomato_mosaic_virus,,tiny fragment image,uncertain
+1,7beb3ad59cc6ed2904b25f63591c54a6143a3339,datasets/raw/plantseg_field/apple scab/apple_scab_82.jpg,plantseg,field_dev,Apple___Apple_scab,,fruit on tile; unclear,uncertain
+1,8c78259868a13affef799469619d7866bdc01a07,datasets/raw/plantdoc/Raspberry leaf/leaves-of-a-raspberry-stock-photo-1206396.jpg,plantdoc,field_test,Raspberry___healthy,,isolated stock plant with sample text,uncertain
+1,a9680cf9d640a577f45b624716aad2faa38a2b38,datasets/raw/plantdoc/Raspberry leaf/red-raspberry.jpg,plantdoc,field_dev,Raspberry___healthy,,isolated stock fruit,uncertain
+1,1e78cdc0a37476c7046325ba13f5c968310e939e,datasets/raw/plantdoc/Peach leaf/two-peach-leaves-isolated-on-white-picture-id519433636.jpg,plantdoc,field_dev,Peach___healthy,,isolated stock leaves,uncertain
+1,6b7696bb8ad0279f530045ae88dedcf918504b13,datasets/raw/plantdoc/Apple Scab Leaf/appletree%20leaf.jpg,plantdoc,field_test,Apple___Apple_scab,,clean leaf under disease label,uncertain
+1,faa59f14589dd04c1824001851fe6029344894bd,datasets/raw/plantdoc/Tomato mold leaf/leaf_mold_nightshade2x500.jpg,plantdoc,field_test,Tomato___Leaf_Mold,,nightshade leaf maybe not tomato,uncertain
+1,4a7f8970f692436bcd40fdab78f8710244850f7b,datasets/raw/plantdoc/Tomato leaf yellow virus/role-of-whitefly-in-plant-virus-transmission-by-pmanikandan-25-638.jpg,plantdoc,field_test,Tomato___Tomato_Yellow_Leaf_Curl_Virus,,titled slide-like image,uncertain
+1,7065445e00f330c3b09be57bdfc16a3f9f43dd09,datasets/raw/plantdoc/Strawberry leaf/4719232-strawberry-with-green-leaves-and-flower-isolated-on-white-background.jpg,plantdoc,field_dev,Strawberry___healthy,,isolated stock fruit and leaves,uncertain
+1,feb08b6f7789544d97cf36cef2db5841ceb3882f,datasets/raw/plantdoc/Raspberry leaf/dsc_0127.jpg,plantdoc,field_test,Raspberry___healthy,,leaves on dehydrator tray,uncertain
+1,9b8dad3bd3efc69e65e4164c45ed46584539e1a2,datasets/raw/plantdoc/Strawberry leaf/strawberry-leaves-stock-image-948674.jpg,plantdoc,field_test,Strawberry___healthy,,isolated stock leaves,uncertain
+1,538ea45dfb3a4a54b10f479926e7971f9d3b1e06,datasets/raw/plantdoc/Apple leaf/stock-photo-apple-tree-leaf-isolated-on-a-white-622503302.jpg,plantdoc,field_dev,Apple___healthy,,isolated stock leaf,uncertain
+1,a45de802287b550e5bc3335e23c28b9eadfd1b55,datasets/raw/plantdoc/Blueberry leaf/a45de802287b.jpg,plantdoc,field_test,Blueberry___healthy,,spotted leaf under healthy label,uncertain
+1,c8b9fc8aa8c37928ec4a16d36a991a26c3aefc30,datasets/raw/plantdoc/Raspberry leaf/edible_weeds_raspberry_leaf.jpg,plantdoc,field_test,Raspberry___healthy,,isolated leaf on white,uncertain
+1,8ddd3356394b9c5165df1aea7c9abce2342feab7,datasets/raw/plantseg_field/apple black rot/apple_black_rot_google_0000.jpg,plantseg,field_test,Apple___Black_rot,,orange spots look like rust not black rot,uncertain
+1,a3a5d5b9e8998b916f6841decde43e0585d53514,datasets/raw/plantdoc/Peach leaf/depositphotos_88236122-stock-photo-peach-leaf-isolated-on-white.jpg,plantdoc,field_test,Peach___healthy,,isolated stock leaves,uncertain
+1,22d1bcd5958b9a4b52654e6d6a7e26a572341121,datasets/raw/plantdoc/Strawberry leaf/strawberry-leaf-stock-picture-3646237.jpg,plantdoc,field_dev,Strawberry___healthy,,isolated stock leaf,uncertain
+1,8985eb4e68301b8628c293c69e65b5bf251c24e8,datasets/raw/plantdoc/Peach leaf/peach-and-leaf-stock-picture-2809277.jpg,plantdoc,field_test,Peach___healthy,,isolated stock fruit,uncertain
+1,a512d2fede4c3081510680b287b35b659cf7031e,datasets/raw/plantdoc/Strawberry leaf/7065201-strawberry-leaf.jpg,plantdoc,field_dev,Strawberry___healthy,,isolated stock leaf,uncertain
+1,b27ce270d2ab5c07729a18a35947b910e219f554,datasets/raw/plantdoc/Blueberry leaf/stock-photo-blueberry-leaves-branch-isolated-on-white-background-490111684.jpg,plantdoc,field_dev,Blueberry___healthy,,isolated stock leaves,uncertain
+1,f38c1f9e37f35bb8cffa7d3ed73fa323e5b5a7eb,datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaves-isolated-on-white-background-302224460.jpg,plantdoc,field_dev,Peach___healthy,,isolated stock leaves,uncertain
+1,d540d14b07b6e5f0e1673796bb0d7f70994a5a30,datasets/raw/plantseg_field/apple black rot/apple_black_rot_google_0174.jpg,plantseg,field_dev,Apple___Black_rot,,apples arranged on yellow background,uncertain
+1,1846a4f0c9e08958ed1e7cc713c6bc6a44356385,datasets/raw/plantdoc/Apple leaf/green-apple-leaf-white-background-33503979.jpg,plantdoc,field_test,Apple___healthy,,isolated stock leaf,uncertain
+1,b0102fb39bd262610bdd53ffe52d2bafd2c0e0d7,datasets/raw/plantdoc/Strawberry leaf/depositphotos_40207459-stock-photo-strawberry-leaves-collection-isolated-on.jpg,plantdoc,field_dev,Strawberry___healthy,,isolated stock leaves,uncertain
+1,0cae093ec4204abaeebf374b3edf5526bcf36422,datasets/raw/plantdoc/Strawberry leaf/strawberry-leaves-close-up.jpg,plantdoc,field_dev,Strawberry___healthy,,leaves on a tray,uncertain
+1,0d15219aba26e46c75d9c6628225ae89befa8629,datasets/raw/plantdoc/grape leaf black rot/3_21_14-Caption-Black-Rot-leaf-infection.-265x265.jpg,plantdoc,field_dev,Grape___Black_rot,,leaf shapes unclear; composite,uncertain
+1,d70527aa7949ce61630740c8bed4ff589e7bf241,datasets/raw/plantdoc/Blueberry leaf/blueberry-leaf-isolated-white-background-blueberry-leaf-isolated-99227523.jpg,plantdoc,field_dev,Blueberry___healthy,,isolated stock leaves,uncertain
+1,245914fedabef74fb8e05a4fb3ef0f67e1383fa6,datasets/raw/plantdoc/Peach leaf/peach-leaf-isolated-white-background-42295220.jpg,plantdoc,field_dev,Peach___healthy,,isolated stock leaves,uncertain
+1,269ce10a925dd5664f26ce1a4e8c52ccf51f8e2f,datasets/raw/plantdoc/Blueberry leaf/blueberry-leaves-safe.jpeg.jpg,plantdoc,field_test,Blueberry___healthy,,pressed specimen image,uncertain
+1,81498f6eeefa41b2964f4065bc90fbc154989833,datasets/raw/plantdoc/Apple leaf/4633813-sweet-apple-with-leaf.jpg,plantdoc,field_test,Apple___healthy,,isolated stock fruit,uncertain
+1,f407af80ba53f7ff72728b191774ce460f46515a,datasets/raw/plantseg_field/apple scab/apple_scab_google_0254.jpg,plantseg,field_test,Apple___Apple_scab,,titled figure of leaf thumbnails,uncertain
+1,d979d6e1b2aca2c5758a3401d0824be63936bf11,datasets/raw/plantdoc/grape leaf black rot/150px-Plasmopara_viticola_000.jpg,plantdoc,field_dev,Grape___Black_rot,,filename names Plasmopara (downy mildew),uncertain
+1,cb350a5f4c5e1001909c9a58c41682736cc1f7b7,datasets/raw/plantdoc/Soyabean leaf/KDeficientSoyBean.jpg,plantdoc,field_dev,Soybean___healthy,,yellowing leaf; filename says K deficient,uncertain
+1,63589b3e9b5f30a9f87262b665cee1d7dabaef69,datasets/raw/plantdoc/Strawberry leaf/depositphotos_6570375-stock-photo-strawberry-leaf.jpg,plantdoc,field_test,Strawberry___healthy,,isolated stock leaf,uncertain
+1,3c86661134ab2be7ec1fb234a293be48a5586635,datasets/raw/plantseg_field/squash powdery mildew/squash_powdery_mildew_google_0000.jpg,plantseg,field_dev,Squash___Powdery_mildew,,titled graphic collage,uncertain
+1,c497647b0a26be9faba46ec4eaf02630381c9771,datasets/raw/plantseg_field/citrus greening disease/citrus_greening_disease_google_0309.jpg,plantseg,field_dev,Orange___Haunglongbing_(Citrus_greening),,annotated diagram with circles,uncertain
+1,32f43038382ee097c04b927c1fcc7e37018a1609,datasets/raw/plantseg_field/apple black rot/apple_black_rot_google_0072.jpg,plantseg,field_dev,Apple___Black_rot,,red fruit may be a peach,uncertain
+1,f942d6c391f0b4da0582b0a740b44f6567295a05,datasets/raw/plantdoc/Cherry leaf/ed12ff77ce021883de241830dee55e2e53d2c93231699_1260x1260.jpg,plantdoc,field_dev,Cherry_(including_sour)___healthy,,isolated stock leaf,uncertain
+1,fea6fd3be8a1406653a4457ac785c846888a1298,datasets/raw/plantdoc/Soyabean leaf/depositphotos_15928367-stock-photo-soy-leaf.jpg,plantdoc,field_test,Soybean___healthy,,isolated stock leaf,uncertain
+1,4775fb7bb127477bf106af62c6b2f9f49d923b71,datasets/raw/plantseg_field/squash powdery mildew/squash_powdery_mildew_google_0004.jpg,plantseg,field_dev,Squash___Powdery_mildew,,titled graphic collage,uncertain
+1,0a854af3e45123e6b59c85af884e2b6b4dac87d6,datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-isolated-on-white-background-198744794.jpg,plantdoc,field_dev,Peach___healthy,,isolated stock leaves,uncertain
+1,1f0a1363d6b5641977c481e64846638d73043957,datasets/raw/plantdoc/Apple leaf/stock-photo-apple-leaf-set-isolated-on-white-background-300957002.jpg,plantdoc,field_dev,Apple___healthy,,isolated stock leaves,uncertain
+1,8272cf9e61b97f085dd8fc03e21b54a5837d2a0e,datasets/raw/plantdoc/Bell_pepper leaf/5493139683d035a18fd0dfa12893f38b--outdoor-decor-worms.jpg,plantdoc,field_dev,"Pepper,_bell___healthy",,plant may not be pepper,uncertain
+1,d1b72af0972c878f1ad22470461ce104c929cbe7,datasets/raw/plantdoc/Squash Powdery mildew leaf/powdery-mildew-pea-leaf.jpg,plantdoc,field_dev,Squash___Powdery_mildew,,filename says pea leaf,uncertain
+1,686e9b3e65047d8062dbfd2eb82a48095df9335e,datasets/raw/plantdoc/Apple leaf/stock-photo-apple-leaves-isolated-on-white-collection-197880929.jpg,plantdoc,field_test,Apple___healthy,,isolated stock leaves,uncertain
+1,f49e408e8aa2d28db007519f5581f3f003c21929,datasets/raw/plantdoc/Bell_pepper leaf/shutterstock_443115826.jpg,plantdoc,field_test,"Pepper,_bell___healthy",,damaged leaves under healthy label,uncertain
+1,26e963a3c2eef0ccb6bafd637c3c0577c6425f64,datasets/raw/plantdoc/Soyabean leaf/26e963a3c2ee.jpg,plantdoc,field_test,Soybean___healthy,,isolated stock soybean,uncertain
+1,0ba515042082be5d52bedcec747b34ffce9a351d,datasets/raw/plantdoc/Tomato leaf/tomato-vine-ripe-leaves-isolated-against-white-34863029.jpg,plantdoc,field_dev,Tomato___healthy,,isolated stock plant,uncertain
+1,4f39bc65673ce1ca3789c6361a053c5b3a94898a,datasets/raw/plantseg_field/apple rust/apple_rust_google_0191.jpg,plantseg,field_dev,Apple___Cedar_apple_rust,,dried fruit clusters; unclear,uncertain
+1,dab306870e2626ecdfd7a6c8e4019bf15d31805e,datasets/raw/plantdoc/Raspberry leaf/ripe-raspberry-leaf-white-background-30978897.jpg,plantdoc,field_dev,Raspberry___healthy,,isolated stock fruit,uncertain
+1,c5e573dd3f6a9fa837d9c78c005d560cb6e6cdeb,datasets/raw/plantdoc/Potato leaf late blight/potato-solanum-tuberosum-late-blight.jpg,plantdoc,field_dev,Potato___Late_blight,,collage of images,uncertain
+1,d99a23bc8767e3fd7a5b8ee5488e39796d153247,datasets/raw/plantseg_field/citrus greening disease/citrus_greening_disease_google_0023.jpg,plantseg,field_dev,Orange___Haunglongbing_(Citrus_greening),,title graphic,uncertain
+1,08f748a4e67b12e9bcec9494526486142a570a5f,datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_google_0103.jpg,plantseg,field_test,Tomato___Early_blight,,collage,uncertain
+1,b22d1ab62cd860a6d7132cce01d35f389501843a,datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaves-isolated-on-white-background-529501441.jpg,plantdoc,field_dev,Peach___healthy,,isolated stock leaves,uncertain
+1,fb33b5a8ccc8d6170dc668705220df49ebd90cbb,datasets/raw/plantdoc/Apple leaf/autumn-red-apple-leaves.jpg,plantdoc,field_dev,Apple___healthy,,leaves dont look like apple,uncertain
+1,93df7a1599fa01b71290428e6b16ca8407ca523f,datasets/raw/plantdoc/Blueberry leaf/blueberry-fruit-leaf-closeup-isolated-white-58260795.jpg,plantdoc,field_dev,Blueberry___healthy,,isolated fruit stock,uncertain
+1,45ce5e43075e9ba3aff5238a440316dca40a723e,datasets/raw/plantseg_field/corn rust/corn_rust_google_0207.jpg,plantseg,field_dev,Corn_(maize)___Common_rust_,,diagram plus leaf photos,uncertain
+1,f091a3eb61b4e20dd5ba30959ed56ad0de02b8e4,datasets/raw/plantdoc/Bell_pepper leaf/GREEN%20BELL%20PLANT%20YELLOW%20LEAF.JPG.jpg,plantdoc,field_test,"Pepper,_bell___healthy",,yellow leaf under healthy,uncertain
+1,566b3af593d1536dd57566a5ca2e7d6a6769042c,datasets/raw/plantdoc/Cherry leaf/cherrytree-leaf.jpg,plantdoc,field_dev,Cherry_(including_sour)___healthy,,leaf and tree may not be cherry,uncertain
+1,ac87e88ad716a43cd8500ad8d1b656f02512ac10,datasets/raw/plantdoc/Blueberry leaf/stock-photo-blueberry-with-leaves-of-mint-70797082.jpg,plantdoc,field_dev,Blueberry___healthy,,stock isolated berries and mint leaves,uncertain
+1,6d23c1f75aef9966ba8ea092802ee6c4df7960f1,datasets/raw/plantdoc/Raspberry leaf/IMG_0649.JPG.jpg,plantdoc,field_dev,Raspberry___healthy,,yellowing and damaged under healthy,uncertain
+1,2e2a6b05b94387f6b240a7d63e5b2271989e37db,datasets/raw/plantseg_field/apple scab/apple_scab_google_0284.jpg,plantseg,field_dev,Apple___Apple_scab,,graphic with text overlay,uncertain
+1,4d32d55840fecfe1813fced8637e95419266a3c0,datasets/raw/plantdoc/Apple Scab Leaf/apples_apple-scab_02_zoom.jpg,plantdoc,field_dev,Apple___Apple_scab,,leaf may not be apple,uncertain
+1,72ecfeb3e21d4a123fce006c76a612bee8323973,datasets/raw/plantdoc/Apple leaf/green-leaf-apple-tree-14300049.jpg,plantdoc,field_test,Apple___healthy,,stock leaf may not be apple,uncertain
+1,2d3b1331683f7b822bf5eddc8a49de53ba3f9040,datasets/raw/plantdoc/Peach leaf/peach-leaf-isolated-white-background-39426456.jpg,plantdoc,field_dev,Peach___healthy,,isolated stock fruit,uncertain
+1,1715cbd80db00d35557003c786b41c046e2042a1,datasets/raw/plantdoc/grape leaf/grape+leaves.JPG.jpg,plantdoc,field_test,Grape___healthy,,leaves in a bowl,uncertain
+1,b8900af9a7dd1eedb856c5aa537135ea4ab4bcda,datasets/raw/plantdoc/Soyabean leaf/kdeficiency4.jpg,plantdoc,field_dev,Soybean___healthy,,yellowed leaves under healthy; filename kdeficiency,uncertain
+1,84ed7b40fcb434ef724f565fdfbfbaa2ba206a58,datasets/raw/plantdoc/Corn leaf blight/corn_disease_clip_image001_0003.jpg,plantdoc,field_dev,Corn_(maize)___Northern_Leaf_Blight,,printed page with Thai text and corn,uncertain
+1,dbb38a0e3f81a145fb2ef725ebb2594a50c4465e,datasets/raw/plantdoc/Raspberry leaf/marioncalico2.jpg,plantdoc,field_dev,Raspberry___healthy,,yellow mottling under healthy,uncertain
+1,cfc45f6db378ac00f5c9f6e85ffa9bf43dbe5dac,datasets/raw/plantdoc/Blueberry leaf/blueberry-chlorotic-leaves_2.jpg,plantdoc,field_test,Blueberry___healthy,,chlorotic leaves under healthy,uncertain
+1,399a38f2488faef77d7cf118a38b901074d27b52,datasets/raw/plantdoc/Blueberry leaf/ca75fbfdddcd.jpg,plantdoc,field_test,Blueberry___healthy,,lesions on leaves under healthy,uncertain
+1,b8767faeb0539254cfaf2eb73ee096a6a0474ce5,datasets/raw/plantdoc/Tomato leaf bacterial spot/Tomato%20greenhouse%20phythotoxicity03F.JPG.jpg,plantdoc,field_dev,Tomato___Bacterial_spot,,filename says phytotoxicity,uncertain
+1,b7953d7d9c1247550e56fd4d753a6fd83f36fa9e,datasets/raw/plantdoc/Apple Scab Leaf/6cd49550723c.jpg,plantdoc,field_dev,Apple___Apple_scab,,leaves may not be apple,uncertain
+1,c60a62c5881ad90bc84253309acd2c987b0a7a43,datasets/raw/plantdoc/Soyabean leaf/Kdefsoybean.JPG.jpg,plantdoc,field_dev,Soybean___healthy,,yellowed spotted leaves under healthy; filename Kdef,uncertain
+1,a8274dace4e393c597e1583fa94c42bb616b2ec7,datasets/raw/plantdoc/Tomato leaf/IMG_3192.JPG.jpg,plantdoc,field_test,Tomato___healthy,,seedlings may not be tomato,uncertain
+1,9aa309757bdb8b61263c4e0325f23d6b285197aa,datasets/raw/plantdoc/Potato leaf early blight/0042241.jpg,plantdoc,field_test,Potato___Early_blight,,pale mottled foliage; unclear disease,uncertain
+1,aedf9be52de6b028ec4d2756904677a5516d787b,datasets/raw/plantseg_field/corn rust/corn_rust_google_0031.jpg,plantseg,field_test,Corn_(maize)___Common_rust_,,text overlay on rust leaf,uncertain
+1,a2ed7a15cac9b450999be27748afc167fb863a31,datasets/raw/plantdoc/Strawberry leaf/strawberry-leaves-14363881.jpg,plantdoc,field_dev,Strawberry___healthy,,stock leaf may not be strawberry,uncertain
+1,423cc701287b8e212d4ad74cfc66925d6ea1f4a8,datasets/raw/plantdoc/Peach leaf/P1015775.JPG.jpg,plantdoc,field_dev,Peach___healthy,,leaves on a plate,uncertain
+1,40b7de5e3052fcaa7f05f58c6d38b3bb7ad3a5c0,datasets/raw/plantdoc/Blueberry leaf/immatureleaffootbug.jpg,plantdoc,field_test,Blueberry___healthy,,plant may not be blueberry; bugs on berries,uncertain
+1,c75cde381eaefdebb5d2bd15a77f3b43551a55b6,datasets/raw/plantdoc/Apple leaf/depositphotos_56066889-stock-photo-apple-with-leaf.jpg,plantdoc,field_test,Apple___healthy,,isolated stock fruit,uncertain
+1,0748f97c335ad55b8935f1a175f3f7819ff204cf,datasets/raw/plantdoc/Peach leaf/fresh-peach-green-leaf-3346348.jpg,plantdoc,field_test,Peach___healthy,,isolated stock fruit,uncertain
+1,26215f90a734cc7f5f82973cc0beaacbc6c1313c,datasets/raw/plantseg_field/squash powdery mildew/squash_powdery_mildew_google_0003.jpg,plantseg,field_test,Squash___Powdery_mildew,,little visible mildew,uncertain
+1,68b5c67a6086e2806e8eb6718db8a38243de4600,datasets/raw/plantdoc/Peach leaf/P1010703.JPG.jpg,plantdoc,field_test,Peach___healthy,,tall plant in greenhouse; unclear peach,uncertain
+1,5f30a324ae3677bad68c5f26ac4c0821cbc95740,datasets/raw/plantdoc/Tomato Septoria leaf spot/5008922249_880e15c21f.jpg,plantdoc,field_dev,Tomato___Septoria_leaf_spot,,leaf shape may not be tomato,uncertain
+1,b94cf9fbe1cdcccfaf1517786ffd93590361e3ff,datasets/raw/plantdoc/Apple leaf/shiny-red-apple-green-leaf-isolated-white-background-56202743.jpg,plantdoc,field_test,Apple___healthy,,isolated stock fruit,uncertain
+1,1835416de5cf10583edc8ca4bf7a3a6c75e60f8f,datasets/raw/plantdoc/grape leaf black rot/00gb.jpg,plantdoc,field_dev,Grape___Black_rot,,no visible black rot; small plant,uncertain
+1,af1a8ece695cdfb45d700dded15eb7157fe0b1b1,datasets/raw/plantdoc/Tomato leaf mosaic virus/af1a8ece695c.jpg,plantdoc,field_dev,Tomato___Tomato_mosaic_virus,,multi-panel paper figure,uncertain
+1,16b54921d5a08dd316327ca76568f2b05dd51d30,datasets/raw/plantdoc/Apple rust leaf/02.-Rust-2017-207u24s.jpg,plantdoc,field_test,Apple___Cedar_apple_rust,,clean leaf under rust label,uncertain
+1,1ec17bb32c186d8428660e8811e4d14b2a8a9a9c,datasets/raw/plantdoc/Squash Powdery mildew leaf/Mildew-on-cucumber-leaf-1024x768.jpg,plantdoc,field_dev,Squash___Powdery_mildew,,filename says cucumber,uncertain
+1,6f917b983c71ae86f2788456268ae4a5415b0e95,datasets/raw/plantseg_field/tomato bacterial leaf spot/tomato_bacterial_leaf_spot_9.jpg,plantseg,field_dev,Tomato___Bacterial_spot,,clean-looking fruit under disease label,uncertain
+1,57d4808a5b99c37140557468879849741f63f20f,datasets/raw/plantdoc/Cherry leaf/Carolina%2BCherry%2BLaurel%2Bproblem1.jpg,plantdoc,field_dev,Cherry_(including_sour)___healthy,,filename says cherry laurel; may not be cherry,uncertain
+1,16cdaed2b747570421d52f8ab72234491854bca2,datasets/raw/plantseg_field/apple scab/apple_scab_google_0205.jpg,plantseg,field_test,Apple___Apple_scab,,title text overlay on leaf,uncertain
+1,b518a9449fdd974531465a8abf78b289069d0f18,datasets/raw/plantdoc/Raspberry leaf/iStock-104258470_4x3.jpg,plantdoc,field_dev,Raspberry___healthy,,leaves with tea cup staging,uncertain
+1,22793b873aa6a299a62c9b4eab74d48391a03dbc,datasets/raw/plantdoc/Peach leaf/peach-with-leaves-stock-picture-1662209.jpg,plantdoc,field_test,Peach___healthy,,isolated stock fruit,uncertain
+1,2aec4142d96d58f0bef7c7f00321004c974b2440,datasets/raw/plantseg_field/apple scab/apple_scab_15.jpg,plantseg,field_dev,Apple___Apple_scab,,fruits look like pears,uncertain
+1,3c34a9eccf5c3990b322803cc03386318d420e6d,datasets/raw/plantdoc/Apple leaf/red-apple-one-leaf-13226302.jpg,plantdoc,field_test,Apple___healthy,,isolated stock fruit,uncertain
+1,dfb8c92c7b8ba162a6d978e4964c98312e0a3cf0,datasets/raw/plantdoc/Cherry leaf/Cherry%20Sweet%20N%20deficiency%20closeup%20Brubaker%202004.JPG.jpg,plantdoc,field_dev,Cherry_(including_sour)___healthy,,discolored leaves; filename N deficiency,uncertain
+1,df4c2505bd42477dcb63d14e23346db8021bc28c,datasets/raw/plantseg_field/apple scab/apple_scab_51.jpg,plantseg,field_test,Apple___Apple_scab,,looks like potato tuber not apple,uncertain
+1,d7378cacffc19bf84c95d9b73a9b80b95799d9dd,datasets/raw/plantdoc/Apple rust leaf/Fig-17-Apple-rust-on-lower-surface-on-leaf-at-extreme.jpg,plantdoc,field_test,Apple___Cedar_apple_rust,,old printed plate image,uncertain
+1,c5e8130a7ac25fba8245d908c58f70ddd57ebf9a,datasets/raw/plantseg_field/squash powdery mildew/squash_powdery_mildew_google_0193.jpg,plantseg,field_test,Squash___Powdery_mildew,,small lobed leaf in hand may not be squash,uncertain
+1,4ac820311d98a581c5cb1c38d6a843f5ecf68e72,datasets/raw/plantdoc/grape leaf black rot/br-ocw-phom.jpg,plantdoc,field_test,Grape___Black_rot,,captioned figure panel,uncertain
+1,9907f70dcc0b5fb1db7a670783acd7e6d1a11aca,datasets/raw/plantdoc/Tomato leaf yellow virus/virus2.jpg,plantdoc,field_test,Tomato___Tomato_Yellow_Leaf_Curl_Virus,,small plant; unclear species,uncertain
+1,ef3a144d0b3a715c5f6302df28127f39fc88e3bb,datasets/raw/plantdoc/Apple leaf/fresh-wet-green-apple-leaf-water-drops-isolated-white-background-31353097.jpg,plantdoc,field_dev,Apple___healthy,,isolated stock fruit,uncertain
+1,f9b96669a400b7ffa8b3a1a7b3f9ef9850e2dd29,datasets/raw/plantdoc/Tomato Septoria leaf spot/Septoria+Leaf+Spot.jpg,plantdoc,field_dev,Tomato___Septoria_leaf_spot,,slide with large photo,uncertain
+1,03db074d51ad86e927430e433338b2f0f11b9ca3,datasets/raw/plantdoc/Peach leaf/stock-photo-peach-with-leaf-699537772.jpg,plantdoc,field_test,Peach___healthy,,isolated stock fruit,uncertain
+1,27652aaae1829dd605540ee09618e51be802379a,datasets/raw/plantdoc/Apple leaf/apple-tree-branch-green-leaves-fresh-isolated-white-background-33032922.jpg,plantdoc,field_dev,Apple___healthy,,isolated apple stock image,uncertain
+1,33184911ea1f49480e7b29d0313b309d23e7037e,datasets/raw/plantseg_field/apple scab/apple_scab_google_0072.jpg,plantseg,field_test,Apple___Apple_scab,,multi-panel figure collage,uncertain
+1,90f79d696a189fc97898ab9c7bfaaa1d0b3b0467,datasets/raw/plantdoc/Tomato leaf late blight/tomato_late-blight_05_zoom.jpg,plantdoc,field_dev,Tomato___Late_blight,,unclear plant,uncertain
+1,169c6e9c624cba5abbb982e67e1207b9ab077781,datasets/raw/plantdoc/Soyabean leaf/soybean-21357451.jpg,plantdoc,field_test,Soybean___healthy,,stock illustration style soybean,uncertain
+1,6081374d588f7672fdae43aa05caa5d95c827961,datasets/raw/plantdoc/Apple leaf/closeup-red-apple-fruit-leaf-isolated-white-background-57605895.jpg,plantdoc,field_test,Apple___healthy,,isolated apple stock,uncertain
+1,5b27f3b3a06f21f381fd04e8569221e57d46518b,datasets/raw/plantdoc/Tomato mold leaf/tomato_Leaf-roll-physiological-7059-SLoewen_thm.jpg,plantdoc,field_dev,Tomato___Leaf_Mold,,tiny image on white,uncertain
+1,346004ba418581a1e0726ad5584cebac75c701ae,datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_google_0098.jpg,plantseg,field_test,Corn_(maize)___Northern_Leaf_Blight,,collage of small corn leaf crops,uncertain
+1,43f7b0a14b151f91b268447c3338c6f0df78e593,datasets/raw/plantdoc/Strawberry leaf/strawberry-leaves-isolated-white-34722259.jpg,plantdoc,field_dev,Strawberry___healthy,,isolated strawberry stock,uncertain
+1,db0a878d687229e95e6002539c43081728628fa2,datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0007.jpg,plantseg,field_test,Tomato___Late_blight,,web graphic with title text,uncertain
+1,32a0da9b1dedbe4f14922e4d212c83c5f0341b2a,datasets/raw/plantdoc/Tomato leaf/tomato-leaf-26180166.jpg,plantdoc,field_dev,Tomato___healthy,,isolated tomato leaf stock,uncertain
+1,25036627ae1db0bf611cc3ff3591ae2899cc0a96,datasets/raw/plantseg_field/corn gray leaf spot/corn_gray_leaf_spot_google_0089.jpg,plantseg,field_test,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,,multi-panel figure,uncertain
+1,ff187fac9642461eb3eccd4ee008c07f89e872f5,datasets/raw/plantdoc/grape leaf/blue-grape-cluster-leaves-3323887.jpg,plantdoc,field_test,Grape___healthy,,isolated grape stock,uncertain
+1,86d58ff518b875b6e0b8dd511a94a14f320b0a4b,datasets/raw/plantdoc/Peach leaf/peach-leaf-1677674.jpg,plantdoc,field_test,Peach___healthy,,isolated peach fruit stock,uncertain
+1,f7fd84c109a99335c18d5bd3292b00be162fa4c1,datasets/raw/plantdoc/Peach leaf/00pe.jpg,plantdoc,field_test,Peach___healthy,,text banner overlay,uncertain
+1,e15a7c282338639960445f2c45b747bc73aacfeb,datasets/raw/plantdoc/Peach leaf/peach-with-leaves-stock-picture-1662453.jpg,plantdoc,field_test,Peach___healthy,,isolated peach stock,uncertain
+1,537f0ea8ee0755dae4f8fe1834b43a610f4d1d2e,datasets/raw/plantdoc/Soyabean leaf/stock-photo-fresh-soy-leaves-isolated-on-white-93841699.jpg,plantdoc,field_test,Soybean___healthy,,isolated soy leaves stock,uncertain
+1,3e4b71ac0e7276aa308528d7ff3693e8cf913cb2,datasets/raw/plantdoc/grape leaf/409c0151b4bc.jpg,plantdoc,field_dev,Grape___healthy,,isolated grape leaf stock,uncertain
+1,dd4f93bd3415dbf28a306f3b9c3e39d9cf02c641,datasets/raw/plantdoc/Blueberry leaf/blueberry-leaves-16311688.jpg,plantdoc,field_dev,Blueberry___healthy,,isolated leaves stock,uncertain
+1,3597a4c3b5280b5c1d448a6b901a32b762a536cb,datasets/raw/plantdoc/Blueberry leaf/leaf-blueberry-15281271.jpg,plantdoc,field_dev,Blueberry___healthy,,isolated leaf stock,uncertain
+1,4825bd4f268124fe53cec0603da53010b7a2bf02,datasets/raw/plantdoc/Peach leaf/peach-leaf-white-background-40292976.jpg,plantdoc,field_dev,Peach___healthy,,isolated peach stock,uncertain
+1,00984be708279ae18587b9aedda892588627e2ae,datasets/raw/plantseg_field/apple rust/apple_rust_google_0054.jpg,plantseg,field_test,Apple___Cedar_apple_rust,,child holding clean leaf,uncertain
+1,2331a0d10c0758f8ec2090394586e10c396567f5,datasets/raw/plantdoc/Peach leaf/2331a0d10c07.jpg,plantdoc,field_test,Peach___healthy,,isolated peach stock,uncertain
+1,f3dec571c7c8793219a3f30d35aa52eff9905ceb,datasets/raw/plantdoc/Bell_pepper leaf spot/H5w92.jpg,plantdoc,field_dev,"Pepper,_bell___Bacterial_spot",,leaf looks clean,uncertain
+1,33303d29f248fc147b49089072e786e7e9f26c52,datasets/raw/plantseg_field/strawberry leaf scorch/strawberry_leaf_scorch_google_0068.jpg,plantseg,field_test,Strawberry___Leaf_scorch,,multi-panel figure,uncertain
+1,360c113e863dc8122d1e8fd0b4f1cdd86911fd57,datasets/raw/plantseg_field/citrus greening disease/citrus_greening_disease_google_0297.jpg,plantseg,field_dev,Orange___Haunglongbing_(Citrus_greening),,dark small image,uncertain
+1,da58a345d2bfa8edd2f049b9ad2f4be3c5de503c,datasets/raw/plantdoc/Apple leaf/green-leaf-apple-tree-isolated-white-background-33032695.jpg,plantdoc,field_dev,Apple___healthy,,isolated leaf stock,uncertain
+1,6019f51a9487382c5368b01acc449f3906000b41,datasets/raw/plantdoc/Apple leaf/stock-photo-apple-leaves-isolated-on-white-background-232913425.jpg,plantdoc,field_test,Apple___healthy,,isolated leaves stock,uncertain
+1,7dd62e28be97dbf6109fd69f2e064aa337fd1933,datasets/raw/plantdoc/Cherry leaf/1348156007-85504600.jpg,plantdoc,field_dev,Cherry_(including_sour)___healthy,,cherry fruit stock with badge,uncertain
+1,2d437213eca31e8668d724f5cbe411b5802b10b4,datasets/raw/plantdoc/Apple leaf/c349d78d158d.jpg,plantdoc,field_dev,Apple___healthy,,isolated leaves stock,uncertain
+1,5828ea34375833565bd24f7d837c1ef531d6733b,datasets/raw/plantdoc/Apple leaf/apple-leaf-closeup-37636177.jpg,plantdoc,field_dev,Apple___healthy,,isolated leaf stock,uncertain
+1,1941d8f9d1ae818991dc0293b0eaf65228e8c70d,datasets/raw/plantdoc/Peach leaf/peach-leaves-isolated-white-background-43668179.jpg,plantdoc,field_dev,Peach___healthy,,isolated leaves stock,uncertain
+1,132ea2a1b836555d2104b90716f805665f6e0df7,datasets/raw/plantdoc/Strawberry leaf/strawberry-leaves-stock-picture-948708.jpg,plantdoc,field_dev,Strawberry___healthy,,isolated strawberry stock,uncertain
+1,d86f8090f5836bb178b1b9267f6d92d1189d0dee,datasets/raw/plantdoc/Apple leaf/ad958e2c354c.jpg,plantdoc,field_test,Apple___healthy,,isolated apple stock,uncertain
+1,b1a93e6d4187e280632738a7dcded8b850828dfa,datasets/raw/plantdoc/Corn rust leaf/corn-leaf-rust.jpg,plantdoc,field_test,Corn_(maize)___Common_rust_,,leaf looks clean for rust,uncertain
+1,9e0f4c33f5547481e372c0317c1ac16868390cc7,datasets/raw/plantdoc/Tomato mold leaf/leaf_mold_nightshade1x500.jpg,plantdoc,field_dev,Tomato___Leaf_Mold,,leaf may not be tomato,uncertain
+1,3c1294db0752a9f7af23b42b9a32622c6f016081,datasets/raw/plantdoc/Strawberry leaf/depositphotos_3121648-Strawberry-leaf.jpg,plantdoc,field_test,Strawberry___healthy,,isolated leaf stock,uncertain
+1,e6c029902c0576ec16ca929059c0f80aeb65b688,datasets/raw/plantdoc/Strawberry leaf/berry-strawberry-leaf-flower-set-isolated-white-background-47595687.jpg,plantdoc,field_test,Strawberry___healthy,,isolated leaves stock,uncertain
+1,87e590c52982f6860a1524bf2a949a9dce99efbd,datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_google_0005.jpg,plantseg,field_dev,Tomato___Early_blight,,cover graphic with title text,uncertain
+1,e02057cea47f00743c3849bd09d16f124cba82ce,datasets/raw/plantdoc/Tomato leaf/fpls-08-01602-g001.jpg,plantdoc,field_test,Tomato___healthy,,isolated leaf stock,uncertain
+1,cd8aeabedad856c97a7a7503c4614bbc430c83c4,datasets/raw/plantdoc/Strawberry leaf/stock-photo-strawberry-leaf-isolated-on-the-white-background-255533380.jpg,plantdoc,field_test,Strawberry___healthy,,isolated leaf stock,uncertain
+1,0b31d8fef6b5b5e819fe03e69f2deab4435011c5,datasets/raw/plantseg_field/citrus greening disease/citrus_greening_disease_google_0036.jpg,plantseg,field_dev,Orange___Haunglongbing_(Citrus_greening),,multi-panel figure,uncertain
+1,51be8721c4e935a6a37b901695dcee210b9a2927,datasets/raw/plantdoc/Apple leaf/yellow-apple-leaves-isolated-10868989.jpg,plantdoc,field_dev,Apple___healthy,,isolated apple stock,uncertain
+1,8c13e0717c64b6366a395c2b00bae4fe0758c468,datasets/raw/plantdoc/Apple Scab Leaf/Apple-Scab-image-01.jpg,plantdoc,field_test,Apple___Apple_scab,,plant may not be apple,uncertain
+1,9f887af969ac9d255d3566f56ea709cd8fb45ede,datasets/raw/plantdoc/Bell_pepper leaf spot/ed8e20.jpg,plantdoc,field_test,"Pepper,_bell___Bacterial_spot",,leaf looks clean,uncertain
+1,5c461a88c74b2c8916951e706ad9d480c93e98e1,datasets/raw/plantseg_field/cherry powdery mildew/cherry_powdery_mildew_38.jpg,plantseg,field_dev,Cherry_(including_sour)___Powdery_mildew,,leaves look like rose,uncertain
+1,a2c6808325099832552115881c306eb3e5a86995,datasets/raw/plantdoc/Tomato leaf/happier-inside.jpg,plantdoc,field_test,Tomato___healthy,,may be pepper plant,uncertain
+1,76ade35f66a10efcd596e2001fd7f117fde253ad,datasets/raw/plantdoc/Tomato leaf/depositphotos_7182856-stock-photo-tomato-leaf.jpg,plantdoc,field_dev,Tomato___healthy,,isolated leaf stock,uncertain
+1,a32cff6e22e19b682c3ebf9ddb5e408f24419562,datasets/raw/plantdoc/Raspberry leaf/a32cff6e22e1.jpg,plantdoc,field_dev,Raspberry___healthy,,isolated leaf stock,uncertain
+1,d9ec540e0c3343069a27bbfbe369974003d01e9a,datasets/raw/plantdoc/Soyabean leaf/fresh-soy-leaves-isolated-on-260nw-667193923.jpg,plantdoc,field_dev,Soybean___healthy,,isolated leaf stock,uncertain
+1,6eeac40515eff0042844290c36ac43f26b2c5958,datasets/raw/plantdoc/Blueberry leaf/stock-photo-leaf-blueberry-57690040.jpg,plantdoc,field_dev,Blueberry___healthy,,isolated leaves stock,uncertain
+1,75a115f74aee4add03da6048ae2ac8db25fb70ba,datasets/raw/plantdoc/Potato leaf early blight/maxresdefault.jpg,plantdoc,field_dev,Potato___Early_blight,,text overlay graphic,uncertain
+1,cb739bfe1aeb4cd4e5cb559b358de097904d8307,datasets/raw/plantdoc/Strawberry leaf/9dd83ae9278e.jpg,plantdoc,field_test,Strawberry___healthy,,isolated leaf stock,uncertain
+1,bd10df4b382ba34b097df30ff535c8c36e7fd325,datasets/raw/plantdoc/Strawberry leaf/strawberry-leaf-24988739.jpg,plantdoc,field_test,Strawberry___healthy,,isolated leaf stock,uncertain
+1,887ee8b8c5084c013d041312f006c7d6e65c7077,datasets/raw/plantdoc/Strawberry leaf/depositphotos_6598542-Single-green-strawberry-leaf-isolated-on-white.jpg,plantdoc,field_test,Strawberry___healthy,,isolated leaf stock,uncertain
+1,dc3a4704762f315b6e44837cf61eb81620bcd651,datasets/raw/plantdoc/Raspberry leaf/fresh-green-raspberry-leaf-isolated-on-white-background-with-clipping-KH37NJ.jpg,plantdoc,field_test,Raspberry___healthy,,isolated leaf stock,uncertain
+1,f40d8e7e3bfda24106cece3d9f67544818b73e4a,datasets/raw/plantdoc/Peach leaf/peach-tree-trunk-new-leaf-18757494.jpg,plantdoc,field_test,Peach___healthy,,tree trunk stock image,uncertain
+1,ccb1bcda60acb73946579f5ae6804f04b1dc83e0,datasets/raw/plantdoc/Blueberry leaf/P1200665+Vaccinium+alaskaense+vs+ovalifolium+leaf+and++twig+cr.jpg,plantdoc,field_dev,Blueberry___healthy,,isolated leaves on white,uncertain
+1,4c1a57783875340b0c6ddd220896672cd267cd70,datasets/raw/plantdoc/grape leaf/depositphotos_3443387-stock-photo-the-green-grape-leaf-on.jpg,plantdoc,field_dev,Grape___healthy,,isolated grape leaf stock,uncertain
+1,9ef79608b99c9875238397e1edd3f054549e90bf,datasets/raw/plantdoc/Corn rust leaf/corn%20rust.jpg,plantdoc,field_test,Corn_(maize)___Common_rust_,,odd dark golden image,uncertain
+1,90abb03e932f5296c95f7b86813f0326f812b81f,datasets/raw/plantdoc/Blueberry leaf/blueberry-leaves-isolated-shadow-95294017.jpg,plantdoc,field_test,Blueberry___healthy,,isolated leaves stock,uncertain
+1,82a31b07471b5daa2df3d5d686597c95c988d6fd,datasets/raw/plantdoc/Apple rust leaf/car2.jpg,plantdoc,field_dev,Apple___Cedar_apple_rust,,plant may not be apple,uncertain
+1,9212b4d26d449be7835c97b67ef62b6a0a5bd8d2,datasets/raw/plantdoc/Cherry leaf/five-cherry-tree-green-leaves-white-isolated-background-34493587.jpg,plantdoc,field_test,Cherry_(including_sour)___healthy,,isolated leaves stock,uncertain
+1,262148049abae9283327e2c61b1f673aaeb11ac8,datasets/raw/plantdoc/Apple leaf/bb5b26e9d722.jpg,plantdoc,field_test,Apple___healthy,,isolated apple stock,uncertain
+1,452d5d692d7a449576c9947d47c2399cd5b92678,datasets/raw/plantseg_field/tomato early blight/tomato_early_blight_google_0073.jpg,plantseg,field_test,Tomato___Early_blight,,cover graphic with title text,uncertain
+1,5ffaa219a4dfde5e555192c221598ee8bcd2711e,datasets/raw/plantdoc/Peach leaf/ripe-peach-fresh-red-tree-green-leaves-57508021.jpg,plantdoc,field_dev,Peach___healthy,,isolated peach stock,uncertain
+1,3eb6c612479996d19e01385cd38a51e3ac04d5f6,datasets/raw/plantdoc/Raspberry leaf/Black%20raspberry%20late%20leaf%20rust%2008F.JPG.jpg,plantdoc,field_dev,Raspberry___healthy,,leaf shows no clear symptoms,uncertain
+1,be720bb07704fca5a5a380ab975824e786a2adda,datasets/raw/plantdoc/Peach leaf/depositphotos_50812601-stock-photo-peach-leaf-isolated-on-white.jpg,plantdoc,field_test,Peach___healthy,,isolated leaves stock,uncertain
+1,ea450e1b9e4e27392a66c6040dd0409f8b845af4,datasets/raw/plantseg_field/squash powdery mildew/squash_powdery_mildew_google_0011.jpg,plantseg,field_test,Squash___Powdery_mildew,,text graphic collage,uncertain
+1,8161e4df13e2406938bb6c8c05f50a259fe74d3c,datasets/raw/plantdoc/Apple leaf/8161e4df13e2.jpg,plantdoc,field_dev,Apple___healthy,,isolated apple stock,uncertain
+1,ddb99a84057763435bab5b2fde682803f6a62d8f,datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_103.jpg,plantseg,field_test,Corn_(maize)___Northern_Leaf_Blight,,odd leaf on wood,uncertain
+1,bba4cdd2a8738ab77d1b24bd019a24fad6d418bb,datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-collection-isolated-on-white-236633248.jpg,plantdoc,field_dev,Peach___healthy,,isolated leaves stock,uncertain
+1,2ebf73bd582257c05e4d8e55048ab1e78f747e0b,datasets/raw/plantdoc/Cherry leaf/wild-and-choke-cherry-leaves_edited-1.jpg,plantdoc,field_test,Cherry_(including_sour)___healthy,,diagram comparing leaves with text,uncertain
+1,46a7433a7c57c7205663ea63656269ae1b46e5c9,datasets/raw/plantdoc/Peach leaf/peach-with-leaf-picture-id124561113.jpg,plantdoc,field_test,Peach___healthy,,isolated peach stock,uncertain
+1,b8dd973aed6f3bac4559090a11f9f4db2a292285,datasets/raw/plantdoc/Bell_pepper leaf spot/06.jpg,plantdoc,field_test,"Pepper,_bell___Bacterial_spot",,plant unclear,uncertain
+1,baf8a49281a51bfea601f5ec2d8dd73f2f8033f5,datasets/raw/plantdoc/Peach leaf/peach-leaves-isolated-white-background-43668233.jpg,plantdoc,field_dev,Peach___healthy,,isolated leaves stock,uncertain
+1,bbc19153399f7956f7865d9611c46da7a30850b7,datasets/raw/plantdoc/Tomato leaf/tomato-leaf-isolated-white-34309524.jpg,plantdoc,field_dev,Tomato___healthy,,isolated leaf stock,uncertain
+1,e1870660e0a1a064cdb2f5becf407f56a85048d7,datasets/raw/plantdoc/Blueberry leaf/northern-highbush-blueberry-blue-huckleberry-vaccinium-corymbosum-EHNXRR.jpg,plantdoc,field_dev,Blueberry___healthy,,isolated red leaf stock,uncertain
+1,3aa21381887d9b1bd6c7a9d94db05842b34acbd3,datasets/raw/plantdoc/Raspberry leaf/raspberry-leaf-isolated-white-18415125.jpg,plantdoc,field_dev,Raspberry___healthy,,isolated leaf stock,uncertain
+1,632b2dc0107583d9cbb557377c9c14ae1f45d7e8,datasets/raw/plantdoc/Blueberry leaf/stock-photo-fresh-ripe-blueberries-with-leaves-on-white-background-125173964.jpg,plantdoc,field_test,Blueberry___healthy,,isolated blueberry stock,uncertain
+1,de576f2e2a700f7f31a428b7ba758e7b9ff7b004,datasets/raw/plantdoc/grape leaf/8742cd3e1053.jpg,plantdoc,field_test,Grape___healthy,,isolated leaf stock,uncertain
+1,0c0190fb3fba3682f42041c1d56e30366795bec3,datasets/raw/plantdoc/Cherry leaf/red-cherry-tree-leaf-isolated-crisp-white-background-35742030.jpg,plantdoc,field_test,Cherry_(including_sour)___healthy,,isolated leaf stock,uncertain
+1,a0c11a5b8b9aa372abf0bd37d988310d9b1e2fdb,datasets/raw/plantdoc/Peach leaf/stock-photo-peach-leaf-isolated-370117730.jpg,plantdoc,field_dev,Peach___healthy,,isolated leaves stock,uncertain
+1,72dfc8f920d18ed11b691f88ab0757692be8a780,datasets/raw/plantdoc/Peach leaf/72dfc8f920d1.jpg,plantdoc,field_dev,Peach___healthy,,isolated leaf stock,uncertain
+1,022507013d85c4c9a74d5b3e8f3da10adbd88c60,datasets/raw/plantdoc/Peach leaf/peach-with-leaves-stock-picture-1721709.jpg,plantdoc,field_test,Peach___healthy,,isolated peach stock,uncertain
+1,1c0df67759feb4a11be39c9fa5e92349dd9b5e4f,datasets/raw/plantdoc/Peach leaf/peach-leaf-isolated-white-background-42295151.jpg,plantdoc,field_dev,Peach___healthy,,isolated leaf stock,uncertain
+1,fe770281c8d22ea3449d817e50f4682c26abc244,datasets/raw/plantdoc/Apple leaf/red-apple-green-leaf-isolated-white-background-57496220.jpg,plantdoc,field_dev,Apple___healthy,,isolated apple stock,uncertain
+1,28f10e1a334746345f13cbf99df4a1c051795e0d,datasets/raw/plantdoc/Peach leaf/stock-photo-peach-wet-fruit-with-leaf-isolated-on-white-248733745.jpg,plantdoc,field_train,Peach___healthy,,isolated stock fruit,uncertain
+1,9123ba19e03f099473e5f52d92efc6cd77735a5d,datasets/raw/plantdoc/Raspberry leaf/leaves-of-raspberry-stock-picture-2529053.jpg,plantdoc,field_train,Raspberry___healthy,,isolated stock leaf,uncertain
+1,36943e37fdeb7ac1e5fb62eff36e3e135942de53,datasets/raw/plantseg_field/grape black rot/grape_black_rot_google_0050.jpg,plantseg,field_train,Grape___Black_rot,,fruit looks like tomato blossom-end rot not grape,uncertain
+1,a5f906b094f3227f7508d17ffe89eb3358cb1739,datasets/raw/plantdoc/Apple leaf/stock-photo-apple-leaves-collection-isolated-on-white-background-373945045.jpg,plantdoc,field_train,Apple___healthy,,isolated stock leaves,uncertain
+1,2d044b51a77c2e9cb24d435a98b882302e87f953,datasets/raw/plantdoc/Bell_pepper leaf spot/4-dogwood_pm.jpg,plantdoc,field_train,"Pepper,_bell___Bacterial_spot",,filename says dogwood powdery mildew,uncertain
+1,d7300bfb4b4a39661dd0772f2a5926c79a9e0641,datasets/raw/plantdoc/Apple leaf/stock-photo-apple-leaf-isolated-on-white-background-287560226.jpg,plantdoc,field_train,Apple___healthy,,isolated stock leaf,uncertain
+1,3decd2fd7915940376000fc9d3157777d51e5809,datasets/raw/plantdoc/Peach leaf/stock-photo-two-sides-of-peach-leaf-isolate-on-white-17407162.jpg,plantdoc,field_train,Peach___healthy,,isolated stock leaves,uncertain
+1,9ce8a1186d49613fd665ada5f9b037fd4b01b74d,datasets/raw/plantdoc/Soyabean leaf/stock-photo-fresh-soy-leaves-isolated-on-white-94700095.jpg,plantdoc,field_train,Soybean___healthy,,isolated stock soybean,uncertain
+1,85628bfa8aabd19f4e38df0e6f16f8207ba38a0b,datasets/raw/plantdoc/Squash Powdery mildew leaf/3761.400x400_0_0.jpeg.jpg,plantdoc,field_train,Squash___Powdery_mildew,,leaf shape may not be squash,uncertain
+1,70975d9447c4582a330a16498aa84486a1032c42,datasets/raw/plantdoc/Peach leaf/fresh-peach-fruits-green-leaves-15654533.jpg,plantdoc,field_train,Peach___healthy,,isolated stock fruit,uncertain
+1,c179d02106fe9fd0468b427c15db65e515e30ff9,datasets/raw/plantdoc/Tomato leaf/curling-issues.jpg,plantdoc,field_train,Tomato___healthy,,curling leaves under healthy label,uncertain
+1,6f7bfaa4a81c043d4e06508bec96f3c6ce613542,datasets/raw/plantdoc/Apple Scab Leaf/apple_scab_early_jc_sm.jpg,plantdoc,field_train,Apple___Apple_scab,,clean-looking leaf under disease label,uncertain
+1,78ae0dabc7d3b1c4ae1244ba123217c54f056eed,datasets/raw/plantdoc/Peach leaf/stock-photo-peach-fruits-with-leaf-isolated-on-white-background-639972919.jpg,plantdoc,field_train,Peach___healthy,,isolated stock fruit,uncertain
+1,9b5850e788ae55372ba1a0691baafe82bc2bbf33,datasets/raw/plantdoc/Bell_pepper leaf spot/thrips001.jpg,plantdoc,field_train,"Pepper,_bell___Bacterial_spot",,filename says thrips,uncertain
+1,a4c9cb77086e97fbee02ebc4b4be3876e9743c42,datasets/raw/plantdoc/Blueberry leaf/a4c9cb77086e.jpg,plantdoc,field_train,Blueberry___healthy,,isolated stock leaves,uncertain
+1,c0799913fbe384cd4431fca8bd773fc21308bc52,datasets/raw/plantdoc/Tomato leaf yellow virus/role-of-whitefly-in-plant-virus-transmission-by-pmanikandan-13-638.jpg,plantdoc,field_train,Tomato___Tomato_Yellow_Leaf_Curl_Virus,,framed slide-like image,uncertain
+1,1929c11ade7978ddade0de183d1758263ad3eb41,datasets/raw/plantdoc/Apple leaf/stock-photo-apple-leaves-isolated-on-the-white-background-729570907.jpg,plantdoc,field_train,Apple___healthy,,isolated stock leaves,uncertain
+1,e5d174f8b3f9a0f74b6c11f56c8d257fa2969a2c,datasets/raw/plantdoc/Raspberry leaf/raspberry_leaves.JPG.JPG.jpg,plantdoc,field_train,Raspberry___healthy,,leaves on a rack with bowl,uncertain
+1,a08f52edd7ee35fb68721179a13d1f0c4cfc0d57,datasets/raw/plantdoc/Blueberry leaf/P1200644+Vaccinium+alaskaense+Alaska+Blueberry+cr.jpg,plantdoc,field_train,Blueberry___healthy,,specimen on white with ruler,uncertain
+1,a3396c3e9339ef75d80a745892b2eaf7fb99a76b,datasets/raw/plantdoc/Tomato leaf mosaic virus/tomato_leaf_curl_ND_on_luffah_KC3701030-3.jpg,plantdoc,field_train,Tomato___Tomato_mosaic_virus,,filename says luffa,uncertain
+1,57722920dd9602feeb1c5287c8e30cd109a86b60,datasets/raw/plantdoc/Bell_pepper leaf spot/e2Vlc.jpg,plantdoc,field_train,"Pepper,_bell___Bacterial_spot",,clean-looking leaf under disease label,uncertain
+1,493e242fff9a784876b61c21f16f289c26c08cf9,datasets/raw/plantdoc/grape leaf/grape-leaf-detail-1457175.jpg,plantdoc,field_train,Grape___healthy,,isolated leaf,uncertain
+1,0c39fe2656466fce5c8ee168c3bdb4f65d29ee90,datasets/raw/plantdoc/Strawberry leaf/0c7fd627ac72.jpg,plantdoc,field_train,Strawberry___healthy,,leaves may not be strawberry,uncertain
+1,2985cec71308bf74ea451307f82b644ed2300c94,datasets/raw/plantdoc/Strawberry leaf/wild-strawberry-leaf-top-view-rotated-KTBXCY.jpg,plantdoc,field_train,Strawberry___healthy,,isolated stock leaf,uncertain
+1,ce9541eb807f11f5c4807de644d86bc74a5cede1,datasets/raw/plantdoc/Apple leaf/ce9541eb807f.jpg,plantdoc,field_train,Apple___healthy,,isolated stock fruit,uncertain
+1,f92a2a0591c3cc9ad53798693a3ec49c7c6ee1c7,datasets/raw/plantdoc/Corn rust leaf/Common-rust-east-central-Indiana.jpg,plantdoc,field_train,Corn_(maize)___Common_rust_,,clean-looking leaf under rust label,uncertain
+1,86c4058521d7829b37f9e388c6caf0ae5437e1ea,datasets/raw/plantseg_field/tomato septoria leaf spot/tomato_septoria_leaf_spot_26.jpg,plantseg,field_train,Tomato___Septoria_leaf_spot,,leaf shape may not be tomato; few spots,uncertain
+1,86f5409ee763df9bddaea43a979eabfee033a272,datasets/raw/plantseg_field/corn rust/corn_rust_21.jpg,plantseg,field_train,Corn_(maize)___Common_rust_,,clean-looking leaf under rust label,uncertain
+1,811e99b8c92068ca1b63e13318df52529e3b32d8,datasets/raw/plantseg_field/tomato mosaic virus/tomato_mosaic_virus_19.jpg,plantseg,field_train,Tomato___Tomato_mosaic_virus,,small dense foliage; unclear plant,uncertain
+1,303777d60daa98d520ef35c14eebeb6d1f8287e5,datasets/raw/plantdoc/Bell_pepper leaf/zT5la.jpg,plantdoc,field_train,"Pepper,_bell___healthy",,leaves look like basil not pepper,uncertain
+1,535b5f4fb30714cec132dabb342ce4b7c971f797,datasets/raw/plantdoc/Bell_pepper leaf spot/04.jpg,plantdoc,field_train,"Pepper,_bell___Bacterial_spot",,leaves look like basil not pepper,uncertain
+1,1f08125d7f497e803fad11041c39f841dd829444,datasets/raw/plantdoc/Apple leaf/red-apple-leaves-309078.jpg,plantdoc,field_train,Apple___healthy,,isolated stock fruit,uncertain
+1,7bd37e3fcaaeb31b57f3fbac50737e97f0f46f2a,datasets/raw/plantdoc/Raspberry leaf/iron-deficiency-symptoms-on-autumn-fruiting-raspberry-leaf-uk-garden-E4W77P.jpg,plantdoc,field_train,Raspberry___healthy,,yellowing veins under healthy; filename iron deficiency,uncertain
+1,9fd67b5a2631d8fdc7f9f633aef8963914142880,datasets/raw/plantdoc/Blueberry leaf/A+A+Blueberry+Leaf+Disease+002.jpg,plantdoc,field_train,Blueberry___healthy,,discolored lesions under healthy; filename leaf disease,uncertain
+1,9053ca019af76344cfa4b442de6a395e55d75c0d,datasets/raw/plantdoc/Tomato leaf/2013-08-20-06.jpg,plantdoc,field_train,Tomato___healthy,,cut leaves on a cutting board; odd color,uncertain
+1,eeb7491da18b14c89d8463e196633eb66a9ba8e1,datasets/raw/plantdoc/Tomato leaf/9bfac1dea7f401e3b379dab33f535bb4.jpg,plantdoc,field_test,Tomato___healthy,,grid of leaf silhouettes/scans with labels not a normal photo,remove
+1,6557bdc7a8978d4a86413db01364cc8f0c800e22,datasets/raw/plantdoc/Raspberry leaf/shutterstock_302160662.jpg,plantdoc,field_test,Raspberry___healthy,,raspberry leaves with teacup; leaves prominent,remove
+1,6b749b8d37d4ef9f4aa027eb22970da8c8134a0f,datasets/raw/plantdoc/Potato leaf late blight/Late+Blight+of+Potato+and+Tomato.jpg,plantdoc,field_test,Potato___Late_blight,,slide with title; photo fairly large,remove
+1,f3490f53a2e8e35e1fa9ebed208f584adc678217,datasets/raw/plantseg_field/tomato late blight/tomato_late_blight_google_0013.jpg,plantseg,field_test,Tomato___Late_blight,,title slide with grid of small photos,remove
+1,661dc8e356f041d04c9bf5f220aba913a117bb93,datasets/raw/plantdoc/Tomato leaf yellow virus/train_tylcv-seminar-1-638.jpg,plantdoc,field_test,Tomato___Tomato_Yellow_Leaf_Curl_Virus,,title slide with two plant photos,remove
+1,39b9b95359976b9c354647f362f40a707a6e5ef1,datasets/raw/plantseg_field/strawberry leaf scorch/strawberry_leaf_scorch_google_0018.jpg,plantseg,field_dev,Strawberry___Leaf_scorch,,annotated detection diagram with black panels,remove
+1,01e18e2482841e4d6aae5a9aa078673fa4a8a8c3,datasets/raw/plantdoc/Corn leaf blight/Risk+factors+for+Goss%E2%80%99s+wilt+and+leaf+blight+Percent+surface+residue.jpg,plantdoc,field_dev,Corn_(maize)___Northern_Leaf_Blight,,slide with text about half; photo moderate,remove
+1,7d966d0338072ff510a46bddfde691de2c8a7612,datasets/raw/plantdoc/Strawberry leaf/0008003-strawberry-leaf-veiner-large.jpg,plantdoc,field_dev,Strawberry___healthy,,blue leaf mold next to strawberry photo,remove
+1,5933980a6c3a6ef619e1365a891782d1ac192c18,datasets/raw/plantdoc/Tomato leaf bacterial spot/a3fb24f84fe70e5d37352d13106531d6.jpg,plantdoc,field_dev,Tomato___Bacterial_spot,,slide with paragraph text and two photos,remove
+1,2d69e88e4feaed9acc77a572a5bf82d0b3bb705c,datasets/raw/plantdoc/Tomato leaf bacterial spot/%2320+Bacterial+Spot+and+Speck.jpg,plantdoc,field_test,Tomato___Bacterial_spot,,slide with text and two photos,remove
+1,49d0137978395bfe5d2329f3fbbcb87a782467b4,datasets/raw/plantdoc/Bell_pepper leaf spot/01.jpg,plantdoc,field_dev,"Pepper,_bell___Bacterial_spot",,slide with text and one photo,remove
+1,c88b793f8d48e5d9691b610ba080cb848d7291f3,datasets/raw/plantdoc/Tomato Septoria leaf spot/0.jpg,plantdoc,field_dev,Tomato___Septoria_leaf_spot,,slide with caption text; photos moderate size,remove
+1,890f4a87b870ad9d5a0264af7ee1dfe9fefc4f84,datasets/raw/plantseg_field/corn northern leaf blight/corn_northern_leaf_blight_google_0051.jpg,plantseg,field_dev,Corn_(maize)___Northern_Leaf_Blight,,figure with plot and leaf images,remove

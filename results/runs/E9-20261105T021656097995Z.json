@@ -1,0 +1,263 @@
+{
+ "run_id": "E9-20261105T021656097995Z",
+ "experiment": "E9",
+ "git_commit": "76709217c9d1ec567541121c69b5fa7f76c1f768",
+ "dirty": false,
+ "dataset_hash": "2d4e1442dc2bf6d2421baa8e3dd304dc78a7453f2a510d9d7fe2362abe2a615f",
+ "split": "rag_test",
+ "subset": null,
+ "config": {
+  "stage": "final",
+  "served": {
+   "prompt_version": "base+faithful+abstain",
+   "mode": "hybrid",
+   "rerank": true,
+   "k": 5,
+   "query_mode": "question",
+   "floors": {
+    "dense": 0.732844,
+    "hybrid": 0.806462,
+    "hybrid+rerank": 0.73875
+   }
+  },
+  "judge": {
+   "model": "claude-haiku-5-5"
+  },
+  "judges": {
+   "haiku": {
+    "model": "claude-haiku-5-5",
+    "name": "Haiku judge",
+    "role": "first judge",
+    "chosen_by": {
+     "file": "results/e14/haiku_decision.json",
+     "record": "E14H-20261104T174311169630Z"
+    }
+   },
+   "sonnet": {
+    "model": "sonnet",
+    "name": "Sonnet judge",
+    "role": "second judge"
+   },
+   "same_claims_and_rubric": true
+  },
+  "rubric": "You check one claim from a plant care answer against the evidence passages it cites.\nReply with SUPPORTED if the passages state the claim or clearly imply it, including its numbers and names.\nReply with NOT_SUPPORTED if the claim adds facts, numbers or names the passages lack, contradicts them, or is about a different plant or disease.\nReply with one word, SUPPORTED or NOT_SUPPORTED, and nothing else.",
+  "prompt_file": "src/sprout/rag/prompts/wrong_disease.txt",
+  "prompt_sha256": "43929408ff4fdbfd7b9415858a8d7585a00f12f3da1a10833bf0e7f0f99e9271",
+  "rendered_sha256": "3e5be1e11685aff48f0c2d9dd27bb88cee99e462ed8edf47fcd45a2b4e76f4ff",
+  "frozen_wrong_disease": {
+   "file": "configs/e9_wrong_disease.json",
+   "experiment": "E9",
+   "prompt_file": "src/sprout/rag/prompts/wrong_disease.txt",
+   "prompt_sha256": "43929408ff4fdbfd7b9415858a8d7585a00f12f3da1a10833bf0e7f0f99e9271",
+   "rendered_sha256": "3e5be1e11685aff48f0c2d9dd27bb88cee99e462ed8edf47fcd45a2b4e76f4ff",
+   "prompt_commit": "016bb61f57f65adf84f877d8bf6fa37fdd4acf0f",
+   "grader_model": "sonnet",
+   "dev_record": "E9-20261104T235829058326Z",
+   "validated": false,
+   "validation": "The wrong-disease check was not validated: no one read a sample of its calls on rag_dev, so how often it flags a good answer or passes a wrong one is not known. Its rate is a count of the grader's calls.",
+   "dev_source_note": "The saved rag_dev answers this check was developed on (E7 run E7-20261104T040010301317Z) were written before T7.4 added the search with the diagnosed disease when the question finds nothing, so they do not reflect the retrieval served now; no saved set of served rag_dev answers with the fallback exists, and none was generated for this check. rag_test is answered with the fallback.",
+   "frozen_at": "2026-11-04T23:58:49.999496+00:00",
+   "rule": "rag_test runs the wrong-disease check only with this prompt; it is not tuned after rag_test"
+  },
+  "wrong_disease_validated": false,
+  "wrong_disease_validation": "The wrong-disease check was not validated: no one read a sample of its calls on rag_dev, so how often it flags a good answer or passes a wrong one is not known. Its rate is a count of the grader's calls.",
+  "diagnosis_source": "The diagnosis is the text the writer was given for the same question: the simulated photo diagnosis of E7 (sprout.experiments.e7_rag.simulate_identification, which names the plant's class that the question mentions, never the gold label) written by answer.diagnosis_summary. With no such class it says no photo diagnosis is available, plus the plant when the question states or names one. rag_dev and rag_test questions have no photos and use the same rule.",
+  "calls": {
+   "haiku": 273,
+   "sonnet": 325
+  },
+  "claude_calls": 598,
+  "wrong_disease_check": {
+   "answers_to_check": 52,
+   "graded": 51,
+   "usable_calls": 51,
+   "unusable_replies": 0,
+   "flagged_wrong_disease": 1,
+   "refused_by_safeguard": 1,
+   "not_sent": 0,
+   "refused": [
+    {
+     "id": "supported-051",
+     "request_id": "req_011Cgirq4g3x6XmNV3EEmW3i"
+    }
+   ],
+   "complete": false,
+   "stop_after_refusals": 3,
+   "rule": "the rate's denominator is the graded answers with a usable call; answers the safeguard refused and answers never sent are counted as neither result"
+  },
+  "device": "retrieval on cuda; writer qwen3.5:4b-q4_K_M with 3130009844 of 3130009844 bytes in GPU memory; both judges and the wrong-disease grader run through the claude command, with no local device",
+  "writer_usage": {
+   "rows": 87,
+   "model_calls": 61,
+   "rows_without_model_call": 26,
+   "model_seconds": 141.2
+  },
+  "index": {
+   "built": "2026-11-03T18:25:10+00:00",
+   "chunks": 5282,
+   "embedding_model": "BAAI/bge-small-en-v1.5",
+   "chunks_sha256": "96cad8b57ed201bd70980e0b7f8b2950b020a1b75e20623001fb1b5f12948847",
+   "vectors_file": "vectors-43ad18c7a2d14abc.npy",
+   "vectors_sha256": "ea66cca6b628aec484f79c1a69a7adf5a979d7f6f701cee08484e0da55f704cd"
+  },
+  "generic_followup_coverage": {
+   "questions": 87,
+   "generic_followups": 27,
+   "rule": "no plant given for the question, no plant of the index and no disease name or alias of the classes in the question or the user's earlier turns",
+   "generic_answered": 9,
+   "generic_with_claims": 9,
+   "fallback_fired": 4,
+   "fallback_fired_with_claims": 4,
+   "answers_with_claims": 52,
+   "claims_on_generic_followups": 53,
+   "claims_in_all": 273,
+   "few_cutoff": 10,
+   "few_cutoff_note": "wording only, chosen before the run",
+   "few": false
+  },
+  "dev_source_note": "The saved rag_dev answers this check was developed on (E7 run E7-20261104T040010301317Z) were written before T7.4 added the search with the diagnosed disease when the question finds nothing, so they do not reflect the retrieval served now; no saved set of served rag_dev answers with the fallback exists, and none was generated for this check. rag_test is answered with the fallback.",
+  "served_with_fallback": true,
+  "labels_reviewed": false,
+  "label_signature": "Not held in this record: the person's sign-off on this split's labels is the row for the split in orchestration/label_signoff.json, which `claims check` reads. labels_reviewed is false here by design.",
+  "basis": "rag_test questions as asked; the photo label cleaning does not apply to them",
+  "started_at": "2026-11-05T02:16:55.315922+00:00",
+  "caveat": "Held-out numbers: the questions were answered and judged once, with everything frozen before; if the stages were interrupted, config.run_account says how. The Haiku judge (the first judge, chosen by the committed Haiku check) and the Sonnet judge (the second figure) read the same claims with the same rubric. Their figures differ, Sonnet is a reference and not truth, and neither is the share of correct claims. The wrong-disease check is a Sonnet grader that was run on rag_dev, frozen, and run once here; it was not validated by a blind read.",
+  "run_account": {
+   "questions_answered_and_judged": {
+    "questions": 87,
+    "answers_saved": 87,
+    "claims_judged_by_haiku": 273,
+    "claims_judged_by_sonnet": 273,
+    "wrong_disease_rows": 52
+   },
+   "stages": {
+    "retrieve": {
+     "file": "results/e9/work/retrieve/retrieve-032864f7e3.jsonl",
+     "rows": 87,
+     "sha256": "17ddc2bfae73f07c970fc58a4bda841ea5c97b15db3aada1612c8022d2fb03b3",
+     "created": "2026-11-05T00:34:54.998485+00:00",
+     "last_write": "2026-11-05T00:35:02.235812+00:00"
+    },
+    "generate": {
+     "file": "results/e9/work/generate/generate-served-453cd0e375.jsonl",
+     "rows": 87,
+     "sha256": "bae829e5ac51ebf45bb0d20abaccc7280b0a3a9c195d42ff6912cb929e901272",
+     "created": "2026-11-05T00:35:21.787018+00:00",
+     "last_write": "2026-11-05T00:37:40.983001+00:00"
+    },
+    "claims_haiku": {
+     "file": "results/e9/work/claims/claims-claude-haiku-5-5-45b4003ce5.jsonl",
+     "rows": 273,
+     "sha256": "17156b711a30320110f146c9279a5f3790d386484a81fffe9b7abeeb99162875",
+     "created": "2026-11-05T00:37:52.641767+00:00",
+     "last_write": "2026-11-05T00:41:08.717092+00:00"
+    },
+    "claims_sonnet": {
+     "file": "results/e9/work/claims/claims-sonnet-99a918b832.jsonl",
+     "rows": 273,
+     "sha256": "587b9707c3bcf07fec4ee13874fe437797b6fb25fa5e169275a45e03070826a7",
+     "created": "2026-11-05T00:41:15.770265+00:00",
+     "last_write": "2026-11-05T00:47:34.192098+00:00"
+    },
+    "wrong_disease": {
+     "file": "results/e9/work/wd-test-4cdb44cfb0.jsonl",
+     "rows": 52,
+     "sha256": "0c19be4310141c8ba619610d6f195f980d9938acca66aafd47434fbb749da0b2",
+     "created": "2026-11-05T00:47:36.853465+00:00",
+     "last_write": "2026-11-05T01:17:39.050953+00:00"
+    }
+   },
+   "window": {
+    "first_file_created": "2026-11-05T00:34:54.998485+00:00",
+    "last_file_write": "2026-11-05T01:17:39.050953+00:00",
+    "record_written": "2026-11-05T02:16:55.315922+00:00",
+    "note": "from checkpoint files; a stage's own start is not stored, so the window is the files' creation and last write, and the record's own started_at is only when the record was written"
+   },
+   "interruption": {
+    "occurred": true,
+    "stop_after_refusals": 3,
+    "refused": [
+     {
+      "id": "supported-051",
+      "request_id": "req_011Cgirq4g3x6XmNV3EEmW3i",
+      "recorded_without_call": true
+     }
+    ],
+    "code_commits": {
+     "when_wrong_disease_file_was_created": "5eb020ea68984e039a3f78d9f15956936bcf6787",
+     "when_it_was_last_written": "250e44d8f32041f6a1dbf294c7fd75a663092e23",
+     "record_written_at": "76709217c9d1ec567541121c69b5fa7f76c1f768",
+     "basis": "newest first-parent commit made at or before the file time; approximate"
+    },
+    "note": "rag-retrieve, rag-generate, rag-haiku and the Sonnet claim grading ran at commit 5eb020e. The wrong-disease part of rag-sonnet stopped on 2026-11-04 about 16:47 local time when Sonnet's safeguard refused one request (req_011Cgirq4g3x6XmNV3EEmW3i), with 6 of 52 rows saved. Code then changed in 0c39d6c (a refusal is a kept row, stop at 3) and 250e44d (one call at a time). The coordinator ruled on this. Row supported-051 was marked refused by command, with no resend, and the remaining rows were sent once each at 250e44d, about 17:15. The frozen prompt, model and saved rows did not change. check_run's subset rule changed afterwards in 2821050.",
+    "note_is": "the person's words, stored verbatim; it states what no file shows (the commits of the first part and of the resume, and that the earlier saved rows were not changed)"
+   },
+   "frozen": {
+    "prompt_sha256": "43929408ff4fdbfd7b9415858a8d7585a00f12f3da1a10833bf0e7f0f99e9271",
+    "rendered_sha256": "3e5be1e11685aff48f0c2d9dd27bb88cee99e462ed8edf47fcd45a2b4e76f4ff",
+    "grader_model": "sonnet",
+    "equal_to_frozen_config": true,
+    "wd_key_model": "sonnet"
+   },
+   "model_calls_by_rag_record": 0
+  },
+  "supersedes": {
+   "record": "E9-20261105T011744079881Z",
+   "why": "adds config.run_account; made from the saved rows with no model call",
+   "same_numbers": true
+  },
+  "override_note": "Rewritten from the saved rows, with no new model call and no new test run, because the first record did not state how the rag-sonnet stage stopped and resumed."
+ },
+ "models": {
+  "writer": "qwen3.5:4b-q4_K_M",
+  "judge_first": "claude-haiku-5-5",
+  "judge_second": "sonnet",
+  "wrong_disease_grader": "sonnet",
+  "embedder": "BAAI/bge-small-en-v1.5",
+  "reranker": "cross-encoder/ms-marco-MiniLM-L6-v2"
+ },
+ "n": 87,
+ "metrics": {
+  "served": {
+   "answers_when_answerable": 0.9148936170212766,
+   "declines_when_unanswerable": 1.0,
+   "declines_when_crop_mismatch": 1.0,
+   "declines_when_ambiguous": 0.3076923076923077
+  }
+ },
+ "measurements": {},
+ "judged": {
+  "file": "results/runs/E9-20261105T021656097995Z.judged.json",
+  "values": {
+   "claims_supported_by_haiku": 0.7875457875457875,
+   "claims_supported_by_sonnet": 0.8168498168498168,
+   "answers_flagged_wrong_disease": 0.0196078431372549
+  }
+ },
+ "intervals": {
+  "served": {}
+ },
+ "per_class": {},
+ "confusion": {},
+ "bootstrap": {
+  "n": 10000,
+  "seed": 13
+ },
+ "comparisons": [],
+ "attempts": [
+  {
+   "stage": "rag_test",
+   "answers": 87,
+   "claims": 273,
+   "claude_calls": 598
+  }
+ ],
+ "claude_calls": 598,
+ "labels_reviewed": false,
+ "predictions": {
+  "served": "results/runs/E9-20261105T021656097995Z.served.predictions.jsonl"
+ },
+ "started_at": "2026-11-05T02:16:55.315922+00:00",
+ "finished_at": "2026-11-05T02:16:56.097995+00:00",
+ "notes": "Held-out numbers: the questions were answered and judged once, with everything frozen before; if the stages were interrupted, config.run_account says how. The Haiku judge (the first judge, chosen by the committed Haiku check) and the Sonnet judge (the second figure) read the same claims with the same rubric. Their figures differ, Sonnet is a reference and not truth, and neither is the share of correct claims. The wrong-disease check is a Sonnet grader that was run on rag_dev, frozen, and run once here; it was not validated by a blind read. The wrong-disease check is partial: some answers were refused by the claude command's safeguard or never sent, so its rate covers the graded answers only and is not a result for all answers with claims. Interruption: rag-sonnet stopped at a safeguard refusal of the wrong-disease check and was resumed later, with the code changed between the stop and the resume. Refused rows: supported-051 (request req_011Cgirq4g3x6XmNV3EEmW3i, marked by a command with no resend). The questions were answered and judged once, with one stop; no answer or claim verdict was produced twice. The checkpoint files span 2026-11-05T00:34:54.998485+00:00 to 2026-11-05T01:17:39.050953+00:00 (the record itself was written at 2026-11-05T02:16:55.315922+00:00). Commits current at the wrong-disease file's creation and last write: 5eb020ea68984e039a3f78d9f15956936bcf6787, 250e44d8f32041f6a1dbf294c7fd75a663092e23 (derived from file times). The frozen prompt hash, model and the saved rows' hashes are in config.run_account. The person's note: rag-retrieve, rag-generate, rag-haiku and the Sonnet claim grading ran at commit 5eb020e. The wrong-disease part of rag-sonnet stopped on 2026-11-04 about 16:47 local time when Sonnet's safeguard refused one request (req_011Cgirq4g3x6XmNV3EEmW3i), with 6 of 52 rows saved. Code then changed in 0c39d6c (a refusal is a kept row, stop at 3) and 250e44d (one call at a time). The coordinator ruled on this. Row supported-051 was marked refused by command, with no resend, and the remaining rows were sent once each at 250e44d, about 17:15. The frozen prompt, model and saved rows did not change. check_run's subset rule changed afterwards in 2821050."
+}

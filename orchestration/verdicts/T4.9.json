@@ -1,0 +1,127 @@
+{
+ "task": "T4.9",
+ "commit": "25c24021b48e935aa6871e6c09daee2bb6b68f80",
+ "verdict": "PASS",
+ "checks": [
+  {
+   "item": "HEAD equals commit, tree clean",
+   "result": "pass",
+   "evidence": "git rev-parse HEAD = b427b1d4...; git status in worktree empty"
+  },
+  {
+   "item": "Evidence log shows both acceptance commands passed at this commit",
+   "result": "pass",
+   "evidence": "T4.9.log: 8 passed; 'E15 ok'. Reran both here with CUDA_VISIBLE_DEVICES=-1: 8 passed, E15 ok"
+  },
+  {
+   "item": "Macro-F1 recomputed from committed predictions",
+   "result": "pass",
+   "evidence": "own numpy F1: e1 0.2186, E4 0.75996, E12 0.79037, V2 0.81001; equal to record metrics; all 4 systems have 1018 rows with 29 columns; paths/labels aligned across systems"
+  },
+  {
+   "item": "Masking of E4/E12/E1 rows",
+   "result": "pass",
+   "evidence": "Re-derived E12 (38 classes) -> 29 columns, renormalized, matched saved E15 probs on all 1018 rows (0 mismatches); labels map to same class names"
+  },
+  {
+   "item": "Class list of 29 and dropped 9",
+   "result": "pass",
+   "evidence": "derive_classes on real manifests incl. extra_train_full.csv gives 29 equal to decision.json classes; dropped list equals plan's nine"
+  },
+  {
+   "item": "Choosing rule and tie handling",
+   "result": "pass",
+   "evidence": "decision.json: V2 0.8100 > E12 0.7904 > E4 0.7600, chosen convnextv2_final; test_new_model_replaces_current_only_if_best_of_three covers ties and V2 between E4 and E12"
+  },
+  {
+   "item": "Selection data fairness",
+   "result": "pass",
+   "evidence": "V2 best pass chosen on field_dev (train.log, attempts best_val_acc 0.8076); E12 config selected_on field_dev (optimistic) too, so symmetric. Record notes/selected_on state 'field_dev (optimistic)', label 'development numbers'"
+  },
+  {
+   "item": "field_test not used",
+   "result": "pass",
+   "evidence": "field_test_read false; require_not_test; no sha1 overlap between training pools and field_dev/test (0); field_test used only as counts in the class rule"
+  },
+  {
+   "item": "photos_seen honest",
+   "result": "pass",
+   "evidence": "Reran draw_pass for 10 passes on real pools: 6342 distinct real, 12918 distinct lab, equals draws.json/record notes (19260); pools 12526 real, 30091 lab"
+  },
+  {
+   "item": "Extra pool accounting and matches_7303 false",
+   "result": "pass",
+   "evidence": "extra_full.json: 10832 rows, capped_rows_missing_now 0, over_the_cap_now 0; increase 7348 = 7303 Plant Pathology + 45 PlantWild explained in DECISIONS.md; flag left as written and disclosed"
+  },
+  {
+   "item": "Refit binds to checkpoint and fits Identifier",
+   "result": "pass",
+   "evidence": "sha256sum models/e15/final/best.pt = 4648483...a6c6ad = model_sha256 in refit/chosen.json and decision.json; chosen.json has classes (29), temperature, abstain_threshold, gate.settings, healthy_threshold 0.964719 = a+(1-a)/2; matches build identify.py requirements (model_sha256, classes, healthy_threshold)"
+  },
+  {
+   "item": "Healthy cost reported beside E4/E12",
+   "result": "pass",
+   "evidence": "refit/report.json: V2 unsure 259 -> 276 with healthy bar, confident sick-called-healthy 0; E4 0, E12 1; E4/E12 reported at their abstain-only settings"
+  },
+  {
+   "item": "Claims vs interval",
+   "result": "pass",
+   "evidence": "record comparisons: V2 vs E12 macro-F1 +0.0196 [-0.0082,+0.0474] labelled 'no measurable difference'; V2 vs E4 +0.050 [0.019,0.082] improvement. No unearned claim found in README/RESUME-TARGETS/claims"
+  },
+  {
+   "item": "Weights license, ONNX pre-check, backlog G1/G2",
+   "result": "pass",
+   "evidence": "license in DECISIONS (cc-by-nc-4.0, treated non-commercial); my untrained V2 export: ORT diff 8.9e-7, quantized finite; backlog.md lines 25-26 list G1, G2"
+  },
+  {
+   "item": "Diff hygiene",
+   "result": "pass",
+   "evidence": "no legacy/ or secret hits; no removed test lines vs merge-base 9c51d44; src changes small (records.py final_classes subset, loop.py convnextv2)"
+  },
+  {
+   "item": "Merge of build (b427b1d..25c2402) touches nothing of T4.9",
+   "result": "pass",
+   "evidence": "git diff b427b1d HEAD over results/, src/sprout/experiments, tests/test_e15.py is empty; changed files are DECISIONS.md, PLAN.md, tasks.json, pyproject, preprocess(+_np), serve/export+identify, T5.2 tests"
+  },
+  {
+   "item": "DECISIONS.md: no entry lost",
+   "result": "pass",
+   "evidence": "diff has no removed non-header lines; 4 T5.2 entries added; both T4.9 entries remain"
+  },
+  {
+   "item": "preprocess output unchanged by the numpy refactor",
+   "result": "pass",
+   "evidence": "old b427b1d preprocess vs merged one on 25 PlantDoc photos at sizes 224 and 256: same dtype and shape, max abs diff 0, so E15 scores stand"
+  },
+  {
+   "item": "Identifier loads refit/chosen.json fields",
+   "result": "pass",
+   "evidence": "merged identify.py reads temperature, abstain_threshold, healthy_threshold, classes, model_sha256, gate.settings: load_settings gives confidence_ood; served classes = 29; sha check passes on matching sha; model_sha256 equals sha256 of models/e15/final/best.pt. Not run end-to-end: no E15 ONNX export exists"
+  },
+  {
+   "item": "Acceptance rerun at merge commit",
+   "result": "pass",
+   "evidence": "test_e15 8 passed; check_run E15 ok"
+  }
+ ],
+ "own_tests": [
+  {
+   "input": "Rebuilt pools on real manifests and ran draw_pass x10 (tmp-T4.9/own.py)",
+   "result": "6342 real / 12918 lab distinct, same as record; zero sha1 overlap with field_dev/test"
+  },
+  {
+   "input": "Independent F1 and masking check from predictions",
+   "result": "all metrics and masked probs match"
+  },
+  {
+   "input": "Untrained V2 ONNX export + quantize_dynamic on CPU (tmp-T4.9/chk_export.py)",
+   "result": "exports; max diff 8.9e-7 fp; quantized outputs finite"
+  },
+  {
+   "input": "Old vs new preprocess on real photos; load_settings/_served_classes/_require_same_checkpoint on chosen.json (tmp-T4.9/merge_chk.py)",
+   "result": "max diff 0; all fields accepted"
+  }
+ ],
+ "failures": [],
+ "notes": "V2 beats E12 by +0.0196 macro-F1 with a CI that includes zero; the choice follows the fixed rule (highest, tie to V2), not significance, and the record says so. All three systems were picked on field_dev, so numbers are optimistic; stated. Refit counts rest on 517 scoring rows, so 0 vs 1 sick-called-healthy is not evidence of difference. Record git_commit is 6bec793 (code commit), later commits are results only. decision.json 'why' string names only V2 and E4 in its parenthesis, a cosmetic gap. Not independently checked: training itself (no GPU) and the 7348-row new-pool copy checks beyond sha1 overlap."
+}

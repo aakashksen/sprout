@@ -1,0 +1,12 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+pass 1/10 {'pass': 1, 'train_loss': 1.2708699300371367, 'val_loss': 0.8352557603773038, 'val_acc': 0.7288629737609329, 'rows': 6960, 'seconds': 179.7016849000065, 'peak_mem_allocated': 3998016000}
+pass 2/10 {'pass': 2, 'train_loss': 0.5126399186835892, 'val_loss': 0.7670231386222691, 'val_acc': 0.7317784256559767, 'rows': 6960, 'seconds': 148.05229590000818, 'peak_mem_allocated': 3998016000}
+pass 3/10 {'pass': 3, 'train_loss': 0.35496119603343396, 'val_loss': 0.7356577795596234, 'val_acc': 0.7589893100097181, 'rows': 6960, 'seconds': 154.12676260000444, 'peak_mem_allocated': 3998016000}
+pass 4/10 {'pass': 4, 'train_loss': 0.25164579529871883, 'val_loss': 0.7060903507864973, 'val_acc': 0.7687074829931972, 'rows': 6960, 'seconds': 151.3577108999889, 'peak_mem_allocated': 3998016000}
+pass 5/10 {'pass': 5, 'train_loss': 0.19262190772884194, 'val_loss': 0.7064683002187165, 'val_acc': 0.7725947521865889, 'rows': 6960, 'seconds': 152.88017630000832, 'peak_mem_allocated': 3998016000}
+pass 6/10 {'pass': 6, 'train_loss': 0.13971653906093245, 'val_loss': 0.6898337410413546, 'val_acc': 0.7764820213799806, 'rows': 6960, 'seconds': 131.06078600001638, 'peak_mem_allocated': 3998016000}
+pass 7/10 {'pass': 7, 'train_loss': 0.11291425197288908, 'val_loss': 0.7099590038534968, 'val_acc': 0.7842565597667639, 'rows': 6960, 'seconds': 97.46151269998518, 'peak_mem_allocated': 3998016000}
+pass 8/10 {'pass': 8, 'train_loss': 0.08684785297547264, 'val_loss': 0.6772582875591847, 'val_acc': 0.8075801749271136, 'rows': 6960, 'seconds': 118.63837160001276, 'peak_mem_allocated': 3998016000}
+pass 9/10 {'pass': 9, 'train_loss': 0.06546820109260493, 'val_loss': 0.6634089962712356, 'val_acc': 0.8007774538386784, 'rows': 6960, 'seconds': 149.86616409997805, 'peak_mem_allocated': 3998016000}
+pass 10/10 {'pass': 10, 'train_loss': 0.062221187301750844, 'val_loss': 0.6691848545853841, 'val_acc': 0.8007774538386784, 'rows': 6960, 'seconds': 143.7611665999866, 'peak_mem_allocated': 3998016000}
+<local path>

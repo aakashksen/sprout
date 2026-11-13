@@ -1,0 +1,513 @@
+{
+ "note": "Every output is kept: top-k counts a class outside the shared list as wrong. Plant-given restricts each image's outputs to the classes of its true plant, so it is easy: plant-given top-3 is 1.0 by construction for any plant with three or fewer classes (see plants_scoring_one_at_top_3 and share_of_images_trivial_at_top_3).",
+ "records": [
+  {
+   "run_id": "E1-20261103T074728015380Z",
+   "experiment": "E1",
+   "split": "lab_dev",
+   "subset": null,
+   "predictions": {
+    "e1": "results/runs/E1-20261103T074728015380Z.e1.predictions.jsonl",
+    "legacy": "results/runs/E1-20261103T074728015380Z.legacy.predictions.jsonl"
+   },
+   "options_per_plant": {
+    "Apple": 4,
+    "Blueberry": 1,
+    "Cherry_(including_sour)": 2,
+    "Corn_(maize)": 4,
+    "Grape": 4,
+    "Orange": 1,
+    "Peach": 2,
+    "Pepper,_bell": 2,
+    "Potato": 3,
+    "Raspberry": 1,
+    "Soybean": 1,
+    "Squash": 1,
+    "Strawberry": 2,
+    "Tomato": 10
+   },
+   "systems": {
+    "e1": {
+     "n": 8152,
+     "top_1_accuracy": 0.9979146221786065,
+     "top_3_accuracy": 0.9998773307163886,
+     "top_5_accuracy": 0.9998773307163886,
+     "plant_given_top_1": 0.9980372914622179,
+     "plant_given_top_3": 1.0,
+     "share_of_images_trivial_at_top_3": 0.46270853778213933,
+     "plants_scoring_one_at_top_3": [
+      "Blueberry",
+      "Cherry_(including_sour)",
+      "Orange",
+      "Peach",
+      "Pepper,_bell",
+      "Potato",
+      "Raspberry",
+      "Soybean",
+      "Squash",
+      "Strawberry"
+     ]
+    },
+    "legacy": {
+     "n": 8152,
+     "top_1_accuracy": 1.0,
+     "top_3_accuracy": 1.0,
+     "top_5_accuracy": 1.0,
+     "plant_given_top_1": 1.0,
+     "plant_given_top_3": 1.0,
+     "share_of_images_trivial_at_top_3": 0.46270853778213933,
+     "plants_scoring_one_at_top_3": [
+      "Blueberry",
+      "Cherry_(including_sour)",
+      "Orange",
+      "Peach",
+      "Pepper,_bell",
+      "Potato",
+      "Raspberry",
+      "Soybean",
+      "Squash",
+      "Strawberry"
+     ]
+    }
+   }
+  },
+  {
+   "run_id": "E1-20261103T092124608963Z",
+   "experiment": "E1",
+   "split": "lab_dev",
+   "subset": null,
+   "predictions": {
+    "e1": "results/runs/E1-20261103T092124608963Z.e1.predictions.jsonl",
+    "legacy": "results/runs/E1-20261103T092124608963Z.legacy.predictions.jsonl"
+   },
+   "options_per_plant": {
+    "Apple": 4,
+    "Blueberry": 1,
+    "Cherry_(including_sour)": 2,
+    "Corn_(maize)": 4,
+    "Grape": 4,
+    "Orange": 1,
+    "Peach": 2,
+    "Pepper,_bell": 2,
+    "Potato": 3,
+    "Raspberry": 1,
+    "Soybean": 1,
+    "Squash": 1,
+    "Strawberry": 2,
+    "Tomato": 10
+   },
+   "systems": {
+    "e1": {
+     "n": 8152,
+     "top_1_accuracy": 0.9979146221786065,
+     "top_3_accuracy": 0.9998773307163886,
+     "top_5_accuracy": 0.9998773307163886,
+     "plant_given_top_1": 0.9980372914622179,
+     "plant_given_top_3": 1.0,
+     "share_of_images_trivial_at_top_3": 0.46270853778213933,
+     "plants_scoring_one_at_top_3": [
+      "Blueberry",
+      "Cherry_(including_sour)",
+      "Orange",
+      "Peach",
+      "Pepper,_bell",
+      "Potato",
+      "Raspberry",
+      "Soybean",
+      "Squash",
+      "Strawberry"
+     ]
+    },
+    "legacy": {
+     "n": 8152,
+     "top_1_accuracy": 1.0,
+     "top_3_accuracy": 1.0,
+     "top_5_accuracy": 1.0,
+     "plant_given_top_1": 1.0,
+     "plant_given_top_3": 1.0,
+     "share_of_images_trivial_at_top_3": 0.46270853778213933,
+     "plants_scoring_one_at_top_3": [
+      "Blueberry",
+      "Cherry_(including_sour)",
+      "Orange",
+      "Peach",
+      "Pepper,_bell",
+      "Potato",
+      "Raspberry",
+      "Soybean",
+      "Squash",
+      "Strawberry"
+     ]
+    }
+   }
+  },
+  {
+   "run_id": "E2-20261103T092315605470Z",
+   "experiment": "E2",
+   "split": "field_dev",
+   "subset": "shared_classes",
+   "predictions": {
+    "e1": "results/runs/E2-20261103T092315605470Z.e1.predictions.jsonl",
+    "e1_masked": "results/runs/E2-20261103T092315605470Z.e1_masked.predictions.jsonl"
+   },
+   "options_per_plant": {
+    "Apple": 4,
+    "Blueberry": 1,
+    "Cherry_(including_sour)": 2,
+    "Corn_(maize)": 4,
+    "Grape": 4,
+    "Orange": 1,
+    "Peach": 2,
+    "Pepper,_bell": 2,
+    "Potato": 3,
+    "Raspberry": 1,
+    "Soybean": 1,
+    "Squash": 1,
+    "Strawberry": 2,
+    "Tomato": 10
+   },
+   "systems": {
+    "e1": {
+     "n": 1040,
+     "top_1_accuracy": 0.22403846153846155,
+     "top_3_accuracy": 0.45384615384615384,
+     "top_5_accuracy": 0.5769230769230769,
+     "plant_given_top_1": 0.5288461538461539,
+     "plant_given_top_3": 0.8538461538461538,
+     "share_of_images_trivial_at_top_3": 0.34807692307692306,
+     "plants_scoring_one_at_top_3": [
+      "Blueberry",
+      "Cherry_(including_sour)",
+      "Orange",
+      "Peach",
+      "Pepper,_bell",
+      "Potato",
+      "Raspberry",
+      "Soybean",
+      "Squash",
+      "Strawberry"
+     ]
+    },
+    "e1_masked": {
+     "n": 1040,
+     "top_1_accuracy": 0.23942307692307693,
+     "top_3_accuracy": 0.4913461538461538,
+     "top_5_accuracy": 0.6028846153846154,
+     "plant_given_top_1": 0.573076923076923,
+     "plant_given_top_3": 0.8865384615384615,
+     "share_of_images_trivial_at_top_3": 0.34807692307692306,
+     "plants_scoring_one_at_top_3": [
+      "Blueberry",
+      "Cherry_(including_sour)",
+      "Orange",
+      "Peach",
+      "Pepper,_bell",
+      "Potato",
+      "Raspberry",
+      "Soybean",
+      "Squash",
+      "Strawberry"
+     ]
+    }
+   }
+  },
+  {
+   "run_id": "E2-20261103T092359497734Z",
+   "experiment": "E2",
+   "split": "lab_dev",
+   "subset": "shared_classes",
+   "predictions": {
+    "e1": "results/runs/E2-20261103T092359497734Z.e1.predictions.jsonl",
+    "e1_masked": "results/runs/E2-20261103T092359497734Z.e1_masked.predictions.jsonl"
+   },
+   "options_per_plant": {
+    "Apple": 4,
+    "Blueberry": 1,
+    "Cherry_(including_sour)": 2,
+    "Corn_(maize)": 4,
+    "Grape": 4,
+    "Orange": 1,
+    "Peach": 2,
+    "Pepper,_bell": 2,
+    "Potato": 3,
+    "Raspberry": 1,
+    "Soybean": 1,
+    "Squash": 1,
+    "Strawberry": 2,
+    "Tomato": 10
+   },
+   "systems": {
+    "e1": {
+     "n": 6784,
+     "top_1_accuracy": 0.9977889150943396,
+     "top_3_accuracy": 0.9998525943396226,
+     "top_5_accuracy": 0.9998525943396226,
+     "plant_given_top_1": 0.9979363207547169,
+     "plant_given_top_3": 1.0,
+     "share_of_images_trivial_at_top_3": 0.5022110849056604,
+     "plants_scoring_one_at_top_3": [
+      "Blueberry",
+      "Cherry_(including_sour)",
+      "Orange",
+      "Peach",
+      "Pepper,_bell",
+      "Potato",
+      "Raspberry",
+      "Soybean",
+      "Squash",
+      "Strawberry"
+     ]
+    },
+    "e1_masked": {
+     "n": 6784,
+     "top_1_accuracy": 0.9979363207547169,
+     "top_3_accuracy": 0.9998525943396226,
+     "top_5_accuracy": 0.9998525943396226,
+     "plant_given_top_1": 0.9980837264150944,
+     "plant_given_top_3": 1.0,
+     "share_of_images_trivial_at_top_3": 0.5022110849056604,
+     "plants_scoring_one_at_top_3": [
+      "Blueberry",
+      "Cherry_(including_sour)",
+      "Orange",
+      "Peach",
+      "Pepper,_bell",
+      "Potato",
+      "Raspberry",
+      "Soybean",
+      "Squash",
+      "Strawberry"
+     ]
+    }
+   }
+  },
+  {
+   "run_id": "E3-20261103T115245769685Z",
+   "experiment": "E3",
+   "split": "field_dev",
+   "subset": "shared_classes",
+   "predictions": {
+    "e1": "results/runs/E3-20261103T115245769685Z.e1.predictions.jsonl",
+    "dinov2_small": "results/runs/E3-20261103T115245769685Z.dinov2_small.predictions.jsonl",
+    "frozen_convnext": "results/runs/E3-20261103T115245769685Z.frozen_convnext.predictions.jsonl",
+    "xgboost": "results/runs/E3-20261103T115245769685Z.xgboost.predictions.jsonl"
+   },
+   "options_per_plant": {
+    "Apple": 4,
+    "Blueberry": 1,
+    "Cherry_(including_sour)": 2,
+    "Corn_(maize)": 4,
+    "Grape": 4,
+    "Orange": 1,
+    "Peach": 2,
+    "Pepper,_bell": 2,
+    "Potato": 3,
+    "Raspberry": 1,
+    "Soybean": 1,
+    "Squash": 1,
+    "Strawberry": 2,
+    "Tomato": 10
+   },
+   "systems": {
+    "e1": {
+     "n": 1040,
+     "top_1_accuracy": 0.22403846153846155,
+     "top_3_accuracy": 0.45384615384615384,
+     "top_5_accuracy": 0.5769230769230769,
+     "plant_given_top_1": 0.5288461538461539,
+     "plant_given_top_3": 0.8538461538461538,
+     "share_of_images_trivial_at_top_3": 0.34807692307692306,
+     "plants_scoring_one_at_top_3": [
+      "Blueberry",
+      "Cherry_(including_sour)",
+      "Orange",
+      "Peach",
+      "Pepper,_bell",
+      "Potato",
+      "Raspberry",
+      "Soybean",
+      "Squash",
+      "Strawberry"
+     ]
+    },
+    "dinov2_small": {
+     "n": 1040,
+     "top_1_accuracy": 0.40673076923076923,
+     "top_3_accuracy": 0.6778846153846154,
+     "top_5_accuracy": 0.8057692307692308,
+     "plant_given_top_1": 0.5644230769230769,
+     "plant_given_top_3": 0.8701923076923077,
+     "share_of_images_trivial_at_top_3": 0.34807692307692306,
+     "plants_scoring_one_at_top_3": [
+      "Blueberry",
+      "Cherry_(including_sour)",
+      "Orange",
+      "Peach",
+      "Pepper,_bell",
+      "Potato",
+      "Raspberry",
+      "Soybean",
+      "Squash",
+      "Strawberry"
+     ]
+    },
+    "frozen_convnext": {
+     "n": 1040,
+     "top_1_accuracy": 0.2519230769230769,
+     "top_3_accuracy": 0.4673076923076923,
+     "top_5_accuracy": 0.5769230769230769,
+     "plant_given_top_1": 0.49615384615384617,
+     "plant_given_top_3": 0.8153846153846154,
+     "share_of_images_trivial_at_top_3": 0.34807692307692306,
+     "plants_scoring_one_at_top_3": [
+      "Blueberry",
+      "Cherry_(including_sour)",
+      "Orange",
+      "Peach",
+      "Pepper,_bell",
+      "Potato",
+      "Raspberry",
+      "Soybean",
+      "Squash",
+      "Strawberry"
+     ]
+    },
+    "xgboost": {
+     "n": 1040,
+     "top_1_accuracy": 0.041346153846153845,
+     "top_3_accuracy": 0.11923076923076924,
+     "top_5_accuracy": 0.1875,
+     "plant_given_top_1": 0.3298076923076923,
+     "plant_given_top_3": 0.7346153846153847,
+     "share_of_images_trivial_at_top_3": 0.34807692307692306,
+     "plants_scoring_one_at_top_3": [
+      "Blueberry",
+      "Cherry_(including_sour)",
+      "Orange",
+      "Peach",
+      "Pepper,_bell",
+      "Potato",
+      "Raspberry",
+      "Soybean",
+      "Squash",
+      "Strawberry"
+     ]
+    }
+   }
+  },
+  {
+   "run_id": "E3-20261103T115944716117Z",
+   "experiment": "E3",
+   "split": "lab_dev",
+   "subset": "shared_classes",
+   "predictions": {
+    "e1": "results/runs/E3-20261103T115944716117Z.e1.predictions.jsonl",
+    "dinov2_small": "results/runs/E3-20261103T115944716117Z.dinov2_small.predictions.jsonl",
+    "frozen_convnext": "results/runs/E3-20261103T115944716117Z.frozen_convnext.predictions.jsonl",
+    "xgboost": "results/runs/E3-20261103T115944716117Z.xgboost.predictions.jsonl"
+   },
+   "options_per_plant": {
+    "Apple": 4,
+    "Blueberry": 1,
+    "Cherry_(including_sour)": 2,
+    "Corn_(maize)": 4,
+    "Grape": 4,
+    "Orange": 1,
+    "Peach": 2,
+    "Pepper,_bell": 2,
+    "Potato": 3,
+    "Raspberry": 1,
+    "Soybean": 1,
+    "Squash": 1,
+    "Strawberry": 2,
+    "Tomato": 10
+   },
+   "systems": {
+    "e1": {
+     "n": 6784,
+     "top_1_accuracy": 0.9977889150943396,
+     "top_3_accuracy": 0.9998525943396226,
+     "top_5_accuracy": 0.9998525943396226,
+     "plant_given_top_1": 0.9979363207547169,
+     "plant_given_top_3": 1.0,
+     "share_of_images_trivial_at_top_3": 0.5022110849056604,
+     "plants_scoring_one_at_top_3": [
+      "Blueberry",
+      "Cherry_(including_sour)",
+      "Orange",
+      "Peach",
+      "Pepper,_bell",
+      "Potato",
+      "Raspberry",
+      "Soybean",
+      "Squash",
+      "Strawberry"
+     ]
+    },
+    "dinov2_small": {
+     "n": 6784,
+     "top_1_accuracy": 0.9893867924528302,
+     "top_3_accuracy": 0.9992629716981132,
+     "top_5_accuracy": 0.9998525943396226,
+     "plant_given_top_1": 0.9904186320754716,
+     "plant_given_top_3": 0.9995577830188679,
+     "share_of_images_trivial_at_top_3": 0.5022110849056604,
+     "plants_scoring_one_at_top_3": [
+      "Blueberry",
+      "Cherry_(including_sour)",
+      "Orange",
+      "Peach",
+      "Pepper,_bell",
+      "Potato",
+      "Raspberry",
+      "Soybean",
+      "Squash",
+      "Strawberry"
+     ]
+    },
+    "frozen_convnext": {
+     "n": 6784,
+     "top_1_accuracy": 0.9892393867924528,
+     "top_3_accuracy": 0.9988207547169812,
+     "top_5_accuracy": 0.9998525943396226,
+     "plant_given_top_1": 0.9908608490566038,
+     "plant_given_top_3": 0.9992629716981132,
+     "share_of_images_trivial_at_top_3": 0.5022110849056604,
+     "plants_scoring_one_at_top_3": [
+      "Blueberry",
+      "Cherry_(including_sour)",
+      "Orange",
+      "Peach",
+      "Pepper,_bell",
+      "Potato",
+      "Raspberry",
+      "Soybean",
+      "Squash",
+      "Strawberry"
+     ]
+    },
+    "xgboost": {
+     "n": 6784,
+     "top_1_accuracy": 0.8974056603773585,
+     "top_3_accuracy": 0.9752358490566038,
+     "top_5_accuracy": 0.9887971698113207,
+     "plant_given_top_1": 0.9485554245283019,
+     "plant_given_top_3": 0.9955778301886793,
+     "share_of_images_trivial_at_top_3": 0.5022110849056604,
+     "plants_scoring_one_at_top_3": [
+      "Blueberry",
+      "Cherry_(including_sour)",
+      "Orange",
+      "Peach",
+      "Pepper,_bell",
+      "Potato",
+      "Raspberry",
+      "Soybean",
+      "Squash",
+      "Strawberry"
+     ]
+    }
+   }
+  }
+ ]
+}

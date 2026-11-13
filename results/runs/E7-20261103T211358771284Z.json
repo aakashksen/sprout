@@ -1,0 +1,119 @@
+{
+ "run_id": "E7-20261103T211358771284Z",
+ "experiment": "E7",
+ "git_commit": "1310c67fd594cfe99d3b61218293cdad99a95ab1",
+ "dirty": false,
+ "dataset_hash": "b6b3b168bfd8792f7311f47c457652657d82eb6e47e8a45e2a3aebaf9ba793f9",
+ "split": "rag_dev",
+ "subset": "answerable",
+ "config": {
+  "stage": "chunking",
+  "base": "base",
+  "rank_k": 10,
+  "gold_matching": "A passage is the gold hit when its source and page equal the question's gold source and page. A document the index holds as a single page (every HTML page and Markdown file is 'page 1') would match any of its chunks, so there the passage must also contain one of the question's answer terms.",
+  "crop_source": "The plant comes from the question text (or the question's stated crop), never from the gold label. A top disease is simulated from the class names of that plant that the question names; a plant with no such class has no photo diagnosis.",
+  "device": {
+   "device": "cuda",
+   "torch": "2.11.0+cu128",
+   "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+   "cuda": "12.8",
+   "peak_gpu_mib": 137
+  },
+  "labels_reviewed": false
+ },
+ "models": {
+  "embedder": "BAAI/bge-small-en-v1.5",
+  "reranker": "cross-encoder/ms-marco-MiniLM-L6-v2"
+ },
+ "n": 60,
+ "metrics": {
+  "base": {
+   "recall@1": 0.4166666666666667,
+   "recall@3": 0.6166666666666667,
+   "recall@5": 0.7166666666666667,
+   "recall@10": 0.8166666666666667,
+   "mrr": 0.5428174603174604
+  },
+  "structured": {
+   "recall@1": 0.26666666666666666,
+   "recall@3": 0.48333333333333334,
+   "recall@5": 0.6833333333333333,
+   "recall@10": 0.8166666666666667,
+   "mrr": 0.42492724867724874
+  }
+ },
+ "measurements": {},
+ "judged": {},
+ "intervals": {
+  "base": {
+   "recall@5": [
+    0.6,
+    0.8333333333333334
+   ],
+   "mrr": [
+    0.43793601190476195,
+    0.6450491071428569
+   ]
+  },
+  "structured": {
+   "recall@5": [
+    0.5666666666666667,
+    0.8
+   ],
+   "mrr": [
+    0.33092476851851854,
+    0.5226787367724868
+   ]
+  }
+ },
+ "per_class": {},
+ "confusion": {},
+ "bootstrap": {
+  "n": 10000,
+  "seed": 13
+ },
+ "comparisons": [
+  {
+   "a": "structured",
+   "b": "base",
+   "metric": "recall@5",
+   "diff": -0.03333333333333333,
+   "ci": [
+    -0.15,
+    0.08333333333333333
+   ],
+   "mcnemar_p": 0.7744140625
+  }
+ ],
+ "attempts": [
+  {
+   "system": "base",
+   "setting": {
+    "index": "index",
+    "mode": "dense",
+    "rerank": false,
+    "query_mode": "question",
+    "crops_from_title": false
+   }
+  },
+  {
+   "system": "structured",
+   "setting": {
+    "index": "index-structured",
+    "mode": "dense",
+    "rerank": false,
+    "query_mode": "question",
+    "crops_from_title": false
+   }
+  }
+ ],
+ "claude_calls": 0,
+ "labels_reviewed": false,
+ "predictions": {
+  "base": "results/runs/E7-20261103T211358771284Z.base.predictions.jsonl",
+  "structured": "results/runs/E7-20261103T211358771284Z.structured.predictions.jsonl"
+ },
+ "started_at": "2026-11-03T21:13:58.771284+00:00",
+ "finished_at": "2026-11-03T21:13:58.771284+00:00",
+ "notes": "Retrieval only, on the answerable questions; the score floor is off."
+}

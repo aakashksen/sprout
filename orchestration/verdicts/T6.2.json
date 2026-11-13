@@ -1,0 +1,23 @@
+{
+  "task": "T6.2",
+  "commit": "075e22c043aaa2788910f1c18fd3f695c45ceced",
+  "verdict": "PASS",
+  "checks": [
+    {"item": "HEAD equals commit; only orchestration/tasks.json modified", "result": "pass", "evidence": "git rev-parse HEAD matches; git status --short shows only ' M orchestration/tasks.json'"},
+    {"item": "Evidence log shows acceptance ran at this commit and passed", "result": "pass", "evidence": "orchestration/evidence/T6.2.log: commit 075e22c, 6 passed, RESULT PASS. Reran .venv/Scripts/python -m pytest tests/test_retrieve.py -q: 6 passed"},
+    {"item": "Retriever.search signature, Passage fields, modes dense/bm25/hybrid, rerank flag", "result": "pass", "evidence": "src/sprout/rag/retrieve.py: search(query,*,crop,disease,k=8,mode='hybrid',rerank=True); Passage(text,source,page,crop,score); invalid mode raises ValueError (own test)"},
+    {"item": "fastembed ONNX for embeddings and rerank; models recorded; metric stated in config", "result": "pass", "evidence": "RetrievalConfig: embedding_model BAAI/bge-small-en-v1.5, metric cosine, reranker Xenova/ms-marco-MiniLM-L-6-v2; pyproject adds fastembed, numpy; fastembed 0.9.1 real models loaded on CPU"},
+    {"item": "Per-passage score filter and general fallback", "result": "pass", "evidence": "_rank filters each passage on its own against min_score; search falls back to crop=='general' only if crop-specific result is empty. Mutation (removing the score filter) made 3 tests fail; mutation (removing crop filter) made test_crop_filter_excludes_other_crops fail. Source restored with git checkout."},
+    {"item": "Six named tests exist and assert real behavior", "result": "pass", "evidence": "tests/test_retrieve.py has all six; values are controlled by a fake embedder (1.0 vs 0.6 cosine at thresholds 0.5/0.7), and they fail under the mutations above"},
+    {"item": "Search query separate from conversation instructions (#39)", "result": "pass", "evidence": "search takes only a query string and the docstring states the rule. There is no code enforcement, which is acceptable for a retrieval-layer API."},
+    {"item": "git diff: secrets, legacy/, weakened tests", "result": "pass", "evidence": "git show --stat HEAD touches only pyproject.toml, retrieve.py, test_retrieve.py"}
+  ],
+  "own_tests": [
+    {"input": "Fake embedder and reranker: rerank scores 0.9 vs 0.1 with default min_score 0.3", "result": "Only the 0.9 passage returned (reranker score is what gets filtered)"},
+    {"input": "disease filter (case-insensitive) with k=3 over 5 matching chunks; crop given as 'Tomato'; unknown crop 'grape'", "result": "3 results, all the right disease; crop case-normalised; unknown crop falls back to general only; tomato hit excludes general"},
+    {"input": "empty chunks.jsonl; invalid mode", "result": "returns [] without error; ValueError for the bad mode"},
+    {"input": "Real fastembed models on CPU over knowledge/index (2258 chunks), default rerank: 'early blight on tomato leaves' (crop=tomato), 'apple scab control' (apple), off-topic 'how to cook pasta carbonara' (tomato), unknown crop 'dragonfruit', pear + bm25 'fire blight', apple + disease filter", "result": "Relevant queries return crop-correct passages with source and page. Off-topic query returns [] with rerank on. Unknown crop returns [] (no relevant general). No errors."}
+  ],
+  "failures": [],
+  "notes": "(1) With rerank=False and real bge-small, the default min_score 0.3 does not filter anything: the off-topic pasta query scored 0.76-0.78 on tomato passages. Cosine scores from this model are compressed, so the threshold only works with the cross-encoder (the default). A later tuning task (#40/#43) should calibrate thresholds per mode. (2) Passage vectors are not persisted: the first dense/hybrid search embeds all 2258 chunks on CPU, and each new Retriever repeats it (the 12-search script took about 187 s including model download). Consider caching before serving. (3) Hybrid mixes a raw cosine with max-normalised BM25, so the weighting is a heuristic. (4) The test that the query stays separate from conversation text is only a documented contract. (5) The tmp tests are in the git-ignored orchestration/evidence/tmp-T6.2/."
+}

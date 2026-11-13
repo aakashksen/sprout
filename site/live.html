@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPROUT live demo</title>
+<meta name="description" content="Check your own leaf with SPROUT: the plant, three suspects, questions from extension guides and a cited answer.">
+<meta name="sprout-api" content="">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vollkorn:wght@600&family=Hanken+Grotesk:wght@400;500&family=Montserrat:wght@800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="pages.css">
+<script>document.documentElement.classList.add('js');</script>
+</head>
+<body>
+<header class="nav">
+  <div class="container">
+    <a class="wordmark" href="index.html"><svg class="leafmark" viewBox="0 0 24 24" aria-hidden="true"><path class="leafmark__blade" d="M4.5 19.5C4.5 10.5 10 4.8 20 4c-.6 9.6-6.3 15.5-15.5 15.5z"/><path class="leafmark__vein" d="M4.5 19.5L14.5 9.5"/></svg>SPROUT</a>
+    <nav class="nav__links" aria-label="Main">
+      <a href="index.html">Home</a>
+      <a href="tour.html">Walkthrough</a>
+      <a href="specs.html">How it’s built</a>
+      <a href="live.html" aria-current="page">Live demo</a>
+    </nav>
+  </div>
+</header>
+
+<main class="live">
+  <div class="container live__grid">
+    <div class="live__left">
+      <h1 style="font-size: var(--text-section)">Check your own leaf</h1>
+      <figure class="preview" style="margin: 0"><img id="preview" src="img/single-leaf.jpg" alt="Your leaf photo" hidden></figure>
+      <button type="button" class="link-button" id="change-photo">Use your own photo</button>
+      <div class="drop" id="drop">
+        <p>One leaf, in daylight, close enough to see the spots.</p>
+        <input id="file" class="visually-hidden" type="file" accept="image/*" disabled>
+        <label class="btn btn--primary" for="file" id="file-label" aria-disabled="true">Upload a leaf photo</label>
+      </div>
+      <div class="samples">
+        <p class="field-label">Or pick a leaf it has never trained on</p>
+        <div class="samples__grid">
+          <button type="button" class="sample" data-sample="samples/tomato-septoria.jpg" data-label="Tomato Septoria leaf spot" aria-label="Sample leaf 1" disabled><img src="samples/tomato-septoria.jpg" alt="" loading="lazy"></button>
+          <button type="button" class="sample" data-sample="samples/tomato-late-blight.jpg" data-label="Tomato late blight" aria-label="Sample leaf 2" disabled><img src="samples/tomato-late-blight.jpg" alt="" loading="lazy"></button>
+          <button type="button" class="sample" data-sample="samples/potato-early-blight.jpg" data-label="Potato early blight" aria-label="Sample leaf 3" disabled><img src="samples/potato-early-blight.jpg" alt="" loading="lazy"></button>
+          <button type="button" class="sample" data-sample="samples/apple-scab.jpg" data-label="Apple scab" aria-label="Sample leaf 4" disabled><img src="samples/apple-scab.jpg" alt="" loading="lazy"></button>
+          <button type="button" class="sample" data-sample="samples/apple-cedar-rust.jpg" data-label="Cedar apple rust" aria-label="Sample leaf 5" disabled><img src="samples/apple-cedar-rust.jpg" alt="" loading="lazy"></button>
+          <button type="button" class="sample" data-sample="samples/corn-rust.jpg" data-label="Corn common rust" aria-label="Sample leaf 6" disabled><img src="samples/corn-rust.jpg" alt="" loading="lazy"></button>
+          <button type="button" class="sample" data-sample="samples/grape-black-rot.jpg" data-label="Grape black rot" aria-label="Sample leaf 7" disabled><img src="samples/grape-black-rot.jpg" alt="" loading="lazy"></button>
+          <button type="button" class="sample" data-sample="samples/squash-mildew.jpg" data-label="Squash powdery mildew" aria-label="Sample leaf 8" disabled><img src="samples/squash-mildew.jpg" alt="" loading="lazy"></button>
+          <button type="button" class="sample" data-sample="samples/pepper-spot.jpg" data-label="Pepper bacterial spot" aria-label="Sample leaf 9" disabled><img src="samples/pepper-spot.jpg" alt="" loading="lazy"></button>
+          <button type="button" class="sample" data-sample="samples/tomato-mosaic.jpg" data-label="Tomato mosaic virus" aria-label="Sample leaf 10" disabled><img src="samples/tomato-mosaic.jpg" alt="" loading="lazy"></button>
+        </div>
+      </div>
+      <ul class="limits" aria-label="How the live demo works">
+        <li>Your photo is checked, then discarded. Nothing is saved.</li>
+        <li>Each visitor has a small daily allowance, then the demo pauses until tomorrow.</li>
+        <li>Questions and advice are written by an AI model from university extension guides.</li>
+      </ul>
+    </div>
+
+    <div class="live__right" id="right">
+      <section class="offline" id="offline" aria-labelledby="off-h">
+        <h2 id="off-h">The live demo is off right now</h2>
+        <p>No API key is active, so it can’t check new photos. Here is a real run, recorded while it was on.</p>
+        <figure class="recording">
+          <img src="img/live-demo.gif" width="880" height="591" alt="A recorded run: a tomato leaf is read as potato late blight, SPROUT asks whether it is a potato or tomato plant, settles on tomato late blight at 97%, writes care advice and answers a chat question with cited guides.">
+          <figcaption>A real run on a tomato leaf the model never trained on.</figcaption>
+        </figure>
+        <div class="actions"><a class="btn btn--primary" href="tour.html">Take the walkthrough</a></div>
+      </section>
+
+      <section id="run" hidden aria-label="Your check">
+        <div class="result-head">
+          <p class="detected" id="plant"></p>
+          <p class="busy" id="busy" hidden><span class="spinner" aria-hidden="true"></span><span id="busy-text">Reading the leaf…</span></p>
+        </div>
+        <ol class="odds" id="odds" aria-label="Likely conditions"></ol>
+        <p class="help" id="status" role="status" aria-live="polite"></p>
+
+        <div class="qcard" id="ask" hidden>
+          <p class="qcard__count" id="qcount"></p>
+          <p class="question" id="question" aria-live="polite"></p>
+          <div class="actions" id="choices"></div>
+          <p class="source" id="qsrc"></p>
+          <button type="button" class="link-button" id="stop">Skip the questions</button>
+        </div>
+        <div class="qcard qcard--wait" id="ask-wait" hidden>
+          <span class="spinner" aria-hidden="true"></span><p>Writing questions from the guides…</p>
+        </div>
+
+        <ul class="answers" id="answered" aria-label="Your answers"></ul>
+        <div id="final" hidden class="final"></div>
+
+        <section class="chatpanel" id="chatpanel" hidden aria-labelledby="chat-h">
+          <h2 id="chat-h">Ask about your plant</h2>
+          <div class="chips" id="chips">
+            <button type="button" class="chip">Can this plant be saved?</button>
+            <button type="button" class="chip">Will it spread to my other plants?</button>
+            <button type="button" class="chip">Is the fruit still safe to eat?</button>
+          </div>
+          <div class="chat" id="chat" aria-live="polite"></div>
+          <form class="chatbox" id="chatform">
+            <label class="visually-hidden" for="say">Ask a question or describe what you see</label>
+            <textarea id="say" name="say" rows="2" placeholder="Ask anything, or describe what you see…"></textarea>
+            <button type="submit" class="btn btn--primary" id="send">Send</button>
+          </form>
+          <p class="help">Enter sends. Shift and Enter adds a new line.</p>
+        </section>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="container footer__grid">
+    <div class="footer__brand"><a class="wordmark" href="index.html"><svg class="leafmark" viewBox="0 0 24 24" aria-hidden="true"><path class="leafmark__blade" d="M4.5 19.5C4.5 10.5 10 4.8 20 4c-.6 9.6-6.3 15.5-15.5 15.5z"/><path class="leafmark__vein" d="M4.5 19.5L14.5 9.5"/></svg>SPROUT</a><span>Smart Plant Recovery and Optimization Utility Tool</span></div>
+    <div class="footer__meta"><p>Built by Aakash Senthilnathan. <a href="index.html#contact">Contact</a>, <a href="https://www.linkedin.com/in/aakashsenthilnathan/" rel="noopener">LinkedIn</a>, <a href="https://github.com/aakashksen" rel="noopener">GitHub</a>.</p><p class="footer__credits" data-credits>Leaf photographs from the PlantDoc (Singh et al., 2020; CC BY 4.0) and PlantSeg (CC BY-NC 4.0) datasets. Not a substitute for your local extension office.</p></div>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const META = document.querySelector('meta[name="sprout-api"]').content.trim();
+  const $ = (id) => document.getElementById(id);
+  if (!META) return; // off: the page already says so, every control stays disabled
+  const API = META === 'same-origin' ? '' : META;
+
+  let check = null, truth = '', lastPhoto = null, gen = 0, lastUrl = null;
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const pct = (p) => Math.round(p * 100);
+
+  async function post(path, body, isForm) {
+    const r = await fetch(API + path, { method: 'POST', credentials: 'include', body: isForm ? body : JSON.stringify(body), headers: isForm ? {} : { 'Content-Type': 'application/json' } });
+    const j = await r.json().catch(() => ({}));
+    return { r, j };
+  }
+  async function call(path, body) {
+    const g = gen;
+    const { r, j } = await post(path, body);
+    if (g !== gen) return null; // a newer check started while this was in flight: drop the old reply
+    if (r.status === 410 && lastPhoto) { await startCheck(lastPhoto.blob, lastPhoto.url, lastPhoto.label); throw new Error('The check restarted, so that was not sent. Ask again.'); }
+    if (r.status === 409 && j.code === 'stale') return j;
+    if (!r.ok) throw new Error(j.message || 'The demo could not answer. Try again in a moment.');
+    return j;
+  }
+  function busy(text) { $('busy').hidden = !text; if (text) $('busy-text').textContent = text; }
+  function enableChoices(on) { $('choices').querySelectorAll('button').forEach((b) => { b.disabled = !on; }); $('stop').disabled = !on; }
+  const fail = (e) => { busy(''); $('status').textContent = e.message; enableChoices(true); };
+
+  function drawOdds(odds) {
+    const before = new Map([...$('odds').querySelectorAll('li')].map((li) => [li.dataset.name, li.dataset.p]));
+    $('odds').innerHTML = odds.slice(0, 3).map((o) => `<li data-name="${esc(o.name)}" data-p="${o.p}"><span class="odds__name">${esc(o.name)}</span><span class="odds__pct">${pct(o.p)}%</span><span class="odds__bar"><span style="transform: scaleX(${before.get(o.name) || 0})"></span></span></li>`).join('');
+    requestAnimationFrame(() => requestAnimationFrame(() => $('odds').querySelectorAll('li').forEach((li) => { li.querySelector('.odds__bar > span').style.transform = `scaleX(${li.dataset.p})`; })));
+  }
+
+  function render(j) {
+    if (!j) return;
+    check = j;
+    busy('');
+    $('plant').innerHTML = j.plant ? `Looks like <b>${esc(j.plant)}</b>` : '';
+    drawOdds(j.odds || []);
+    $('status').textContent = j.message || '';
+    $('answered').innerHTML = (j.asked || []).map((a) => `<li>${esc(a.text)} <b>${esc(a.answer)}</b></li>`).join('');
+    $('ask-wait').hidden = !j.pending;
+    const q = j.question;
+    $('ask').hidden = !q;
+    if (q) {
+      $('qcount').textContent = `Question ${(j.asked || []).length + 1}`;
+      $('question').textContent = q.text;
+      $('qsrc').textContent = q.options ? q.source : 'From ' + q.source;
+      const opts = q.options ? [...q.options, { value: 'unsure', label: 'Not sure' }] : [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }, { value: 'unsure', label: 'Not sure' }];
+      const hadFocus = $('ask').contains(document.activeElement);
+      $('choices').innerHTML = opts.map((o) => `<button type="button" class="btn" data-a="${esc(o.value)}">${esc(o.label)}</button>`).join('');
+      enableChoices(true);
+      if (hadFocus) $('choices').querySelector('button').focus();
+    }
+    if (j.final) {
+      $('final').hidden = false;
+      $('final').innerHTML = `<span class="final__sure">${esc(j.final.sure)}</span><span class="final__name">${esc(j.final.name)}</span>${j.final.advice_pending ? `<p class="busy"><span class="spinner" aria-hidden="true"></span>Writing care advice from the guides…</p>` : (j.final.advice ? `<p>${esc(j.final.advice)}</p>` : '')}${j.final.source ? `<p class="source">${esc(j.final.source)}</p>` : ''}${truth ? `<p class="truth">The dataset’s label for this photo: <b>${esc(truth)}</b></p>` : ''}`;
+      $('chatpanel').hidden = false;
+      if (j.final.advice_pending) call('/api/advice', { check: j.id }).then(render).catch(() => {});
+    }
+  }
+
+  async function startCheck(blob, url, label) {
+    gen += 1; const g = gen;
+    if (lastUrl && lastUrl !== url && lastUrl.startsWith('blob:')) URL.revokeObjectURL(lastUrl);
+    lastUrl = url;
+    truth = label || ''; lastPhoto = { blob, url, label };
+    $('preview').src = url; $('preview').hidden = false; $('drop').hidden = true;
+    ['final', 'ask', 'ask-wait', 'chatpanel'].forEach((id) => { $(id).hidden = true; });
+    $('chat').innerHTML = ''; $('odds').innerHTML = ''; $('plant').textContent = ''; $('answered').innerHTML = ''; $('status').textContent = '';
+    busy('Reading the leaf…');
+    const fd = new FormData(); fd.append('photo', blob, 'leaf.jpg');
+    try {
+      const { r, j } = await post('/api/check', fd, true);
+      if (g !== gen) return;
+      if (!r.ok) throw new Error(j.message || 'The demo could not answer.');
+      if (j.status === 'invalid' || j.status === 'not_plant') { busy(''); $('status').textContent = j.message; return; }
+      render(j);
+      if (j.pending) render(await call('/api/next', { check: j.id }));
+    } catch (e) { fail(e); }
+  }
+
+  $('offline').hidden = true; $('run').hidden = false;
+  $('file').disabled = false; $('file-label').removeAttribute('aria-disabled');
+  $('status').textContent = 'Upload a leaf photo or pick one of the sample leaves.';
+
+  $('file').addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; if (!f) return; startCheck(f, URL.createObjectURL(f), ''); e.target.value = ''; });
+  document.querySelectorAll('.sample').forEach((b) => {
+    b.disabled = false;
+    b.addEventListener('click', () => {
+      if (b.getAttribute('aria-pressed') === 'true' && !$('busy').hidden) return; // ignore a double click on the same leaf
+      document.querySelectorAll('.sample').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      fetch(b.dataset.sample).then((r) => r.blob()).then((blob) => startCheck(blob, b.dataset.sample, b.dataset.label)).catch(fail);
+    });
+  });
+  $('change-photo').addEventListener('click', () => $('file').click());
+
+  $('choices').addEventListener('click', async (e) => {
+    const b = e.target.closest('button[data-a]'); if (!b || b.disabled) return;
+    b.setAttribute('aria-pressed', 'true'); enableChoices(false); busy('Updating the odds…');
+    try {
+      const j = await call('/api/answer', { check: check.id, question: check.question.id, answer: b.dataset.a });
+      render(j);
+      if (j && j.pending) render(await call('/api/next', { check: j.id }));
+    } catch (err) { fail(err); }
+  });
+  $('stop').addEventListener('click', async () => { enableChoices(false); busy('Writing the answer…'); try { render(await call('/api/answer', { check: check.id, stop: true })); } catch (err) { fail(err); } });
+
+  async function send(text) {
+    if (!text || $('send').disabled || !check) return;
+    $('chat').insertAdjacentHTML('beforeend', `<p class="chat__you">${esc(text)}</p><p class="chat__sprout chat__typing" id="typing"><span class="spinner" aria-hidden="true"></span>Checking the guides…</p>`);
+    $('say').value = ''; $('send').disabled = true; $('say').disabled = true;
+    $('typing').scrollIntoView({ block: 'nearest' });
+    try {
+      const j = await call('/api/chat', { check: check.id, text });
+      if (!j) { const t = $('typing'); if (t) t.remove(); }
+      else {
+        $('typing').outerHTML = `<div class="chat__sprout"><p>${esc(j.reply)}</p>${(j.sources || []).map((s, i) => `<p class="source">[${i + 1}] ${esc(s)}</p>`).join('')}${j.shift ? `<p class="shift">Odds updated: ${esc(j.shift)}</p>` : ''}</div>`;
+        if (j.odds) drawOdds(j.odds);
+      }
+    } catch (err) { const t = $('typing'); if (t) t.outerHTML = `<p class="chat__sprout">${esc(err.message)}</p>`; }
+    $('send').disabled = false; $('say').disabled = false; $('say').focus();
+  }
+  $('chatform').addEventListener('submit', (e) => { e.preventDefault(); send($('say').value.trim()); });
+  $('say').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send($('say').value.trim()); } });
+  $('chips').addEventListener('click', (e) => { const c = e.target.closest('.chip'); if (c) send(c.textContent); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,884 @@
+{
+  "tasks": [
+    {
+      "id": "T0.1",
+      "phase": 0,
+      "title": "Project setup",
+      "owner": "agent",
+      "deps": [],
+      "acceptance": [
+        "{py} -m pytest tests/test_smoke.py tests/test_orchestration.py -q",
+        "{py} -m ruff check .",
+        "{py} -c \"import torch; assert torch.cuda.is_available()\""
+      ],
+      "status": "done",
+      "started_at": "2026-11-02T23:08:41+00:00",
+      "verified": {
+        "commit": "ab8222ce38f7b342af68d40871de05a8c8424505",
+        "passed": true,
+        "at": "2026-11-02T23:14:12+00:00"
+      },
+      "done_at": "2026-11-02T23:16:28+00:00"
+    },
+    {
+      "id": "T0.2",
+      "phase": 0,
+      "title": "Check the datasets",
+      "owner": "agent",
+      "deps": [
+        "T0.1"
+      ],
+      "acceptance": [
+        "{py} tools/check_datasets_doc.py"
+      ],
+      "status": "done",
+      "started_at": "2026-11-02T23:16:28+00:00",
+      "verified": {
+        "commit": "f3c81ab7a599dcb844daae04f29c0ba39a912486",
+        "passed": true,
+        "at": "2026-11-02T23:28:28+00:00"
+      },
+      "done_at": "2026-11-02T23:22:28+00:00"
+    },
+    {
+      "id": "H1",
+      "phase": 0,
+      "title": "Check the dataset choices",
+      "owner": "human",
+      "deps": [
+        "T0.2"
+      ],
+      "acceptance": [],
+      "status": "done",
+      "note": "ok: the person read the dataset choices and approved them, 2026-11-03",
+      "done_at": "2026-11-03T17:10:10+00:00"
+    },
+    {
+      "id": "T1.1",
+      "phase": 1,
+      "title": "Lab data, grouping, and manifests",
+      "owner": "agent",
+      "deps": [
+        "T0.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_lab_data.py -q",
+        "{py} -m sprout.data.check_splits lab"
+      ],
+      "status": "done",
+      "reason": "source_id regex misses real suffix form 'R.S_HL 0626copy.jpg' (no space): file splits from its siblings; data-counts says 1,366 copy files, real count is 1,367",
+      "attempts": 1,
+      "note": "data fetched by the person",
+      "started_at": "2026-11-03T00:19:19+00:00",
+      "verified": {
+        "commit": "87096719301f4695b4e7b582140ac8624620983f",
+        "passed": true,
+        "at": "2026-11-03T03:00:13+00:00"
+      },
+      "done_at": "2026-11-03T03:20:32+00:00"
+    },
+    {
+      "id": "T1.2",
+      "phase": 1,
+      "title": "Real-photo and not-plant sets",
+      "owner": "agent",
+      "deps": [
+        "T0.2",
+        "T1.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_field_data.py -q",
+        "{py} -m sprout.data.check_splits field"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T03:20:32+00:00",
+      "attempts": 0,
+      "reason": "one same-photo pair still crosses train/dev with conflicting labels: 2013Corn_GrayLeafSpot_0815_0003.JPG.jpg in Corn Gray leaf spot (dev) and Corn leaf blight (train), pHash 16 dHash 13, outside the 12-bit proposal rule",
+      "note": "user approved one final attempt, relayed by the coordinator: remove bad data only, no re-split, no new thresholds",
+      "verified": {
+        "commit": "846048c4949b85e9a4247156d9d4a99bc6c0b5e6",
+        "passed": true,
+        "at": "2026-11-03T06:19:41+00:00"
+      },
+      "done_at": "2026-11-03T06:26:10+00:00"
+    },
+    {
+      "id": "T2.1",
+      "phase": 2,
+      "title": "Training pipeline",
+      "owner": "agent",
+      "deps": [
+        "T1.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_train.py -q"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T04:56:12+00:00",
+      "verified": {
+        "commit": "39bb84ad0f29a74b3777e7b09904f84a0aeda446",
+        "passed": true,
+        "at": "2026-11-03T05:01:12+00:00"
+      },
+      "done_at": "2026-11-03T05:06:05+00:00"
+    },
+    {
+      "id": "T2.2",
+      "phase": 2,
+      "title": "Metrics and statistics",
+      "owner": "agent",
+      "deps": [
+        "T1.1",
+        "T2.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_metrics.py -q"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T05:06:17+00:00",
+      "verified": {
+        "commit": "0eb2258b96efeaeb08ff9711b4269137e81bbef8",
+        "passed": true,
+        "at": "2026-11-03T05:10:31+00:00"
+      },
+      "done_at": "2026-11-03T05:12:00+00:00"
+    },
+    {
+      "id": "T2.3",
+      "phase": 2,
+      "title": "Run records and claims",
+      "owner": "agent",
+      "deps": [
+        "T1.1",
+        "T2.2"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_records.py -q",
+        "{py} -m sprout.eval.claims check"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T05:12:02+00:00",
+      "attempts": 0,
+      "reason": "test-once bypass: _uses() keeps the latest add per stem, so deleting and re-adding, or git mv away and back, the first test record makes a second use rank first with no override_note; no test covers it",
+      "note": "one more narrow attempt, decided by the coordinator: first add per stem wins",
+      "verified": {
+        "commit": "84f37bbf74eacc7ac2bff97df48cd2bcdd8d329f",
+        "passed": true,
+        "at": "2026-11-03T06:43:06+00:00"
+      },
+      "done_at": "2026-11-03T06:52:33+00:00"
+    },
+    {
+      "id": "T3.1",
+      "phase": 3,
+      "title": "Experiment E1, clean lab baseline",
+      "owner": "agent",
+      "deps": [
+        "T2.1",
+        "T2.3"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e1.py -q",
+        "{py} -m sprout.eval.check_run E1 --min-n 1000 --split lab_dev"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T06:52:46+00:00",
+      "verified": {
+        "commit": "77af330b314f765d80f0edfafe468db4254380d1",
+        "passed": true,
+        "at": "2026-11-03T07:56:42+00:00"
+      },
+      "attempts": 1,
+      "reason": "docs/data-counts.md has two false source claims: ConcatDataset in the legacy notebook does not exist, and 99.97 does not appear in a notebook printed log",
+      "done_at": "2026-11-03T07:58:59+00:00"
+    },
+    {
+      "id": "T3.2",
+      "phase": 3,
+      "title": "Experiment E2, domain shift",
+      "owner": "agent",
+      "deps": [
+        "T3.1",
+        "T1.2"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e2.py -q",
+        "{py} -m sprout.eval.check_run E2 --min-n 200 --split field_dev"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T07:59:02+00:00",
+      "verified": {
+        "commit": "dfa82b1797f75f0730cc329e5295c1ae59183251",
+        "passed": true,
+        "at": "2026-11-03T09:29:57+00:00"
+      },
+      "done_at": "2026-11-03T09:39:56+00:00"
+    },
+    {
+      "id": "T3.3",
+      "phase": 3,
+      "title": "Experiment E3, baselines",
+      "owner": "agent",
+      "deps": [
+        "T3.2"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e3.py -q",
+        "{py} -m sprout.eval.check_run E3 --min-n 1000 --split lab_dev",
+        "{py} -m sprout.eval.check_run E3 --min-n 200 --split field_dev"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T09:40:00+00:00",
+      "verified": {
+        "commit": "423678f4ff6642589a09a86d6352a0cfca39d14e",
+        "passed": true,
+        "at": "2026-11-03T12:56:28+00:00"
+      },
+      "done_at": "2026-11-03T13:03:30+00:00"
+    },
+    {
+      "id": "T3.4",
+      "phase": 3,
+      "title": "Class report and document coverage",
+      "owner": "agent",
+      "deps": [
+        "T1.2"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_class_report.py -q"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T09:57:04+00:00",
+      "verified": {
+        "commit": "35f0022bf248daefd1b67fea8cb50e23990d4c5e",
+        "passed": true,
+        "at": "2026-11-03T10:50:35+00:00"
+      },
+      "attempts": 1,
+      "reason": "document-coverage.csv has three false no rows: Tomato Bacterial_spot and Spider_mites (tomatodoc2.md p1) and Grape Leaf_blight (winegrapes8.pdf p12) do describe symptoms",
+      "done_at": "2026-11-03T11:01:09+00:00"
+    },
+    {
+      "id": "T3.5",
+      "phase": 3,
+      "title": "Top-k and plant-given metrics",
+      "owner": "agent",
+      "deps": [
+        "T2.3"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_topk_metrics.py -q"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T09:57:05+00:00",
+      "verified": {
+        "commit": "ef143575a2320937b14a9ce3fc47365e9aa3c1f0",
+        "passed": true,
+        "at": "2026-11-03T11:11:34+00:00"
+      },
+      "attempts": 1,
+      "reason": "nothing enforces top-k and plant-given metrics on later image records: a record with only accuracy still passes check_run, and no later task names standard_image_metrics",
+      "done_at": "2026-11-03T11:22:08+00:00"
+    },
+    {
+      "id": "T4.0",
+      "phase": 4,
+      "title": "Experiment E10, disease-area segmentation",
+      "owner": "agent",
+      "deps": [
+        "T1.2",
+        "T2.3"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e10.py -q",
+        "{py} -m sprout.eval.check_run E10 --min-n 50 --split seg_dev"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T13:04:00+00:00",
+      "verified": {
+        "commit": "0079d3f62f197e7d08545fa0ec45f8b610c6baa5",
+        "passed": true,
+        "at": "2026-11-03T13:52:34+00:00"
+      },
+      "done_at": "2026-11-03T14:08:02+00:00"
+    },
+    {
+      "id": "T4.1",
+      "phase": 4,
+      "title": "Experiment E4, improvements",
+      "owner": "agent",
+      "deps": [
+        "T3.3",
+        "T3.4",
+        "T3.5",
+        "T4.0"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e4.py -q",
+        "{py} -m sprout.eval.check_run E4 --min-n 200 --split field_dev"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T14:08:06+00:00",
+      "verified": {
+        "commit": "1d256c76f9a95e105484ddde15da99221f4365c2",
+        "passed": true,
+        "at": "2026-11-03T15:42:37+00:00"
+      },
+      "done_at": "2026-11-03T15:59:27+00:00"
+    },
+    {
+      "id": "T4.2",
+      "phase": 4,
+      "title": "Experiment E5, calibration, abstention, and input checks",
+      "owner": "agent",
+      "deps": [
+        "T4.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e5.py -q",
+        "{py} -m sprout.eval.check_run E5 --min-n 200 --split field_dev"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T15:59:32+00:00",
+      "verified": {
+        "commit": "c0b1ae1bee164b65b8710e5b19e15d1631fdb241",
+        "passed": true,
+        "at": "2026-11-03T17:16:58+00:00"
+      },
+      "attempts": 1,
+      "reason": "tests/test_e5.py::test_probs_stage_scores_not_plant_photos_from_a_checkpoint fails when a GPU is visible: np.allclose on probabilities, because the stage scores on cuda while the test compares with CPU",
+      "done_at": "2026-11-03T17:27:17+00:00"
+    },
+    {
+      "id": "T4.7",
+      "phase": 4,
+      "title": "Experiment E13, clean the real-photo labels",
+      "owner": "agent",
+      "deps": [
+        "T4.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_label_review.py tests/test_e13.py -q",
+        "{py} -m sprout.eval.check_run E13 --min-n 200 --split field_dev"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T17:22:31+00:00",
+      "verified": {
+        "commit": "c4eb707c46f0d4b8db487f1dc15c2f741962b9af",
+        "passed": true,
+        "at": "2026-11-03T20:49:32+00:00"
+      },
+      "done_at": "2026-11-03T20:59:08+00:00"
+    },
+    {
+      "id": "T4.3",
+      "phase": 4,
+      "title": "Experiment E11, follow-up questions on top-3",
+      "owner": "agent",
+      "deps": [
+        "T4.2",
+        "T4.7"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e11.py -q",
+        "{py} -m sprout.eval.check_run E11 --min-n 50 --split field_dev"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T21:04:36+00:00",
+      "verified": {
+        "commit": "40b0e85309b8757bbb2e95d122472f3c51af2743",
+        "passed": true,
+        "at": "2026-11-03T22:52:24+00:00"
+      },
+      "done_at": "2026-11-03T23:04:47+00:00"
+    },
+    {
+      "id": "T4.4",
+      "phase": 4,
+      "title": "Candidate documents for uncovered classes",
+      "owner": "agent",
+      "deps": [
+        "T3.4"
+      ],
+      "acceptance": [
+        "{py} tools/check_candidates_doc.py"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T16:01:15+00:00",
+      "verified": {
+        "commit": "d9eebb89257b320d3c8c92d7852c3a9b2087c26e",
+        "passed": true,
+        "at": "2026-11-03T16:06:52+00:00"
+      },
+      "done_at": "2026-11-03T16:09:31+00:00"
+    },
+    {
+      "id": "T4.5",
+      "phase": 4,
+      "title": "More real-photo sources for training",
+      "owner": "agent",
+      "deps": [
+        "T4.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_extra_sources.py -q",
+        "{py} -m pytest tests/test_extra_sources.py -q -m real"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T16:45:43+00:00",
+      "verified": {
+        "commit": "d1b6c9b036fa270e5057782296e52855b752afef",
+        "passed": true,
+        "at": "2026-11-04T01:27:35+00:00"
+      },
+      "attempts": 2,
+      "reason": "at least 7 kept extras are cropped or zoomed copies of field_dev or field_test photos; the full-frame check cannot see crops",
+      "done_at": "2026-11-04T01:35:01+00:00"
+    },
+    {
+      "id": "T4.8",
+      "phase": 4,
+      "title": "Plant Pathology 2021 as a further training source",
+      "owner": "agent",
+      "deps": [
+        "T4.5"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_extra_sources.py -q",
+        "{py} -m pytest tests/test_extra_sources.py -q -m real"
+      ],
+      "status": "done",
+      "started_at": "2026-11-04T01:35:43+00:00",
+      "verified": {
+        "commit": "501acd975fc01fb91830f2df9c057aa7887d783f",
+        "passed": true,
+        "at": "2026-11-04T08:55:02+00:00"
+      },
+      "done_at": "2026-11-04T09:31:27+00:00"
+    },
+    {
+      "id": "T4.6",
+      "phase": 4,
+      "title": "Experiment E12, best configuration with more sources",
+      "owner": "agent",
+      "deps": [
+        "T4.5",
+        "T4.7",
+        "T4.8"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e12.py -q",
+        "{py} -m sprout.eval.check_run E12 --min-n 200 --split field_dev"
+      ],
+      "status": "done",
+      "started_at": "2026-11-04T09:31:48+00:00",
+      "verified": {
+        "commit": "299f753e902e0228331985a3af9d49ad52536c49",
+        "passed": true,
+        "at": "2026-11-04T10:53:20+00:00"
+      },
+      "done_at": "2026-11-04T11:21:42+00:00"
+    },
+    {
+      "id": "T4.9",
+      "phase": 4,
+      "title": "Experiment E15, final model on 29 classes with all photos",
+      "owner": "agent",
+      "deps": [
+        "T4.6",
+        "T4.7",
+        "T4.8"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e15.py -q",
+        "{py} -m sprout.eval.check_run E15 --min-n 200 --split field_dev"
+      ],
+      "status": "done",
+      "started_at": "2026-11-04T19:15:56+00:00",
+      "verified": {
+        "commit": "25c24021b48e935aa6871e6c09daee2bb6b68f80",
+        "passed": true,
+        "at": "2026-11-04T22:07:30+00:00"
+      },
+      "done_at": "2026-11-04T22:08:52+00:00"
+    },
+    {
+      "id": "T5.0",
+      "phase": 5,
+      "title": "Identification contract and fake identifier",
+      "owner": "agent",
+      "deps": [
+        "T0.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_identify_types.py -q"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T04:56:12+00:00",
+      "verified": {
+        "commit": "1d8f5da04bd42f381a71cd990d3c8675f97b6fd4",
+        "passed": true,
+        "at": "2026-11-03T04:58:26+00:00"
+      },
+      "done_at": "2026-11-03T05:05:54+00:00"
+    },
+    {
+      "id": "T5.1",
+      "phase": 5,
+      "title": "Experiment E6, ONNX and quantization",
+      "owner": "agent",
+      "deps": [
+        "T4.2",
+        "T4.9"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e6.py -q",
+        "{py} -m sprout.eval.check_run E6 --min-n 200 --split field_dev"
+      ],
+      "status": "done",
+      "started_at": "2026-11-04T17:44:55+00:00",
+      "verifier": false,
+      "reason": "waits for T4.9's chosen model; run ctl unblock when T4.9 lands",
+      "attempts": 0,
+      "note": "T4.9 landed at 25c2402; it chose convnextv2_final",
+      "verified": {
+        "commit": "016475c67abd7bf185a87820a37c769aa38d8158",
+        "passed": true,
+        "at": "2026-11-04T22:27:14+00:00"
+      },
+      "done_at": "2026-11-04T22:27:16+00:00"
+    },
+    {
+      "id": "T5.2",
+      "phase": 5,
+      "title": "Inference service",
+      "owner": "agent",
+      "deps": [
+        "T5.0"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_identify.py -q"
+      ],
+      "status": "done",
+      "verifier": false,
+      "started_at": "2026-11-04T19:15:58+00:00",
+      "verified": {
+        "commit": "b08f037311203a572985c437998c807b1b5144bf",
+        "passed": true,
+        "at": "2026-11-04T19:21:29+00:00"
+      },
+      "done_at": "2026-11-04T19:21:30+00:00"
+    },
+    {
+      "id": "T6.1",
+      "phase": 6,
+      "title": "Document ingestion",
+      "owner": "agent",
+      "deps": [
+        "T0.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_ingest.py -q"
+      ],
+      "status": "done",
+      "started_at": "2026-11-02T23:22:46+00:00",
+      "verified": {
+        "commit": "9e0c606922852756968716f7db11eb432696507b",
+        "passed": true,
+        "at": "2026-11-03T00:40:13+00:00"
+      },
+      "done_at": "2026-11-02T23:27:42+00:00"
+    },
+    {
+      "id": "T6.2",
+      "phase": 6,
+      "title": "Retrieval",
+      "owner": "agent",
+      "deps": [
+        "T6.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_retrieve.py -q"
+      ],
+      "status": "done",
+      "started_at": "2026-11-02T23:28:29+00:00",
+      "verified": {
+        "commit": "075e22c043aaa2788910f1c18fd3f695c45ceced",
+        "passed": true,
+        "at": "2026-11-02T23:31:05+00:00"
+      },
+      "done_at": "2026-11-02T23:35:10+00:00"
+    },
+    {
+      "id": "T6.3",
+      "phase": 6,
+      "title": "RAG evaluation set",
+      "owner": "agent",
+      "deps": [
+        "T6.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_evalset.py -q"
+      ],
+      "status": "done",
+      "started_at": "2026-11-02T23:35:10+00:00",
+      "verified": {
+        "commit": "9e0c606922852756968716f7db11eb432696507b",
+        "passed": true,
+        "at": "2026-11-03T00:40:15+00:00"
+      },
+      "attempts": 1,
+      "reason": "wrong_crop-008 and wrong_crop-027 gold labels wrong: the disease IS covered for the stated crop (strawberry2.pdf p4; tomatodoc2.md Anthracnose); test does not check trap disease absent from stated crop's chunks",
+      "done_at": "2026-11-02T23:47:08+00:00"
+    },
+    {
+      "id": "H2",
+      "phase": 6,
+      "title": "Review labels",
+      "owner": "human",
+      "deps": [
+        "T1.2",
+        "T6.3"
+      ],
+      "acceptance": [],
+      "status": "done",
+      "note": "the person went through the scenarios-style text samples by hand on 2026-11-03: mostly fine. The photo sample showed mismatched thumbnails, so photo labels are not signed; they're handled by the field label cleanup task. Agent reviews in orchestration/evidence/H2-agent-review*.md",
+      "done_at": "2026-11-03T17:19:52+00:00"
+    },
+    {
+      "id": "T6.5",
+      "phase": 6,
+      "title": "More care documents, with coverage",
+      "owner": "agent",
+      "deps": [
+        "T6.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_more_documents.py -q"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T16:45:52+00:00",
+      "verified": {
+        "commit": "fb3c483baba81b1a2f91f33ac125810458ee1b90",
+        "passed": true,
+        "at": "2026-11-03T20:05:12+00:00"
+      },
+      "attempts": 2,
+      "reason": "not_in_documents-012, watermelon fusarium wilt, is answered by a general cucurbit page; the abstain check needs family terms",
+      "done_at": "2026-11-03T20:05:33+00:00"
+    },
+    {
+      "id": "T6.4",
+      "phase": 6,
+      "title": "Experiment E7, answers",
+      "owner": "agent",
+      "deps": [
+        "T2.3",
+        "T5.0",
+        "T6.2",
+        "T6.3",
+        "T6.5"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_answer.py -q",
+        "{py} -m sprout.eval.check_run E7 --min-n 50 --split rag_dev"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T20:06:43+00:00",
+      "verified": {
+        "commit": "02c67e6f210f629712bd618001d7cd5648dabd60",
+        "passed": true,
+        "at": "2026-11-04T04:14:55+00:00"
+      },
+      "attempts": 1,
+      "reason": "chemical and disposal note: the word list misses bleach, chlorine, TSP, neem, sulfur and burning, and 'product label' alone suppresses the note, so local rules are omitted",
+      "done_at": "2026-11-04T07:56:09+00:00"
+    },
+    {
+      "id": "T6.6",
+      "phase": 6,
+      "title": "Experiment E14, is the local judge reliable?",
+      "owner": "agent",
+      "deps": [
+        "T6.4"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e14.py -q",
+        "{py} -m sprout.eval.check_run E14 --min-n 200 --split rag_dev"
+      ],
+      "status": "done",
+      "started_at": "2026-11-04T07:56:37+00:00",
+      "verified": {
+        "commit": "0c3734d6498f28b363963357896d7fb4a7d3b981",
+        "passed": true,
+        "at": "2026-11-04T08:56:35+00:00"
+      },
+      "done_at": "2026-11-04T09:10:49+00:00"
+    },
+    {
+      "id": "T7.1",
+      "phase": 7,
+      "title": "Backend rebuild",
+      "owner": "agent",
+      "deps": [
+        "T5.0",
+        "T6.2"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_web.py -q"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T05:06:17+00:00",
+      "verified": {
+        "commit": "1ce6ed30a83a21adb70ec7ae209d944f76bed634",
+        "passed": true,
+        "at": "2026-11-03T05:21:17+00:00"
+      },
+      "attempts": 1,
+      "reason": "vector cache in Retriever not atomic and load has no error handling: truncated file makes every chat 500 permanently; cold embed exceeds 20s timeout, concurrent threads rewrite the file; /readyz ready while chat times out",
+      "done_at": "2026-11-03T05:35:49+00:00"
+    },
+    {
+      "id": "T7.2",
+      "phase": 7,
+      "title": "Frontend",
+      "owner": "agent",
+      "deps": [
+        "T7.1"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_frontend.py -q"
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T05:36:12+00:00",
+      "verified": {
+        "commit": "10d83880536abc205ea5efb28ef1c0418d971729",
+        "passed": true,
+        "at": "2026-11-03T06:00:30+00:00"
+      },
+      "done_at": "2026-11-03T06:18:10+00:00"
+    },
+    {
+      "id": "T7.3",
+      "phase": 7,
+      "title": "Container and CI",
+      "owner": "agent",
+      "deps": [
+        "T7.2"
+      ],
+      "acceptance": [
+        "docker compose build app",
+        "{py} -m pytest tests/test_container.py -q -m \"real or not real\""
+      ],
+      "status": "done",
+      "started_at": "2026-11-03T06:20:03+00:00",
+      "verified": {
+        "commit": "7af21698f8d021ce81318a809871f4c550c62681",
+        "passed": true,
+        "at": "2026-11-03T06:57:59+00:00"
+      },
+      "attempts": 1,
+      "reason": "deploy/entrypoint.sh has no line-ending protection: a fresh Windows clone gets CRLF, the image builds, and the container fails every start with exec no such file or directory, exit 255",
+      "done_at": "2026-11-03T07:03:40+00:00"
+    },
+    {
+      "id": "T7.4",
+      "phase": 7,
+      "title": "Experiment E8, end-to-end performance",
+      "owner": "agent",
+      "deps": [
+        "T7.3",
+        "T5.1",
+        "T5.2",
+        "T6.4"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e8.py -q",
+        "{py} -m sprout.eval.check_run E8 --min-n 5 --split perf"
+      ],
+      "status": "done",
+      "started_at": "2026-11-04T22:27:40+00:00",
+      "verified": {
+        "commit": "2660df162f50b42547162b4da9436ca816293811",
+        "passed": true,
+        "at": "2026-11-04T23:10:01+00:00"
+      },
+      "done_at": "2026-11-04T23:23:09+00:00"
+    },
+    {
+      "id": "H3",
+      "phase": 7,
+      "title": "Deploy",
+      "owner": "human",
+      "deps": [
+        "T7.4"
+      ],
+      "acceptance": [],
+      "status": "pending"
+    },
+    {
+      "id": "T8.1",
+      "phase": 8,
+      "title": "Experiment E9, final test",
+      "owner": "agent",
+      "deps": [
+        "H1",
+        "H2",
+        "T4.7",
+        "T4.9",
+        "T6.6",
+        "T7.4"
+      ],
+      "acceptance": [
+        "{py} -m pytest tests/test_e9.py -q",
+        "{py} -m sprout.eval.check_run E9 --min-n 200 --split field_test --all",
+        "{py} -m sprout.eval.check_run E9 --min-n 1000 --split lab_test --all",
+        "{py} -m sprout.eval.check_run E9 --min-n 50 --split rag_test --all"
+      ],
+      "status": "done",
+      "started_at": "2026-11-04T23:23:25+00:00",
+      "verified": {
+        "commit": "c3fa96e408df8d54d8ba5fcb043487a18fbc6f1c",
+        "passed": true,
+        "at": "2026-11-05T02:26:35+00:00"
+      },
+      "attempts": 2,
+      "reason": "rag_test record doesn't state rag-sonnet's stop and resume, the code changes between, or the row marked refused by hand; that is only in DECISIONS",
+      "done_at": "2026-11-05T02:29:55+00:00"
+    },
+    {
+      "id": "T8.2",
+      "phase": 8,
+      "title": "Report, README, and bullets",
+      "owner": "agent",
+      "deps": [
+        "T8.1"
+      ],
+      "acceptance": [
+        "{py} -m sprout.eval.claims check",
+        "{py} tools/check_report_numbers.py",
+        "{py} -m pytest -q"
+      ],
+      "status": "done",
+      "verifier": false,
+      "started_at": "2026-11-05T02:30:16+00:00",
+      "verified": {
+        "commit": "65d419938656c204dc6b7f6a0eb380d62532d0d6",
+        "passed": true,
+        "at": "2026-11-05T03:58:08+00:00"
+      },
+      "done_at": "2026-11-05T03:58:31+00:00"
+    },
+    {
+      "id": "H4",
+      "phase": 8,
+      "title": "Final sign-off",
+      "owner": "human",
+      "deps": [
+        "T8.2"
+      ],
+      "acceptance": [],
+      "status": "pending"
+    }
+  ]
+}

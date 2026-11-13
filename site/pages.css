@@ -131,7 +131,6 @@
 
 /* home v3 */
 .head--split { flex-direction: row; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-md) var(--space-3xl); }
-.recording--wide img { max-width: 1040px; }
 .shots { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap-columns); }
 .shots li { display: flex; flex-direction: column; gap: var(--space-sm); }
 .shot { margin: 0; aspect-ratio: 4 / 3; overflow: hidden; border-radius: var(--radius-card); background: var(--color-paper-2); outline: var(--rule-hair) solid var(--color-rule); outline-offset: -1px; }

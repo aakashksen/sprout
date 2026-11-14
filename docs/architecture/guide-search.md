@@ -2,13 +2,13 @@
 
 [Back to README](../../README.md) · Previous: [Question engine](question-engine.md) · Next: [Vision model](vision-model.md)
 
-Every question, piece of advice and chat reply starts from passages in 237 university extension guides. The search has to find the passage about *this* disease on *this* plant, not a generic one.
+Every question, piece of advice and chat reply starts from passages in 250+ university extension guides. The search has to find the passage about *this* disease on *this* plant, not a generic one.
 
 ## Building the index (offline)
 
 ```mermaid
 flowchart LR
-    SRC["237 guides<br/>PDF and web pages"] --> EXT["Text extraction<br/>pypdf, HTML to text"]
+    SRC["250+ guides<br/>PDF and web pages"] --> EXT["Text extraction<br/>pypdf, HTML to text"]
     EXT --> MAN[("Manifest<br/>title, publisher, URL,<br/>crop, diseases")]
     EXT --> CH["Chunking<br/>passages with page numbers"]
     MAN --> TAG["Tag each passage<br/>with crop and diseases"]

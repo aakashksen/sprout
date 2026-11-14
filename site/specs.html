@@ -31,13 +31,13 @@
   <div class="container spec-top__grid">
     <div>
       <h1>How SPROUT is built</h1>
-      <p class="lead">Four parts: a vision model trained on a GPU, a search engine over 237 extension guides, a question engine that keeps every number in code, and a small web stack that serves it all.</p>
+      <p class="lead">Four parts: a vision model trained on a GPU, a search engine across 250+ extension guides, a question engine that keeps every number in code, and a small web stack that serves it all.</p>
     </div>
     <dl class="keyfacts">
       <div><dt>Right disease in the top three, from the photo alone</dt><dd>96%</dd></div>
       <div><dt>Photo to diagnosis, median</dt><dd>0.4 s</dd></div>
       <div><dt>Tap to next question, median</dt><dd>6.5 ms</dd></div>
-      <div><dt>Extension guides searched</dt><dd>237</dd></div>
+      <div><dt>Extension guides searched</dt><dd>250+</dd></div>
     </dl>
   </div>
 </section>
@@ -106,12 +106,12 @@
   <div class="container">
     <div class="head head--split">
       <h2 id="search">The guide search</h2>
-      <p class="lead">Every question, piece of advice and chat reply starts from passages in 237 university extension guides.</p>
+      <p class="lead">Every question, piece of advice and chat reply starts from passages in 250+ university extension guides.</p>
     </div>
     <figure class="arch-fig">
-      <svg class="arch" viewBox="0 0 960 200" role="img" aria-label="Guide search pipeline: 237 guides are extracted and chunked with crop and disease tags, indexed with BM25 keywords and BGE-small embeddings, searched with filters for crop and disease, merged, then reranked by a MiniLM cross-encoder to give the top passages.">
+      <svg class="arch" viewBox="0 0 960 200" role="img" aria-label="Guide search pipeline: 250+ guides are extracted and chunked with crop and disease tags, indexed with BM25 keywords and BGE-small embeddings, searched with filters for crop and disease, merged, then reranked by a MiniLM cross-encoder to give the top passages.">
         <defs><marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arch-head"/></marker></defs>
-        <rect class="node" x="20" y="40" width="160" height="110" rx="6"/><text class="n-t" x="34" y="72">237 guides</text><text class="n-s" x="34" y="96">PDF and web pages</text><text class="n-s" x="34" y="116">from university</text><text class="n-s" x="34" y="136">extension services</text>
+        <rect class="node" x="20" y="40" width="160" height="110" rx="6"/><text class="n-t" x="34" y="72">250+ guides</text><text class="n-s" x="34" y="96">PDF and web pages</text><text class="n-s" x="34" y="116">from university</text><text class="n-s" x="34" y="136">extension services</text>
         <rect class="node node--code" x="210" y="40" width="160" height="110" rx="6"/><text class="n-t" x="224" y="72">Chunk and tag</text><text class="n-s" x="224" y="96">passages tagged</text><text class="n-s" x="224" y="116">with crop and</text><text class="n-s" x="224" y="136">disease</text>
         <rect class="node node--code" x="400" y="40" width="160" height="110" rx="6"/><text class="n-t" x="414" y="72">Two indexes</text><text class="n-s" x="414" y="96">BM25 keywords</text><text class="n-s" x="414" y="116">BGE-small</text><text class="n-s" x="414" y="136">embeddings</text>
         <rect class="node node--code" x="590" y="40" width="160" height="110" rx="6"/><text class="n-t" x="604" y="72">Filtered search</text><text class="n-s" x="604" y="96">only this plant</text><text class="n-s" x="604" y="116">and these suspects,</text><text class="n-s" x="604" y="136">results merged</text>

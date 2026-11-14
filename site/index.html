@@ -37,7 +37,7 @@
           <a class="btn btn--primary" href="tour.html">Take the walkthrough</a>
           <a class="btn" href="live.html">Live demo</a>
         </div>
-        <p class="hero__note">Photograph a sick leaf. SPROUT names the likely disease, asks a few yes or no questions written from 237 university guides, and tells you when it can’t tell.</p>
+        <p class="hero__note">Photograph a sick leaf. SPROUT names the likely disease, asks a few yes or no questions written from 250+ university guides, and tells you when it can’t tell.</p>
       </div>
       <div class="hero__visual">
         <figure class="hero__photo" data-slot="hero" data-alt="A diseased tomato plant in the garden">
@@ -62,7 +62,7 @@
         <li>
           <figure class="shot"><img src="img/step-question.jpg" alt="Question 2: are there irregularly shaped, wet-looking patches on the leaf, with NC State Extension named as the source"></figure>
           <h3>Questions come from the guides</h3>
-          <p>While you read, a background worker searches 237 university extension guides and writes yes or no questions from the symptom passages. Code keeps the one that best separates the suspects.</p>
+          <p>While you read, a background worker searches 250+ university extension guides and writes yes or no questions from the symptom passages. Code keeps the one that best separates the suspects.</p>
         </li>
         <li>
           <figure class="shot"><img src="img/step-final.jpg" alt="The final answer, tomato late blight 97 percent sure, with care advice and the UMass Extension guide it came from"></figure>
@@ -85,7 +85,7 @@
         <div><dt>The right disease is in the top three from the photo alone, before a single question</dt><dd>96%</dd></div>
         <div><dt>From photo to diagnosis, median on a laptop CPU</dt><dd>0.4 s</dd></div>
         <div><dt>From a tap to the next question, median over 56 taps</dt><dd>6.5 ms</dd></div>
-        <div><dt>University extension guides it reads from</dt><dd>237</dd></div>
+        <div><dt>University extension guides it reads from</dt><dd>250+</dd></div>
       </dl>
     </div>
   </section>
@@ -99,7 +99,7 @@
       </div>
       <ul class="facts facts--grid">
         <li><b>Vision model</b>ConvNeXt V2 Tiny fine-tuned in PyTorch on a CUDA GPU with mixed precision, on 19,260 lab and field photos, exported to ONNX for CPU serving.</li>
-        <li><b>Guide search</b>Hybrid keyword and embedding search over 237 guides, with a cross-encoder reranker on top.</li>
+        <li><b>Guide search</b>Hybrid keyword and embedding search across 250+ guides, with a cross-encoder reranker on top.</li>
         <li><b>Question engine</b>Odds updated by code, next question chosen by expected information gain, questions and advice written ahead in background threads.</li>
         <li><b>Experiment tracking</b>Every training run and result logged in MLflow, data versioned with DVC, every published number traced to a run record.</li>
       </ul>

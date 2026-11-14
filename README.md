@@ -28,7 +28,7 @@ A photo alone often can't tell look-alike leaf diseases apart. SPROUT combines t
 
 1. **A vision model**: ConvNeXt V2 Tiny, trained on lab and field photos together, giving calibrated odds over 29 conditions on 14 plants.
 2. **A question engine** that asks short yes or no questions, picked so each one narrows the odds the most, and stops as soon as it's sure.
-3. **A search engine over 237 university extension guides.** The questions, the care advice and the chat replies are all written from guide passages, and each one names its source.
+3. **A search engine across 250+ university extension guides.** The questions, the care advice and the chat replies are all written from guide passages, and each one names its source.
 
 The design rule behind all of it: **an LLM writes the words, plain code does the counting.** Every probability, the choice of the next question and the decision to stop are code, so the same answers always give the same result.
 
@@ -134,11 +134,11 @@ flowchart LR
 
 ## Guide search
 
-Everything SPROUT says starts from a passage in 237 extension guides. Guides are extracted with pypdf, chunked, and tagged by crop and disease. A search filters to the plant and disease in question, merges BM25 keyword scores with BGE-small embedding similarity (fastembed), and lets a MiniLM cross-encoder reranker pick the best passages. The same retriever grounds questions, advice and chat.
+Everything SPROUT says starts from a passage in 250+ extension guides. Guides are extracted with pypdf, chunked, and tagged by crop and disease. A search filters to the plant and disease in question, merges BM25 keyword scores with BGE-small embedding similarity (fastembed), and lets a MiniLM cross-encoder reranker pick the best passages. The same retriever grounds questions, advice and chat.
 
 ```mermaid
 flowchart LR
-    G["237 guides"] --> C["Chunk + tag<br/>by crop and disease"]
+    G["250+ guides"] --> C["Chunk + tag<br/>by crop and disease"]
     C --> I["BM25 index +<br/>BGE-small vectors"]
     I --> F["Filtered<br/>hybrid search"]
     F --> R["MiniLM<br/>reranker"]

@@ -124,7 +124,7 @@ The other documents were not checked for licence text. Treat them the same way.
 
 ## Round two
 
-76 more URLs from `docs/document-urls-2.csv`, fetched the same way (one at a time, 2 seconds apart, `robots.txt` first, via `tools/fetch_documents.py`); file numbers start at 201. All 76 answered, none was refused by `robots.txt` or blocked. One was dropped: 248 (https://site.extension.uga.edu/peaches/2025/09/an-update-of-bacterial-spot-in-peaches/), a blog page whose text is not in the HTML. 75 were added, so the manifest now has 237 documents. Titles, crops and diseases come from each page's own text as in round one; publishers come from the host. Pages that cover several tree fruits (for example 205, 207, 231 and 233) are marked `general`. The index was rebuilt with `tools/build_index_gpu.py` (device recorded in its `build-info.json`).
+76 more URLs from `docs/document-urls-2.csv`, fetched the same way (one at a time, 2 seconds apart, `robots.txt` first, via `tools/fetch_documents.py`); file numbers start at 201. All 76 answered, none was refused by `robots.txt` or blocked. One was dropped: 248 (https://site.extension.uga.edu/peaches/2025/09/an-update-of-bacterial-spot-in-peaches/), a blog page whose text is not in the HTML. 75 were added, so the manifest then had 237 documents. Titles, crops and diseases come from each page's own text as in round one; publishers come from the host. Pages that cover several tree fruits (for example 205, 207, 231 and 233) are marked `general`. The index was rebuilt with `tools/build_index_gpu.py` (device recorded in its `build-info.json`).
 
 | crop | round two | total |
 |---|---|---|
@@ -145,6 +145,32 @@ The other documents were not checked for licence text. Treat them the same way.
 | tomato | 8 | 44 |
 
 Round two documents that supplied symptom evidence for coverage: 201 and 204 (cherry powdery mildew), 211 (grape leaf blight), 212 (tomato yellow leaf curl), 218 (tomato mosaic), 222 (huanglongbing), 247 (peach bacterial spot), 267 (squash powdery mildew). The other round-two pages are mostly home-growing guides, added for plant care on the thin crops.
+
+## Round three
+
+14 more documents, to reach 251 (the public wording is "250+"). The thin spots from the tables above were the target: grape, soybean, raspberry, blueberry, orange (citrus greening) and strawberry (leaf scorch). Candidates came from web searches for university extension and agency pages; 21 URLs were fetched the same way as before (one at a time, 2 seconds apart, `robots.txt` first, via `tools/fetch_documents.py`, file numbers from 277). `robots.txt` disallowed none. Three answered with an error (HTTP 403 for `extension.missouri.edu/.../g04442.pdf` and `extension.okstate.edu/.../bacterial-spot-of-stone-fruits`, 404 for `portal.ct.gov/.../Disease-Control-for-Home-Grape-Plantings`); they were skipped and not retried or worked around. Titles, publishers, crops, diseases and dates come from each document's own text as before.
+
+| crop | round three | total |
+|---|---|---|
+| blueberry | 4 | 18 |
+| grape | 3 | 18 |
+| orange | 2 | 15 |
+| raspberry | 2 | 18 |
+| soybean | 1 | 11 |
+| strawberry | 2 | 11 |
+
+Added (file number: topic): 277 and 278 strawberry leaf spots and leaf scorch (Minnesota, Florida PP359); 279 downy mildew of grape (Kentucky); 280 Phomopsis cane and leaf spot of grape (Ohio State); 297 grape black rot and downy mildew (South Dakota State); 281 soybean frogeye leaf spot (Delaware); 284 and 296 citrus greening (Arizona az2132, UF/IFAS Gardening Solutions); 286, 287, 288 and 289 blueberry mummy berry and anthracnose (Ohio State, UMass, Washington State); 290 and 292 raspberry spur blight (UMass, Ohio State). The class lists now name leaf scorch in two more documents, black rot in two more and huanglongbing in two more.
+
+Dropped after download (not in the manifest, not in `knowledge/raw/`):
+
+| file | URL | reason |
+|---|---|---|
+| 282 | https://www.udel.edu/content/dam/udelImages/canr/pdfs/extension/factsheets/Septoria-Brown-Spot-in-Soybean.pdf | one-page bullet sheet, under 2,000 characters |
+| 291 | https://hortsense.cahnrs.wsu.edu/fact-sheet/raspberry-spur-blight/ | spare; spur blight already covered by 290 and 292 |
+| 294 | https://extension.psu.edu/black-rot-on-grapes-in-home-gardens | saved page is the general disease-identification index, no black rot text |
+| 295 | https://www.uaex.uada.edu/farm-ranch/crops-commercial-horticulture/horticulture/commercial-fruit-production/Blueberry%20Disease%20Management.pdf | 29-page slide deck with about 7,000 characters of text |
+
+Not found: no extension page on grape leaf blight (Isariopsis or Pseudocercospora leaf spot) turned up, so that class still has one dedicated document. The new files were checked by reading their extracted text; none was a bot-block page. The `not_in_documents` questions were rechecked against the rebuilt index (`tests/test_more_documents.py::test_abstain_questions_have_no_answer_in_the_index`): none is answered. The index was rebuilt with the same builder (device `cuda`): 5,282 chunks before, 5,399 after, 0 failed documents. Retrieval on the 60 answerable `rag_dev` questions did not change (recall@5 0.833 for hybrid with reranker, 0.717 for dense).
 
 ## Sources of the 28 original documents
 

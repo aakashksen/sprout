@@ -147,6 +147,12 @@ A task with no entry gets a line `<id>: no new decisions` at the end of this fil
 - **Evidence:** `docs/document-sources.md` (drops with reasons, counts, reuse limits), `tests/test_more_documents.py`, commits `42edd78` and the second-round commit. Twelve first-round documents also appear in `docs/document-candidates.md` with stated reuse restrictions.
 - **Would change if:** the documents are ever published (reuse terms would need checking one by one), or a host asks for removal.
 
+### T6.5 - Round three: 14 more documents, 251 in total, public wording "250+" (2026-11-14)
+- **Chose:** add 14 public extension pages and PDFs on the thinnest crops and classes (grape, soybean, raspberry, blueberry, citrus greening, strawberry leaf scorch), fetched under the same rules as before; rebuild `knowledge/index` with `tools/build_index_gpu.py` (5,282 to 5,399 chunks, 0 failed documents); say "250+" guides in the README, site and architecture pages instead of an exact count. Docs keep the exact 251.
+- **Considered:** an exact "251" in public text (lost: it goes stale with the next added or dropped document). Pages that returned 403 or 404, or whose saved text was an index page, a one-page sheet or a slide deck, were dropped and not worked around (details in `docs/document-sources.md`). No page on grape leaf blight (Isariopsis) was found.
+- **Evidence:** `tests/test_more_documents.py` passes, including the abstain check against the rebuilt index (no `not_in_documents` question is answered by a new document). Retrieval on the 60 answerable `rag_dev` questions is identical before and after: dense 0.417 / 0.617 / 0.717 / 0.817 / MRR 0.543, hybrid with reranker 0.600 / 0.800 / 0.833 / 0.933 / MRR 0.712, so the 83% and 72% figures published in `site/specs.html` and `docs/architecture/guide-search.md` still hold.
+- **Would change if:** more documents are added (the wording "250+" still holds until 300), or a new document answers one of the abstain questions.
+
 ### T6.5 - Crop of a multi-crop document is its leading crop, or `general` (2026-11-03)
 - **Chose:** the crop mentioned most often when it leads clearly, else `general`. Mixed pages such as tomato and pepper bacterial spot carry one crop only.
 - **Considered:** one manifest row per crop for the same file (lost: file names must be unique and the tests assume one row per file).

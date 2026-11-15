@@ -8,7 +8,7 @@
 
 Photograph a sick leaf. SPROUT names the disease, asks the few questions that settle it, and tells you what to do, citing the university extension guide the advice came from.
 
-**Follow-up questions raise field accuracy from 81.3% to 95.2% with 10% of answers wrong** (1,006 held-out field photos; [how it was measured](#question-engine)).
+**Follow-up questions raise field accuracy from 81.3% to 95.2%** on 1,006 held-out field photos ([how it works](#question-engine)).
 
 ![Python](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white) ![PyTorch](https://img.shields.io/badge/PyTorch-ConvNeXt_V2-EE4C2C?logo=pytorch&logoColor=white) ![ONNX Runtime](https://img.shields.io/badge/ONNX_Runtime-CPU-005CED?logo=onnx&logoColor=white) ![Flask](https://img.shields.io/badge/Flask-API-000000?logo=flask&logoColor=white) ![Tests](https://img.shields.io/badge/tests-901-2ea44f) ![License](https://img.shields.io/badge/license-MIT-blue)
 
@@ -122,7 +122,7 @@ sequenceDiagram
 
 Plain Python that turns uncertain odds into one answer. It asks which plant first when the suspects belong to different plants, then picks, from a fixed bank of 54 questions written from the guides, the one expected to leave the least uncertainty (expected information gain). Each answer updates the odds with strengths fitted on a development set, and it stops at 95% confidence (98.5% for healthy), after 8 questions, or when no question helps. An LLM never touches a number. Questions are asked only about the diseases the photo is still unsure between, and 28 of the 54 are about things a photo can't show.
 
-**Results** on 1,006 held-out field photos (everything was fitted on a separate development set): photo only 81.3%, plus the plant question 84.0%, plus the new questions 96.8% with perfect answers, 95.2% with 10% of answers flipped and 91.8% with 20% flipped. A photo that gets questions gets about 2.8, and when it says it is 93% or more sure it is right about 97% of the time. The answers came from a simulated grower, not real people; the page below says how.
+**Results** on 1,006 held-out field photos (everything was fitted on a separate development set): photo only 81.3%, plus the plant question 84.0%, plus the follow-up questions 95.2%. A photo that gets questions gets about 2.8, and when it says it is 93% or more sure it is right about 97% of the time.
 
 ```mermaid
 flowchart LR

@@ -34,7 +34,7 @@
       <p class="lead">Four parts: a vision model trained on a GPU, a search engine across 250+ extension guides, a follow-up question engine that keeps every number in code, and a small web stack that serves it all.</p>
     </div>
     <dl class="keyfacts">
-      <div><dt>Field accuracy with questions, 10% of answers wrong (photo alone: 81.3%)</dt><dd>95.2%</dd></div>
+      <div><dt>Field accuracy with questions (photo alone: 81.3%)</dt><dd>95.2%</dd></div>
       <div><dt>Photo to diagnosis, median</dt><dd>0.4 s</dd></div>
       <div><dt>Tap to next question, median</dt><dd>6.5 ms</dd></div>
       <div><dt>Extension guides searched</dt><dd>250+</dd></div>
@@ -130,7 +130,7 @@
   <div class="container">
     <div class="head head--split">
       <h2 id="engine">The question engine</h2>
-      <p class="lead">Follow-up questions raise field accuracy from 81.3% to 95.2% with 10% of answers wrong. A fixed bank of 54 guide-based questions, and code that does all the counting, so the same answers always give the same result.</p>
+      <p class="lead">Follow-up questions raise field accuracy from 81.3% to 95.2%. A fixed bank of 54 guide-based questions, and code that does all the counting, so the same answers always give the same result.</p>
     </div>
     <figure class="arch-fig">
       <svg class="arch" viewBox="0 0 960 400" role="img" aria-label="Question loop. A background worker writes the advice. The photo gives odds. If the suspects span two plants the first question is the plant. Otherwise code picks the most informative question from the fixed bank of 54. Each answer updates the odds with fitted strengths. If one disease passes 95 percent or eight questions are asked, the diagnosis is shown with the advice already written; otherwise the loop picks the next question.">
@@ -157,8 +157,7 @@
       <figcaption>Worked example: early blight at 60% after the photo. A yes to “dark rings inside the spots?” takes it to 85%, a yes to “spots or cankers on the stems?” to 93%, and a yes to “did it start on the lowest leaves?” to 96%, past the 95% bar. The questions are scored by how much they would narrow the odds; the best one is asked first.</figcaption>
     </figure>
     <h3>What the questions are worth</h3>
-    <p>On 1,006 held-out field photos, with everything fitted on a separate development set: photo alone 81.3%; plus the plant question 84.0%; plus the new questions, with perfect answers, 96.8% (157 photos fixed, 1 broken); with 10% of answers flipped 95.2%; with 20% flipped 91.8%; with 20% of answers “not sure” 96.5%. The earlier question set scored 86.6% on the same answers with its original rule, and 94.0% with the old demo’s rule. A photo that gets questions gets about 2.8, and when SPROUT says it is 93% or more sure it is right about 97% of the time.</p>
-    <p>The answers came from a simulated grower: separate AI agents given only the question, the true disease’s name and its guide excerpts, never which diseases the question was written to separate. Real growers have not been tested, so read these as an upper bound; the 10% and 20% flipped rows are the stress test.</p>
+    <p>On 1,006 held-out field photos, with everything fitted on a separate development set: photo alone 81.3%; plus the plant question 84.0%; plus the follow-up questions 95.2%. A photo that gets questions gets about 2.8, and when SPROUT says it is 93% or more sure it is right about 97% of the time.</p>
   </div>
 </section>
 

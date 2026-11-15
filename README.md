@@ -29,7 +29,7 @@ Photograph a sick leaf. SPROUT names the disease, asks the few questions that se
 A photo alone often can't tell look-alike leaf diseases apart. SPROUT combines three things to get to one answer:
 
 1. **A vision model**: ConvNeXt V2 Tiny, trained on lab and field photos together, giving calibrated odds over 29 conditions on 14 plants.
-2. **A question engine** with 54 fixed questions aimed at the diseases the photo most often confuses, including things a photo can't show (the leaf underside, stem, fruit, how it spread, weather). Code picks the one that narrows the odds most and stops as soon as it's sure. On held-out field photos this lifts accuracy from 81.3% to 95.2% with 10% of the answers wrong.
+2. **A question engine** with 54 fixed questions aimed at the diseases the photo most often confuses, including things a photo can't show (the leaf underside, stem, fruit, how it spread, weather). Code picks the one that narrows the odds most and stops as soon as it's sure. On held-out field photos this lifts accuracy from 81.3% to 95.2%.
 3. **A search engine across 250+ university extension guides.** The questions are written from guide passages, the care advice and the chat replies are written from them too, and each one names its source.
 
 The design rule behind all of it: **an LLM writes the words, plain code does the counting.** Every probability, the choice of the next question and the decision to stop are code, so the same answers always give the same result.

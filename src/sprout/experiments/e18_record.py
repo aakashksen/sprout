@@ -14,9 +14,14 @@ from typing import Any
 import numpy as np
 
 from sprout.eval.check_run import Scored, recompute_comparison, recompute_interval
-from sprout.eval.records import standard_image_metrics, write_run, split_info
+from sprout.eval.records import split_info, standard_image_metrics, write_run
 from sprout.experiments import e18_questions as e18
-from sprout.serve.question_engine import Bank, Params, expected_calibration_error, load_questions
+from sprout.serve.question_engine import (
+    Bank,
+    Params,
+    expected_calibration_error,
+    load_questions,
+)
 
 THR = 0.929437  # the photo-only bar of results/e15/refit/chosen.json, which the old flows used
 
@@ -87,7 +92,6 @@ def old_e11(bank_rows, sup, ans, data, i: int, k_yes=3.0, k_no=0.5, max_q=2):
     for its classes tied to the question and renormalised to the mass it had; the question that splits the top three
     closest to half; at most 2 questions; no plant question."""
     p = data.probs[i].copy()
-    y = int(data.labels[i])
     top = np.argsort(-p)[:3]
     if (p[top] >= 0.10).sum() < 2:
         return p, 0

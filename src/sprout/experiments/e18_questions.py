@@ -19,7 +19,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -27,7 +26,6 @@ import numpy as np
 
 from sprout.atomic import atomic_write_text
 from sprout.eval.records import ROOT, split_info, subset_positions
-from sprout.eval.stats import bootstrap_ci, mcnemar_exact, paired_bootstrap_diff
 from sprout.serve.question_engine import (
     NO,
     UNSURE,
@@ -234,7 +232,6 @@ def choose_settings(bank: Bank, data: Data, table: np.ndarray, flip: float, unsu
 
 
 def fit_stage(root: Path) -> Path:
-    from dataclasses import replace
 
     dev = load_dev(root)
     questions = load_questions(root / "datasets/followup_v2/questions.jsonl")

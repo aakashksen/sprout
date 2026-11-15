@@ -8,7 +8,17 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from sprout.serve.question_engine import NO, UNSURE, YES, Bank, Params, Question, expected_calibration_error, load_questions, run
+from sprout.serve.question_engine import (
+    NO,
+    UNSURE,
+    YES,
+    Bank,
+    Params,
+    Question,
+    expected_calibration_error,
+    load_questions,
+    run,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 CLASSES = ["Tomato___Early_blight", "Tomato___Late_blight", "Tomato___healthy", "Potato___Early_blight", "Potato___Late_blight"]

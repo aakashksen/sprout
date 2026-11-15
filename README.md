@@ -16,6 +16,10 @@ Photograph a sick leaf. SPROUT names the disease, asks the few questions that se
 
 [Walkthrough](https://sprout.aakashsenthilnathan.com/tour.html) · [How it's built](https://sprout.aakashsenthilnathan.com/specs.html) · [Live demo](https://sprout.aakashsenthilnathan.com/live.html)
 
+<img src="site/img/live-demo.gif" width="820" alt="A recorded run: a tomato leaf read as potato late blight, one question about the plant, then tomato late blight at 97% with cited care advice and a follow-up chat">
+
+<sub>A real run on a tomato leaf the model never trained on.</sub>
+
 </div>
 
 ---

@@ -1,0 +1,356 @@
+{
+ "rows": 1018,
+ "perfect_grower_fit": {
+  "params": {
+   "yes_row": [
+    0.9343274699356533,
+    0.017266007111015946,
+    0.04840652295333066
+   ],
+   "no_row": [
+    0.08078122213243452,
+    0.8188309065979018,
+    0.10038787126966373
+   ],
+   "gamma": 0.9670456106930788,
+   "plant_down": 0.02,
+   "bar": 0.93,
+   "healthy_bar": 0.965,
+   "max_questions": 5,
+   "min_gain": 0.02
+  },
+  "start_loss": 0.3184329074607309,
+  "final_loss": 0.15625149304445435,
+  "evaluations": 114,
+  "converged": true
+ },
+ "noisy_grower_fit": {
+  "noise": {
+   "flip": 0.1,
+   "unsure": 0.1
+  },
+  "params": {
+   "yes_row": [
+    0.8037906922732082,
+    0.053010617291331746,
+    0.14319869043545996
+   ],
+   "no_row": [
+    0.16721259452028167,
+    0.5965986248622467,
+    0.23618878061747156
+   ],
+   "gamma": 0.9737338622565461,
+   "plant_down": 0.02,
+   "bar": 0.93,
+   "healthy_bar": 0.965,
+   "max_questions": 5,
+   "min_gain": 0.02
+  },
+  "start_loss": 0.41739221441650953,
+  "final_loss": 0.36407138053462373,
+  "evaluations": 118,
+  "converged": true
+ },
+ "grid": [
+  {
+   "bar": 0.9,
+   "max_questions": 3,
+   "min_gain": 0.01,
+   "accuracy": 0.9125736738703341,
+   "mean_symptom_questions": 0.787328094302554,
+   "sure_share": 0.8423379174852652,
+   "sure_precision": 0.9521895824833402,
+   "ece": 0.020306089303178218
+  },
+  {
+   "bar": 0.9,
+   "max_questions": 3,
+   "min_gain": 0.03,
+   "accuracy": 0.9125736738703341,
+   "mean_symptom_questions": 0.7696463654223968,
+   "sure_share": 0.8344793713163066,
+   "sure_precision": 0.9523278662173248,
+   "ece": 0.021234545425233314
+  },
+  {
+   "bar": 0.9,
+   "max_questions": 5,
+   "min_gain": 0.01,
+   "accuracy": 0.9292730844793713,
+   "mean_symptom_questions": 1.0525540275049117,
+   "sure_share": 0.8885068762278978,
+   "sure_precision": 0.9530141497210638,
+   "ece": 0.01608090124523312
+  },
+  {
+   "bar": 0.9,
+   "max_questions": 5,
+   "min_gain": 0.03,
+   "accuracy": 0.9292730844793713,
+   "mean_symptom_questions": 1.012278978388998,
+   "sure_share": 0.8742632612966601,
+   "sure_precision": 0.952812240007777,
+   "ece": 0.018921164243671434
+  },
+  {
+   "bar": 0.9,
+   "max_questions": 8,
+   "min_gain": 0.01,
+   "accuracy": 0.93762278978389,
+   "mean_symptom_questions": 1.2878192534381139,
+   "sure_share": 0.9169941060903732,
+   "sure_precision": 0.9534019187073971,
+   "ece": 0.013672016165951085
+  },
+  {
+   "bar": 0.9,
+   "max_questions": 8,
+   "min_gain": 0.03,
+   "accuracy": 0.93762278978389,
+   "mean_symptom_questions": 1.2053045186640472,
+   "sure_share": 0.8973477406679764,
+   "sure_precision": 0.9534812515728546,
+   "ece": 0.01905024337794731
+  },
+  {
+   "bar": 0.93,
+   "max_questions": 3,
+   "min_gain": 0.01,
+   "accuracy": 0.9174852652259331,
+   "mean_symptom_questions": 0.9666011787819253,
+   "sure_share": 0.7593320235756384,
+   "sure_precision": 0.9663773005775607,
+   "ece": 0.01801084223858273
+  },
+  {
+   "bar": 0.93,
+   "max_questions": 3,
+   "min_gain": 0.03,
+   "accuracy": 0.9174852652259331,
+   "mean_symptom_questions": 0.9140471512770137,
+   "sure_share": 0.7416502946954813,
+   "sure_precision": 0.965572896199405,
+   "ece": 0.01691601679201466
+  },
+  {
+   "bar": 0.93,
+   "max_questions": 5,
+   "min_gain": 0.01,
+   "accuracy": 0.9356581532416504,
+   "mean_symptom_questions": 1.3290766208251474,
+   "sure_share": 0.8167976424361494,
+   "sure_precision": 0.9669572777165407,
+   "ece": 0.01218148461423243
+  },
+  {
+   "bar": 0.93,
+   "max_questions": 5,
+   "min_gain": 0.03,
+   "accuracy": 0.9361493123772102,
+   "mean_symptom_questions": 1.2151277013752455,
+   "sure_share": 0.7799607072691552,
+   "sure_precision": 0.9653802227086704,
+   "ece": 0.014927678939673738
+  },
+  {
+   "bar": 0.93,
+   "max_questions": 8,
+   "min_gain": 0.01,
+   "accuracy": 0.9459724950884086,
+   "mean_symptom_questions": 1.6429273084479372,
+   "sure_share": 0.8511787819253438,
+   "sure_precision": 0.9677201717790104,
+   "ece": 0.012023794468609685
+  },
+  {
+   "bar": 0.93,
+   "max_questions": 8,
+   "min_gain": 0.03,
+   "accuracy": 0.9454813359528487,
+   "mean_symptom_questions": 1.4440078585461689,
+   "sure_share": 0.7966601178781925,
+   "sure_precision": 0.9661056248622102,
+   "ece": 0.014648938284765088
+  },
+  {
+   "bar": 0.95,
+   "max_questions": 3,
+   "min_gain": 0.01,
+   "accuracy": 0.9228880157170923,
+   "mean_symptom_questions": 1.1105108055009822,
+   "sure_share": 0.6640471512770137,
+   "sure_precision": 0.9770742381968379,
+   "ece": 0.01649117463572685
+  },
+  {
+   "bar": 0.95,
+   "max_questions": 3,
+   "min_gain": 0.03,
+   "accuracy": 0.9228880157170923,
+   "mean_symptom_questions": 1.0216110019646365,
+   "sure_share": 0.6340864440078585,
+   "sure_precision": 0.9759995007896165,
+   "ece": 0.015243464622522612
+  },
+  {
+   "bar": 0.95,
+   "max_questions": 5,
+   "min_gain": 0.01,
+   "accuracy": 0.943516699410609,
+   "mean_symptom_questions": 1.5471512770137523,
+   "sure_share": 0.7210216110019647,
+   "sure_precision": 0.9782088976003801,
+   "ece": 0.015236572158732711
+  },
+  {
+   "bar": 0.95,
+   "max_questions": 5,
+   "min_gain": 0.03,
+   "accuracy": 0.9430255402750491,
+   "mean_symptom_questions": 1.362475442043222,
+   "sure_share": 0.6650294695481336,
+   "sure_precision": 0.9763619067567332,
+   "ece": 0.015520984667712855
+  },
+  {
+   "bar": 0.95,
+   "max_questions": 8,
+   "min_gain": 0.01,
+   "accuracy": 0.9538310412573674,
+   "mean_symptom_questions": 1.9341846758349706,
+   "sure_share": 0.7588408644400786,
+   "sure_precision": 0.9786664968477361,
+   "ece": 0.01424664871493282
+  },
+  {
+   "bar": 0.95,
+   "max_questions": 8,
+   "min_gain": 0.03,
+   "accuracy": 0.9528487229862476,
+   "mean_symptom_questions": 1.6085461689587426,
+   "sure_share": 0.6743614931237721,
+   "sure_precision": 0.9767076198357629,
+   "ece": 0.016828581294192763
+  },
+  {
+   "bar": 0.97,
+   "max_questions": 3,
+   "min_gain": 0.01,
+   "accuracy": 0.924361493123772,
+   "mean_symptom_questions": 1.2829076620825148,
+   "sure_share": 0.5039292730844793,
+   "sure_precision": 0.9814795111867705,
+   "ece": 0.018145549188516987
+  },
+  {
+   "bar": 0.97,
+   "max_questions": 3,
+   "min_gain": 0.03,
+   "accuracy": 0.9233791748526523,
+   "mean_symptom_questions": 1.0805500982318272,
+   "sure_share": 0.4174852652259332,
+   "sure_precision": 0.982358086822684,
+   "ece": 0.01438492228648642
+  },
+  {
+   "bar": 0.97,
+   "max_questions": 5,
+   "min_gain": 0.01,
+   "accuracy": 0.9474459724950883,
+   "mean_symptom_questions": 1.7902750491159134,
+   "sure_share": 0.5505893909626719,
+   "sure_precision": 0.9821580910908234,
+   "ece": 0.017802890989097
+  },
+  {
+   "bar": 0.97,
+   "max_questions": 5,
+   "min_gain": 0.03,
+   "accuracy": 0.944499017681729,
+   "mean_symptom_questions": 1.4327111984282908,
+   "sure_share": 0.43222003929273084,
+   "sure_precision": 0.9818166790643854,
+   "ece": 0.01558587841915123
+  },
+  {
+   "bar": 0.97,
+   "max_questions": 8,
+   "min_gain": 0.01,
+   "accuracy": 0.9572691552062869,
+   "mean_symptom_questions": 2.2328094302554025,
+   "sure_share": 0.5731827111984282,
+   "sure_precision": 0.9828574954022246,
+   "ece": 0.015942268355731287
+  },
+  {
+   "bar": 0.97,
+   "max_questions": 8,
+   "min_gain": 0.03,
+   "accuracy": 0.9538310412573674,
+   "mean_symptom_questions": 1.6841846758349706,
+   "sure_share": 0.4346758349705304,
+   "sure_precision": 0.9819203268641471,
+   "ece": 0.017014586959811197
+  }
+ ],
+ "chosen": {
+  "yes_row": [
+   0.8037906922732082,
+   0.053010617291331746,
+   0.14319869043545996
+  ],
+  "no_row": [
+   0.16721259452028167,
+   0.5965986248622467,
+   0.23618878061747156
+  ],
+  "gamma": 0.9737338622565461,
+  "plant_down": 0.02,
+  "bar": 0.95,
+  "healthy_bar": 0.985,
+  "max_questions": 8,
+  "min_gain": 0.03
+ },
+ "dev_in_sample": {
+  "photo_only_bar": {
+   "accuracy": 0.8104125736738703
+  },
+  "perfect": {
+   "accuracy": 0.9774066797642437,
+   "mean_symptom_questions": 1.2711198428290766,
+   "sure_share": 0.730844793713163,
+   "sure_precision": 0.9865591397849462,
+   "ece": 0.02135965181255308
+  },
+  "flip10": {
+   "accuracy": 0.9589390962671906,
+   "mean_symptom_questions": 1.499410609037328,
+   "sure_share": 0.6891944990176817,
+   "sure_precision": 0.9783430625842104,
+   "ece": 0.01812787217036831
+  },
+  "flip20": {
+   "accuracy": 0.9229862475442043,
+   "mean_symptom_questions": 1.736935166994106,
+   "sure_share": 0.649901768172888,
+   "sure_precision": 0.9682695652616768,
+   "ece": 0.019264042496454963
+  },
+  "unsure20": {
+   "accuracy": 0.9730844793713164,
+   "mean_symptom_questions": 1.5302554027504913,
+   "sure_share": 0.6915520628683695,
+   "sure_precision": 0.9860818447671804,
+   "ece": 0.023664358857142766
+  },
+  "plant_only": {
+   "accuracy": 0.8398821218074656,
+   "mean_symptom_questions": 0.0,
+   "sure_share": 0.44793713163064836,
+   "sure_precision": 0.9802631578947368,
+   "ece": 0.03378988708878178
+  }
+ },
+ "note": "Everything here is fitted and scored on field_dev (in sample); the grower's answers are the saved table. The shipped strengths are the ones fitted under 10% flipped and 10% not-sure answers."
+}

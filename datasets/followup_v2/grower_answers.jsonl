@@ -1,0 +1,1566 @@
+{"true_class": "Apple___Apple_scab", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "apple-looks-normal", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "tom-fruit-clean", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "apple-spring-underside", "answer": "yes"}
+{"true_class": "Apple___Apple_scab", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "tom-rings", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "tom-looks-normal", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "tom-holes", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "apple-cedar-nearby", "answer": "not sure"}
+{"true_class": "Apple___Apple_scab", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "tom-yellow-halo", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "tom-stem-lesions", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "pep-warm-wet", "answer": "not sure"}
+{"true_class": "Apple___Apple_scab", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "tom-lower-first", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "apple-velvet", "answer": "yes"}
+{"true_class": "Apple___Apple_scab", "question": "apple-distorted", "answer": "yes"}
+{"true_class": "Apple___Apple_scab", "question": "grape-looks-normal", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "apple-orange", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "pep-looks-normal", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "tom-wet-humid", "answer": "yes"}
+{"true_class": "Apple___Apple_scab", "question": "tom-small-spots", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "pep-scorch-drop", "answer": "yes"}
+{"true_class": "Apple___Apple_scab", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "corn-yellow-halo-light", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Apple___Apple_scab", "question": "corn-both-sides", "answer": "yes"}
+{"true_class": "Apple___Apple_scab", "question": "apple-fruit-scab", "answer": "yes"}
+{"true_class": "Apple___Apple_scab", "question": "tom-whiteflies", "answer": "not sure"}
+{"true_class": "Apple___Apple_scab", "question": "pot-old-leaves-first", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "apple-looks-normal", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "tom-fruit-clean", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "tom-rings", "answer": "yes"}
+{"true_class": "Apple___Black_rot", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "tom-gray-centre-dots", "answer": "yes"}
+{"true_class": "Apple___Black_rot", "question": "tom-looks-normal", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "grape-black-dots", "answer": "yes"}
+{"true_class": "Apple___Black_rot", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "grape-tan-spots", "answer": "yes"}
+{"true_class": "Apple___Black_rot", "question": "tom-holes", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "apple-cedar-nearby", "answer": "not sure"}
+{"true_class": "Apple___Black_rot", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "tom-yellow-halo", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "tom-stem-lesions", "answer": "yes"}
+{"true_class": "Apple___Black_rot", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "pep-warm-wet", "answer": "not sure"}
+{"true_class": "Apple___Black_rot", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "tom-lower-first", "answer": "not sure"}
+{"true_class": "Apple___Black_rot", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "grape-looks-normal", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "apple-orange", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "pep-looks-normal", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "tom-wet-humid", "answer": "not sure"}
+{"true_class": "Apple___Black_rot", "question": "tom-small-spots", "answer": "not sure"}
+{"true_class": "Apple___Black_rot", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "pep-scorch-drop", "answer": "yes"}
+{"true_class": "Apple___Black_rot", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "apple-fruit-rot", "answer": "yes"}
+{"true_class": "Apple___Black_rot", "question": "corn-yellow-halo-light", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "apple-frogeye", "answer": "yes"}
+{"true_class": "Apple___Black_rot", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "corn-both-sides", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Apple___Black_rot", "question": "pot-old-leaves-first", "answer": "not sure"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "apple-tubes-under", "answer": "yes"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "apple-looks-normal", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "tom-fruit-clean", "answer": "not sure"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "tom-rings", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "tom-looks-normal", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "tom-holes", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "apple-cedar-nearby", "answer": "yes"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "tom-yellow-halo", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "tom-stem-lesions", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "pep-warm-wet", "answer": "yes"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "tom-lower-first", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "grape-looks-normal", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "apple-orange", "answer": "yes"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "pep-looks-normal", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "tom-wet-humid", "answer": "yes"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "tom-small-spots", "answer": "not sure"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "pep-scorch-drop", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "corn-yellow-halo-light", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "corn-both-sides", "answer": "yes"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "apple-fruit-scab", "answer": "not sure"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Apple___Cedar_apple_rust", "question": "pot-old-leaves-first", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "apple-looks-normal", "answer": "yes"}
+{"true_class": "Apple___healthy", "question": "tom-fruit-clean", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "tom-rings", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "tom-looks-normal", "answer": "yes"}
+{"true_class": "Apple___healthy", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "tom-holes", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "apple-cedar-nearby", "answer": "not sure"}
+{"true_class": "Apple___healthy", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "tom-yellow-halo", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "tom-stem-lesions", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "pep-warm-wet", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "tom-lower-first", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "grape-looks-normal", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "apple-orange", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "pep-looks-normal", "answer": "yes"}
+{"true_class": "Apple___healthy", "question": "tom-wet-humid", "answer": "not sure"}
+{"true_class": "Apple___healthy", "question": "tom-small-spots", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "pep-scorch-drop", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "corn-yellow-halo-light", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "corn-both-sides", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Apple___healthy", "question": "pot-old-leaves-first", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "apple-looks-normal", "answer": "yes"}
+{"true_class": "Blueberry___healthy", "question": "tom-fruit-clean", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "tom-rings", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "tom-looks-normal", "answer": "yes"}
+{"true_class": "Blueberry___healthy", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "tom-holes", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "apple-cedar-nearby", "answer": "not sure"}
+{"true_class": "Blueberry___healthy", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "tom-yellow-halo", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "tom-stem-lesions", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "pep-warm-wet", "answer": "not sure"}
+{"true_class": "Blueberry___healthy", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "tom-lower-first", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "grape-looks-normal", "answer": "yes"}
+{"true_class": "Blueberry___healthy", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "apple-orange", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "pep-looks-normal", "answer": "yes"}
+{"true_class": "Blueberry___healthy", "question": "tom-wet-humid", "answer": "not sure"}
+{"true_class": "Blueberry___healthy", "question": "tom-small-spots", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "pep-scorch-drop", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "corn-yellow-halo-light", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "corn-both-sides", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Blueberry___healthy", "question": "pot-old-leaves-first", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "apple-looks-normal", "answer": "yes"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "tom-fruit-clean", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "tom-rings", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "tom-looks-normal", "answer": "yes"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "tom-holes", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "apple-cedar-nearby", "answer": "not sure"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "tom-yellow-halo", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "tom-stem-lesions", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "pep-warm-wet", "answer": "not sure"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "tom-lower-first", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "grape-looks-normal", "answer": "yes"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "apple-orange", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "pep-looks-normal", "answer": "yes"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "tom-wet-humid", "answer": "not sure"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "tom-small-spots", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "pep-scorch-drop", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "corn-yellow-halo-light", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "corn-both-sides", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Cherry_(including_sour)___healthy", "question": "pot-old-leaves-first", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "apple-looks-normal", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "tom-fruit-clean", "answer": "not sure"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "tom-rings", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "tom-looks-normal", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "tom-holes", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "apple-cedar-nearby", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "corn-long-straight", "answer": "yes"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "tom-yellow-halo", "answer": "yes"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "tom-stem-lesions", "answer": "not sure"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "corn-dirty-centre", "answer": "not sure"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "pep-warm-wet", "answer": "yes"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "tom-lower-first", "answer": "yes"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "grape-looks-normal", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "apple-orange", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "corn-frosted", "answer": "not sure"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "pep-looks-normal", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "tom-wet-humid", "answer": "yes"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "tom-small-spots", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "pep-scorch-drop", "answer": "not sure"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "corn-yellow-halo-light", "answer": "yes"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "corn-lower-leaves-first", "answer": "yes"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "corn-both-sides", "answer": "not sure"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "question": "pot-old-leaves-first", "answer": "yes"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "apple-looks-normal", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "tom-fruit-clean", "answer": "not sure"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "tom-rings", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "corn-pustules", "answer": "yes"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "tom-looks-normal", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "tom-holes", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "apple-cedar-nearby", "answer": "not sure"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "tom-yellow-halo", "answer": "not sure"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "tom-stem-lesions", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "pep-warm-wet", "answer": "yes"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "tom-lower-first", "answer": "not sure"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "grape-looks-normal", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "apple-orange", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "pep-looks-normal", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "tom-wet-humid", "answer": "yes"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "tom-small-spots", "answer": "yes"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "pep-scorch-drop", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "corn-yellow-halo-light", "answer": "not sure"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "corn-lower-leaves-first", "answer": "not sure"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "corn-both-sides", "answer": "yes"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Corn_(maize)___Common_rust_", "question": "pot-old-leaves-first", "answer": "not sure"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "apple-looks-normal", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "tom-fruit-clean", "answer": "not sure"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "tom-rings", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "corn-cigar", "answer": "yes"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "tom-looks-normal", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "tom-holes", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "apple-cedar-nearby", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "tom-yellow-halo", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "tom-stem-lesions", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "corn-dirty-centre", "answer": "yes"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "pep-warm-wet", "answer": "yes"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "tom-lower-first", "answer": "yes"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "grape-looks-normal", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "apple-orange", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "corn-frosted", "answer": "yes"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "pep-looks-normal", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "tom-wet-humid", "answer": "yes"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "tom-small-spots", "answer": "not sure"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "pep-scorch-drop", "answer": "not sure"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "corn-yellow-halo-light", "answer": "not sure"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "corn-lower-leaves-first", "answer": "yes"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "corn-both-sides", "answer": "not sure"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Corn_(maize)___Northern_Leaf_Blight", "question": "pot-old-leaves-first", "answer": "yes"}
+{"true_class": "Grape___Black_rot", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "apple-looks-normal", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "tom-fruit-clean", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "apple-spring-underside", "answer": "not sure"}
+{"true_class": "Grape___Black_rot", "question": "grape-mummies", "answer": "yes"}
+{"true_class": "Grape___Black_rot", "question": "tom-rings", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "tom-gray-centre-dots", "answer": "yes"}
+{"true_class": "Grape___Black_rot", "question": "tom-looks-normal", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "grape-black-dots", "answer": "yes"}
+{"true_class": "Grape___Black_rot", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "grape-tan-spots", "answer": "yes"}
+{"true_class": "Grape___Black_rot", "question": "tom-holes", "answer": "not sure"}
+{"true_class": "Grape___Black_rot", "question": "apple-cedar-nearby", "answer": "not sure"}
+{"true_class": "Grape___Black_rot", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "tom-yellow-halo", "answer": "not sure"}
+{"true_class": "Grape___Black_rot", "question": "tom-stem-lesions", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "pep-warm-wet", "answer": "not sure"}
+{"true_class": "Grape___Black_rot", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "tom-lower-first", "answer": "not sure"}
+{"true_class": "Grape___Black_rot", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "grape-looks-normal", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "apple-orange", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "pep-looks-normal", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "tom-wet-humid", "answer": "not sure"}
+{"true_class": "Grape___Black_rot", "question": "tom-small-spots", "answer": "not sure"}
+{"true_class": "Grape___Black_rot", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "pep-scorch-drop", "answer": "not sure"}
+{"true_class": "Grape___Black_rot", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "corn-yellow-halo-light", "answer": "not sure"}
+{"true_class": "Grape___Black_rot", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "corn-both-sides", "answer": "not sure"}
+{"true_class": "Grape___Black_rot", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Grape___Black_rot", "question": "pot-old-leaves-first", "answer": "not sure"}
+{"true_class": "Grape___healthy", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "apple-looks-normal", "answer": "yes"}
+{"true_class": "Grape___healthy", "question": "tom-fruit-clean", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "tom-rings", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "tom-looks-normal", "answer": "yes"}
+{"true_class": "Grape___healthy", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "tom-holes", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "apple-cedar-nearby", "answer": "not sure"}
+{"true_class": "Grape___healthy", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "tom-yellow-halo", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "tom-stem-lesions", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "pep-warm-wet", "answer": "not sure"}
+{"true_class": "Grape___healthy", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "tom-lower-first", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "grape-looks-normal", "answer": "yes"}
+{"true_class": "Grape___healthy", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "apple-orange", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "pep-looks-normal", "answer": "yes"}
+{"true_class": "Grape___healthy", "question": "tom-wet-humid", "answer": "not sure"}
+{"true_class": "Grape___healthy", "question": "tom-small-spots", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "pep-scorch-drop", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "corn-yellow-halo-light", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "corn-both-sides", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Grape___healthy", "question": "pot-old-leaves-first", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "apple-looks-normal", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "tom-fruit-clean", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "tom-rings", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "tom-looks-normal", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "tom-holes", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "apple-cedar-nearby", "answer": "not sure"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "tom-yellow-halo", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "tom-stem-lesions", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "pep-warm-wet", "answer": "not sure"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "tom-bushy-flower-drop", "answer": "not sure"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "tom-lower-first", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "grape-looks-normal", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "tom-mosaic-mottle", "answer": "yes"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "apple-orange", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "pep-looks-normal", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "tom-wet-humid", "answer": "not sure"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "tom-small-spots", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "tom-curl-up", "answer": "not sure"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "tom-no-spots", "answer": "yes"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "tom-pale-patches-top", "answer": "yes"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "pep-scorch-drop", "answer": "not sure"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "corn-yellow-halo-light", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "corn-both-sides", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Orange___Haunglongbing_(Citrus_greening)", "question": "pot-old-leaves-first", "answer": "not sure"}
+{"true_class": "Peach___healthy", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "apple-looks-normal", "answer": "yes"}
+{"true_class": "Peach___healthy", "question": "tom-fruit-clean", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "tom-rings", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "tom-looks-normal", "answer": "yes"}
+{"true_class": "Peach___healthy", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "tom-holes", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "apple-cedar-nearby", "answer": "not sure"}
+{"true_class": "Peach___healthy", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "tom-yellow-halo", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "tom-stem-lesions", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "pep-warm-wet", "answer": "not sure"}
+{"true_class": "Peach___healthy", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "tom-lower-first", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "grape-looks-normal", "answer": "not sure"}
+{"true_class": "Peach___healthy", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "apple-orange", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "pep-looks-normal", "answer": "not sure"}
+{"true_class": "Peach___healthy", "question": "tom-wet-humid", "answer": "not sure"}
+{"true_class": "Peach___healthy", "question": "tom-small-spots", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "pep-scorch-drop", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "corn-yellow-halo-light", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "corn-both-sides", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Peach___healthy", "question": "pot-old-leaves-first", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "pep-fruit-warts", "answer": "yes"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "apple-looks-normal", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "tom-fruit-clean", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "tom-rings", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "pot-wet-oily", "answer": "not sure"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "tom-looks-normal", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "tom-greasy-patches", "answer": "not sure"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "grape-tan-spots", "answer": "not sure"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "tom-holes", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "apple-cedar-nearby", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "tom-yellow-halo", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "tom-stem-lesions", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "pep-warm-wet", "answer": "yes"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "tom-lower-first", "answer": "not sure"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "grape-looks-normal", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "apple-orange", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "pep-looks-normal", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "tom-wet-humid", "answer": "yes"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "tom-small-spots", "answer": "yes"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "pep-water-greasy", "answer": "yes"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "pep-scorch-drop", "answer": "yes"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "corn-yellow-halo-light", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "corn-both-sides", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Pepper,_bell___Bacterial_spot", "question": "pot-old-leaves-first", "answer": "not sure"}
+{"true_class": "Pepper,_bell___healthy", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "apple-looks-normal", "answer": "yes"}
+{"true_class": "Pepper,_bell___healthy", "question": "tom-fruit-clean", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "tom-rings", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "tom-looks-normal", "answer": "yes"}
+{"true_class": "Pepper,_bell___healthy", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "tom-holes", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "apple-cedar-nearby", "answer": "not sure"}
+{"true_class": "Pepper,_bell___healthy", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "tom-yellow-halo", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "tom-stem-lesions", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "pep-warm-wet", "answer": "not sure"}
+{"true_class": "Pepper,_bell___healthy", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "tom-lower-first", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "grape-looks-normal", "answer": "yes"}
+{"true_class": "Pepper,_bell___healthy", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "apple-orange", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "pep-looks-normal", "answer": "yes"}
+{"true_class": "Pepper,_bell___healthy", "question": "tom-wet-humid", "answer": "not sure"}
+{"true_class": "Pepper,_bell___healthy", "question": "tom-small-spots", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "pep-scorch-drop", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "corn-yellow-halo-light", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "corn-both-sides", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Pepper,_bell___healthy", "question": "pot-old-leaves-first", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "apple-looks-normal", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "tom-fruit-clean", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "tom-rings", "answer": "yes"}
+{"true_class": "Potato___Early_blight", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "tom-looks-normal", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "grape-tan-spots", "answer": "not sure"}
+{"true_class": "Potato___Early_blight", "question": "tom-holes", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "apple-cedar-nearby", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "tom-yellow-halo", "answer": "yes"}
+{"true_class": "Potato___Early_blight", "question": "tom-stem-lesions", "answer": "yes"}
+{"true_class": "Potato___Early_blight", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "pep-warm-wet", "answer": "not sure"}
+{"true_class": "Potato___Early_blight", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "tom-lower-first", "answer": "yes"}
+{"true_class": "Potato___Early_blight", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "grape-looks-normal", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "apple-orange", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "pep-looks-normal", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "tom-wet-humid", "answer": "not sure"}
+{"true_class": "Potato___Early_blight", "question": "tom-small-spots", "answer": "yes"}
+{"true_class": "Potato___Early_blight", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "pep-scorch-drop", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "pot-rings-angular", "answer": "yes"}
+{"true_class": "Potato___Early_blight", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "corn-yellow-halo-light", "answer": "yes"}
+{"true_class": "Potato___Early_blight", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "corn-both-sides", "answer": "not sure"}
+{"true_class": "Potato___Early_blight", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Potato___Early_blight", "question": "pot-old-leaves-first", "answer": "yes"}
+{"true_class": "Potato___Late_blight", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "apple-looks-normal", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "tom-fruit-clean", "answer": "not sure"}
+{"true_class": "Potato___Late_blight", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "apple-spring-underside", "answer": "not sure"}
+{"true_class": "Potato___Late_blight", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "tom-rings", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "pot-wet-oily", "answer": "yes"}
+{"true_class": "Potato___Late_blight", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "tom-looks-normal", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "pot-stem-lesions", "answer": "yes"}
+{"true_class": "Potato___Late_blight", "question": "tom-greasy-patches", "answer": "yes"}
+{"true_class": "Potato___Late_blight", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "tom-holes", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "apple-cedar-nearby", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "tom-white-fuzz-under", "answer": "yes"}
+{"true_class": "Potato___Late_blight", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "tom-yellow-halo", "answer": "yes"}
+{"true_class": "Potato___Late_blight", "question": "tom-stem-lesions", "answer": "yes"}
+{"true_class": "Potato___Late_blight", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "pep-warm-wet", "answer": "yes"}
+{"true_class": "Potato___Late_blight", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "tom-lower-first", "answer": "not sure"}
+{"true_class": "Potato___Late_blight", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "grape-looks-normal", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "apple-orange", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "corn-frosted", "answer": "not sure"}
+{"true_class": "Potato___Late_blight", "question": "pep-looks-normal", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "tom-wet-humid", "answer": "yes"}
+{"true_class": "Potato___Late_blight", "question": "tom-small-spots", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "pep-water-greasy", "answer": "not sure"}
+{"true_class": "Potato___Late_blight", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "pep-scorch-drop", "answer": "not sure"}
+{"true_class": "Potato___Late_blight", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "pot-white-fuzz-under", "answer": "yes"}
+{"true_class": "Potato___Late_blight", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "corn-yellow-halo-light", "answer": "not sure"}
+{"true_class": "Potato___Late_blight", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "pot-tuber-granular", "answer": "yes"}
+{"true_class": "Potato___Late_blight", "question": "corn-both-sides", "answer": "not sure"}
+{"true_class": "Potato___Late_blight", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Potato___Late_blight", "question": "pot-old-leaves-first", "answer": "not sure"}
+{"true_class": "Raspberry___healthy", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "apple-looks-normal", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "tom-fruit-clean", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "tom-rings", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "tom-looks-normal", "answer": "yes"}
+{"true_class": "Raspberry___healthy", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "tom-holes", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "apple-cedar-nearby", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "tom-yellow-halo", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "tom-stem-lesions", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "pep-warm-wet", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "tom-lower-first", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "grape-looks-normal", "answer": "yes"}
+{"true_class": "Raspberry___healthy", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "apple-orange", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "pep-looks-normal", "answer": "yes"}
+{"true_class": "Raspberry___healthy", "question": "tom-wet-humid", "answer": "not sure"}
+{"true_class": "Raspberry___healthy", "question": "tom-small-spots", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "pep-scorch-drop", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "corn-yellow-halo-light", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "corn-both-sides", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Raspberry___healthy", "question": "pot-old-leaves-first", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "apple-looks-normal", "answer": "yes"}
+{"true_class": "Soybean___healthy", "question": "tom-fruit-clean", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "tom-rings", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "tom-looks-normal", "answer": "yes"}
+{"true_class": "Soybean___healthy", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "tom-holes", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "apple-cedar-nearby", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "tom-yellow-halo", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "tom-stem-lesions", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "pep-warm-wet", "answer": "not sure"}
+{"true_class": "Soybean___healthy", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "tom-lower-first", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "grape-looks-normal", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "apple-orange", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "pep-looks-normal", "answer": "yes"}
+{"true_class": "Soybean___healthy", "question": "tom-wet-humid", "answer": "not sure"}
+{"true_class": "Soybean___healthy", "question": "tom-small-spots", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "pep-scorch-drop", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "corn-yellow-halo-light", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "corn-both-sides", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Soybean___healthy", "question": "pot-old-leaves-first", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "apple-looks-normal", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "tom-fruit-clean", "answer": "not sure"}
+{"true_class": "Squash___Powdery_mildew", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "tom-rings", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "tom-looks-normal", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "tom-holes", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "apple-cedar-nearby", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "tom-yellow-halo", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "tom-stem-lesions", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "pep-warm-wet", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "tom-lower-first", "answer": "yes"}
+{"true_class": "Squash___Powdery_mildew", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "grape-looks-normal", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "apple-orange", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "pep-looks-normal", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "tom-wet-humid", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "tom-small-spots", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "pep-scorch-drop", "answer": "yes"}
+{"true_class": "Squash___Powdery_mildew", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "corn-yellow-halo-light", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "corn-both-sides", "answer": "not sure"}
+{"true_class": "Squash___Powdery_mildew", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Squash___Powdery_mildew", "question": "pot-old-leaves-first", "answer": "yes"}
+{"true_class": "Strawberry___healthy", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "apple-looks-normal", "answer": "yes"}
+{"true_class": "Strawberry___healthy", "question": "tom-fruit-clean", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "tom-rings", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "tom-looks-normal", "answer": "yes"}
+{"true_class": "Strawberry___healthy", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "tom-holes", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "apple-cedar-nearby", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "tom-yellow-halo", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "tom-stem-lesions", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "pep-warm-wet", "answer": "not sure"}
+{"true_class": "Strawberry___healthy", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "tom-lower-first", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "grape-looks-normal", "answer": "yes"}
+{"true_class": "Strawberry___healthy", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "apple-orange", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "pep-looks-normal", "answer": "yes"}
+{"true_class": "Strawberry___healthy", "question": "tom-wet-humid", "answer": "not sure"}
+{"true_class": "Strawberry___healthy", "question": "tom-small-spots", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "pep-scorch-drop", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "corn-yellow-halo-light", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "corn-both-sides", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Strawberry___healthy", "question": "pot-old-leaves-first", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "apple-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "tom-fruit-clean", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "tom-rings", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "tom-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "tom-fruit-scabs", "answer": "yes"}
+{"true_class": "Tomato___Bacterial_spot", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "grape-tan-spots", "answer": "not sure"}
+{"true_class": "Tomato___Bacterial_spot", "question": "tom-holes", "answer": "yes"}
+{"true_class": "Tomato___Bacterial_spot", "question": "apple-cedar-nearby", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "tom-yellow-halo", "answer": "yes"}
+{"true_class": "Tomato___Bacterial_spot", "question": "tom-stem-lesions", "answer": "not sure"}
+{"true_class": "Tomato___Bacterial_spot", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "pep-warm-wet", "answer": "yes"}
+{"true_class": "Tomato___Bacterial_spot", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "tom-lower-first", "answer": "not sure"}
+{"true_class": "Tomato___Bacterial_spot", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "grape-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "apple-orange", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "pep-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "tom-wet-humid", "answer": "yes"}
+{"true_class": "Tomato___Bacterial_spot", "question": "tom-small-spots", "answer": "yes"}
+{"true_class": "Tomato___Bacterial_spot", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "pep-water-greasy", "answer": "not sure"}
+{"true_class": "Tomato___Bacterial_spot", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "pep-scorch-drop", "answer": "not sure"}
+{"true_class": "Tomato___Bacterial_spot", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "corn-yellow-halo-light", "answer": "yes"}
+{"true_class": "Tomato___Bacterial_spot", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "corn-both-sides", "answer": "not sure"}
+{"true_class": "Tomato___Bacterial_spot", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Tomato___Bacterial_spot", "question": "pot-old-leaves-first", "answer": "not sure"}
+{"true_class": "Tomato___Early_blight", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "apple-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "tom-fruit-clean", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "tom-rings", "answer": "yes"}
+{"true_class": "Tomato___Early_blight", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "tom-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "tom-holes", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "apple-cedar-nearby", "answer": "not sure"}
+{"true_class": "Tomato___Early_blight", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "tom-yellow-halo", "answer": "yes"}
+{"true_class": "Tomato___Early_blight", "question": "tom-stem-lesions", "answer": "yes"}
+{"true_class": "Tomato___Early_blight", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "tom-fruit-sunken", "answer": "not sure"}
+{"true_class": "Tomato___Early_blight", "question": "pep-warm-wet", "answer": "yes"}
+{"true_class": "Tomato___Early_blight", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "tom-lower-first", "answer": "yes"}
+{"true_class": "Tomato___Early_blight", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "grape-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "apple-orange", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "pep-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "tom-wet-humid", "answer": "yes"}
+{"true_class": "Tomato___Early_blight", "question": "tom-small-spots", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "pep-scorch-drop", "answer": "yes"}
+{"true_class": "Tomato___Early_blight", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "corn-yellow-halo-light", "answer": "yes"}
+{"true_class": "Tomato___Early_blight", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "corn-both-sides", "answer": "not sure"}
+{"true_class": "Tomato___Early_blight", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Tomato___Early_blight", "question": "tom-whiteflies", "answer": "not sure"}
+{"true_class": "Tomato___Early_blight", "question": "pot-old-leaves-first", "answer": "yes"}
+{"true_class": "Tomato___Late_blight", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "apple-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "tom-fruit-clean", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "tom-rings", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "pot-wet-oily", "answer": "yes"}
+{"true_class": "Tomato___Late_blight", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "tom-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "pot-stem-lesions", "answer": "not sure"}
+{"true_class": "Tomato___Late_blight", "question": "tom-greasy-patches", "answer": "yes"}
+{"true_class": "Tomato___Late_blight", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "tom-holes", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "apple-cedar-nearby", "answer": "not sure"}
+{"true_class": "Tomato___Late_blight", "question": "tom-white-fuzz-under", "answer": "yes"}
+{"true_class": "Tomato___Late_blight", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "tom-yellow-halo", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "tom-stem-lesions", "answer": "not sure"}
+{"true_class": "Tomato___Late_blight", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "tom-fruit-sunken", "answer": "yes"}
+{"true_class": "Tomato___Late_blight", "question": "pep-warm-wet", "answer": "yes"}
+{"true_class": "Tomato___Late_blight", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "tom-lower-first", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "grape-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "apple-orange", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "corn-frosted", "answer": "not sure"}
+{"true_class": "Tomato___Late_blight", "question": "pep-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "tom-wet-humid", "answer": "yes"}
+{"true_class": "Tomato___Late_blight", "question": "tom-small-spots", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "pep-water-greasy", "answer": "not sure"}
+{"true_class": "Tomato___Late_blight", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "pep-scorch-drop", "answer": "yes"}
+{"true_class": "Tomato___Late_blight", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "pot-white-fuzz-under", "answer": "yes"}
+{"true_class": "Tomato___Late_blight", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "corn-yellow-halo-light", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "corn-both-sides", "answer": "yes"}
+{"true_class": "Tomato___Late_blight", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Tomato___Late_blight", "question": "tom-whiteflies", "answer": "not sure"}
+{"true_class": "Tomato___Late_blight", "question": "pot-old-leaves-first", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "apple-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "tom-fruit-clean", "answer": "not sure"}
+{"true_class": "Tomato___Leaf_Mold", "question": "tom-olive-mold-under", "answer": "yes"}
+{"true_class": "Tomato___Leaf_Mold", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "tom-rings", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "tom-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "tom-holes", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "apple-cedar-nearby", "answer": "not sure"}
+{"true_class": "Tomato___Leaf_Mold", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "tom-yellow-halo", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "tom-stem-lesions", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "pep-warm-wet", "answer": "yes"}
+{"true_class": "Tomato___Leaf_Mold", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "tom-lower-first", "answer": "yes"}
+{"true_class": "Tomato___Leaf_Mold", "question": "apple-velvet", "answer": "yes"}
+{"true_class": "Tomato___Leaf_Mold", "question": "apple-distorted", "answer": "not sure"}
+{"true_class": "Tomato___Leaf_Mold", "question": "grape-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "apple-orange", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "pep-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "tom-wet-humid", "answer": "yes"}
+{"true_class": "Tomato___Leaf_Mold", "question": "tom-small-spots", "answer": "not sure"}
+{"true_class": "Tomato___Leaf_Mold", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "tom-pale-patches-top", "answer": "yes"}
+{"true_class": "Tomato___Leaf_Mold", "question": "pep-scorch-drop", "answer": "yes"}
+{"true_class": "Tomato___Leaf_Mold", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "corn-yellow-halo-light", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "corn-both-sides", "answer": "yes"}
+{"true_class": "Tomato___Leaf_Mold", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Tomato___Leaf_Mold", "question": "tom-whiteflies", "answer": "not sure"}
+{"true_class": "Tomato___Leaf_Mold", "question": "pot-old-leaves-first", "answer": "yes"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "apple-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "tom-fruit-clean", "answer": "not sure"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "tom-rings", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "tom-gray-centre-dots", "answer": "yes"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "tom-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "grape-black-dots", "answer": "yes"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "grape-tan-spots", "answer": "yes"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "tom-holes", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "apple-cedar-nearby", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "tom-yellow-halo", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "tom-stem-lesions", "answer": "not sure"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "pep-warm-wet", "answer": "yes"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "tom-lower-first", "answer": "yes"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "grape-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "apple-orange", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "pep-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "tom-wet-humid", "answer": "yes"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "tom-small-spots", "answer": "yes"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "pep-water-greasy", "answer": "not sure"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "pep-scorch-drop", "answer": "yes"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "corn-yellow-halo-light", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "corn-both-sides", "answer": "not sure"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Tomato___Septoria_leaf_spot", "question": "pot-old-leaves-first", "answer": "yes"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "apple-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "tom-fruit-clean", "answer": "not sure"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "tom-rings", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "tom-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "tom-holes", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "apple-cedar-nearby", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "tom-yellow-halo", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "tom-stem-lesions", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "pep-warm-wet", "answer": "not sure"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "tom-bushy-flower-drop", "answer": "yes"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "tom-lower-first", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "grape-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "apple-orange", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "pep-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "tom-wet-humid", "answer": "not sure"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "tom-small-spots", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "tom-curl-up", "answer": "yes"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "tom-no-spots", "answer": "yes"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "pep-scorch-drop", "answer": "not sure"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "corn-yellow-halo-light", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "corn-both-sides", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "tom-whiteflies", "answer": "yes"}
+{"true_class": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "question": "pot-old-leaves-first", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "apple-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "tom-fruit-clean", "answer": "yes"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "tom-rings", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "tom-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "tom-holes", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "apple-cedar-nearby", "answer": "not sure"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "tom-yellow-halo", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "tom-stem-lesions", "answer": "not sure"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "pep-warm-wet", "answer": "not sure"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "tom-bushy-flower-drop", "answer": "not sure"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "tom-lower-first", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "grape-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "tom-mosaic-mottle", "answer": "yes"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "apple-orange", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "pep-looks-normal", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "tom-wet-humid", "answer": "not sure"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "tom-small-spots", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "tom-curl-up", "answer": "not sure"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "tom-no-spots", "answer": "yes"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "pep-scorch-drop", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "corn-yellow-halo-light", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "corn-both-sides", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "tom-whiteflies", "answer": "not sure"}
+{"true_class": "Tomato___Tomato_mosaic_virus", "question": "pot-old-leaves-first", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "pep-fruit-warts", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "apple-tubes-under", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "apple-looks-normal", "answer": "yes"}
+{"true_class": "Tomato___healthy", "question": "tom-fruit-clean", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "tom-olive-mold-under", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "apple-spring-underside", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "grape-mummies", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "tom-rings", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "corn-pustules", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "corn-cigar", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "pot-wet-oily", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "tom-gray-centre-dots", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "tom-looks-normal", "answer": "yes"}
+{"true_class": "Tomato___healthy", "question": "grape-black-dots", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "tom-fruit-scabs", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "pot-stem-lesions", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "tom-greasy-patches", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "grape-tan-spots", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "tom-holes", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "apple-cedar-nearby", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "tom-white-fuzz-under", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "corn-long-straight", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "tom-yellow-halo", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "tom-stem-lesions", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "corn-dirty-centre", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "tom-fruit-sunken", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "pep-warm-wet", "answer": "not sure"}
+{"true_class": "Tomato___healthy", "question": "tom-bushy-flower-drop", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "tom-lower-first", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "apple-velvet", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "apple-distorted", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "grape-looks-normal", "answer": "not sure"}
+{"true_class": "Tomato___healthy", "question": "tom-mosaic-mottle", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "apple-orange", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "corn-frosted", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "pep-looks-normal", "answer": "yes"}
+{"true_class": "Tomato___healthy", "question": "tom-wet-humid", "answer": "not sure"}
+{"true_class": "Tomato___healthy", "question": "tom-small-spots", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "tom-curl-up", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "tom-no-spots", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "pep-water-greasy", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "tom-pale-patches-top", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "pep-scorch-drop", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "pot-rings-angular", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "pot-white-fuzz-under", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "apple-fruit-rot", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "corn-yellow-halo-light", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "corn-lower-leaves-first", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "apple-frogeye", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "pot-tuber-granular", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "corn-both-sides", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "apple-fruit-scab", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "tom-whiteflies", "answer": "no"}
+{"true_class": "Tomato___healthy", "question": "pot-old-leaves-first", "answer": "no"}

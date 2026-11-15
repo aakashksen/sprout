@@ -56,7 +56,7 @@ One seed for every training run, so the ranking among arms is not shown to excee
 - **E4 (joint training on real and lab photos, lab capped at 60 per class):** `field_dev` accuracy 0.7644, macro-F1 0.7653, ECE 0.0794, against E1's 0.224. A DINOv2 head scored macro-F1 0.7469; the interval on the difference spans zero (-0.0537 to 0.015). The ConvNeXt won by the pre-set rule, not by a proven margin. The DINOv2 fine-tune was not run, by rule.
 - **Stronger augmentation and pasted backgrounds:** no measurable difference (accuracy -0.0087 and 0), not adopted. The pasted backgrounds are garish, a design weakness.
 - **E10 segmentation and the disease crop:** mean IoU 0.5432 against 0.2209 for the whole image. Using the crop in E4 made it significantly worse (macro-F1 0.7359 against 0.7653). The crop was tested and left out of serving.
-- **E11, follow-up questions to the user:** nothing clearly better or worse (accuracy 0.7695 to 0.7636), so the feature stays out of the product. The answers came from vision agents, not growers.
+- **E11, follow-up questions to the user:** nothing clearly better or worse (accuracy 0.7695 to 0.7636), so the feature stays out of the product. The answers came from vision agents, not growers. A second try (E18) with questions written for the confused pairs, the plant asked first and fitted strengths is in "Follow-up questions, second try"; its answers are simulated.
 - **E12 (more sources: PlantWild, Plant Pathology):** seen-source macro-F1 0.7836 against E4's 0.7712 (+0.0124, interval -0.0168 to 0.0404), so the pre-set rule said keep E4. See "E12 and the model choice".
 - **E13 (label cleaning):** see "Row sets and label cleaning".
 - **E15, the final model (T4.9):** ConvNeXt V2 Tiny, macro-F1 0.81 on the 1018 cleaned dev photos against 0.76 (E4) and 0.7904 (E12), accuracy 0.8104. Paired with E12 the macro-F1 difference is +0.0196 with an interval of -0.0082 to 0.0474, which includes zero; against E4 it is +0.05 (0.0188 to 0.0816). It won by the fixed rule (highest macro-F1), not by a measured margin over E12. The choosing rule was fixed before the V2 model had a score. E4's and E12's rescored scores had already been seen in a dry run with an untrained model. The first wording of the rule let V2 replace E4 even if E12 was higher; it was corrected before any V2 score existed. All three models were picked on `field_dev`; the test numbers are held out, one run each.
@@ -154,6 +154,29 @@ Every recorded number was computed on photos opened without EXIF orientation. Se
 - **The unquantized ONNX file's latency is unmeasured**, by direction, so "ONNX is slower than PyTorch" is not established, only that the dynamic file is.
 - **E8 proves 5 requests only.** One at a time through the deployed container: 2 answered, 2 had no document and 1 was refused as not a plant. Stage times from 5 requests mean nothing as percentiles. It supports no end-to-end speed claim and no concurrency claim. The container's memory peaked at 947 MB. The same laptop ran the writer in Ollama on its GPU. Retrieval and generation times come from the Server-Timing header, not the client's clock.
 - The app was containerized, not deployed. H3 (Google Cloud) is not done, so nothing here says deployed.
+
+## Follow-up questions, second try
+
+E11 found that asking a gardener follow-up questions did not help, with answers from vision agents. E18 (`E18-20261115T011841523017Z`) is a second try with the faults that finding pointed to fixed: 54 questions written from the guides about the diseases the final model actually confuses, including things a photo cannot show (the leaf underside, stems, fruit, how it spread, whiteflies, weather) and questions that support "healthy"; the plant asked first; strengths fitted on `field_dev` instead of set by hand; stopping at a confidence bar. Everything is fitted on `field_dev` and scored once on the cleaned `field_test` photos from the saved probabilities; no model was run again. The record states that this is a second use of the test split, made at the person's request.
+
+**The answers are simulated, so read the table as an upper bound.** There was no grower. Six separate Sonnet agents answered each question for each true class from that disease's guide text, without being told which classes a question supports. The questions and the simulated grower come from the same guides, so this grower is better informed than a real one. Flipping 10% or 20% of the yes and no answers, or turning 20% into "not sure", is the stress test. Whether real people answer like this is not measured.
+
+| `field_test`, 1,006 photos | Accuracy | Fixed / broken vs photo only | Symptom questions asked (average) | Right when 93% or more sure | ECE |
+|---|---|---|---|---|---|
+| Photo only | 0.8131 | | 0 | 0.9531 (533 photos) | 0.0427 |
+| Plant question only | 0.84 | 27 / 0 | 0 | 0.9564 (597 photos) | 0.0328 |
+| Plant plus new questions, perfect grower | 0.9682 | 157 / 1 | 1.2237 | 0.9743 (896 photos) | 0.0109 |
+| ... 10% of answers flipped (mean of 20 seeds) | 0.9519 | 143.5 / 3.9 | 1.4717 | 0.9676 | 0.015 |
+| ... 20% flipped (mean of 20 seeds) | 0.9176 | 121.15 / 16 | 1.6951 | 0.9573 | 0.0253 |
+| ... 20% "not sure" (mean of 20 seeds) | 0.9652 | 154.2 / 1.2 | 1.5003 | 0.9732 | 0.0152 |
+| Old E11 questions, E11 rule, same grower | 0.8658 | 53 / 0 | 0.6143 | 0.955 | 0.036 |
+| Old E11 questions, old live-demo rule, same grower | 0.9404 | 128 / 0 | 1.2873 | 0.9674 | 0.0142 |
+
+Against photo only the new engine's perfect-grower gain is +0.1551 (interval 0.1322 to 0.1796) and the exact McNemar test is far below any usual threshold; with 20% of answers flipped it is +0.0974 (0.0751 to 0.1204). The plant question alone is +0.0268 (0.0169 to 0.0378). The plant question is asked on 0.168 of photos and at least one symptom question on 0.4354, so the average above is over every photo; a photo that does get symptom questions is asked about 2.8. Accuracy goes above the model's top-3 ceiling (0.9642) because the plant answer can bring a class from outside the top 3 to the top, and the questions then separate the rest.
+
+**The fitted strengths** (from `field_dev` with a noisy simulated grower): for a class a "yes" supports, the likelihood of a yes answer is 0.8038, of a no 0.053 and of not sure 0.1432; for a class a "no" supports 0.1672, 0.5966 and 0.2362; each later question counts 0.9737 as much as the one before; the confidence bar is 0.95 (0.985 for a healthy answer); at most 8 symptom questions; a question is asked only if it splits the top 3 by at least 0.03 nats.
+
+**What this does and does not show.** It shows that with answers that carry the information, a better question set and a fitted update lift the final model's accuracy from 0.81 into the mid 90s on photos it was never tuned on, that the plant question is about a sixth of that gain at no measured risk, and that the confidence after questions is better calibrated than the photo's (ECE 0.0109 against 0.0427), which the old engine did not achieve. The same old E11 questions gain a lot under the same simulated grower (0.9404 with the old live rule), so most of the old failure was the answers, not the questions or the rule. The new engine is 2 to 4 points ahead of the old questions on the same grower, with a similar number of questions. It does not show what a person at a plant would answer; the next test is a human study on unsure photos. Until then the plant question is the part with real-answer evidence behind it.
 
 ## Limits
 - One seed for every training run (E4, E12, the final model). Arm differences of 0.01 to 0.02 are not shown to exceed noise.

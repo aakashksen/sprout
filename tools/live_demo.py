@@ -1,16 +1,17 @@
-"""SPROUT live demo server: the real model, the 237-guide search, and Claude Haiku writing questions and answers.
+"""SPROUT live demo server: the real model, the 250+ guide search, the fitted question engine (E18), and Claude Haiku writing advice and chat replies.
 
 Run:  .venv/Scripts/python tools/live_demo.py --site <folder with index.html, tour.html, live.html>
 Then open http://127.0.0.1:8765/live.html
 
 Key: SPROUT_ANTHROPIC_API_KEY, read from the environment or from .env at the repo root. Never printed.
-The odds are updated by code here, never by the model. Spending is capped per visitor, per IP and for the whole server.
+The odds are updated by code here, never by the model: the questions are the fixed bank in datasets/followup_v2 and the
+update rule, stopping rule and strengths are sprout.serve.question_engine with the numbers fitted in configs/e18_params.json.
+Spending is capped per visitor, per IP and for the whole server.
 """
 from __future__ import annotations
 
 import argparse
 import json
-import math
 import os
 import re
 import secrets
@@ -23,18 +24,18 @@ from pathlib import Path
 
 from flask import Flask, Response, jsonify, request, send_from_directory, session
 
+from sprout.serve.question_engine import NO, UNSURE, YES, Bank, Params, load_questions
+
 ROOT = Path(__file__).resolve().parents[1]
 MODEL = ROOT / "models" / "e6" / "model.onnx"
 CALIBRATION = ROOT / "results" / "e15" / "refit" / "chosen.json"
 INDEX = ROOT / "knowledge" / "index"
 MANIFEST = ROOT / "knowledge" / "manifest.csv"
-FALLBACK_QUESTIONS = ROOT / "datasets" / "followup" / "questions.jsonl"
 
 LLM = "claude-haiku-5-5"
 PRICE_IN, PRICE_OUT = 0.10 / 1e6, 0.50 / 1e6  # dollars per token, Haiku 5.5 list price
 CAP_VISITOR, CAP_IP, CAP_SERVER = 1.00, 3.00, 10.00  # dollars per day
-K_YES, K_NO, K_CHAT_FOR, K_CHAT_AGAINST = 3.0, 0.35, 2.0, 0.5
-MAX_QUESTIONS = 5
+K_CHAT_FOR, K_CHAT_AGAINST = 2.0, 0.5
 CANDIDATE_FLOOR = 0.05
 CHECK_TTL, MAX_CHECKS = 3600, 2000  # seconds a check is kept, and how many at most
 CHECKS_PER_MINUTE = 12  # photos one IP may send per minute
@@ -160,9 +161,7 @@ class Writer:
 
 # ---------- one check ----------
 
-POOL_SIZE = 6          # questions written per batch, picked from locally after each answer
-LIKELY = 0.70          # below the calibrated bar but worth naming as "likely"
-PLANT_DOWN = 0.02      # an answered plant question keeps other plants' classes at 2% of their weight
+LIKELY = 0.70          # below the bar but worth naming as "likely"
 
 
 @dataclass
@@ -174,13 +173,9 @@ class Check:
     question: dict | None = None
     final: dict | None = None
     message: str = ""
-    pool: list[dict] = field(default_factory=list)
-    pool_jobs: list = field(default_factory=list)
-    pool_sets: list = field(default_factory=list)
     advice: dict[str, Future] = field(default_factory=dict)
     history: list[dict] = field(default_factory=list)
     plant_known: bool = False
-    lock: threading.Lock = field(default_factory=threading.Lock)  # guards the question pool
     step: threading.RLock = field(default_factory=threading.RLock)  # one answer, stop or chat turn at a time
     final_cls: str = ""
     created: float = field(default_factory=time.time)
@@ -198,19 +193,8 @@ def normalise(p: dict[str, float]) -> dict[str, float]:
     return {k: v / s for k, v in p.items()}
 
 
-def entropy(p: dict[str, float]) -> float:
-    return -sum(v * math.log(v) for v in p.values() if v > 0)
-
-
 def apply(p: dict[str, float], supports: list[str], factor: float) -> dict[str, float]:
     return normalise({k: v * (factor if k in supports else 1.0) for k, v in p.items()})
-
-
-def expected_entropy(p: dict[str, float], supports: list[str]) -> float:
-    """How settled the odds would be after this question, averaged over a yes and a no."""
-    s = sum(p.get(c, 0) for c in supports)
-    p_yes = s * 0.8 + (1 - s) * 0.15
-    return p_yes * entropy(apply(p, supports, K_YES)) + (1 - p_yes) * entropy(apply(p, supports, K_NO))
 
 
 class Engine:
@@ -225,7 +209,7 @@ class Engine:
         self.sources = load_sources(MANIFEST)
         self.writer = writer
         self.threshold = self.identifier.threshold
-        self.fallback = [json.loads(line) for line in FALLBACK_QUESTIONS.read_text(encoding="utf-8").splitlines() if line.strip()]
+        self.use_questions(Bank(load_questions(), self.identifier.classes, Params.load()))
         self.checks: dict[str, Check] = {}
         self.jobs = ThreadPoolExecutor(max_workers=8)
         self.search_lock = threading.Lock()  # the retriever is shared; keep its searches one at a time
@@ -274,34 +258,15 @@ class Engine:
         while len(self.checks) > MAX_CHECKS:
             self.checks.pop(next(iter(self.checks)))
 
-    # ----- background work: questions and advice, written while the visitor reads -----
+    # ----- background work: care advice, written while the visitor reads -----
     def prefetch(self, chk: Check, spend) -> None:
-        """Start, in the background, everything the next screens may need: a question batch for each plant the
-        candidates span (so answering the plant question never waits), and the advice for the two likeliest classes."""
+        """Start, in the background, the advice for the two likeliest classes."""
         if not self.writer:
             return
         ranked = sorted(chk.probs, key=chk.probs.get, reverse=True)
-        by_crop: dict[str, list[str]] = {}
-        for c in ranked[:8]:
-            if CLASSES[c][1] and chk.probs[c] >= 0.01:
-                by_crop.setdefault(CLASSES[c][0], []).append(c)
-        groups = [frozenset(v[:4]) for v in by_crop.values() if len(v) >= 2]
-        cands = frozenset(c for c in chk.candidates() if CLASSES[c][1])
-        if len(cands) >= 2:
-            groups.append(cands)
-        for g in groups:
-            if not any(g <= done for done in chk.pool_sets):
-                chk.pool_sets.append(g)
-                chk.pool_jobs.append(self.jobs.submit(self.write_pool, chk, sorted(g), spend))
         for c in ranked[:2]:
             if c not in chk.advice and CLASSES[c][1] and chk.probs[c] >= 0.1:
                 chk.advice[c] = self.jobs.submit(self.write_advice, c, spend)
-
-    def symptom_passages(self, cls: str) -> list[dict]:
-        crop, disease, name = CLASSES[cls]
-        found = self.search(f"{disease} symptoms on leaves, what the spots look like", crop=crop, disease=disease, k=3) \
-            or self.search(f"{name} symptoms on leaves", crop=crop, k=3)
-        return [self._passage(p, cls) for p in found[:3]]
 
     def _passage(self, p, cls: str | None) -> dict:
         info = self.sources.get(p.source)
@@ -311,40 +276,6 @@ class Engine:
     @staticmethod
     def cite(pas: dict) -> str:
         return f"{pas['publisher'] or 'Extension guide'}, {pas['title']}"
-
-    def write_pool(self, chk: Check, cands: list[str], spend) -> list[dict]:
-        lines, passages = [], {}
-        for c in cands:
-            for pas in self.symptom_passages(c):
-                n = str(len(passages) + 1)
-                passages[n] = pas
-                lines.append(f"[{n}] ({c}) {pas['text']}")
-        if not lines:
-            return []
-        system = ("You write yes/no questions that help a gardener tell plant diseases apart by looking at the plant. "
-                  "Use ONLY the numbered guide passages. Each question is one short, plain sentence about something "
-                  "visible, ends with '?', and has no jargon. Return JSON only.")
-        user = ("Candidate classes: " + ", ".join(cands) + "\nPassages:\n" + "\n".join(lines)
-                + f'\n\nReturn {{"questions": [{{"text": "...", "supports": ["<class>", ...], "passages": ["<n>"]}}]}} with '
-                  f"{POOL_SIZE} questions that cover different differences. 'supports' = the classes a YES points to; "
-                  "never all of them. Cite passages about a class the question supports.")
-        try:
-            out = self.writer.json(system, user, spend, max_tokens=4000)
-        except Exception as e:
-            print("question batch failed, using the saved questions:", type(e).__name__, str(e)[:160], flush=True)
-            return []
-        pool = []
-        for q in out.get("questions", []):
-            if not isinstance(q, dict):
-                continue
-            text = str(q.get("text", "")).strip()
-            sup = [s for s in q.get("supports", []) if s in cands]
-            ps = [str(x) for x in q.get("passages", []) if str(x) in passages and passages[str(x)]["cls"] in sup]
-            if text.endswith("?") and len(text.split()) <= 30 and sup and len(sup) < len(cands) and ps:
-                pool.append({"id": uuid.uuid4().hex[:8], "text": text, "supports": sup, "source": self.cite(passages[ps[0]])})
-        with chk.lock:
-            chk.pool.extend(pool)
-        return pool
 
     def write_advice(self, cls: str, spend) -> dict:
         crop, disease, name = CLASSES[cls]
@@ -367,83 +298,71 @@ class Engine:
         used = pas[n - 1] if isinstance(n, int) and 1 <= n <= len(pas) else pas[0]
         return {"text": str(out.get("advice", "")).strip(), "source": self.cite(used)}
 
-    # ----- the next question: picked locally, no waiting on the model -----
+    # ----- the questions: the fixed bank and the fitted engine, all local code -----
+    def use_questions(self, bank: Bank) -> None:
+        self.bank = bank
+        self.crop_of_prefix = {}
+        for c in bank.classes:
+            self.crop_of_prefix.setdefault(c.split("___")[0], CLASSES[c][0])
+        self.prefix_of_crop = {v: k for k, v in self.crop_of_prefix.items()}
+
+    def vector(self, chk: Check):
+        import numpy as np
+
+        return np.array([chk.probs[c] for c in self.bank.classes], dtype=float)
+
+    def store(self, chk: Check, p) -> None:
+        chk.probs = {c: float(v) for c, v in zip(self.bank.classes, p, strict=True)}
+
+    def symptom_count(self, chk: Check) -> int:
+        return sum(1 for a in chk.asked if "qi" in a)
+
     def plant_question(self, chk: Check) -> dict | None:
+        """First question: the plant, whenever the photo fits more than one (it is almost free accuracy)."""
         if chk.plant_known:
             return None
-        crops = []
-        for c in chk.candidates():
-            crop = CLASSES[c][0]
-            if chk.probs[c] >= CANDIDATE_FLOOR and crop not in crops:
-                crops.append(crop)
-        if len(crops) < 2:
+        options = self.bank.plants(self.vector(chk))
+        if len(options) < 2:
             return None
+        crops = [self.crop_of_prefix[o] for o in options]
         names = [PLANT_NAME.get(c, c.capitalize()) for c in crops]
         return {"id": "plant", "kind": "plant", "options": [{"value": c, "label": n} for c, n in zip(crops, names)],
                 "text": "Is this a " + " or a ".join(n.lower() for n in names) + " plant?",
                 "source": "The photo fits diseases of more than one plant, and the plant settles it."}
 
-    def pick(self, chk: Check, wait: bool) -> dict | None:
+    def question_source(self, q) -> str:
+        if not q.passages:
+            return ""
+        info = self.sources.get(q.passages[0]["document"])
+        return f"{info.publisher or 'Extension guide'}, {info.title}" if info else q.passages[0]["document"]
+
+    def pick(self, chk: Check) -> dict | None:
         q = self.plant_question(chk)
         if q:
             return q
-        cands = chk.candidates()
-        seen = {a["text"].lower() for a in chk.asked}
-
-        def best(pool):
-            scored = []
-            for q in pool:
-                sup = [c for c in q["supports"] if c in cands]
-                if q["text"].lower() in seen or not sup or len(sup) == len(cands):
-                    continue
-                scored.append((expected_entropy(chk.probs, sup), q))
-            return min(scored, key=lambda t: t[0])[1] if scored else None
-
-        with chk.lock:
-            q = best(chk.pool)
-        pending = [j for j in chk.pool_jobs if not j.done()]
-        if q is None and pending and not wait:
-            q = self.best_fallback(chk, best)  # a saved guide question now beats waiting for the written batch
-            return q if q is not None else "pending"
-        if q is None and pending:
-            for j in pending:
-                try:
-                    j.result(timeout=25)
-                except Exception as e:
-                    print("question batch failed:", type(e).__name__, str(e)[:160], flush=True)
-                with chk.lock:
-                    q = best(chk.pool)
-                if q is not None:
-                    break
-        if q is None:
-            q = self.best_fallback(chk, best)
-        return q
-
-    def best_fallback(self, chk: Check, best):
-        fb = []
-        for f in self.fallback:
-            info = self.sources.get(f["document"])
-            fb.append({"id": f["id"], "text": f["text"], "supports": f["classes"],
-                       "source": f"{info.publisher}, {info.title}" if info else f["document"]})
-        return best(fb)
+        chk.plant_known = True  # one plant fits (or was answered): no plant question later
+        p = self.vector(chk)
+        asked = [a["qi"] for a in chk.asked if "qi" in a]
+        qi = self.bank.pick(p, asked) if len(asked) < self.bank.params.max_questions else None
+        if qi is None:
+            return None
+        q = self.bank.questions[qi]
+        return {"id": q.id, "qi": qi, "text": q.text, "source": self.question_source(q)}
 
     def next_step(self, chk: Check, spend, wait: bool = True) -> None:
-        top, p = chk.top()
-        if p >= self.threshold or len(chk.asked) >= MAX_QUESTIONS:
+        p = self.vector(chk)
+        top, conf = chk.top()
+        if self.bank.sure(p):
             return self.finish(chk, spend)
-        q = self.pick(chk, wait)
-        if q == "pending":
-            chk.question = None
-            chk.message = f"{round(p * 100)}% sure so far."
-            return
+        q = self.pick(chk)
         if q is None:
             return self.finish(chk, spend)
         chk.question = q
         chk.message = ("The photo leaves a few possibilities. Answer a couple of questions to narrow it down."
-                       if not chk.asked else f"{round(p * 100)}% sure so far.")
+                       if not chk.asked else f"{round(conf * 100)}% sure so far.")
         self.prefetch(chk, spend)
 
-    def answer(self, chk: Check, qid: str, ans: str, spend) -> None:
+    def answer(self, chk: Check, qid: str, ans: str, spend) -> bool:
         q = chk.question
         if q is None or q["id"] != qid:
             return False
@@ -451,17 +370,16 @@ class Engine:
         if q.get("kind") == "plant":
             chk.plant_known = True
             if ans in [o["value"] for o in q["options"]]:
-                chk.probs = normalise({k: v * (1.0 if CLASSES[k][0] == ans else PLANT_DOWN) for k, v in chk.probs.items()})
+                self.store(chk, self.bank.answer_plant(self.vector(chk), self.prefix_of_crop[ans]))
                 shown = PLANT_NAME.get(ans, ans.capitalize())
             else:
                 shown = "Not sure"
+            chk.asked.append({"text": q["text"], "answer": shown, "before": before})
         else:
-            if ans == "yes":
-                chk.probs = apply(chk.probs, q["supports"], K_YES)
-            elif ans == "no":
-                chk.probs = apply(chk.probs, q["supports"], K_NO)
+            code = {"yes": YES, "no": NO}.get(ans, UNSURE)  # anything else counts as "not sure"
+            self.store(chk, self.bank.update(self.vector(chk), q["qi"], code, self.symptom_count(chk)))
             shown = {"yes": "Yes", "no": "No"}.get(ans, "Not sure")
-        chk.asked.append({"text": q["text"], "answer": shown, "before": before})
+            chk.asked.append({"text": q["text"], "answer": shown, "before": before, "qi": q["qi"]})
         chk.question = None
         self.prefetch(chk, spend)
         self.next_step(chk, spend, wait=False)
@@ -475,11 +393,12 @@ class Engine:
         chk.final_cls = top
         crop, disease, name = CLASSES[top]
         pct = round(p * 100)
-        if p >= self.threshold:
+        bar = self.bank.bar_for(self.vector(chk))  # a healthy answer needs the higher bar
+        if p >= bar:
             level, chk.message = f"{pct}% sure", ""
         elif p >= LIKELY:
-            level, chk.message = f"Likely, {pct}%", (f"Fairly confident. SPROUT only says it's sure above {round(self.threshold * 100)}%, "
-                                                     "the bar its tests set. A closer photo in daylight could confirm it.")
+            level, chk.message = f"Likely, {pct}%", (f"Fairly confident. SPROUT only says it's sure above {round(bar * 100)}%, "
+                                                     "the bar fitted on its development photos. A closer photo in daylight could confirm it.")
         else:
             level, chk.message = f"Best guess, {pct}%", "It couldn't settle it. Try a closer photo in daylight, or ask your local extension office."
         if disease is None:

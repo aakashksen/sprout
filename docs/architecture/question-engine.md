@@ -4,6 +4,8 @@
 
 A photo alone often cannot separate look-alike diseases. The question engine asks the fewest yes or no questions that settle it. The rule that shapes everything here: **the LLM writes words, code does the counting.**
 
+> **Update, 2026-11-14 (E18).** The demo no longer has a language model write questions. The questions are a fixed bank (`datasets/followup_v2/questions.jsonl`, 54 questions, each tied to guide passages and to the classes a yes and a no support), and the update rule, the stopping rule and the strengths are `sprout.serve.question_engine` with the numbers fitted on `field_dev` (`configs/e18_params.json`). The plant question comes first, the next question is the one that best splits the top three, and the stop bars are 0.95 (0.985 for a healthy answer). Measurements, and the fact that the answers behind them are simulated, are in `docs/REPORT.md`, "Follow-up questions, second try". Where this page still describes written questions, the fixed bank replaces them.
+
 ## The loop
 
 ```mermaid

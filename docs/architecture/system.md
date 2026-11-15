@@ -23,7 +23,7 @@ flowchart TB
     end
 
     subgraph Workers ["Background thread pool, 8 workers"]
-        QW["Question writer"]
+        QW["Question bank builder (offline)"]
         AW["Advice writer"]
     end
 
@@ -42,7 +42,7 @@ flowchart TB
     ENG -->|likely diagnoses| AW
     QW --> RET
     AW --> RET
-    QW <-->|passages in, questions out| LLM
+    QW <-->|one time: passages in, questions out| LLM
     AW <-->|passages in, advice out| LLM
     API -->|chat| RET
     TR -->|model.onnx + calibration| ID
@@ -55,9 +55,9 @@ flowchart TB
 |---|---|---|
 | Browser | Rendering, the current check id, optimistic button states | Hold odds or decide anything |
 | Flask server | Every check's odds, history and questions | Trust anything the browser computes |
-| Odds engine | Probabilities, the next question, when to stop | Call the LLM |
-| Background workers | Writing questions and advice ahead of time | Change the odds |
-| LLM API | Wording questions, advice and chat replies as JSON | Produce numbers that reach the user |
+| Odds engine | Probabilities, the next question from the 54-question bank, when to stop | Call the LLM |
+| Background workers | Writing advice ahead of time | Change the odds |
+| LLM API | Wording advice and chat replies as JSON (the questions were written once, offline) | Produce numbers that reach the user |
 | Retriever | Finding guide passages for a plant and a disease | Generate text |
 
 ## Data that crosses each boundary

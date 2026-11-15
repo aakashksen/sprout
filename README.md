@@ -8,7 +8,9 @@
 
 Photograph a sick leaf. SPROUT names the disease, asks the few questions that settle it, and tells you what to do, citing the university extension guide the advice came from.
 
-![Python](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white) ![PyTorch](https://img.shields.io/badge/PyTorch-ConvNeXt_V2-EE4C2C?logo=pytorch&logoColor=white) ![ONNX Runtime](https://img.shields.io/badge/ONNX_Runtime-CPU-005CED?logo=onnx&logoColor=white) ![Flask](https://img.shields.io/badge/Flask-API-000000?logo=flask&logoColor=white) ![Tests](https://img.shields.io/badge/tests-~860-2ea44f) ![License](https://img.shields.io/badge/license-MIT-blue)
+**Follow-up questions raise field accuracy from 81.3% to 95.2% with 10% of answers wrong** (1,006 held-out field photos; [how it was measured](#question-engine)).
+
+![Python](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white) ![PyTorch](https://img.shields.io/badge/PyTorch-ConvNeXt_V2-EE4C2C?logo=pytorch&logoColor=white) ![ONNX Runtime](https://img.shields.io/badge/ONNX_Runtime-CPU-005CED?logo=onnx&logoColor=white) ![Flask](https://img.shields.io/badge/Flask-API-000000?logo=flask&logoColor=white) ![Tests](https://img.shields.io/badge/tests-901-2ea44f) ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ### [See it running: sprout.aakashsenthilnathan.com](https://sprout.aakashsenthilnathan.com)
 
@@ -27,8 +29,8 @@ Photograph a sick leaf. SPROUT names the disease, asks the few questions that se
 A photo alone often can't tell look-alike leaf diseases apart. SPROUT combines three things to get to one answer:
 
 1. **A vision model**: ConvNeXt V2 Tiny, trained on lab and field photos together, giving calibrated odds over 29 conditions on 14 plants.
-2. **A question engine** that asks short yes or no questions, picked so each one narrows the odds the most, and stops as soon as it's sure.
-3. **A search engine across 250+ university extension guides.** The questions, the care advice and the chat replies are all written from guide passages, and each one names its source.
+2. **A question engine** with 54 fixed questions aimed at the diseases the photo most often confuses, including things a photo can't show (the leaf underside, stem, fruit, how it spread, weather). Code picks the one that narrows the odds most and stops as soon as it's sure. On held-out field photos this lifts accuracy from 81.3% to 95.2% with 10% of the answers wrong.
+3. **A search engine across 250+ university extension guides.** The questions are written from guide passages, the care advice and the chat replies are written from them too, and each one names its source.
 
 The design rule behind all of it: **an LLM writes the words, plain code does the counting.** Every probability, the choice of the next question and the decision to stop are code, so the same answers always give the same result.
 
@@ -57,7 +59,7 @@ flowchart LR
 | Calibration | Temperature scaling, abstention bar, photo gate | Makes confidence mean something and rejects non-leaves |
 | Model export | ONNX, ONNX Runtime (CPU), Pillow and NumPy preprocessing | PyTorch-free serving image |
 | Search | pypdf, BM25, BGE-small embeddings via fastembed, MiniLM cross-encoder reranker | Finds the right guide passage for a plant and a disease |
-| Question engine | Plain Python: odds multipliers, expected information gain, stop rule | Chooses questions and the diagnosis; no LLM involved |
+| Question engine | Plain Python: a fixed bank of 54 guide-based questions, fitted answer strengths, expected information gain, confidence bar | Chooses questions and the diagnosis; no LLM involved |
 | Server | Flask, gunicorn, `ThreadPoolExecutor`, signed session cookies | JSON API, background writing, spend caps, rate limits |
 | Text | An LLM API for the live demo; a local LLM through Ollama for the full app | Words only, never numbers |
 | Front end | Hand-written HTML, CSS and JavaScript, inline SVG, no framework | Walkthrough, architecture page, live demo |
@@ -82,7 +84,7 @@ The browser holds nothing but the id of the current check; the server owns the o
 
 ## Life of a check
 
-One photo, a few taps, a diagnosis, then a conversation. The slow work (writing questions and advice) happens in the background while you read, so each tap only runs the odds engine.
+One photo, a few taps, a diagnosis, then a conversation. The slow work (writing the advice) happens in the background while you read, and the questions come from a fixed bank, so each tap only runs the odds engine.
 
 ```mermaid
 sequenceDiagram
@@ -92,7 +94,7 @@ sequenceDiagram
     participant W as Background
     G->>B: photo
     B->>S: POST /api/check
-    S->>W: start writing questions and advice
+    S->>W: start writing the advice
     S-->>B: odds + first question
     G->>B: taps an answer
     B->>S: POST /api/answer
@@ -118,7 +120,9 @@ sequenceDiagram
 
 ## Question engine
 
-Plain Python that turns uncertain odds into one answer. If the suspects belong to different plants, it asks about the plant first. Otherwise it asks the question expected to leave the least uncertainty (expected information gain), updates the odds with fixed multipliers, and repeats until one condition is sure or the question budget runs out. An LLM only phrases the candidate questions, from guide passages; it never touches a number.
+Plain Python that turns uncertain odds into one answer. It asks which plant first when the suspects belong to different plants, then picks, from a fixed bank of 54 questions written from the guides, the one expected to leave the least uncertainty (expected information gain). Each answer updates the odds with strengths fitted on a development set, and it stops at 95% confidence (98.5% for healthy), after 8 questions, or when no question helps. An LLM never touches a number. Questions are asked only about the diseases the photo is still unsure between, and 28 of the 54 are about things a photo can't show.
+
+**Results** on 1,006 held-out field photos (everything was fitted on a separate development set): photo only 81.3%, plus the plant question 84.0%, plus the new questions 96.8% with perfect answers, 95.2% with 10% of answers flipped and 91.8% with 20% flipped. A photo that gets questions gets about 2.8, and when it says it is 93% or more sure it is right about 97% of the time. The answers came from a simulated grower, not real people; the page below says how.
 
 ```mermaid
 flowchart LR
@@ -126,11 +130,11 @@ flowchart LR
     S -->|yes| D["Diagnosis"]
     S -->|no| P["Pick the most<br/>informative question"]
     P --> A["Answer"]
-    A --> U["Update odds:<br/>yes x3, no x0.35"]
+    A --> U["Update odds with<br/>fitted answer strengths"]
     U --> S
 ```
 
-[**Odds updates, information gain and the stop rule**](docs/architecture/question-engine.md)
+[**The question bank, odds updates, information gain, the stop rule and the E18 results**](docs/architecture/question-engine.md)
 
 ## Guide search
 
@@ -149,7 +153,7 @@ flowchart LR
 
 ## Vision model
 
-ConvNeXt V2 Tiny fine-tuned with PyTorch and timm on a CUDA GPU with mixed precision, on lab and field photos together so it holds up on real garden photos. Splits are made so near-duplicate photos never straddle train and test (perceptual hashes, plus DINOv2 similarity for extra sources). Temperature scaling calibrates the confidence, the model is exported to ONNX and served on CPU with ONNX Runtime, and a photo gate turns away images that aren't leaves.
+ConvNeXt V2 Tiny fine-tuned with PyTorch and timm on a CUDA GPU with mixed precision, on lab and field photos together so it holds up on real garden photos. Splits are grouped by near-duplicate photos (perceptual hashes, plus DINOv2 similarity for extra sources) so look-alikes stay on one side; 13 exact copies still cross the train and test line, and removing the closest look-alikes from the dev set lowers its accuracy by under a point. Temperature scaling calibrates the confidence, the model is exported to ONNX and served on CPU with ONNX Runtime, and a photo gate turns away images that aren't leaves.
 
 ```mermaid
 flowchart LR
@@ -176,7 +180,7 @@ flowchart LR
 
 ## Live demo server
 
-A single Flask process (`tools/live_demo.py`) that serves the website and its JSON API. A request thread answers immediately with odds and the first question, while an 8-worker thread pool writes the next questions and the advice through the LLM API. Per-visitor, per-IP and daily spend caps, per-IP photo rate limits, per-check locks and in-memory checks that expire after an hour keep it safe to leave running.
+A single Flask process (`tools/live_demo.py`) that serves the website and its JSON API. A request thread answers immediately with odds and the first question (the questions come from the fixed bank, no LLM call), while an 8-worker thread pool writes the advice through the LLM API. Per-visitor, per-IP and daily spend caps, per-IP photo rate limits, per-check locks and in-memory checks that expire after an hour keep it safe to leave running.
 
 ```mermaid
 flowchart LR

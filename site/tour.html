@@ -53,9 +53,9 @@
         <div class="screen">
           <p class="detected">Plant <b>Tomato</b> <button type="button" class="link-button" disabled>Not tomato?</button></p>
           <ol class="odds" aria-label="Three suspects">
-            <li><span class="odds__name">Early blight</span><span class="odds__pct">54%</span><span class="odds__bar"><span style="width: 54%"></span></span></li>
-            <li><span class="odds__name">Septoria leaf spot</span><span class="odds__pct">27%</span><span class="odds__bar"><span style="width: 27%"></span></span></li>
-            <li><span class="odds__name">Late blight</span><span class="odds__pct">11%</span><span class="odds__bar"><span style="width: 11%"></span></span></li>
+            <li><span class="odds__name">Early blight</span><span class="odds__pct">60%</span><span class="odds__bar"><span style="width: 60%"></span></span></li>
+            <li><span class="odds__name">Septoria leaf spot</span><span class="odds__pct">24%</span><span class="odds__bar"><span style="width: 24%"></span></span></li>
+            <li><span class="odds__name">Late blight</span><span class="odds__pct">8%</span><span class="odds__bar"><span style="width: 8%"></span></span></li>
           </ol>
           <p>Not sure yet. Two of these look alike from a photo.</p>
         </div>
@@ -63,7 +63,7 @@
           <h2 id="s2h">The model names the plant and three suspects</h2>
           <p>In about a fifth of a second the page shows the plant and the three likeliest diseases with their chances.</p>
           <h3 class="explain__sub">What the system is doing</h3>
-          <p>A ConvNeXt V2 image model, trained on 19,260 lab and garden photos, scores all 29 conditions it knows. The scores are calibrated so 90% means right about 90% of the time. SPROUT only calls a result sure above 93%; on held-out photos, the ones it answers at that bar are right 95% of the time. At 54% it asks instead of answering.</p>
+          <p>A ConvNeXt V2 image model, trained on 19,260 lab and garden photos, scores all 29 conditions it knows. The scores are calibrated so 90% means right about 90% of the time. SPROUT only calls a result sure at 95% or more (98.5% for a healthy leaf). At 60% it asks instead of answering.</p>
         </div>
       </section>
 
@@ -80,15 +80,15 @@
             <button type="button" class="btn btn--small" aria-pressed="true">Tomato</button>
           </div>
           <ul class="answers">
-            <li>Answer: Tomato <b>Tomato late blight 21% to 90%</b></li>
-            <li>One more yes <b>90% to 97%</b></li>
+            <li>Answer: Tomato <b>Tomato late blight 21% to 91%</b></li>
+            <li>One more yes, to “white fuzzy growth on the underside?” <b>91% to 95%</b></li>
           </ul>
         </div>
         <div class="explain">
           <h2 id="s3h">Sometimes the plant comes first</h2>
           <p>Late blight looks almost the same on potato and tomato, so a photo alone can lean the wrong way. One tap on the plant fixes it.</p>
           <h3 class="explain__sub">What the system is doing</h3>
-          <p>When the top suspects belong to different plants, the first question is which plant. Answering keeps that plant’s conditions and cuts every other plant’s to 2% of its weight. In this real run on a different leaf, tomato late blight went from 21% to 90% on one tap, and to 97% after one more yes.</p>
+          <p>When the top suspects belong to different plants, the first question is which plant. Answering keeps that plant’s conditions and cuts every other plant’s to 2% of its weight. The plant question is asked on about one photo in six. In this real run on a different leaf, tomato late blight went from 21% to 91% on one tap, and to 95% after one more yes.</p>
         </div>
       </section>
 
@@ -108,16 +108,16 @@
           </div>
         </div>
         <div class="explain">
-          <h2 id="s4h">It looks up what tells the suspects apart</h2>
-          <p>For each suspect, SPROUT pulls the guides’ own description of its symptoms.</p>
+          <h2 id="s4h">The questions come from the guides</h2>
+          <p>Each of SPROUT’s 54 questions was written from the guides’ own description of the symptoms it asks about.</p>
           <h3 class="explain__sub">What the system is doing</h3>
-          <p>The search runs across 250+ extension guides, filtered to tomato and to each disease still in the running. It combines keyword matching (BM25) with meaning-based matching, then a reranker reorders the top hits; the reranker is the part that measurably improved finding the right passage. This happens in a background thread the moment the photo is read.</p>
+          <p>The questions were written ahead of time, from the extension guides, for the diseases the photo model most often confuses, and each carries the guide passages behind it. 28 of them are about things a photo can’t show: the underside of the leaf, the stem, the fruit, how it spread, timing and weather. The guides themselves are searched with keyword matching (BM25) plus meaning-based matching and a reranker, which is also what finds the passages for the advice and the chat.</p>
         </div>
       </section>
 
       <section class="step" aria-labelledby="s5h">
         <div class="screen">
-          <p class="source">Question 1 of up to 5</p>
+          <p class="source">Question 1 of up to 8</p>
           <p class="question">Do the brown leaf spots have dark rings inside them, like a bull’s-eye?</p>
           <div class="actions">
             <button type="button" class="btn btn--small" aria-pressed="true">Yes</button>
@@ -128,46 +128,46 @@
         </div>
         <div class="explain">
           <h2 id="s5h">It asks one question</h2>
-          <p>Each question is about something you can see, answered with a tap. The answer shows at once because the questions were written while you were reading the result.</p>
+          <p>Each question is about something you can see, answered with a tap. The next question appears at once because the questions are a fixed set, so nothing has to be written while you wait.</p>
           <h3 class="explain__sub">What the system is doing</h3>
-          <p>An AI model writes a batch of six questions from those passages. Code then throws out any question that doesn’t cite a passage or that every suspect would answer the same way. From what’s left it picks the one expected to narrow the odds the most, so the first question is the most informative one, not the first one written.</p>
+          <p>Code looks at the three likeliest diseases and picks the question expected to narrow the odds the most, so the first question is the most informative one. Here that is the bull’s-eye question, which separates early blight from Septoria and late blight.</p>
         </div>
       </section>
 
       <section class="step" aria-labelledby="s6h">
         <div class="screen">
           <ol class="odds" aria-label="Odds after three answers">
-            <li><span class="odds__name">Early blight</span><span class="odds__pct">94%</span><span class="odds__bar"><span style="width: 94%"></span></span></li>
+            <li><span class="odds__name">Early blight</span><span class="odds__pct">96%</span><span class="odds__bar"><span style="width: 96%"></span></span></li>
+            <li><span class="odds__name">Target spot</span><span class="odds__pct">2%</span><span class="odds__bar"><span style="width: 2%"></span></span></li>
             <li><span class="odds__name">Septoria leaf spot</span><span class="odds__pct">2%</span><span class="odds__bar"><span style="width: 2%"></span></span></li>
-            <li><span class="odds__name">Late blight</span><span class="odds__pct">2%</span><span class="odds__bar"><span style="width: 2%"></span></span></li>
           </ol>
           <ul class="answers">
-            <li>Dark rings inside the spots <b>Yes, 54% to 78%</b></li>
-            <li>Many small spots with grey centres <b>No, 78% to 85%</b></li>
-            <li>A yellow ring around each spot <b>Yes, 85% to 94%</b></li>
+            <li>Dark rings inside the spots <b>Yes, 60% to 85%</b></li>
+            <li>Dark, elongated spots on the stems <b>Yes, 85% to 93%</b></li>
+            <li>Started on the lowest, oldest leaves <b>Yes, 93% to 96%</b></li>
           </ul>
         </div>
         <div class="explain">
           <h2 id="s6h">Each answer moves the odds</h2>
-          <p>A yes counts for the diseases the question’s passage describes, a no counts against them, and not sure changes nothing.</p>
+          <p>A yes counts for the diseases the question’s guide passage describes and against the ones a no would point to, and not sure counts for very little.</p>
           <h3 class="explain__sub">What the system is doing</h3>
-          <p>Code multiplies the supported diseases by 3 for a yes, or by 0.35 for a no, then rescales everything to add up to 100%. Worked through: early blight 54 × 3 = 162 against 27 + 11 + 8 for the rest, so 162 ÷ 208 = 78%. It stops once one disease passes 93%, after five questions, or when no question can separate the suspects any more.</p>
+          <p>Code multiplies each disease by how likely that answer is if it were the right one, then rescales everything to add up to 100%. Those likelihoods were fitted on a separate development set, not set by hand, and each extra question counts a little less than the one before because answers overlap. It stops once one disease passes 95% (98.5% for healthy), after eight questions, or when no question can separate the suspects any more.</p>
         </div>
       </section>
 
       <section class="step" aria-labelledby="s7h">
         <div class="screen">
-          <span class="final__sure">94% sure</span>
+          <span class="final__sure">96% sure</span>
           <span class="final__name">Tomato early blight</span>
           <p>Keep plants mulched so soil doesn’t splash onto leaves, water at the base, and remove infected leaves during the season. A fungicide labelled for early blight can slow it; follow the label.</p>
           <p class="source">University of Maryland Extension, Early Blight of Tomatoes</p>
-          <p class="source">SPROUT says “sure” only above 93%, so this is a likely answer.</p>
+          <p class="source">SPROUT says “sure” at 95% or more.</p>
         </div>
         <div class="explain">
           <h2 id="s7h">The answer, with where it came from</h2>
-          <p>Early blight, 94% sure, with care advice from the University of Maryland Extension guide.</p>
+          <p>Early blight, 96% sure, with care advice from the University of Maryland Extension guide.</p>
           <h3 class="explain__sub">What the system is doing</h3>
-          <p>The advice was drafted in the background as soon as early blight became likely, so it appears with the answer. It is written only from the guide passages it cites. Below the 93% bar the answer reads “Likely” (70% or more) or “Best guess”, with a suggestion to try a closer photo.</p>
+          <p>The advice was drafted in the background as soon as early blight became likely, so it appears with the answer. It is written only from the guide passages it cites. Below the 95% bar the answer reads “Likely” (70% or more) or “Best guess”, with a suggestion to try a closer photo.</p>
         </div>
       </section>
 
@@ -176,7 +176,7 @@
           <p class="chat__you">The lowest leaves are turning yellow and dropping off.</p>
           <p class="chat__sprout">That fits early blight: it usually starts on the lower leaves and works its way up. Pruning the lowest leaf branches once fruit sets helps.</p>
           <p class="source">University of Maryland Extension, Early Blight of Tomatoes</p>
-          <p class="shift">Early blight 94% to 97%</p>
+          <p class="shift">Early blight 96% to 98%</p>
           <p class="chat__you">Can I still eat the tomatoes?</p>
           <p class="chat__sprout">The guides I searched don’t cover that, so this is general advice, not from a guide: cut away any spotted parts and ask your local extension office if you’re unsure.</p>
         </div>
@@ -184,13 +184,13 @@
           <h2 id="s8h">Then you can ask about your plant</h2>
           <p>The chat answers follow-up questions and remembers the conversation, so the gardener can describe what else they see.</p>
           <h3 class="explain__sub">What the system is doing</h3>
-          <p>Each message is answered from the guide passages for the diagnosis, with numbered sources; anything the guides don’t cover is marked as general advice. When the gardener describes a symptom, the AI model points to their own words as evidence and the same code moves the odds: here, “lowest leaves turning yellow” fits early blight, 94% to 97%. A plain question never moves the odds.</p>
+          <p>Each message is answered from the guide passages for the diagnosis, with numbered sources; anything the guides don’t cover is marked as general advice. When the gardener describes a symptom, the AI model points to their own words as evidence and the same code moves the odds: here, “lowest leaves turning yellow” fits early blight, 96% to 98%. A plain question never moves the odds.</p>
         </div>
       </section>
       <section class="step tour-end" id="tour-end" aria-labelledby="endh" hidden>
         <div class="screen">
           <p class="final__sure">That’s the whole check.</p>
-          <span class="final__name">Photo, two questions, a diagnosis and a conversation.</span>
+          <span class="final__name">Photo, three questions, a diagnosis and a conversation.</span>
         </div>
         <div class="explain">
           <h2 id="endh">You’ve finished the walkthrough</h2>

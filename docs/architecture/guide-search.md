@@ -2,7 +2,7 @@
 
 [Back to README](../../README.md) · Previous: [Question engine](question-engine.md) · Next: [Vision model](vision-model.md)
 
-Every question, piece of advice and chat reply starts from passages in 250+ university extension guides. The search has to find the passage about *this* disease on *this* plant, not a generic one.
+Every question (written once, offline), piece of advice and chat reply starts from passages in 250+ university extension guides. The search has to find the passage about *this* disease on *this* plant, not a generic one.
 
 ## Building the index (offline)
 
@@ -46,7 +46,7 @@ The hybrid merge finds the right neighbourhood; the reranker, which reads the qu
 ```mermaid
 flowchart LR
     subgraph Uses ["Callers"]
-        QW["Question writer"]
+        QW["Question bank builder (offline)"]
         AW["Advice writer"]
         CH["Chat"]
     end

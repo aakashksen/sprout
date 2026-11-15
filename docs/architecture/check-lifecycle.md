@@ -23,7 +23,7 @@ sequenceDiagram
     S->>I: decode, turn upright, gate, model
     I-->>S: odds for 29 conditions
     S->>E: new check
-    E->>W: write question batches and advice (async)
+    E->>W: write the advice (async)
     E->>E: suspects span two plants, so ask the plant
     S-->>B: plant, top 3 odds, "Is this a potato or a tomato plant?"
     B-->>G: odds bars and the question
@@ -38,19 +38,15 @@ sequenceDiagram
     participant B as Browser
     participant S as Flask server
     participant E as Odds engine
-    participant P as Question pool
+    participant P as Question bank (54 fixed)
 
     G->>B: taps "Tomato"
     B->>B: marks the button, disables the others
     B->>S: POST /api/answer (check, question, "tomato")
     S->>E: lock the check, apply the answer
-    E->>E: other plants x0.02, renormalise: tomato late blight 90%
+    E->>E: other plants x0.02, renormalise: tomato late blight 91%
     E->>P: best question for the suspects left
-    alt a written question is ready
-        P-->>E: question with its guide source
-    else the batch is still being written
-        E->>E: use a saved question from the guides
-    end
+    P-->>E: question with its guide source
     S-->>B: new odds and the next question
     B-->>G: bars slide, question appears
 ```
@@ -66,8 +62,8 @@ sequenceDiagram
     participant A as Advice job
 
     B->>S: POST /api/answer ("yes")
-    S->>E: apply: tomato late blight 97%
-    E->>E: 97% passes the 93% bar, so stop
+    S->>E: apply: tomato late blight 95%
+    E->>E: 95% or more passes the bar, so stop
     E->>A: advice for tomato late blight ready?
     alt already written
         A-->>E: advice + guide source
@@ -100,7 +96,7 @@ sequenceDiagram
     S->>L: passages, conversation so far, candidates
     L-->>S: reply, cited passages, evidence quoting the gardener
     S->>E: evidence counts only if it quotes the gardener's own words
-    E->>E: early blight 94% to 97%
+    E->>E: early blight 96% to 98%
     S-->>B: reply with numbered sources, "Odds updated"
 ```
 
@@ -113,9 +109,7 @@ stateDiagram-v2
     Reading --> Invalid: unreadable file
     Reading --> Asking: odds ready
     Asking --> Asking: answer, still under the bar
-    Asking --> Pending: no question ready yet
-    Pending --> Asking: batch written
-    Asking --> Final: bar reached, 5 questions, or nothing splits the suspects
+    Asking --> Final: bar reached, 8 questions, or nothing splits the suspects
     Asking --> Final: visitor skips
     Final --> Final: chat turns
     Final --> [*]: expires after 1 hour

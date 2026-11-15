@@ -9,7 +9,7 @@
 | Method and path | Body | Returns | Calls the LLM? |
 |---|---|---|---|
 | `POST /api/check` | photo (multipart) | plant, top 3 odds, first question or `pending` | starts background jobs |
-| `POST /api/next` | check id | the next question once one is ready | no |
+| `POST /api/next` | check id | the next question (kept for older clients; questions are no longer written at run time) | no |
 | `POST /api/answer` | check id, question id, answer or `stop` | new odds, next question or the final answer | no |
 | `POST /api/advice` | check id | the final answer with its advice | no (waits for the job) |
 | `POST /api/chat` | check id, text | reply, numbered sources, odds shift | yes |
@@ -25,19 +25,12 @@ sequenceDiagram
     participant L as LLM API
 
     B->>S: POST /api/check
-    S->>W: question batch per plant group
-    S->>W: advice for the two likeliest
+        S->>W: advice for the two likeliest
     S-->>B: odds + first question (no waiting)
-    par written while the gardener reads
-        W->>L: passages -> 6 questions
-        L-->>W: JSON
-        W->>W: validate, add to the pool
-    and
-        W->>L: passages -> advice
-        L-->>W: JSON
-    end
+    W->>L: passages -> advice (while the gardener reads)
+    L-->>W: JSON
     B->>S: POST /api/answer
-    S->>S: update odds, pick from the pool
+    S->>S: update odds, pick from the fixed bank
     S-->>B: next question in milliseconds
 ```
 
@@ -68,7 +61,7 @@ flowchart TD
 | LLM call timeout | 30 s, one retry |
 | Upload size | 20 MB |
 
-Photos are read in memory and discarded. The API key is read from `.env` and never sent to the browser. If no key is set, questions come from the 52 saved guide questions and the chat is off.
+Photos are read in memory and discarded. The API key is read from `.env` and never sent to the browser. If no key is set, the questions still work (they are a fixed bank of 54) and the chat and advice are off.
 
 ## Concurrency model
 

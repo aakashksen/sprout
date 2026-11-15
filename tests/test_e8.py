@@ -250,8 +250,9 @@ def test_without_measurement_mode_no_stage_times_come_back(tmp_path):
 
 def test_a_server_that_answers_too_slowly_is_a_client_timeout(target):
     t = target(llm=SlowLLM(seconds=0.6))
-    c = e8.HttpClient(t.base_url, 0.2)
-    c.sign_up()
+    c = e8.HttpClient(t.base_url, 6)
+    c.sign_up()  # a normal timeout here: a slow CI runner can take over 0.2 s to sign up
+    c.timeout = 0.2  # only the slow answer should time out
     row = c.user_action("p/0.png", png(), "What is wrong?")
     assert row["answer_state"] == "client_timeout" and row["answer_state"] in e8.FAILED_STATES
 

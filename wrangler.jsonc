@@ -1,0 +1,10 @@
+// Cloudflare Worker that serves the SPROUT website (site/) as static assets at sprout.aakashsenthilnathan.com.
+// One address only: no workers.dev URL and no preview URLs.
+{
+  "name": "sprout",
+  "compatibility_date": "2026-11-01",
+  "assets": { "directory": "./site" },
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "sprout.aakashsenthilnathan.com", "custom_domain": true }]
+}
